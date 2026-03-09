@@ -6,21 +6,10 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 
 | Module | Purpose |
 |--------|---------|
-| `algorithm-state.ts` | Algorithm phase state tracking |
-| `change-detection.ts` | Detects meaningful code changes |
 | `coding-standards-checks.ts` | Violation detection for coding standards (raw imports, try-catch, process.env, inline import types, as-any, relative imports) |
-| `identity.ts` | DA/principal identity helpers |
-| `learning-utils.ts` | Learning signal utilities |
-| `metadata-extraction.ts` | Extracts metadata from tool inputs |
 | `narrative-reader.ts` | Reads narrative templates for hook messages |
-| `notifications.ts` | Voice/visual notification helpers |
-| `output-validators.ts` | Validates hook output shapes |
-| `paths.ts` | PAI directory path constants |
-| `prd-template.ts` | PRD file template generation |
 | `signal-logger.ts` | Appends structured signals to JSONL files |
-| `tab-constants.ts` | Terminal tab naming constants |
-| `tab-setter.ts` | Sets terminal tab titles |
-| `time.ts` | Timestamp formatting |
+| `time.ts` | Timestamp formatting (timezone via `TZ` env var, defaults to UTC) |
 
 ## coding-standards-checks.ts
 
