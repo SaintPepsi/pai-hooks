@@ -333,14 +333,6 @@
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/UpdateCounts.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IntegrityCheck.hook.ts"
-          },
-          {
-            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitAutoSync.hook.ts"
           },
           {
@@ -401,10 +393,6 @@
     "Stop": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/StopOrchestrator.hook.ts"
-          },
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LastResponseCache.hook.ts"

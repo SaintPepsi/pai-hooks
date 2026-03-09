@@ -1,10 +1,10 @@
 # pai-hooks
 
-A portable collection of 40 Claude Code hooks extracted from [PAI](https://github.com/danielmiessler/PAI). Install them into any Claude Code setup with a single command.
+A portable collection of 37 Claude Code hooks extracted from [PAI](https://github.com/danielmiessler/PAI). Install them into any Claude Code setup with a single command.
 
 ## What's included
 
-23 hooks by [@SaintPepsi](https://github.com/SaintPepsi), 17 from the [PAI framework](https://github.com/danielmiessler/PAI).
+23 hooks by [@SaintPepsi](https://github.com/SaintPepsi), 14 from the [PAI framework](https://github.com/danielmiessler/PAI).
 
 **Security & Safety**
 - `DestructiveDeleteGuard` — confirms before deleting files
@@ -39,11 +39,8 @@ A portable collection of 40 Claude Code hooks extracted from [PAI](https://githu
 - `StartupGreeting` — shows PAI banner at session start *(PAI)*
 - `LoadContext` — loads PAI context at session start *(PAI)*
 - `CheckVersion` — checks PAI version at session start *(PAI)*
-- `StopOrchestrator` — orchestrates stop-event hooks *(PAI)*
 - `SessionSummary` — generates session summaries on `Stop` *(PAI)*
 - `WorkCompletionLearning` — captures learnings on work completion *(PAI)*
-- `IntegrityCheck` — validates system integrity at session end *(PAI)*
-- `UpdateCounts` — updates signal/workflow counts at session end *(PAI)*
 - `VoiceGate` — routes voice notifications on `Bash` *(PAI)*
 
 **Intelligence & Tracking**
