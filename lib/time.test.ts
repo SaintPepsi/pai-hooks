@@ -1,24 +1,9 @@
 /**
  * Unit tests for time utility functions.
  *
- * Mocks @hooks/lib/identity to control timezone for deterministic results.
+ * Uses default UTC timezone for deterministic results.
  */
-import { mock, describe, it, expect, beforeEach } from "bun:test";
-
-// Mock the identity module before importing time functions
-mock.module("@hooks/lib/identity", () => ({
-  getPrincipal: () => ({ name: "TestUser", pronunciation: "", timezone: "UTC" }),
-  getIdentity: () => ({ name: "PAI", fullName: "Personal AI", displayName: "PAI", mainDAVoiceID: "", color: "#3B82F6" }),
-  clearCache: () => {},
-  getDAName: () => "PAI",
-  getPrincipalName: () => "TestUser",
-  getVoiceId: () => "",
-  getSettings: () => ({}),
-  getDefaultIdentity: () => ({ name: "PAI", fullName: "Personal AI", displayName: "PAI", mainDAVoiceID: "", color: "#3B82F6" }),
-  getDefaultPrincipal: () => ({ name: "User", pronunciation: "", timezone: "UTC" }),
-  getVoiceProsody: () => undefined,
-  getVoicePersonality: () => undefined,
-}));
+import { describe, it, expect } from "bun:test";
 
 import {
   getLocalTimestamp,

@@ -1,15 +1,12 @@
 # pai-hooks
 
-A portable collection of 37 Claude Code hooks extracted from [PAI](https://github.com/danielmiessler/PAI). Install them into any Claude Code setup with a single command.
+23 Claude Code hooks by [@SaintPepsi](https://github.com/SaintPepsi). Install them into any Claude Code setup with a single command.
 
 ## What's included
-
-23 hooks by [@SaintPepsi](https://github.com/SaintPepsi), 14 from the [PAI framework](https://github.com/danielmiessler/PAI).
 
 **Security & Safety**
 - `DestructiveDeleteGuard` — confirms before deleting files
 - `WorktreeSafetyVerification` — prevents cross-worktree contamination
-- `SecurityValidator` — blocks dangerous shell commands and destructive operations *(PAI)*
 
 **Code Quality**
 - `CodingStandardsEnforcer` — enforces coding standards on `Write`/`Edit`
@@ -27,8 +24,6 @@ A portable collection of 37 Claude Code hooks extracted from [PAI](https://githu
 - `TestObligationTracker` — tracks test changes alongside code on `Write`/`Edit`/`Bash`
 - `TestObligationEnforcer` — enforces test obligations on `Stop`
 - `HookExecutePermission` — controls hook execution permissions on `Write`
-- `PRDSync` — syncs PRD frontmatter to `work.json` on `Write`/`Edit` *(PAI)*
-- `SkillGuard` — validates skill invocations on `PreToolUse` *(PAI)*
 
 **Session Lifecycle**
 - `CheckAlgorithmVersion` — validates Algorithm version at session start
@@ -36,20 +31,9 @@ A portable collection of 37 Claude Code hooks extracted from [PAI](https://githu
 - `SessionQualityReport` — produces quality metrics per session
 - `LearningActioner` — spawns agent to analyze session learnings
 - `ModeAnalytics` — tracks Algorithm/Native/Minimal mode usage at session end
-- `StartupGreeting` — shows PAI banner at session start *(PAI)*
-- `LoadContext` — loads PAI context at session start *(PAI)*
-- `CheckVersion` — checks PAI version at session start *(PAI)*
-- `SessionSummary` — generates session summaries on `Stop` *(PAI)*
-- `WorkCompletionLearning` — captures learnings on work completion *(PAI)*
-- `VoiceGate` — routes voice notifications on `Bash` *(PAI)*
 
 **Intelligence & Tracking**
 - `ArchitectureEscalation` — escalates after N failed fix attempts on `TaskUpdate`
-- `AlgorithmTracker` — tracks Algorithm phase transitions on `Bash`/`Task` *(PAI)*
-- `AgentExecutionGuard` — controls agent/task spawning on `PreToolUse` *(PAI)*
-- `AutoWorkCreation` — auto-creates work entries from prompts on `UserPromptSubmit` *(PAI)*
-- `QuestionAnswered` — tracks question/answer patterns on `AskUserQuestion` *(PAI)*
-- `RelationshipMemory` — captures relationship notes from sessions at session end *(PAI)*
 
 **Citations**
 - `CitationTracker` — tracks citation sources on `WebSearch`/`WebFetch`/`Skill`

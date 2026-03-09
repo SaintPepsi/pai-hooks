@@ -2,17 +2,19 @@
  * Shared Time Utilities
  *
  * Consistent timestamp generation across the hook system.
- * Reads timezone from settings.json via principal.timezone
+ * Reads timezone from TZ env var (defaults to UTC).
  * Used by: All hooks that need timestamps
  */
 
-import { getPrincipal } from './identity';
+const defaultDeps = {
+  timezone: process.env.TZ || 'UTC',
+};
 
 /**
- * Get configured timezone from settings.json (defaults to UTC)
+ * Get configured timezone (defaults to UTC)
  */
 function getTimezone(): string {
-  return getPrincipal().timezone || 'UTC';
+  return defaultDeps.timezone;
 }
 
 /**
