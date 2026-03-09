@@ -48,7 +48,7 @@ bun install
 bun run install-hooks
 ```
 
-This merges all hooks into `~/.claude/settings.json` and sets the `SAINTPEPSI_PAI_HOOKS_DIR` env var.
+This merges all hooks into `settings.json` (located via `$PAI_DIR`, defaulting to `~/.claude`) and adds `export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"` to your `~/.zshrc` in a managed block. Requires `$PAI_DIR` to be set in your shell (e.g., via PAI's own zshrc block).
 
 If you already have hooks with the same name from another source (e.g., a PAI install), the installer detects the conflict and asks whether to keep existing, replace, or keep both. Use `--replace`, `--keep`, or `--both` to skip the prompt:
 
@@ -64,7 +64,7 @@ bun run install-hooks --both      # install both (both fire on the same event)
 bun run uninstall-hooks
 ```
 
-Cleanly removes all pai-hooks entries and the env var from `settings.json`, leaving your other hooks untouched.
+Cleanly removes all pai-hooks entries from `settings.json`, removes the managed block from `~/.zshrc`, and cleans up any legacy env var from `settings.json`. Leaves your other hooks untouched.
 
 ## How it works
 

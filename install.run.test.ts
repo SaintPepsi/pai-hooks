@@ -25,6 +25,7 @@ function makeDeps(overrides: Partial<InstallDeps> = {}): InstallDeps & Captured 
     fileExists: () => true,
     stderr: (msg: string) => { captured.stderrLines.push(msg); },
     stdout: (msg: string) => { captured.stdoutLines.push(msg); },
+    paiDir: "/tmp/test-pai",
     homeDir: "/tmp/test-home",
     argv: [],
     prompt: async () => "k",
@@ -145,26 +146,34 @@ describe("install run() — early returns", () => {
 });
 
 describe("install run() — successful install", () => {
-  it("reads manifest, exported hooks, settings, and writes merged result", async () => {
+  it("writes settings.json and .zshrc", async () => {
     let callCount = 0;
     const deps = makeDeps({
       readFile: () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: emptySettings };
+        if (callCount === 3) return { ok: true, value: emptySettings };
+        // zshrc read
+        return { ok: true, value: "# existing zshrc\n# PAI-END\n" };
       },
     });
     await run(deps);
 
-    expect(deps.writtenFiles.size).toBe(1);
-    const writtenPath = [...deps.writtenFiles.keys()][0];
-    expect(writtenPath).toContain("settings.json");
+    expect(deps.writtenFiles.size).toBe(2);
 
-    const written = JSON.parse(deps.writtenFiles.get(writtenPath)!);
-    expect(written.env.SAINTPEPSI_PAI_HOOKS_DIR).toBeDefined();
+    // Check settings.json was written with hooks but no env var
+    const settingsPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith("settings.json"))!;
+    const written = JSON.parse(deps.writtenFiles.get(settingsPath)!);
+    expect(written.env.SAINTPEPSI_PAI_HOOKS_DIR).toBeUndefined();
     expect(written.hooks.PreToolUse).toBeDefined();
     expect(written.hooks.PostToolUse).toBeDefined();
+
+    // Check zshrc was written with managed block
+    const zshrcPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith(".zshrc"))!;
+    const zshrc = deps.writtenFiles.get(zshrcPath)!;
+    expect(zshrc).toContain("PAI-HOOKS-BEGIN");
+    expect(zshrc).toContain("SAINTPEPSI_PAI_HOOKS_DIR");
   });
 
   it("reports hook count after install", async () => {
@@ -174,7 +183,8 @@ describe("install run() — successful install", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: emptySettings };
+        if (callCount === 3) return { ok: true, value: emptySettings };
+        return { ok: true, value: "# zshrc\n" };
       },
     });
     await run(deps);
@@ -194,12 +204,36 @@ describe("install run() — successful install", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithEnv };
+        if (callCount === 3) return { ok: true, value: settingsWithEnv };
+        return { ok: true, value: "# zshrc\n" };
       },
     });
     await run(deps);
 
     expect(deps.stdoutLines.some((l) => l.includes("already installed") && l.includes("Re-installing"))).toBe(true);
+  });
+
+  it("removes legacy env var from settings on re-install", async () => {
+    const settingsWithEnv = JSON.stringify({
+      env: { SAINTPEPSI_PAI_HOOKS_DIR: "/old/path", OTHER: "keep" },
+      hooks: {},
+    });
+    let callCount = 0;
+    const deps = makeDeps({
+      readFile: () => {
+        callCount++;
+        if (callCount === 1) return { ok: true, value: validManifest };
+        if (callCount === 2) return { ok: true, value: validExported };
+        if (callCount === 3) return { ok: true, value: settingsWithEnv };
+        return { ok: true, value: "# zshrc\n" };
+      },
+    });
+    await run(deps);
+
+    const settingsPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith("settings.json"))!;
+    const written = JSON.parse(deps.writtenFiles.get(settingsPath)!);
+    expect(written.env.SAINTPEPSI_PAI_HOOKS_DIR).toBeUndefined();
+    expect(written.env.OTHER).toBe("keep");
   });
 });
 
@@ -344,13 +378,14 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: emptySettings };
+        if (callCount === 3) return { ok: true, value: emptySettings };
+        return { ok: true, value: "# zshrc\n" };
       },
       prompt: async () => { promptCalled = true; return "r"; },
     });
     await run(deps);
     expect(promptCalled).toBe(false);
-    expect(deps.writtenFiles.size).toBe(1);
+    expect(deps.writtenFiles.size).toBe(2);
   });
 
   it("prompts user when conflicts exist and no CLI flag", async () => {
@@ -361,7 +396,8 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithExistingHook };
+        if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
+        return { ok: true, value: "# zshrc\n" };
       },
       prompt: async () => { promptCalled = true; return "r"; },
     });
@@ -376,13 +412,15 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithExistingHook };
+        if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
+        return { ok: true, value: "# zshrc\n" };
       },
       argv: ["--replace"],
     });
     await run(deps);
 
-    const written = JSON.parse([...deps.writtenFiles.values()][0]);
+    const settingsPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith("settings.json"))!;
+    const written = JSON.parse(deps.writtenFiles.get(settingsPath)!);
     // The PAI_DIR CodingStandards hook should be gone, replaced by our version
     const allCommands: string[] = [];
     for (const matchers of Object.values(written.hooks)) {
@@ -405,13 +443,15 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithExistingHook };
+        if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
+        return { ok: true, value: "# zshrc\n" };
       },
       argv: ["--keep"],
     });
     await run(deps);
 
-    const written = JSON.parse([...deps.writtenFiles.values()][0]);
+    const settingsPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith("settings.json"))!;
+    const written = JSON.parse(deps.writtenFiles.get(settingsPath)!);
     const allCommands: string[] = [];
     for (const matchers of Object.values(written.hooks)) {
       for (const group of matchers as MatcherGroup[]) {
@@ -434,13 +474,15 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithExistingHook };
+        if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
+        return { ok: true, value: "# zshrc\n" };
       },
       argv: ["--both"],
     });
     await run(deps);
 
-    const written = JSON.parse([...deps.writtenFiles.values()][0]);
+    const settingsPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith("settings.json"))!;
+    const written = JSON.parse(deps.writtenFiles.get(settingsPath)!);
     const allCommands: string[] = [];
     for (const matchers of Object.values(written.hooks)) {
       for (const group of matchers as MatcherGroup[]) {
@@ -461,7 +503,8 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithExistingHook };
+        if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
+        return { ok: true, value: "# zshrc\n" };
       },
       argv: ["--replace"],
     });
@@ -478,13 +521,15 @@ describe("install run() — conflict resolution", () => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
-        return { ok: true, value: settingsWithExistingHook };
+        if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
+        return { ok: true, value: "# zshrc\n" };
       },
       prompt: async () => "x",
     });
     await run(deps);
 
-    const written = JSON.parse([...deps.writtenFiles.values()][0]);
+    const settingsPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith("settings.json"))!;
+    const written = JSON.parse(deps.writtenFiles.get(settingsPath)!);
     const allCommands: string[] = [];
     for (const matchers of Object.values(written.hooks)) {
       for (const group of matchers as MatcherGroup[]) {

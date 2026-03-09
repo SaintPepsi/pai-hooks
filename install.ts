@@ -5,8 +5,8 @@
  *
  * - Reads pai-hooks.json manifest for env var name
  * - Reads settings.hooks.json for hook registrations
- * - Merges into ~/.claude/settings.json (additive, idempotent)
- * - Sets the env var to point to this repo's clone location
+ * - Merges hooks into settings.json (additive, idempotent)
+ * - Adds env var export to ~/.zshrc (managed block, idempotent)
  */
 
 import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
@@ -175,14 +175,71 @@ export function formatConflictSummary(conflicts: Conflict[]): string {
   return lines.join("\n");
 }
 
-export function isAlreadyInstalled(settings: { env?: Record<string, string> }, envVar: string): boolean {
-  return settings.env?.[envVar] !== undefined;
+export function isAlreadyInstalled(settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> }, envVar: string): boolean {
+  // Check settings.env (legacy) or hooks containing the env var ref
+  if (settings.env?.[envVar] !== undefined) return true;
+  const envVarRef = `\${${envVar}}`;
+  for (const matchers of Object.values(settings.hooks || {})) {
+    for (const group of matchers) {
+      for (const hook of (group.hooks || [])) {
+        if (hook.command.includes(envVarRef)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ─── Zshrc Management ────────────────────────────────────────────────────────
+
+const ZSHRC_BEGIN = "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit";
+const ZSHRC_END = "# PAI-HOOKS-END";
+
+export function buildZshrcBlock(envVar: string, relPath: string): string {
+  return [
+    ZSHRC_BEGIN,
+    `export ${envVar}="$PAI_DIR/${relPath}"`,
+    ZSHRC_END,
+  ].join("\n");
+}
+
+export function addToZshrc(content: string, envVar: string, relPath: string): string {
+  const block = buildZshrcBlock(envVar, relPath);
+  const beginIdx = content.indexOf(ZSHRC_BEGIN);
+  const endIdx = content.indexOf(ZSHRC_END);
+
+  if (beginIdx !== -1 && endIdx !== -1) {
+    // Replace existing managed block
+    return content.slice(0, beginIdx) + block + content.slice(endIdx + ZSHRC_END.length);
+  }
+
+  // Append after PAI-END block if it exists, otherwise append to end
+  const paiEndIdx = content.indexOf("# PAI-END");
+  if (paiEndIdx !== -1) {
+    const afterPaiEnd = paiEndIdx + "# PAI-END".length;
+    return content.slice(0, afterPaiEnd) + "\n\n" + block + content.slice(afterPaiEnd);
+  }
+
+  return content.trimEnd() + "\n\n" + block + "\n";
+}
+
+export function removeFromZshrc(content: string): string {
+  const beginIdx = content.indexOf(ZSHRC_BEGIN);
+  const endIdx = content.indexOf(ZSHRC_END);
+  if (beginIdx === -1 || endIdx === -1) return content;
+
+  // Remove the block and any surrounding blank lines
+  let before = content.slice(0, beginIdx);
+  let after = content.slice(endIdx + ZSHRC_END.length);
+  // Clean up extra newlines
+  before = before.replace(/\n{2,}$/, "\n");
+  after = after.replace(/^\n{2,}/, "\n");
+  return before + after;
 }
 
 /**
  * Merge exported hooks into a settings object.
  *
- * - Sets the env var to the clone path
+ * - Removes legacy env var from settings.env if present
  * - Removes existing entries owned by this env var (identified by ${envVar} in command)
  * - Appends new entries from the export
  *
@@ -191,15 +248,16 @@ export function isAlreadyInstalled(settings: { env?: Record<string, string> }, e
 export function mergeHooksIntoSettings(
   settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> },
   exported: ExportedHooks,
-  clonePath: string,
 ): Settings {
   const result: Settings = JSON.parse(JSON.stringify(settings));
   const envVar = exported.envVar;
   const envVarRef = `\${${envVar}}`;
 
-  // Set env var
+  // Remove legacy env var from settings (now managed via zshrc)
+  if (result.env?.[envVar]) {
+    delete result.env[envVar];
+  }
   if (!result.env) result.env = {};
-  result.env[envVar] = clonePath;
 
   // Initialize hooks if missing
   if (!result.hooks) result.hooks = {};
@@ -235,6 +293,7 @@ export interface InstallDeps {
   fileExists: (path: string) => boolean;
   stderr: (msg: string) => void;
   stdout: (msg: string) => void;
+  paiDir: string;
   homeDir: string;
   argv: string[];
   prompt: (question: string) => Promise<string>;
@@ -246,6 +305,7 @@ const defaultDeps: InstallDeps = {
   fileExists,
   stderr: (msg) => process.stderr.write(msg + "\n"),
   stdout: (msg) => process.stdout.write(msg + "\n"),
+  paiDir: process.env.PAI_DIR || join(process.env.HOME || process.env.USERPROFILE || "", ".claude"),
   homeDir: process.env.HOME || process.env.USERPROFILE || "",
   argv: process.argv.slice(2),
   prompt: async (question: string) => {
@@ -260,10 +320,11 @@ const defaultDeps: InstallDeps = {
 // ─── CLI Entry Point ────────────────────────────────────────────────────────
 
 export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
-  const repoRoot = resolve(import.meta.dir);
+  const scriptDir = resolve(import.meta.dir);
+  const hooksDir = join(deps.paiDir, "pai-hooks");
 
   // Read manifest
-  const manifestPath = join(repoRoot, "pai-hooks.json");
+  const manifestPath = join(scriptDir, "pai-hooks.json");
   if (!deps.fileExists(manifestPath)) {
     deps.stderr("Error: pai-hooks.json not found. Are you in the pai-hooks directory?");
     return;
@@ -273,7 +334,7 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
   const manifest = JSON.parse(manifestResult.value!);
 
   // Read exported hooks
-  const exportedPath = join(repoRoot, "settings.hooks.json");
+  const exportedPath = join(scriptDir, "settings.hooks.json");
   if (!deps.fileExists(exportedPath)) {
     deps.stderr("Error: settings.hooks.json not found. Run 'bun run export-settings' first.");
     return;
@@ -283,7 +344,7 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
   let exported: ExportedHooks = JSON.parse(exportedResult.value!);
 
   // Find settings.json
-  const settingsPath = join(deps.homeDir, ".claude", "settings.json");
+  const settingsPath = join(deps.paiDir, "settings.json");
   if (!deps.fileExists(settingsPath)) {
     deps.stderr(`Error: ${settingsPath} not found. Is Claude Code installed?`);
     return;
@@ -294,7 +355,7 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
 
   // Check if already installed
   if (isAlreadyInstalled(settings, manifest.envVar)) {
-    deps.stdout(`pai-hooks already installed (${manifest.envVar} is set). Re-installing...`);
+    deps.stdout(`pai-hooks already installed (${manifest.envVar} found). Re-installing...`);
   }
 
   // Detect conflicts
@@ -326,9 +387,24 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
     deps.stdout(`\nResolved ${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} with: ${mode}`);
   }
 
-  // Merge and write
-  const merged = mergeHooksIntoSettings(resolvedSettings, exported, repoRoot);
+  // Merge hooks into settings (removes legacy env var if present)
+  const merged = mergeHooksIntoSettings(resolvedSettings, exported);
   deps.writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n");
+
+  // Add env var export to zshrc
+  const zshrcPath = join(deps.homeDir, ".zshrc");
+  const relPath = "pai-hooks";
+  if (deps.fileExists(zshrcPath)) {
+    const zshrcResult = deps.readFile(zshrcPath);
+    if (zshrcResult.ok) {
+      const updated = addToZshrc(zshrcResult.value!, manifest.envVar, relPath);
+      deps.writeFile(zshrcPath, updated);
+      deps.stdout(`Added ${manifest.envVar} to ~/.zshrc (uses $PAI_DIR/${relPath})`);
+    }
+  } else {
+    deps.stderr("Warning: ~/.zshrc not found. Set the env var manually:");
+    deps.stderr(`  export ${manifest.envVar}="$PAI_DIR/${relPath}"`);
+  }
 
   // Count what was added
   const matcherCount = Object.values(exported.hooks).flat().length;
@@ -337,7 +413,6 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
     .reduce((sum: number, g: MatcherGroup) => sum + g.hooks.length, 0);
 
   deps.stdout(`\nInstalled ${hookCount} hooks across ${matcherCount} matcher groups.`);
-  deps.stdout(`Environment variable ${manifest.envVar} set to: ${repoRoot}`);
   deps.stdout(`\nTo uninstall: bun run uninstall.ts`);
 }
 
