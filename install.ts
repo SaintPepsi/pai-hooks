@@ -11,6 +11,7 @@
 
 import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
 import { join, resolve } from "path";
+import { ensureEnvVar } from "@hooks/scripts/ensure-env";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -391,20 +392,15 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
   const merged = mergeHooksIntoSettings(resolvedSettings, exported);
   deps.writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n");
 
-  // Add env var export to zshrc
-  const zshrcPath = join(deps.homeDir, ".zshrc");
-  const relPath = "pai-hooks";
-  if (deps.fileExists(zshrcPath)) {
-    const zshrcResult = deps.readFile(zshrcPath);
-    if (zshrcResult.ok) {
-      const updated = addToZshrc(zshrcResult.value!, manifest.envVar, relPath);
-      deps.writeFile(zshrcPath, updated);
-      deps.stdout(`Added ${manifest.envVar} to ~/.zshrc (uses $PAI_DIR/${relPath})`);
-    }
-  } else {
-    deps.stderr("Warning: ~/.zshrc not found. Set the env var manually:");
-    deps.stderr(`  export ${manifest.envVar}="$PAI_DIR/${relPath}"`);
-  }
+  // Add env var export to zshrc (delegated to ensure-env)
+  ensureEnvVar(manifest.envVar, {
+    readFile: deps.readFile,
+    writeFile: deps.writeFile,
+    fileExists: deps.fileExists,
+    stderr: deps.stderr,
+    stdout: deps.stdout,
+    homeDir: deps.homeDir,
+  });
 
   // Count what was added
   const matcherCount = Object.values(exported.hooks).flat().length;
