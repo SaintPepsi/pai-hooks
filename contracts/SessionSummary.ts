@@ -1,0 +1,144 @@
+/**
+ * SessionSummary Contract — Mark work complete and clear state at session end.
+ *
+ * Finalizes a session by marking the WORK/ directory as COMPLETED,
+ * deleting current-work state, and resetting the Kitty tab.
+ */
+
+import type { HookContract } from "../core/contract";
+import type { SessionEndInput } from "../core/types/hook-inputs";
+import type { SilentOutput } from "../core/types/hook-outputs";
+import { ok, tryCatch, type Result } from "../core/result";
+import type { PaiError } from "../core/error";
+import { unknownError } from "../core/error";
+import { fileExists, readFile, readJson, writeFile, removeFile } from "../core/adapters/fs";
+import { join } from "path";
+import { getISOTimestamp } from "../lib/time";
+import { setTabState, cleanupKittySession } from "../lib/tab-setter";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface SessionSummaryDeps {
+  fileExists: (path: string) => boolean;
+  readFile: (path: string) => Result<string, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  unlinkSync: (path: string) => void;
+  getTimestamp: () => string;
+  setTabState: (opts: { title: string; state: string; sessionId: string }) => void;
+  cleanupKittySession: (sessionId: string) => void;
+  baseDir: string;
+  stderr: (msg: string) => void;
+}
+
+// ─── Pure Logic ──────────────────────────────────────────────────────────────
+
+function findStateFile(
+  sessionId: string | undefined,
+  stateDir: string,
+  deps: SessionSummaryDeps,
+): string | null {
+  if (!sessionId) return null;
+  const scoped = join(stateDir, `current-work-${sessionId}.json`);
+  if (deps.fileExists(scoped)) return scoped;
+  return null;
+}
+
+function clearSessionWork(
+  sessionId: string | undefined,
+  deps: SessionSummaryDeps,
+): void {
+  const stateDir = join(deps.baseDir, "MEMORY", "STATE");
+  const workDir = join(deps.baseDir, "MEMORY", "WORK");
+
+  const stateFile = findStateFile(sessionId, stateDir, deps);
+  if (!stateFile) {
+    deps.stderr("[SessionSummary] No current work to complete");
+    return;
+  }
+
+  const result = deps.readJson<{ session_id: string; session_dir: string }>(stateFile);
+  if (!result.ok) return;
+  const currentWork = result.value;
+
+  if (sessionId && currentWork.session_id !== sessionId) {
+    deps.stderr("[SessionSummary] State file belongs to different session, skipping");
+    return;
+  }
+
+  if (currentWork.session_dir) {
+    const metaPath = join(workDir, currentWork.session_dir, "META.yaml");
+    const metaResult = deps.readFile(metaPath);
+    if (metaResult.ok) {
+      let metaContent = metaResult.value;
+      metaContent = metaContent.replace(/^status: "ACTIVE"$/m, 'status: "COMPLETED"');
+      metaContent = metaContent.replace(
+        /^completed_at: null$/m,
+        `completed_at: "${deps.getTimestamp()}"`,
+      );
+      deps.writeFile(metaPath, metaContent);
+      deps.stderr(`[SessionSummary] Marked work directory as COMPLETED: ${currentWork.session_dir}`);
+    }
+  }
+
+  deps.unlinkSync(stateFile);
+  deps.stderr("[SessionSummary] Cleared session work state");
+}
+
+// ─── Contract ────────────────────────────────────────────────────────────────
+
+const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+
+const defaultDeps: SessionSummaryDeps = {
+  fileExists,
+  readFile,
+  readJson,
+  writeFile,
+  unlinkSync: (path) => { removeFile(path); },
+  getTimestamp: getISOTimestamp,
+  setTabState: (opts) => setTabState(opts),
+  cleanupKittySession: (id) => cleanupKittySession(id),
+  baseDir: BASE_DIR,
+  stderr: (msg) => process.stderr.write(msg + "\n"),
+};
+
+export const SessionSummary: HookContract<
+  SessionEndInput,
+  SilentOutput,
+  SessionSummaryDeps
+> = {
+  name: "SessionSummary",
+  event: "SessionEnd",
+
+  accepts(_input: SessionEndInput): boolean {
+    return true;
+  },
+
+  execute(
+    input: SessionEndInput,
+    deps: SessionSummaryDeps,
+  ): Result<SilentOutput, PaiError> {
+    clearSessionWork(input.session_id, deps);
+
+    const tabResult = tryCatch(
+      () => deps.setTabState({ title: "", state: "idle", sessionId: input.session_id }),
+      (e) => unknownError(e),
+    );
+    if (tabResult.ok) {
+      deps.stderr("[SessionSummary] Tab reset to default styling");
+    } else {
+      deps.stderr("[SessionSummary] Tab reset failed (non-critical)");
+    }
+
+    if (input.session_id) {
+      tryCatch(
+        () => deps.cleanupKittySession(input.session_id),
+        (e) => unknownError(e),
+      );
+    }
+
+    return ok({ type: "silent" });
+  },
+
+  defaultDeps,
+};

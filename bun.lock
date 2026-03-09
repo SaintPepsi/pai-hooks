@@ -3,6 +3,9 @@
   "workspaces": {
     "": {
       "name": "saintpepsi-pai-hooks",
+      "dependencies": {
+        "yaml": "^2.8.2",
+      },
       "devDependencies": {
         "husky": "^9.0.0",
       },
@@ -10,5 +13,7 @@
   },
   "packages": {
     "husky": ["husky@9.1.7", "", { "bin": { "husky": "bin.js" } }, "sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA=="],
+
+    "yaml": ["yaml@2.8.2", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A=="],
   }
 }
