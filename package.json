@@ -1,5 +1,5 @@
 {
-  "name": "saintpepsi-pai-hooks",
+  "name": "saintpepsi-claude-code-hooks",
   "version": "1.0.0",
   "scripts": {
     "install-hooks": "bun run install.ts",

@@ -4,66 +4,59 @@ A portable collection of 40 Claude Code hooks extracted from [PAI](https://githu
 
 ## What's included
 
+24 hooks by [@SaintPepsi](https://github.com/SaintPepsi), 16 from the [PAI framework](https://github.com/danielmiessler/PAI).
+
 **Security & Safety**
-- `SecurityValidator` — blocks dangerous shell commands and destructive operations
 - `DestructiveDeleteGuard` — confirms before deleting files
 - `WorktreeSafetyVerification` — prevents cross-worktree contamination
+- `SecurityValidator` — blocks dangerous shell commands and destructive operations *(PAI)*
 
 **Code Quality**
-- `CodingStandardsEnforcer` — enforces coding standards on Write/Edit
-- `CodingStandardsAdvisor` — suggests improvements post-read
-- `CodeQualityGuard` — blocks low-quality code patterns on Write/Edit
-- `CodeQualityBaseline` — tracks quality scores over time on Read
-- `TypeStrictness` — hard-blocks `any` types in TypeScript on Write/Edit
-- `BashWriteGuard` — prevents bypassing Edit/Write via Bash sed/echo
+- `CodingStandardsEnforcer` — enforces coding standards on `Write`/`Edit`
+- `CodingStandardsAdvisor` — suggests improvements post-`Read`
+- `CodeQualityGuard` — blocks low-quality code patterns on `Write`/`Edit`
+- `CodeQualityBaseline` — tracks quality scores over time on `Read`
+- `TypeStrictness` — hard-blocks `any` types in TypeScript on `Write`/`Edit`
+- `BashWriteGuard` — prevents bypassing `Edit`/`Write` via `Bash` sed/echo
 
 **Workflow & Obligations**
 - `BranchAwareness` — injects current git branch context at session start
-- `GitAutoSync` — auto-commits ~/.claude on session end
-- `DocObligationTracker` — tracks doc changes alongside code on Write/Edit
-- `DocObligationEnforcer` — enforces documentation obligations on Stop
-- `TestObligationTracker` — tracks test changes alongside code on Write/Edit/Bash
-- `TestObligationEnforcer` — enforces test obligations on Stop
-- `SkillGuard` — validates skill invocations on PreToolUse
-- `HookExecutePermission` — controls hook execution permissions on Write
-- `PRDSync` — syncs PRD frontmatter to work.json on Write/Edit
+- `GitAutoSync` — auto-commits `~/.claude` on session end
+- `DocObligationTracker` — tracks doc changes alongside code on `Write`/`Edit`
+- `DocObligationEnforcer` — enforces documentation obligations on `Stop`
+- `TestObligationTracker` — tracks test changes alongside code on `Write`/`Edit`/`Bash`
+- `TestObligationEnforcer` — enforces test obligations on `Stop`
+- `HookExecutePermission` — controls hook execution permissions on `Write`
+- `PRDSync` — syncs PRD frontmatter to `work.json` on `Write`/`Edit`
+- `SkillGuard` — validates skill invocations on `PreToolUse` *(PAI)*
 
 **Session Lifecycle**
-- `StartupGreeting` — shows PAI banner at session start
-- `LoadContext` — loads PAI context at session start
-- `CheckVersion` — checks PAI version at session start
 - `CheckAlgorithmVersion` — validates Algorithm version at session start
-- `StopOrchestrator` — orchestrates stop-event hooks
-- `SessionSummary` — generates session summaries on stop
+- `LastResponseCache` — caches last response for reference on `Stop`
 - `SessionQualityReport` — produces quality metrics per session
-- `LastResponseCache` — caches last response for reference on Stop
-- `WorkCompletionLearning` — captures learnings on work completion
 - `LearningActioner` — spawns agent to analyze session learnings
-- `IntegrityCheck` — validates system integrity at session end
-- `UpdateCounts` — updates signal/workflow counts at session end
-- `GitAutoSync` — auto-commits ~/.claude at session end
 - `ModeAnalytics` — tracks Algorithm/Native/Minimal mode usage at session end
+- `StartupGreeting` — shows PAI banner at session start *(PAI)*
+- `LoadContext` — loads PAI context at session start *(PAI)*
+- `CheckVersion` — checks PAI version at session start *(PAI)*
+- `StopOrchestrator` — orchestrates stop-event hooks *(PAI)*
+- `SessionSummary` — generates session summaries on `Stop` *(PAI)*
+- `WorkCompletionLearning` — captures learnings on work completion *(PAI)*
+- `IntegrityCheck` — validates system integrity at session end *(PAI)*
+- `UpdateCounts` — updates signal/workflow counts at session end *(PAI)*
+- `VoiceGate` — routes voice notifications on `Bash` *(PAI)*
 
 **Intelligence & Tracking**
-- `AlgorithmTracker` — tracks Algorithm phase transitions on Bash/Task
-- `ArchitectureEscalation` — escalates after N failed fix attempts on TaskUpdate
-- `AgentExecutionGuard` — controls agent/task spawning on PreToolUse
-- `AutoWorkCreation` — auto-creates work entries from prompts on UserPromptSubmit
-- `QuestionAnswered` — tracks question/answer patterns on AskUserQuestion
-- `RelationshipMemory` — captures relationship notes from sessions at session end
-- `VoiceGate` — routes voice notifications on Bash
+- `ArchitectureEscalation` — escalates after N failed fix attempts on `TaskUpdate`
+- `AlgorithmTracker` — tracks Algorithm phase transitions on `Bash`/`Task` *(PAI)*
+- `AgentExecutionGuard` — controls agent/task spawning on `PreToolUse` *(PAI)*
+- `AutoWorkCreation` — auto-creates work entries from prompts on `UserPromptSubmit` *(PAI)*
+- `QuestionAnswered` — tracks question/answer patterns on `AskUserQuestion` *(PAI)*
+- `RelationshipMemory` — captures relationship notes from sessions at session end *(PAI)*
 
 **Citations**
-- `CitationTracker` — tracks citation sources on WebSearch/WebFetch/Skill
-- `CitationEnforcement` — enforces citations in written content on Write/Edit
-
-### Origin
-
-15 hooks come from the original [PAI framework](https://github.com/danielmiessler/PAI): `AgentExecutionGuard`, `AlgorithmTracker`, `AutoWorkCreation`, `CheckVersion`, `IntegrityCheck`, `LoadContext`, `QuestionAnswered`, `RelationshipMemory`, `SecurityValidator`, `SessionSummary`, `SkillGuard`, `StartupGreeting`, `StopOrchestrator`, `UpdateCounts`, `VoiceGate`, and `WorkCompletionLearning`.
-
-The remaining 28 were built on top of PAI by [@SaintPepsi](https://github.com/SaintPepsi): `ArchitectureEscalation`, `BashWriteGuard`, `BranchAwareness`, `CheckAlgorithmVersion`, `CitationEnforcement`, `CitationTracker`, `CodeQualityBaseline`, `CodeQualityGuard`, `CodingStandardsAdvisor`, `CodingStandardsEnforcer`, `DestructiveDeleteGuard`, `DocObligationEnforcer`, `DocObligationTracker`, `GitAutoSync`, `HookExecutePermission`, `LastResponseCache`, `LearningActioner`, `ModeAnalytics`, `PRDSync`, `SessionQualityReport`, `TestObligationEnforcer`, `TestObligationTracker`, `TypeStrictness`, and `WorktreeSafetyVerification`.
-
-3 hooks (`ArticleWriter`, `RatingCapture`, `SessionAutoName`) are PAI-specific and excluded from this repo but referenced in `settings.hooks.json` for completeness.
+- `CitationTracker` — tracks citation sources on `WebSearch`/`WebFetch`/`Skill`
+- `CitationEnforcement` — enforces citations in written content on `Write`/`Edit`
 
 ## Quick start
 
@@ -74,9 +67,9 @@ bun install
 bun run install-hooks
 ```
 
-This merges all hooks into `~/.claude/settings.json` and sets the `SAINTPEPSI_PAI_HOOKS_DIR` environment variable.
+This merges all hooks into `~/.claude/settings.json` and sets the `SAINTPEPSI_PAI_HOOKS_DIR` env var.
 
-If you already have hooks with the same name from another source (e.g., a PAI install), the installer detects the conflict and asks whether to keep existing, replace, or keep both. Use `--replace`, `--keep`, or `--both` flags to skip the prompt:
+If you already have hooks with the same name from another source (e.g., a PAI install), the installer detects the conflict and asks whether to keep existing, replace, or keep both. Use `--replace`, `--keep`, or `--both` to skip the prompt:
 
 ```bash
 bun run install-hooks --replace   # replace conflicting hooks with pai-hooks versions
