@@ -91,8 +91,10 @@ The repo keeps `settings.hooks.json` as the portable hook registry:
 
 ```bash
 bun test                # Run all tests
-bun run test:coverage   # Run with coverage report (87%+ line coverage)
+bun run test:coverage   # Run with coverage report (90%+ line coverage)
 ```
+
+940+ tests across 42 files with 1600+ expect() calls.
 
 ## Architecture
 

@@ -17,24 +17,24 @@ function bashInput(command: string): ToolHookInput {
   };
 }
 
-function editInput(newString: string): ToolHookInput {
+function editInput(newString: string, filePath = "/some/file.ts"): ToolHookInput {
   return {
     session_id: "test-session",
     tool_name: "Edit",
     tool_input: {
-      file_path: "/some/file.ts",
+      file_path: filePath,
       old_string: "old code",
       new_string: newString,
     },
   };
 }
 
-function writeInput(content: string): ToolHookInput {
+function writeInput(content: string, filePath = "/some/file.ts"): ToolHookInput {
   return {
     session_id: "test-session",
     tool_name: "Write",
     tool_input: {
-      file_path: "/some/file.ts",
+      file_path: filePath,
       content,
     },
   };
@@ -243,6 +243,40 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok && result.value.type).toBe("continue");
+  });
+});
+
+// ─── Markdown File Exclusion ─────────────────────────────────────────────────
+
+describe("DestructiveDeleteGuard markdown exclusion", () => {
+  test("allows Write to .md file mentioning delete patterns", () => {
+    const content = "Use recursive force-delete to clean the build directory.";
+    const result = DestructiveDeleteGuard.execute(writeInput(content, "/docs/README.md"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows Edit to .md file mentioning delete patterns", () => {
+    const content = "Confirming before destructive recursive-delete operations";
+    const result = DestructiveDeleteGuard.execute(editInput(content, "/docs/hooks.md"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows Write to .mdx file mentioning delete patterns", () => {
+    const content = "```bash\nrecursive force-delete node_modules\n```";
+    const result = DestructiveDeleteGuard.execute(writeInput(content, "/blog/post.mdx"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("does not exempt .test.ts files from content check", () => {
+    const code = ["Bun.spawnSync([", '"rm"', ",", '"-r' + 'f"', ", path]);"].join("");
+    const result = DestructiveDeleteGuard.execute(writeInput(code, "/src/guard.test.ts"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("does not exempt .spec.ts files from content check", () => {
+    const code = ["Bun.spawnSync([", '"rm"', ",", '"-r' + 'f"', ", dir]);"].join("");
+    const result = DestructiveDeleteGuard.execute(writeInput(code, "/src/guard.spec.ts"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
   });
 });
 

@@ -10,6 +10,7 @@
  * - Single-file rm (no recursive flag)
  * - Adapter functions like removeDir() (the safe alternative)
  * - rmSync in adapter code (separate concern for CodingStandardsEnforcer)
+ * - Markdown files (.md, .mdx) — documentation mentioning delete patterns is normal
  */
 
 import type { HookContract } from "@hooks/core/contract";
@@ -85,6 +86,12 @@ function detectsRmRfInCode(content: string): boolean {
   return false;
 }
 
+/** Check if the target file is a markdown/documentation file. */
+function isDocumentationFile(input: ToolHookInput): boolean {
+  const filePath = (input.tool_input?.file_path as string) || "";
+  return /\.mdx?$/.test(filePath);
+}
+
 /** Extract content to check from Edit or Write tool input. */
 function getContentToCheck(input: ToolHookInput): string {
   if (input.tool_name === "Write") {
@@ -148,6 +155,11 @@ export const DestructiveDeleteGuard: HookContract<
         });
       }
 
+      return ok({ type: "continue", continue: true });
+    }
+
+    // Edit/Write: skip markdown files — documentation mentioning delete patterns is normal
+    if (isDocumentationFile(input)) {
       return ok({ type: "continue", continue: true });
     }
 
