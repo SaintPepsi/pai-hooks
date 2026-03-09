@@ -63,7 +63,8 @@ export function extractHooksForRepo(
     }
   }
 
-  return { envVar: targetPrefix.replace(/^\$\{|\}\/$/g, ""), hooks: result };
+  const envVar = targetPrefix.replace(/^\$\{/, "").replace(/\}.*$/, "");
+  return { envVar, hooks: result };
 }
 
 // ─── Deps ───────────────────────────────────────────────────────────────────

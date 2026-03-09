@@ -3,16 +3,16 @@
  *
  * Pipeline: stdin → parse → accepts → execute → format → exit
  *
- * This file and the adapters are the ONLY places try/catch exists.
- * Everything above (contracts) is pure Result pipelines.
+ * This file and the adapters are the ONLY boundary layers where
+ * uncaught errors are handled. Everything above (contracts) uses pure Result pipelines.
  */
 
-import type { HookContract } from "./contract";
-import type { HookInput } from "./types/hook-inputs";
-import type { HookOutput } from "./types/hook-outputs";
-import { readStdin } from "./adapters/stdin";
-import { type Result, ok, tryCatch } from "./result";
-import { type PaiError, ErrorCode, jsonParseFailed, invalidInput } from "./error";
+import type { HookContract } from "@hooks/core/contract";
+import type { HookInput } from "@hooks/core/types/hook-inputs";
+import type { HookOutput } from "@hooks/core/types/hook-outputs";
+import { readStdin } from "@hooks/core/adapters/stdin";
+import { type Result, ok, tryCatch } from "@hooks/core/result";
+import { type PaiError, ErrorCode, jsonParseFailed } from "@hooks/core/error";
 
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
@@ -90,12 +90,6 @@ export interface RunHookOptions {
 }
 
 /**
- * Run a hook contract through the standard pipeline.
- *
- * This is the ONLY entry point hooks need. The .hook.ts file becomes:
- *   runHook(MyContract);
- */
-/**
  * Run a hook contract with a pre-built input, skipping stdin.
  *
  * Use this when the shell hook reads and enriches stdin before
@@ -113,7 +107,7 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
 
   const safeExit = () => { exit(0); };
 
-  try {
+  const runPipeline = async (): Promise<void> => {
     if (!contract.accepts(input)) {
       safeExit();
       return;
@@ -132,10 +126,12 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
       write(formatted);
     }
     exit(0);
-  } catch (e) {
+  };
+
+  await runPipeline().catch((e) => {
     writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
     safeExit();
-  }
+  });
 }
 
 /**
@@ -162,7 +158,7 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     exit(0);
   };
 
-  try {
+  const runPipeline = async (): Promise<void> => {
     // Step 1: Read stdin
     let rawResult: Result<string, PaiError>;
     if (options.stdinOverride !== undefined) {
@@ -222,9 +218,11 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
       write(formatted);
     }
     exit(0);
-  } catch (e) {
+  };
+
+  await runPipeline().catch((e) => {
     // Top-level safety net — should never reach here if contracts use Result
     writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
     safeExit();
-  }
+  });
 }

@@ -1,5 +1,5 @@
 {
-  "envVar": "SAINTPEPSI_PAI_HOOKS_DIR}/hooks/",
+  "envVar": "SAINTPEPSI_PAI_HOOKS_DIR",
   "hooks": {
     "PreToolUse": [
       {
