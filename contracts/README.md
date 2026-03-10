@@ -19,7 +19,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **LoadContext** | SessionStart | Loads PAI context at session start |
 | **SessionAutoName** | UserPromptSubmit | AI-generates session titles |
 | **SkillGuard** | PreToolUse | Validates skill invocations |
-| **TestObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until tests run |
+| **TestObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until tests run. Supports Node.js (.test./.spec./__tests__/), PHP/Laravel (*Test.php, tests/Feature/, tests/Unit/), Python, Go, Rust test conventions. |
 
 ## State Machine Pattern
 
@@ -28,7 +28,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 1. **Tracker** (PostToolUse): Monitors Edit/Write tool calls. Adds code files to a session-scoped pending list. Clears files when the obligation is satisfied (tests run / docs written).
 2. **Enforcer** (Stop): Checks pending list when the agent tries to stop. Returns `BlockOutput` to prevent stopping if obligations remain. Tracks block count per session — after 2 blocks on the same files, writes a review doc and releases the session to prevent infinite loops.
 
-State files are session-scoped: `{type}-pending-{session_id}.json` for pending lists, `{type}-block-count-{session_id}.txt` for block counters. Review docs written to `review-{session_id}.md` on block limit.
+State files are session-scoped: `{type}-pending-{session_id}.json` for pending lists, `{type}-block-count-{session_id}.txt` for block counters. Review docs written to `review-{session_id}.md` on block limit. Corrupt or empty state files are auto-recovered (reset to empty, logged to stderr).
 
 ## Auto-Generated File Exclusions
 

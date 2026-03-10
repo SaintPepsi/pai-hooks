@@ -83,6 +83,24 @@ describe("TestObligationTracker", () => {
     expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.spec.tsx" }))).toBe(false);
   });
 
+  // ── PHP/Laravel test file patterns ──
+
+  it("rejects Edit with PHP Test file (FooTest.php)", () => {
+    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatterTest.php" }))).toBe(false);
+  });
+
+  it("rejects Write with PHP Test file in tests/Feature/", () => {
+    expect(TestObligationTracker.accepts(makeToolInput("Write", { file_path: "/tests/Feature/Console/SeedTestIneligibleMatterTest.php" }))).toBe(false);
+  });
+
+  it("rejects Edit with PHP Test file in tests/Unit/", () => {
+    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/tests/Unit/Models/UserTest.php" }))).toBe(false);
+  });
+
+  it("accepts Edit with PHP production file (not a test)", () => {
+    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php" }))).toBe(true);
+  });
+
   // ── Edit/Write sets pending ──
 
   it("sets pending flag when Edit on code file", () => {
@@ -159,6 +177,68 @@ describe("TestObligationTracker", () => {
 
     TestObligationTracker.execute(
       makeToolInput("Bash", { command: "npm test" }),
+      deps,
+    );
+
+    expect(removed).toBe(true);
+  });
+
+  // ── PHP/Laravel test commands ──
+
+  it("clears all files when Bash runs phpunit", () => {
+    let removed = false;
+    const deps = makeTrackerDeps({
+      fileExists: () => true,
+      removeFlag: () => { removed = true; },
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Bash", { command: "phpunit" }),
+      deps,
+    );
+
+    expect(removed).toBe(true);
+  });
+
+  it("clears all files when Bash runs sail phpunit", () => {
+    let removed = false;
+    const deps = makeTrackerDeps({
+      fileExists: () => true,
+      removeFlag: () => { removed = true; },
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Bash", { command: "sail phpunit --filter SeedTestIneligibleMatterTest" }),
+      deps,
+    );
+
+    expect(removed).toBe(true);
+  });
+
+  it("clears all files when Bash runs sail test", () => {
+    let removed = false;
+    const deps = makeTrackerDeps({
+      fileExists: () => true,
+      removeFlag: () => { removed = true; },
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Bash", { command: "sail test" }),
+      deps,
+    );
+
+    expect(removed).toBe(true);
+  });
+
+  it("clears all files when Bash runs php artisan test", () => {
+    let removed = false;
+    const deps = makeTrackerDeps({
+      fileExists: () => true,
+      removeFlag: () => { removed = true; },
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Bash", { command: "php artisan test" }),
       deps,
     );
 
@@ -451,6 +531,28 @@ describe("TestObligationEnforcer", () => {
     expect(result.value.reason.toLowerCase()).toContain("run");
     // Should NOT say write for this file
     expect(result.value.reason.toLowerCase()).not.toMatch(/write.*handler/);
+  });
+
+  it("matches PHP Test variant (FooTest.php) as existing test file", () => {
+    const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
+    const deps = makeTrackerDeps({
+      fileExists: (path: string) => {
+        if (path === flagPath) return true;
+        if (path === "/app/Console/Commands/SeedTestIneligibleMatterTest.php") return true;
+        return false;
+      },
+      readPending: () => ["/app/Console/Commands/SeedTestIneligibleMatter.php"],
+    });
+
+    const result = TestObligationEnforcer.execute(
+      makeStopInput(),
+      deps,
+    ) as Result<BlockOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // Has a test (FooTest.php), so should say run, not write
+    expect(result.value.reason.toLowerCase()).not.toMatch(/write.*seedtest/i);
   });
 
   it("matches .spec. variant as existing test file", () => {

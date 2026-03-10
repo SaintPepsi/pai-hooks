@@ -16,7 +16,7 @@ import type { ToolHookInput, StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { writeFile, readFile, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
+import { writeFile, readFile, readJson, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { join } from "path";
@@ -37,7 +37,7 @@ export interface TestObligationDeps {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const TEST_FILE_PATTERNS = [/\.test\.\w+$/, /\.spec\.\w+$/, /__tests__\//];
+const TEST_FILE_PATTERNS = [/\.test\.\w+$/, /\.spec\.\w+$/, /__tests__\//, /Test\.php$/, /\/tests\/(?:Feature|Unit)\//];
 
 const TEST_COMMANDS = [
   /\bbun\s+test\b/,
@@ -48,6 +48,9 @@ const TEST_COMMANDS = [
   /\bpytest\b/,
   /\bgo\s+test\b/,
   /\bcargo\s+test\b/,
+  /\bphpunit\b/,
+  /\bsail\s+(?:phpunit|test)\b/,
+  /\bartisan\s+test\b/,
 ];
 
 function isNonTestCodeFile(filePath: string): boolean {
@@ -123,13 +126,17 @@ cannot be ${obligationType === "test" ? "tested with standard tooling" : "docume
 `;
 }
 
-/** Derive .test. and .spec. file paths from a source file path. */
+/** Derive .test. and .spec. file paths from a source file path. Also derives FooTest.php for PHP files. */
 function deriveTestPaths(sourcePath: string): string[] {
   const dotIndex = sourcePath.lastIndexOf(".");
   if (dotIndex === -1) return [];
   const base = sourcePath.slice(0, dotIndex);
   const ext = sourcePath.slice(dotIndex);
-  return [`${base}.test${ext}`, `${base}.spec${ext}`];
+  const paths = [`${base}.test${ext}`, `${base}.spec${ext}`];
+  if (ext === ".php") {
+    paths.push(`${base}Test${ext}`);
+  }
+  return paths;
 }
 
 /** Check if any test file variant exists for a source file. */
@@ -144,20 +151,32 @@ function getStateDir(): string {
   return join(paiDir, "MEMORY", "STATE", "test-obligation");
 }
 
+const stderr = (msg: string) => process.stderr.write(msg + "\n");
+
 const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
-    const result = readFile(path);
-    if (!result.ok) return [];
-    const parsed = JSON.parse(result.value);
-    return Array.isArray(parsed) ? parsed : [];
+    const result = readJson<unknown>(path);
+    if (!result.ok) {
+      if (fsFileExists(path)) {
+        stderr(`[TestObligationTracker] corrupt state file, resetting: ${path}`);
+      }
+      return [];
+    }
+    return Array.isArray(result.value) ? result.value as string[] : [];
   },
   writePending: (path: string, files: string[]) => {
-    writeFile(path, JSON.stringify(files));
+    const result = writeFile(path, JSON.stringify(files));
+    if (!result.ok) {
+      stderr(`[TestObligationTracker] write failed: ${result.error.message}`);
+    }
   },
   removeFlag: (path: string) => {
-    removeFile(path);
+    const result = removeFile(path);
+    if (!result.ok) {
+      stderr(`[TestObligationTracker] remove failed: ${result.error.message}`);
+    }
   },
   readBlockCount: (path: string) => {
     const result = readFile(path);
@@ -166,12 +185,18 @@ const defaultDeps: TestObligationDeps = {
     return isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
-    writeFile(path, String(count));
+    const result = writeFile(path, String(count));
+    if (!result.ok) {
+      stderr(`[TestObligationTracker] write block count failed: ${result.error.message}`);
+    }
   },
   writeReview: (path: string, content: string) => {
-    writeFile(path, content);
+    const result = writeFile(path, content);
+    if (!result.ok) {
+      stderr(`[TestObligationTracker] write review failed: ${result.error.message}`);
+    }
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr,
 };
 
 // ─── Contract 1: TestObligationTracker ───────────────────────────────────────
