@@ -213,6 +213,8 @@ export function findRelativeImports(lines: string[]): Violation[] {
 export function findExportDefaults(lines: string[], filePath?: string): Violation[] {
   // Config files use export default by framework convention
   if (filePath && /\.config\.(ts|js|mts|mjs)$/.test(filePath)) return [];
+  // SpacetimeDB schema requires export default for `spacetime generate` CLI
+  if (filePath && /spacetimedb\/src\/index\.ts$/.test(filePath)) return [];
 
   const violations: Violation[] = [];
   for (let i = 0; i < lines.length; i++) {

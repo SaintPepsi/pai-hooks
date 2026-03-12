@@ -12,6 +12,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **CodingStandardsEnforcer** | PreToolUse | Blocks Edit/Write on .ts/.tsx files with coding standard violations (including export default) |
 | **DestructiveDeleteGuard** | PreToolUse | Blocks recursive force-delete patterns in Bash/Edit/Write (skips .md/.mdx files) |
 | **SecurityValidator** | PreToolUse | Validates Bash commands and file paths against YAML security patterns |
+| **SonnetDelegation** | PostToolUse | Injects Sonnet subagent delegation guidance when executing-plans skill loads |
 | **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx files are Read |
 | **CodeQualityGuard** | PostToolUse | SOLID quality scoring (suppresses `type-import-ratio` and `options-object-width` for test files) |
 | **DocObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until docs updated |
