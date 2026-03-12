@@ -1,2 +1,2 @@
-bun run scripts/export-hooks.ts
-git add settings.hooks.json
+# Intentionally empty — export-hooks.ts removed (was wiping settings.hooks.json)
+# The import direction (post-merge) is the active workflow now.
