@@ -69,7 +69,7 @@ function blockCountPath(stateDir: string, sessionId: string): string {
   return join(stateDir, `docs-block-count-${sessionId}.txt`);
 }
 
-const MAX_BLOCKS = 2;
+const MAX_BLOCKS = 1;
 
 function buildBlockLimitReview(pendingFiles: string[], blockCount: number): string {
   const timestamp = new Date().toISOString();

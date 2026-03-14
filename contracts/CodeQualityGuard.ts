@@ -20,6 +20,14 @@ import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "@hook
 import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
 import { join } from "path";
 
+// ─── Violation Dedup Cache ────────────────────────────────────────────────────
+
+const reportedViolations = new Map<string, string>();
+
+function violationHash(violations: Array<{ check: string }>): string {
+  return violations.map(v => v.check).sort().join(",");
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface BaselineStore {
@@ -137,6 +145,25 @@ export const CodeQualityGuard: HookContract<
     if (baseline) {
       deltaMessage = deps.formatDelta(baseline, result, filePath);
     }
+
+    // Dedup: suppress identical violation reports for same file within session
+    const hash = violationHash(result.violations);
+    const prevHash = reportedViolations.get(filePath);
+    if (hash === prevHash && !deltaMessage) {
+      // Same violations, no delta — skip context injection but still log
+      logSignal(deps.signal, "quality-violations.jsonl", {
+        session_id: input.session_id,
+        hook: "CodeQualityGuard",
+        event: "PostToolUse",
+        tool: input.tool_name,
+        file: filePath,
+        outcome: "continue",
+        score: result.score,
+        deduplicated: true,
+      });
+      return ok({ type: "continue", continue: true });
+    }
+    reportedViolations.set(filePath, hash);
 
     // Only inject context if there are violations or a meaningful delta
     const advisory = deps.formatAdvisory(result, filePath);

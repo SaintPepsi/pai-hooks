@@ -4,9 +4,9 @@
  * Accepts file content + language profile, returns a composite quality score
  * (0-10) with per-check breakdown. All checks are heuristic, not AST-based.
  *
- * 12 checks across 4 SOLID categories:
+ * 15 checks across 4 SOLID categories:
  *   SRP (1-4): function count, naming clusters, mixed I/O, section headers
- *   DIP (5-8): import depth, infra imports, type import ratio, missing Deps
+ *   DIP (5-8): import depth, infra imports, type import ratio, missing Deps, throw count, null returns, mixed error strategy
  *   ISP (9-11): interface size, parameter count, options width
  *   DIP enforcement (12): relative import depth
  */
@@ -95,6 +95,34 @@ function countMixedIOPatterns(content: string): number {
 
 function countTryCatch(content: string): number {
   return (content.match(/\btry\s*\{/g) ?? []).length;
+}
+
+function countThrowStatements(content: string): number {
+  const lines = content.split("\n");
+  const codeLines = lines.filter(l => {
+    const trimmed = l.trim();
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) return false;
+    return true;
+  });
+  return (codeLines.join("\n").match(/\bthrow\s+(?:new\s+)?\w+/g) ?? []).length;
+}
+
+function countNullReturns(content: string): number {
+  const lines = content.split("\n");
+  const codeLines = lines.filter(l => {
+    const trimmed = l.trim();
+    if (trimmed.startsWith("//") || trimmed.startsWith("*")) return false;
+    return true;
+  });
+  return (codeLines.join("\n").match(/\breturn\s+(?:null|undefined)\b/g) ?? []).length;
+}
+
+function hasMixedErrorStrategy(content: string): number {
+  const hasResultImport = /\bResult\b/.test(content) && /\bok\b|\berr\b/.test(content);
+  const hasTryCatch = /\btry\s*\{/.test(content);
+  const hasThrow = /\bthrow\s+(?:new\s+)?\w+/.test(content);
+  if (hasResultImport && (hasTryCatch || hasThrow)) return 1;
+  return 0;
 }
 
 function countSectionHeaders(content: string, profile: LanguageProfile): number {
@@ -390,6 +418,41 @@ const CHECKS: CheckSpec[] = [
     },
     skip: (_p, v) => v === -1,
   },
+  // DIP — ROP: producer-side exception detection
+  {
+    name: "throw-count",
+    category: "DIP",
+    severity: "moderate",
+    threshold: 1,
+    direction: "above",
+    compute: (c, _p, f) => {
+      if (f.includes("/adapters/") || f.includes(".test.")) return -1;
+      return countThrowStatements(c);
+    },
+    skip: (_p, v) => v === -1,
+  },
+  // DIP — ROP: null returns instead of Result
+  {
+    name: "null-return-count",
+    category: "DIP",
+    severity: "minor",
+    threshold: 2,
+    direction: "above",
+    compute: (c) => countNullReturns(c),
+  },
+  // DIP — ROP: mixed error strategies in same file
+  {
+    name: "mixed-error-strategy",
+    category: "DIP",
+    severity: "moderate",
+    threshold: 0,
+    direction: "above",
+    compute: (c, _p, f) => {
+      if (f.includes("/adapters/") || f.includes(".test.")) return -1;
+      return hasMixedErrorStrategy(c);
+    },
+    skip: (_p, v) => v === -1,
+  },
 ];
 
 /**
@@ -479,6 +542,12 @@ function formatViolation(check: CheckSpec, value: number): string {
       return `Contract missing HookContract export (see CODINGSTANDARDS/hooks.md §Contract)`;
     case "adapter-bypass":
       return `${value} raw I/O imports in contract (see CODINGSTANDARDS/hooks.md §Adapters)`;
+    case "throw-count":
+      return `${value} throw statements (return Result instead of throwing)`;
+    case "null-return-count":
+      return `${value} null/undefined returns (use Result or Option type instead)`;
+    case "mixed-error-strategy":
+      return "File mixes Result types with try-catch/throw (pick one error strategy)";
     default:
       return `${check.name}: ${value} (threshold: ${check.threshold})`;
   }

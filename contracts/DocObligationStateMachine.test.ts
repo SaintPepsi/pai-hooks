@@ -464,7 +464,7 @@ describe("DocObligationEnforcer", () => {
     expect(result.value.type).toBe("block");
   });
 
-  it("blocks on second stop attempt (blockCount=1)", () => {
+  it("returns silent on second stop attempt (blockCount=1, MAX_BLOCKS=1)", () => {
     const deps = makeTrackerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
@@ -480,7 +480,7 @@ describe("DocObligationEnforcer", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(result.value.type).toBe("silent");
   });
 
   it("returns silent on third stop attempt (blockCount=2)", () => {
