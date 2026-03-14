@@ -1,0 +1,10 @@
+{"message": "That skill doesn't match what was actually asked for. Skipping it and continuing with the real task.", "score": 2}
+{"message": "False alarm — that skill was triggered by position bias, not by the actual request. Moving on.", "score": 2}
+{"message": "That skill isn't relevant here. Continuing with what was actually requested.", "score": 2}
+{"message": "I almost invoked the wrong skill. The actual task doesn't call for it.", "score": 2}
+{"message": "Hmm, that skill doesn't seem right for this. Let me skip it.", "score": 1}
+{"message": "Wait — I don't think that's the right skill here.", "score": 1}
+{"message": "Let me hold off on that skill. It's not what was asked for.", "score": 1}
+{"message": "No — that skill has no business firing here. Blocking it and staying on task.", "score": 3}
+{"message": "Absolutely not. That skill is a known false trigger. Ignoring it completely.", "score": 3}
+{"message": "Blocked. That skill keeps getting triggered incorrectly. Proceeding with the real work.", "score": 3}

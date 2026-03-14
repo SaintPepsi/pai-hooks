@@ -119,7 +119,7 @@ describe("DestructiveDeleteGuard Bash detection", () => {
       expect(result.value.type).toBe("block");
       if (result.value.type === "block") {
         expect(result.value.decision).toBe("block");
-        expect(result.value.reason).toContain("Recursive");
+        expect(result.value.reason).toContain("Destructive");
       }
     }
   });
@@ -193,7 +193,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
     if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("recursive");
+      expect(result.value.reason).toContain("destructive");
     }
   });
 });
@@ -295,6 +295,184 @@ describe("DestructiveDeleteGuard Bash edge cases", () => {
       tool_input: "ls -la",
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+});
+
+// ─── Bash: Non-rm Destructive Commands ───────────────────────────────────────
+
+describe("DestructiveDeleteGuard Bash non-rm detection", () => {
+  test("detects find -delete", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("find /tmp -type f -delete"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects find -exec rm", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("find /tmp -exec rm {} \\;"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects python3 shutil.rmtree", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('python3 -c "import shutil; shutil.rmtree(\\"/tmp/foo\\")"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects python rmtree", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('python -c "from shutil import rmtree; rmtree(\\"/tmp\\")"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects perl rmtree", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('perl -e "use File::Path; rmtree(\\"/tmp/foo\\")"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects ruby FileUtils.rm_rf", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('ruby -e "require \\"fileutils\\"; FileUtils.rm_rf(\\"/tmp\\")"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects bun -e rmSync", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('bun -e "require(\\"fs\\").rmSync(\\"/tmp\\", {recursive:true})"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects node -e rmSync", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('node -e "require(\\"fs\\").rmSync(\\"/tmp\\", {recursive:true})"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects rsync --delete", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rsync -a --delete /tmp/empty/ /target/"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects git clean -fd", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("git clean -fd"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects git clean -fdx", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("git clean -fdx"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects git clean -d", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("git clean -d"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+});
+
+// ─── Bash: Non-rm Allowed Commands ───────────────────────────────────────────
+
+describe("DestructiveDeleteGuard Bash non-rm allowed", () => {
+  test("allows find without -delete", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("find /tmp -name '*.log' -print"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows python without rmtree", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput('python3 -c "print(42)"'), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows rsync without --delete", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rsync -av /src/ /dst/"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows git clean without -d", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("git clean -f"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows bun without rmSync", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("bun test"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows git status (no clean)", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("git status"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+});
+
+// ─── Edit/Write: Non-rm Code Pattern Detection ──────────────────────────────
+
+describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
+  test("detects shutil.rmtree in Python code", () => {
+    const code = 'import shutil\nshutil.rmtree("/tmp/build")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects rmtree() call in code", () => {
+    const code = 'rmtree("/path/to/dir")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects FileUtils.rm_rf in Ruby code", () => {
+    const code = 'FileUtils.rm_rf("/tmp/build")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects rmSync with recursive in Node code", () => {
+    const code = 'fs.rmSync(dir, { recursive: true, force: true });';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects find -delete in shell script code", () => {
+    const code = '#!/bin/bash\nfind /tmp -name "*.log" -delete';
+    const result = DestructiveDeleteGuard.execute(writeInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects rsync --delete in code", () => {
+    const code = 'execSync("rsync -a --delete /empty/ /target/")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("detects git clean -fd in code", () => {
+    const code = 'execSync("git clean -fd")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+});
+
+// ─── Edit/Write: Non-rm Allowed Content ─────────────────────────────────────
+
+describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
+  test("allows rmSync without recursive", () => {
+    const code = "fs.rmSync(filePath);";
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows find without -delete", () => {
+    const code = 'const files = execSync("find /src -name *.ts").toString();';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows rsync without --delete", () => {
+    const code = 'execSync("rsync -av /src/ /backup/")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows git commands without clean -d", () => {
+    const code = 'execSync("git status")';
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows shutil import without rmtree", () => {
+    const code = "import shutil\nshutil.copy2(src, dst)";
+    const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok && result.value.type).toBe("continue");
   });
 });

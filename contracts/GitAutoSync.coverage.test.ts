@@ -142,15 +142,21 @@ describe("GitAutoSync pipeline", () => {
 
   it("cleans up lock on exec error when lock exists", () => {
     let removedPath = "";
+    let addAttempted = false;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
         if (cmd === "git status --porcelain") return ok("M file.txt\n");
         if (cmd.includes("git log -1")) return ok("");
-        if (cmd === "git add -A") return execError("git lock error");
+        if (cmd === "git add -A") { addAttempted = true; return execError("git lock error"); }
         return ok("");
       },
-      fileExists: (path: string) => path.endsWith("index.lock"),
+      fileExists: (path: string) => {
+        // Lock doesn't exist initially (contract proceeds past isGitBusy)
+        // but appears after git add fails (stale lock from failed operation)
+        if (path.endsWith("index.lock")) return addAttempted;
+        return false;
+      },
       removeFile: (path: string) => { removedPath = path; return ok(undefined); },
     });
 

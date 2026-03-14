@@ -1,0 +1,196 @@
+import { describe, it, expect } from "bun:test";
+import { MapleBranding, type MapleBrandingDeps } from "@hooks/contracts/MapleBranding";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import type { Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+
+const mockDeps: MapleBrandingDeps = {
+  stderr: () => {},
+};
+
+function makeInput(command: string): ToolHookInput {
+  return {
+    session_id: "test-sess",
+    tool_name: "Bash",
+    tool_input: { command },
+  };
+}
+
+function makeNonBashInput(toolName: string, command: string): ToolHookInput {
+  return {
+    session_id: "test-sess",
+    tool_name: toolName,
+    tool_input: { command },
+  };
+}
+
+describe("MapleBranding", () => {
+  it("has correct name and event", () => {
+    expect(MapleBranding.name).toBe("MapleBranding");
+    expect(MapleBranding.event).toBe("PreToolUse");
+  });
+
+  describe("accepts", () => {
+    it("accepts gh pr create commands", () => {
+      expect(MapleBranding.accepts(makeInput('gh pr create --title "test"'))).toBe(true);
+    });
+
+    it("accepts gh issue create commands", () => {
+      expect(MapleBranding.accepts(makeInput('gh issue create --title "test"'))).toBe(true);
+    });
+
+    it("accepts gh pr comment commands", () => {
+      expect(MapleBranding.accepts(makeInput("gh pr comment 42 --body 'hi'"))).toBe(true);
+    });
+
+    it("accepts gh issue comment commands", () => {
+      expect(MapleBranding.accepts(makeInput("gh issue comment 1 --body 'hi'"))).toBe(true);
+    });
+
+    it("accepts gh pr edit commands", () => {
+      expect(MapleBranding.accepts(makeInput("gh pr edit 42 --body 'updated'"))).toBe(true);
+    });
+
+    it("accepts gh issue edit commands", () => {
+      expect(MapleBranding.accepts(makeInput("gh issue edit 1 --body 'updated'"))).toBe(true);
+    });
+
+    it("rejects non-gh commands", () => {
+      expect(MapleBranding.accepts(makeInput("git status"))).toBe(false);
+      expect(MapleBranding.accepts(makeInput("ls -la"))).toBe(false);
+      expect(MapleBranding.accepts(makeInput("echo hello"))).toBe(false);
+    });
+
+    it("accepts gh pr review commands", () => {
+      expect(MapleBranding.accepts(makeInput("gh pr review 42 --body 'looks good'"))).toBe(true);
+    });
+
+    it("accepts gh api commands", () => {
+      expect(MapleBranding.accepts(makeInput("gh api repos/owner/repo/issues/1/comments -f body='test'"))).toBe(true);
+    });
+
+    it("rejects gh commands that are not pr/issue create/comment/edit/review or api", () => {
+      expect(MapleBranding.accepts(makeInput("gh pr list"))).toBe(false);
+      expect(MapleBranding.accepts(makeInput("gh repo view"))).toBe(false);
+      expect(MapleBranding.accepts(makeInput("gh pr merge 42"))).toBe(false);
+    });
+
+    it("rejects non-Bash tool calls", () => {
+      expect(MapleBranding.accepts(makeNonBashInput("Edit", "gh pr create"))).toBe(false);
+      expect(MapleBranding.accepts(makeNonBashInput("Write", "gh pr create"))).toBe(false);
+    });
+  });
+
+  describe("execute", () => {
+    it("blocks commands with Claude Code footer", () => {
+      const input = makeInput(
+        'gh pr create --title "test" --body "Summary\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+        expect(result.value.decision).toBe("block");
+        expect(result.value.reason).toContain("Maple sign-off");
+        expect(result.value.reason).toContain("img src");
+      }
+    });
+
+    it("blocks case-insensitively", () => {
+      const input = makeInput(
+        'gh pr create --body "generated with [claude code](https://claude.com)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("allows commands with Maple sign-off", () => {
+      const input = makeInput(
+        'gh pr create --title "test" --body "Summary\n\n<img src=\\"https://github.com/user-attachments/assets/08e4e5de\\" alt=\\"🍁\\"> Maple"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+        expect(result.value.continue).toBe(true);
+      }
+    });
+
+    it("allows commands with no footer at all", () => {
+      const input = makeInput('gh pr create --title "test" --body "Just a plain body"');
+      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+      }
+    });
+
+    it("allows gh issue create without Claude Code footer", () => {
+      const input = makeInput('gh issue create --title "bug" --body "Description here"');
+      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+      }
+    });
+
+    it("blocks gh issue comment with Claude Code footer", () => {
+      const input = makeInput(
+        'gh issue comment 1 --body "Fix applied\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("blocks gh pr edit with Claude Code footer", () => {
+      const input = makeInput(
+        'gh pr edit 42 --body "Updated\n\nGenerated with [Claude Code](https://example.com)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("blocks gh pr review with Claude Code footer", () => {
+      const input = makeInput(
+        'gh pr review 42 --body "LGTM\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("blocks gh api with Claude Code footer", () => {
+      const input = makeInput(
+        "gh api repos/owner/repo/issues/1/comments -f body='Generated with [Claude Code](https://claude.com)'",
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("allows gh api without Claude Code footer", () => {
+      const input = makeInput(
+        "gh api repos/owner/repo/pulls/1 -f body='Clean update'",
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+      }
+    });
+  });
+});

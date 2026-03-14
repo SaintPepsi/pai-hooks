@@ -1,0 +1,9 @@
+{"message": "Hmm, that command looks a bit risky. Let me double-check before running it.", "score": 1}
+{"message": "Hold on — I should verify this is safe before proceeding.", "score": 1}
+{"message": "Just a sec, let me make sure this won't touch anything sensitive.", "score": 1}
+{"message": "Wait — that command could be destructive. I need to take a safer approach here.", "score": 2}
+{"message": "I caught myself about to run something risky. Let me find a safer way to do this.", "score": 2}
+{"message": "That operation hits a protected area. I'll rework my approach to avoid it.", "score": 2}
+{"message": "No — that command is too dangerous. I'm blocking it and finding an alternative.", "score": 3}
+{"message": "Absolutely not. That would risk serious damage. Stopping and rethinking entirely.", "score": 3}
+{"message": "Blocked. Multiple safety rules triggered at once. I need a completely different approach.", "score": 3}

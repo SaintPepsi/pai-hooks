@@ -10,6 +10,7 @@ export type HookEventType =
   | "SessionStart"
   | "SessionEnd"
   | "UserPromptSubmit"
+  | "PreCompact"
   | "Stop";
 
 // ─── Base Input ──────────────────────────────────────────────────────────────
@@ -44,6 +45,13 @@ export interface UserPromptSubmitInput extends HookInputBase {
   transcript_path?: string;
 }
 
+// ─── PreCompact Input ────────────────────────────────────────────────────────
+
+export interface PreCompactInput extends HookInputBase {
+  // PreCompact fires before context compaction with no tool context
+  trigger?: string;
+}
+
 // ─── Stop Input ──────────────────────────────────────────────────────────────
 
 export interface StopInput extends HookInputBase {
@@ -57,4 +65,5 @@ export type HookInput =
   | SessionStartInput
   | SessionEndInput
   | UserPromptSubmitInput
+  | PreCompactInput
   | StopInput;

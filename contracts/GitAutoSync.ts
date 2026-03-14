@@ -43,7 +43,7 @@ interface BackupResult {
 
 export const DEBOUNCE_MINUTES = 15;
 export const KEY_FILES = ["statusline-command.sh", "statusline-helpers.ts", "settings.json"];
-export const KEY_HOOK_PATTERN = /^hooks\/.*\.ts$/;
+export const KEY_HOOK_PATTERN = /^(?:hooks|pai-hooks\/hooks)\/.*\.ts$/;
 
 // ─── Pure Logic Functions ────────────────────────────────────────────────────
 
@@ -87,7 +87,7 @@ function backupKeyFiles(deps: GitAutoSyncDeps): BackupResult | null {
     }
   }
 
-  const hookFilesResult = deps.execSync("git ls-files hooks/", {
+  const hookFilesResult = deps.execSync("git ls-files pai-hooks/hooks/", {
     cwd: deps.claudeDir,
     timeout: 5000,
   });
@@ -205,6 +205,11 @@ export const GitAutoSync: HookContract<
     });
     if (!addResult.ok) {
       deps.stderr(`[GitAutoSync] git add failed: ${addResult.error.message}`);
+      // Clean up stale lock if the operation left one behind
+      const lockPath = join(deps.claudeDir, ".git", "index.lock");
+      if (deps.fileExists(lockPath)) {
+        deps.removeFile(lockPath);
+      }
       return ok({ type: "silent" });
     }
 
@@ -216,6 +221,11 @@ export const GitAutoSync: HookContract<
     );
     if (!commitResult.ok) {
       deps.stderr(`[GitAutoSync] git commit failed: ${commitResult.error.message}`);
+      // Clean up stale lock if the operation left one behind
+      const lockPath = join(deps.claudeDir, ".git", "index.lock");
+      if (deps.fileExists(lockPath)) {
+        deps.removeFile(lockPath);
+      }
       return ok({ type: "silent" });
     }
 

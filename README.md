@@ -1,43 +1,98 @@
 # pai-hooks
 
-23 Claude Code hooks created/modified by [@SaintPepsi](https://github.com/SaintPepsi). Install them into any Claude Code setup with a single command.
+All Claude Code hooks for [@SaintPepsi](https://github.com/SaintPepsi)'s PAI setup. Install them into any Claude Code setup with a single command.
+
+> **Note:** All hooks are custom-built. None originate from the [PAI upstream](https://github.com/danielmiessler/Personal_AI_Infrastructure) — the upstream provides the Algorithm, Skills, and context system but no hooks. Some hooks implement PAI Algorithm concepts (PRD tracking, Algorithm phase detection), others are general development aids.
 
 ## What's included
 
-**Security & Safety**
-- `DestructiveDeleteGuard` — confirms before deleting files
-- `WorktreeSafetyVerification` — prevents cross-worktree contamination
+### PAI Algorithm
 
-**Code Quality**
-- `CodingStandardsEnforcer` — enforces coding standards on `Write`/`Edit`
-- `CodingStandardsAdvisor` — suggests improvements post-`Read`
-- `CodeQualityGuard` — blocks low-quality code patterns on `Write`/`Edit`
-- `CodeQualityBaseline` — tracks quality scores over time on `Read`
-- `TypeStrictness` — hard-blocks `any` types in TypeScript on `Write`/`Edit`
-- `BashWriteGuard` — prevents bypassing `Edit`/`Write` via `Bash` sed/echo
+Hooks that implement or support the PAI Algorithm workflow.
 
-**Workflow & Obligations**
-- `BranchAwareness` — injects current git branch context at session start
-- `GitAutoSync` — auto-commits `~/.claude` on session end
-- `DocObligationTracker` — tracks doc changes alongside code on `Write`/`Edit`
-- `DocObligationEnforcer` — enforces documentation obligations on `Stop`
-- `TestObligationTracker` — tracks test changes alongside code on `Write`/`Edit`/`Bash`
-- `TestObligationEnforcer` — enforces test obligations on `Stop`
-- `HookExecutePermission` — controls hook execution permissions on `Write`
+| Hook | Event | Description |
+|------|-------|-------------|
+| `AlgorithmTracker` | PostToolUse | Detects Algorithm phase transitions from tool calls |
+| `PRDSync` | PostToolUse | Syncs PRD frontmatter and criteria to work.json for dashboard |
+| `AutoWorkCreation` | UserPromptSubmit | Creates MEMORY/WORK directories for new tasks |
+| `LoadContext` | SessionStart | Loads PAI context files at session start |
+| `StartupGreeting` | SessionStart | Displays PAI banner and system status |
+| `CheckVersion` | SessionStart | Checks for Claude Code updates |
+| `CheckAlgorithmVersion` | SessionStart | Validates Algorithm version at session start |
+| `SkillGuard` | PreToolUse | Validates Skill tool invocations |
+| `VoiceGate` | PreToolUse | Controls voice notification routing |
 
-**Session Lifecycle**
-- `CheckAlgorithmVersion` — validates Algorithm version at session start
-- `LastResponseCache` — caches last response for reference on `Stop`
-- `SessionQualityReport` — produces quality metrics per session
-- `LearningActioner` — spawns agent to analyze session learnings
-- `ModeAnalytics` — tracks Algorithm/Native/Minimal mode usage at session end
+### Session Management
 
-**Intelligence & Tracking**
-- `ArchitectureEscalation` — escalates after N failed fix attempts on `TaskUpdate`
+Hooks that manage session lifecycle, learning, and state persistence.
 
-**Citations**
-- `CitationTracker` — tracks citation sources on `WebSearch`/`WebFetch`/`Skill`
-- `CitationEnforcement` — enforces citations in written content on `Write`/`Edit`
+| Hook | Event | Description |
+|------|-------|-------------|
+| `SessionSummary` | SessionEnd | Generates session summary on end |
+| `SessionAutoName` | UserPromptSubmit | Auto-names sessions from first prompt |
+| `SessionQualityReport` | SessionEnd | Produces quality metrics per session |
+| `RatingCapture` | UserPromptSubmit | Captures user ratings (1-10) for learning signals |
+| `RelationshipMemory` | SessionEnd | Persists relationship context to memory |
+| `WorkCompletionLearning` | SessionEnd | Extracts learning signals from completed work |
+| `LearningActioner` | SessionEnd | Spawns agent to analyze session learnings |
+| `ModeAnalytics` | SessionEnd | Tracks Algorithm/Native/Minimal mode usage |
+| `ArticleWriter` | SessionEnd | Generates article drafts from session content |
+| `UpdateCounts` | SessionEnd | Updates hook/file/signal counters for dashboard |
+| `QuestionAnswered` | PostToolUse | Tracks AskUserQuestion responses |
+| `PreCompactStatePersist` | PreCompact | Persists state before context compaction |
+| `LastResponseCache` | Stop | Caches last response for reference |
+| `StopOrchestrator` | Stop | Coordinates Stop event hooks |
+
+### Security & Safety
+
+Hooks that protect against destructive or unauthorized actions.
+
+| Hook | Event | Description |
+|------|-------|-------------|
+| `SecurityValidator` | PreToolUse | Blocks writes to protected files (settings.json, etc.) |
+| `DestructiveDeleteGuard` | PreToolUse | Confirms before recursive deletes or mass file removal |
+| `BashWriteGuard` | PreToolUse | Prevents bypassing Edit/Write via Bash sed/echo |
+| `AgentExecutionGuard` | PreToolUse | Controls agent spawning permissions |
+| `WorktreeSafetyVerification` | PostToolUse | Prevents cross-worktree contamination |
+| `HookExecutePermission` | PostToolUse | Controls hook execution permissions on Write |
+
+### Code Quality
+
+Hooks that enforce coding standards and track quality metrics.
+
+| Hook | Event | Description |
+|------|-------|-------------|
+| `TypeStrictness` | PreToolUse | Hard-blocks `any` types in TypeScript |
+| `CodingStandardsEnforcer` | PreToolUse | Enforces coding standards on Write/Edit |
+| `CodingStandardsAdvisor` | PostToolUse | Suggests improvements post-Read |
+| `CodeQualityGuard` | PostToolUse | Blocks low-quality code patterns |
+| `CodeQualityBaseline` | PostToolUse | Tracks quality scores over time |
+| `MapleBranding` | PreToolUse | Enforces Maple identity in external comms |
+| `GitignoreRecommender` | SessionStart | Suggests .gitignore improvements |
+
+### Workflow & Obligations
+
+Hooks that enforce development workflow practices.
+
+| Hook | Event | Description |
+|------|-------|-------------|
+| `BranchAwareness` | SessionStart | Injects current git branch context |
+| `GitAutoSync` | SessionEnd | Auto-commits ~/.claude on session end |
+| `DocObligationTracker` | PostToolUse | Tracks doc changes alongside code |
+| `DocObligationEnforcer` | Stop | Enforces documentation obligations |
+| `TestObligationTracker` | PostToolUse | Tracks test changes alongside code |
+| `TestObligationEnforcer` | Stop | Enforces test obligations |
+| `ArchitectureEscalation` | PostToolUse | Escalates after N failed fix attempts |
+| `SonnetDelegation` | PostToolUse | Routes sub-agent work to appropriate models |
+
+### Citations
+
+Hooks that track and enforce source attribution.
+
+| Hook | Event | Description |
+|------|-------|-------------|
+| `CitationTracker` | PostToolUse | Tracks citation sources from research tools |
+| `CitationEnforcement` | PostToolUse | Enforces citations in written content |
 
 ## Quick start
 
@@ -79,6 +134,21 @@ lib/               → Shared utilities (identity, time, notifications)
 
 All hooks use the `HookContract` pattern with dependency injection, making them fully testable without filesystem or network access.
 
+### Structured logging
+
+Every hook execution is logged to `MEMORY/STATE/logs/hook-log-YYYY-MM-DD.jsonl` via the runner. Each entry includes hook name, event, status (ok/error/skipped), duration, session ID, and error details. Query with:
+
+```bash
+# All errors today
+jq 'select(.status == "error")' ~/.claude/MEMORY/STATE/logs/hook-log-$(date +%Y-%m-%d).jsonl
+
+# Slow hooks (>1s)
+jq 'select(.duration_ms > 1000)' ~/.claude/MEMORY/STATE/logs/hook-log-*.jsonl
+
+# Errors by hook name
+jq -s 'map(select(.status == "error")) | group_by(.hook) | map({hook: .[0].hook, count: length})' ~/.claude/MEMORY/STATE/logs/hook-log-*.jsonl
+```
+
 ### Settings sync
 
 The repo keeps `settings.hooks.json` as the portable hook registry:
@@ -94,7 +164,7 @@ bun test                # Run all tests
 bun run test:coverage   # Run with coverage report (90%+ line coverage)
 ```
 
-940+ tests across 42 files with 1600+ expect() calls.
+1300+ tests across 60+ files with 2200+ expect() calls.
 
 ## Architecture
 

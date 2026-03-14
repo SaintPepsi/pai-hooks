@@ -1,0 +1,9 @@
+{"message": "Quick note — I changed a file but haven't run its tests yet. Let me verify that before wrapping up.", "score": 1}
+{"message": "Almost forgot — I should run tests on what I changed. One moment.", "score": 1}
+{"message": "Small thing before I finish — I haven't tested my changes yet. Let me do that now.", "score": 1}
+{"message": "I modified code but haven't verified it with tests yet. Let me do that before wrapping up.", "score": 2}
+{"message": "Hold on — I've changed several files without running tests. I need to verify those before finishing.", "score": 2}
+{"message": "I should run tests before ending this session. Several files were modified and none were tested.", "score": 2}
+{"message": "I've made changes across multiple files without running a single test. I need to verify all of this before finishing.", "score": 3}
+{"message": "Too many untested modifications. I need to run the test suite now — shipping this without verification isn't acceptable.", "score": 3}
+{"message": "I can't wrap up with this many untested changes. Let me run the full test suite before finishing.", "score": 3}

@@ -14,11 +14,11 @@
  * - max-turns caps agent cost
  */
 
-import type { HookContract } from "../core/contract";
-import type { SessionEndInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import type { HookContract } from "@hooks/core/contract";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import {
   fileExists,
   readDir,
@@ -26,10 +26,10 @@ import {
   removeFile,
   ensureDir,
   stat,
-} from "../core/adapters/fs";
-import { spawnBackground } from "../core/adapters/process";
+} from "@hooks/core/adapters/fs";
+import { spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
-import { getISOTimestamp } from "../lib/time";
+import { getISOTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -247,7 +247,7 @@ export const LearningActioner: HookContract<
 
     // Spawn wrapper that runs claude synchronously then cleans up deterministically
     // Wrapper imports buildAgentPrompt directly — no temp files needed
-    const wrapperPath = join(deps.baseDir, "hooks/learning-agent-runner.ts");
+    const wrapperPath = join(deps.baseDir, "pai-hooks/runners/learning-agent-runner.ts");
     deps.spawnBackground("bun", [wrapperPath, deps.baseDir]);
 
     deps.stderr("[LearningActioner] Spawned wrapper to run analysis agent");

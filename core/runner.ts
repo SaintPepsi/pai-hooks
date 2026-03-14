@@ -8,11 +8,12 @@
  */
 
 import type { HookContract } from "@hooks/core/contract";
-import type { HookInput } from "@hooks/core/types/hook-inputs";
+import type { HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
 import type { HookOutput } from "@hooks/core/types/hook-outputs";
 import { readStdin } from "@hooks/core/adapters/stdin";
 import { type Result, ok, tryCatch } from "@hooks/core/result";
 import { type PaiError, ErrorCode, jsonParseFailed } from "@hooks/core/error";
+import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
 
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
@@ -87,6 +88,8 @@ export interface RunHookOptions {
   exit?: (code: number) => void;
   /** Override stdin reader for testing. Bypasses readStdin. */
   stdinOverride?: string;
+  /** Override log writer for testing. */
+  appendLog?: (entry: HookLogEntry) => void;
 }
 
 /**
@@ -104,11 +107,30 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
   const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
   const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(msg + "\n"));
   const exit = options.exit ?? ((code: number) => process.exit(code));
+  const log = options.appendLog ?? ((entry: HookLogEntry) => { appendHookLog(entry, undefined, undefined, writeErr); });
+  const startTime = performance.now();
+  let sessionId: string | undefined;
 
   const safeExit = () => { exit(0); };
 
+  const emitLog = (status: HookLogEntry["status"], outputType?: string, error?: string) => {
+    log({
+      ts: new Date().toISOString(),
+      hook: contract.name,
+      event: contract.event,
+      status,
+      duration_ms: Math.round(performance.now() - startTime),
+      session_id: sessionId,
+      ...(error ? { error } : {}),
+      ...(outputType ? { output_type: outputType } : {}),
+    });
+  };
+
   const runPipeline = async (): Promise<void> => {
+    sessionId = (input as HookInputBase).session_id;
+
     if (!contract.accepts(input)) {
+      emitLog("skipped");
       safeExit();
       return;
     }
@@ -117,6 +139,7 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
 
     if (!result.ok) {
       writeErr(`[${contract.name}] error: ${result.error.message}`);
+      emitLog("error", undefined, result.error.message);
       safeExit();
       return;
     }
@@ -125,11 +148,13 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
     if (formatted !== null) {
       write(formatted);
     }
+    emitLog("ok", result.value.type);
     exit(0);
   };
 
   await runPipeline().catch((e) => {
     writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
+    emitLog("error", undefined, e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }
@@ -148,6 +173,9 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(msg + "\n"));
   const exit = options.exit ?? ((code: number) => process.exit(code));
   const timeoutMs = options.stdinTimeout ?? 200;
+  const log = options.appendLog ?? ((entry: HookLogEntry) => { appendHookLog(entry, undefined, undefined, writeErr); });
+  const startTime = performance.now();
+  let sessionId: string | undefined;
 
   const isToolEvent = contract.event === "PreToolUse" || contract.event === "PostToolUse";
 
@@ -156,6 +184,19 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
       write(JSON.stringify({ continue: true }));
     }
     exit(0);
+  };
+
+  const emitLog = (status: HookLogEntry["status"], outputType?: string, error?: string) => {
+    log({
+      ts: new Date().toISOString(),
+      hook: contract.name,
+      event: contract.event,
+      status,
+      duration_ms: Math.round(performance.now() - startTime),
+      session_id: sessionId,
+      ...(error ? { error } : {}),
+      ...(outputType ? { output_type: outputType } : {}),
+    });
   };
 
   const runPipeline = async (): Promise<void> => {
@@ -169,6 +210,7 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
     if (!rawResult.ok) {
       writeErr(`[${contract.name}] stdin: ${rawResult.error.message}`);
+      emitLog("error", undefined, rawResult.error.message);
       safeExit();
       return;
     }
@@ -177,21 +219,25 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     const inputResult = parseJson(rawResult.value);
     if (!inputResult.ok) {
       writeErr(`[${contract.name}] parse: ${inputResult.error.message}`);
+      emitLog("error", undefined, inputResult.error.message);
       safeExit();
       return;
     }
 
     const input = inputResult.value as I;
+    sessionId = (input as HookInputBase).session_id;
 
     // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
     if (isToolEvent && !("tool_name" in inputResult.value)) {
       writeErr(`[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`);
+      emitLog("error", undefined, "input missing tool_name");
       safeExit();
       return;
     }
 
     // Step 3: accepts() gate — ISP
     if (!contract.accepts(input)) {
+      emitLog("skipped");
       safeExit();
       return;
     }
@@ -201,6 +247,7 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
     if (!result.ok) {
       writeErr(`[${contract.name}] error: ${result.error.message}`);
+      emitLog("error", undefined, result.error.message);
 
       // Security blocks exit with code 2 — fail closed, not fail open
       if (result.error.code === ErrorCode.SecurityBlock) {
@@ -217,12 +264,14 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     if (formatted !== null) {
       write(formatted);
     }
+    emitLog("ok", result.value.type);
     exit(0);
   };
 
   await runPipeline().catch((e) => {
     // Top-level safety net — should never reach here if contracts use Result
     writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
+    emitLog("error", undefined, e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }

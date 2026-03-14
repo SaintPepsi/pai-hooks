@@ -13,9 +13,9 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
       },
     };
 
-    const result = mergeHooksIntoSettings(settings, exported, "/repo/path");
+    const result = mergeHooksIntoSettings(settings, exported);
 
-    expect(result.env.SAINTPEPSI_PAI_HOOKS_DIR).toBe("/repo/path");
+    expect(result.env.SAINTPEPSI_PAI_HOOKS_DIR).toBeUndefined();
     expect(result.hooks.PreToolUse).toHaveLength(1);
     expect(result.hooks.PreToolUse[0].hooks[0].command).toBe("${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts");
   });
@@ -38,7 +38,7 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
       },
     };
 
-    const result = mergeHooksIntoSettings(settings, exported, "/repo/path");
+    const result = mergeHooksIntoSettings(settings, exported);
 
     expect(result.hooks.PreToolUse).toHaveLength(2);
     expect(result.hooks.PreToolUse[0].hooks[0].command).toBe("/my/custom/hook.ts");
@@ -62,9 +62,9 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
       },
     };
 
-    const result = mergeHooksIntoSettings(settings, exported, "/new/path");
+    const result = mergeHooksIntoSettings(settings, exported);
 
-    expect(result.env.SAINTPEPSI_PAI_HOOKS_DIR).toBe("/new/path");
+    expect(result.env.SAINTPEPSI_PAI_HOOKS_DIR).toBeUndefined();
     expect(result.hooks.PreToolUse).toHaveLength(1);
   });
 });

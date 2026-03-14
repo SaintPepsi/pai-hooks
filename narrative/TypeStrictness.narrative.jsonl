@@ -1,0 +1,10 @@
+{"message": "I found `any` types in this file. Let me replace those with proper types before continuing.", "score": 2}
+{"message": "This file has unsafe `any` types that need fixing. I'll clean those up first.", "score": 2}
+{"message": "Hold on — there are `any` types here that bypass type safety. Fixing those now.", "score": 2}
+{"message": "I noticed some `any` usage in this file. I'll tighten the types before proceeding.", "score": 2}
+{"message": "Just a quick type fix — there's an `any` that should be more specific.", "score": 1}
+{"message": "One small thing — I see an `any` type I should replace before moving on.", "score": 1}
+{"message": "Let me swap out that `any` for a proper type. Quick fix.", "score": 1}
+{"message": "This file is full of `any` types. I need to do a thorough type cleanup before proceeding.", "score": 3}
+{"message": "There are too many `any` types here — type safety is completely bypassed. Fixing all of them now.", "score": 3}
+{"message": "Significant `any` usage throughout this file. I'll need to properly type everything first.", "score": 3}

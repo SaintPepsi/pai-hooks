@@ -1,16 +1,17 @@
 /**
- * DestructiveDeleteGuard Contract — Block recursive force-delete patterns.
+ * DestructiveDeleteGuard Contract — Block destructive delete patterns.
  *
  * PreToolUse hook that fires on Bash, Edit, and Write tools.
- * - Bash: Detects `rm -rf` (all flag variations) and ASKs for confirmation.
- * - Edit/Write: Detects code containing `rm -rf` patterns (string literals,
- *   spawn arrays, template literals) and BLOCKs with adapter guidance.
+ * - Bash: Detects recursive/destructive delete commands and BLOCKs.
+ *   Covers: rm -r, find -delete, python rmtree, perl rmtree, ruby rm_rf,
+ *   node/bun rmSync, rsync --delete, git clean -d.
+ * - Edit/Write: Detects code containing destructive delete patterns
+ *   (string literals, spawn arrays, template literals, API calls) and BLOCKs.
  *
  * Does NOT block:
  * - Single-file rm (no recursive flag)
  * - Adapter functions like removeDir() (the safe alternative)
- * - rmSync in adapter code (separate concern for CodingStandardsEnforcer)
- * - Markdown files (.md, .mdx) — documentation mentioning delete patterns is normal
+ * - Markdown files (.md, .mdx) — documentation mentioning patterns is normal
  */
 
 import type { HookContract } from "@hooks/core/contract";
@@ -28,59 +29,79 @@ export interface DestructiveDeleteGuardDeps {
 // ─── Pure Functions ──────────────────────────────────────────────────────────
 
 /**
- * Detect `rm` with both recursive and force flags in any order/combination.
- * Matches: rm -rf, rm -fr, rm -r -f, rm -f -r, rm --recursive --force, etc.
- * Does NOT match: grep -rf, rm -f (no recursive), rm file.txt (no flags).
+ * Detect destructive delete commands in a Bash command string.
+ * Covers rm -r, find -delete, python rmtree, rsync --delete, git clean -d, etc.
  */
-function detectsRecursiveForceDelete(command: string): boolean {
-  // Match `rm` as a standalone command (word boundary), not part of other words like `grep`
-  // Look for rm followed by flags that include both -r and -f in some form
+function detectsDestructiveDelete(command: string): boolean {
+  // rm with recursive flag (segmented to avoid matching grep -rf etc.)
   const rmSegments = command.match(/\brm\b[^|&;]*/g);
-  if (!rmSegments) return false;
-
-  for (const segment of rmSegments) {
-    // Combined short flags: -rf, -fr, -rfi, -fri, etc.
-    if (/\brm\b.*-[a-z]*r[a-z]*f[a-z]*\b/.test(segment)) return true;
-    if (/\brm\b.*-[a-z]*f[a-z]*r[a-z]*\b/.test(segment)) return true;
-
-    // Split short flags: -r ... -f or -f ... -r
-    if (/\brm\b.*-[a-z]*r\b.*-[a-z]*f\b/.test(segment)) return true;
-    if (/\brm\b.*-[a-z]*f\b.*-[a-z]*r\b/.test(segment)) return true;
-
-    // Long flags: --recursive ... --force or --force ... --recursive
-    if (/\brm\b.*--recursive\b.*--force\b/.test(segment)) return true;
-    if (/\brm\b.*--force\b.*--recursive\b/.test(segment)) return true;
+  if (rmSegments) {
+    for (const segment of rmSegments) {
+      if (/\brm\b.*-[a-z]*r[a-z]*\b/.test(segment)) return true;
+      if (/\brm\b.*--recursive\b/.test(segment)) return true;
+    }
   }
+
+  // find -delete or find -exec rm
+  if (/\bfind\b.*-delete\b/.test(command)) return true;
+  if (/\bfind\b.*-exec\b.*\brm\b/.test(command)) return true;
+
+  // python/perl/ruby rmtree / rm_rf
+  if (/\bpython[23]?\b.*\brmtree\b/.test(command)) return true;
+  if (/\bperl\b.*\brmtree\b/.test(command)) return true;
+  if (/\bruby\b.*\brm_rf\b/.test(command)) return true;
+
+  // node/bun -e with rmSync
+  if (/\b(?:node|bun)\b.*\brmSync\b/.test(command)) return true;
+
+  // rsync --delete
+  if (/\brsync\b.*--delete\b/.test(command)) return true;
+
+  // git clean with -d flag
+  if (/\bgit\s+clean\b.*-[a-z]*d/.test(command)) return true;
 
   return false;
 }
 
 /**
- * Detect rm -rf patterns in code content (Edit new_string or Write content).
- * Catches string literals, spawn arrays, and template literals containing
- * recursive force-delete commands.
+ * Detect destructive delete patterns in code content (Edit new_string or Write content).
+ * Catches string literals, spawn arrays, template literals, and API calls.
  */
-function detectsRmRfInCode(content: string): boolean {
-  // Spawn array patterns are always code, never false positives
-  if (/["']rm["']\s*,\s*["']-rf["']/.test(content)) return true;
-  if (/["']rm["']\s*,\s*["']-fr["']/.test(content)) return true;
-  if (/["']rm["']\s*,\s*["']-r["']\s*,\s*["']-f["']/.test(content)) return true;
-  if (/["']rm["']\s*,\s*["']-f["']\s*,\s*["']-r["']/.test(content)) return true;
+function detectsDestructiveDeleteInCode(content: string): boolean {
+  // Spawn array patterns: "rm", "-r" or "rm", "-rf" etc.
+  if (/["']rm["']\s*,\s*["']-[a-z]*r[a-z]*["']/.test(content)) return true;
 
-  // For bare command patterns, check line-by-line skipping documentation
+  // Python shutil.rmtree
+  if (/\bshutil\.rmtree\b/.test(content)) return true;
+
+  // Generic rmtree( call (perl, etc.)
+  if (/\brmtree\s*\(/.test(content)) return true;
+
+  // Ruby FileUtils.rm_rf
+  if (/\bFileUtils\.rm_rf\b/.test(content)) return true;
+
+  // Node rmSync with recursive (whole-content check)
+  if (/\brmSync\b/.test(content) && /\brecursive\b/.test(content)) return true;
+
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
     // Skip comments, markdown headers, markdown tables, doc lines
     if (/^(\/\/|\/\*|\*|#[^!]|\||--)/.test(trimmed)) continue;
-    // Skip lines where the pattern is inside parentheses after text (documentation refs)
-    if (/\w+\s+\(rm\s+-rf\)/.test(trimmed)) continue;
+    // Skip documentation references in parentheses
+    if (/\w+\s+\(rm\s+-r[f]?\)/.test(trimmed)) continue;
 
-    if (/rm\s+-rf\b/.test(line)) return true;
-    if (/rm\s+-fr\b/.test(line)) return true;
-    if (/rm\s+-r\s+-f\b/.test(line)) return true;
-    if (/rm\s+-f\s+-r\b/.test(line)) return true;
-    if (/rm\s+--recursive\s+--force\b/.test(line)) return true;
-    if (/rm\s+--force\s+--recursive\b/.test(line)) return true;
+    // rm with recursive flag
+    if (/rm\s+-[a-z]*r[a-z]*\b/.test(line)) return true;
+    if (/rm\s+--recursive\b/.test(line)) return true;
+
+    // find -delete in code
+    if (/find\s+.*-delete\b/.test(line)) return true;
+
+    // rsync --delete in code
+    if (/rsync\s+.*--delete\b/.test(line)) return true;
+
+    // git clean -d in code
+    if (/git\s+clean\b.*-[a-z]*d/.test(line)) return true;
   }
 
   return false;
@@ -131,14 +152,14 @@ export const DestructiveDeleteGuard: HookContract<
     input: ToolHookInput,
     deps: DestructiveDeleteGuardDeps,
   ): Result<ContinueOutput | BlockOutput, PaiError> {
-    // Bash: detect rm with recursive+force flags, BLOCK
+    // Bash: detect destructive delete patterns, BLOCK
     if (input.tool_name === "Bash") {
       const command = getCommand(input);
       if (!command) return ok({ type: "continue", continue: true });
 
-      if (detectsRecursiveForceDelete(command)) {
+      if (detectsDestructiveDelete(command)) {
         const reason = [
-          "Recursive force-delete detected in Bash command.",
+          "Destructive delete pattern detected in Bash command.",
           "",
           `Command: ${command.slice(0, 200)}`,
           "",
@@ -146,7 +167,7 @@ export const DestructiveDeleteGuard: HookContract<
           "or run the command manually outside Claude Code.",
         ].join("\n");
 
-        deps.stderr(`[DestructiveDeleteGuard] BLOCK: recursive force-delete in bash command`);
+        deps.stderr(`[DestructiveDeleteGuard] BLOCK: destructive delete in bash command`);
 
         return ok({
           type: "block",
@@ -163,23 +184,23 @@ export const DestructiveDeleteGuard: HookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    // Edit/Write: detect rm -rf patterns in code, BLOCK with guidance
+    // Edit/Write: detect destructive delete patterns in code, BLOCK with guidance
     const content = getContentToCheck(input);
     if (!content) return ok({ type: "continue", continue: true });
 
-    if (detectsRmRfInCode(content)) {
+    if (detectsDestructiveDeleteInCode(content)) {
       const reason = [
-        "Code contains a recursive force-delete pattern (rm -rf or equivalent).",
+        "Code contains a destructive delete pattern.",
         "",
-        "Instead of embedding raw rm -rf in code, use a safe adapter function:",
+        "Instead of embedding raw destructive delete in code, use a safe adapter function:",
         "  - removeDir(path) — wraps rmSync with proper error handling",
         "  - unlinkFile(path) — for single file deletion",
         "",
-        "Raw rm -rf in code is dangerous: paths can be misconfigured,",
+        "Raw destructive delete in code is dangerous: paths can be misconfigured,",
         "variables can be empty, and there is no safety net.",
       ].join("\n");
 
-      deps.stderr(`[DestructiveDeleteGuard] BLOCK: rm -rf pattern in ${input.tool_name} content`);
+      deps.stderr(`[DestructiveDeleteGuard] BLOCK: destructive delete pattern in ${input.tool_name} content`);
 
       return ok({
         type: "block",

@@ -1,0 +1,9 @@
+{"message": "Quick note — I changed a file but haven't checked if its docs need updating. Let me look.", "score": 1}
+{"message": "Almost forgot — I should check whether my change needs a documentation update too.", "score": 1}
+{"message": "Small thing before I finish — I haven't reviewed related docs for my change. Let me do that now.", "score": 1}
+{"message": "I modified code but haven't updated the related documentation yet. Let me check that before wrapping up.", "score": 2}
+{"message": "Hold on — I've changed several files without reviewing their docs. I should verify those are still accurate.", "score": 2}
+{"message": "I should check documentation before ending this session. Several files were modified and docs may be stale.", "score": 2}
+{"message": "I've made changes across multiple files without touching any documentation. I need to review all related docs now.", "score": 3}
+{"message": "Too many undocumented modifications. I need to review and update the relevant docs before finishing.", "score": 3}
+{"message": "I can't wrap up with this many doc-unchecked changes. Let me review all related documentation before finishing.", "score": 3}

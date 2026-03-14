@@ -8,9 +8,10 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "types": ["bun-types"],
-    "baseUrl": ".",
+    "baseUrl": "..",
     "paths": {
-      "@hooks/*": ["./*"]
+      "@hooks/*": ["pai-hooks/*"],
+      "@pai/*": ["PAI/*"]
     }
   },
   "include": ["**/*.ts"],

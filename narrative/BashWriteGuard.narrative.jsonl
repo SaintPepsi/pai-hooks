@@ -1,0 +1,10 @@
+{"message": "I should use the Edit tool for this, not bash. That way coding standards get checked properly.", "score": 2}
+{"message": "Wait — writing TypeScript via bash skips our standards checks. Let me use Edit instead.", "score": 2}
+{"message": "I was about to bypass coding standards enforcement. Let me use Edit/Write for this .ts file.", "score": 2}
+{"message": "This needs to go through Edit/Write so it gets properly checked. Switching approach.", "score": 2}
+{"message": "Hmm, let me use Edit for this TypeScript file instead.", "score": 1}
+{"message": "Actually, I'll switch to Edit for this — better for standards checking.", "score": 1}
+{"message": "One sec, I should write this .ts file through Edit instead.", "score": 1}
+{"message": "No — I must not write TypeScript through bash. Using Edit now.", "score": 3}
+{"message": "Stop. Bash writes to .ts files bypass all standards checks. Switching to Edit immediately.", "score": 3}
+{"message": "This is exactly the kind of shortcut I need to avoid. Edit tool, not bash, for TypeScript.", "score": 3}
