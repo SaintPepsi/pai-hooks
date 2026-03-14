@@ -3,6 +3,7 @@ import {
   stripCommentsAndStrings,
   detectAnyOnLine,
   findAnyViolations,
+  findLazyUnknownUsage,
   TypeStrictness,
   type TypeStrictnessDeps,
 } from "@hooks/contracts/TypeStrictness";
@@ -298,15 +299,16 @@ describe("TypeStrictness.execute", () => {
     }
   });
 
-  it("block message includes fix guidance", () => {
+  it("block message includes constructive type guidance", () => {
     const input = makeInput({
       tool_input: { file_path: "/src/foo.ts", new_string: `const x${COLON_ANY} = 5;` },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("unknown");
-      expect(result.value.reason).toContain("Fix:");
+      expect(result.value.reason).toContain("STOP");
+      expect(result.value.reason).toContain("READ the type definitions");
+      expect(result.value.reason).toContain("Type correctness > speed");
     }
   });
 
@@ -322,5 +324,91 @@ describe("TypeStrictness.execute", () => {
     if (result.ok) {
       expect(result.value.type).toBe("continue");
     }
+  });
+
+  it("injects lazy-unknown advisory when bare unknown is found", () => {
+    const input = makeInput({
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: "function process(data: unknown): void {\n  console.log(data);\n}",
+      },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+      expect((result.value as { additionalContext?: string }).additionalContext).toContain("LAZY TYPE WARNING");
+    }
+  });
+});
+
+// ─── findLazyUnknownUsage ───────────────────────────────────────────────────
+
+describe("findLazyUnknownUsage", () => {
+  it("flags bare : unknown annotation", () => {
+    const code = "function process(data: unknown): void {}";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings[0].pattern).toContain(": unknown");
+  });
+
+  it("flags bare as unknown assertion", () => {
+    const code = "const x = value as unknown;";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBeGreaterThan(0);
+  });
+
+  it("flags bare unknown[] array", () => {
+    const code = "const items: unknown[] = [];";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBeGreaterThan(0);
+  });
+
+  it("exempts catch (e: unknown)", () => {
+    const code = "catch (e: unknown) {\n  console.error(e);\n}";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("exempts catch (e) without annotation", () => {
+    const code = "catch (e) {\n  console.error(e);\n}";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("exempts JSON.parse result", () => {
+    const code = "const data: unknown = JSON.parse(raw);";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("exempts Record<string, unknown>", () => {
+    const code = "const obj: Record<string, unknown> = {};";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("exempts Promise<unknown>", () => {
+    const code = "async function fetch(): Promise<unknown> {}";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("exempts type guard parameters", () => {
+    const code = "function isString(value: unknown): value is string {}";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("ignores unknown in comments", () => {
+    const code = "// const x: unknown = 5;\nconst x: string = 'hello';";
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
+  });
+
+  it("ignores unknown in string literals", () => {
+    const code = 'const msg = "type unknown is not allowed";';
+    const warnings = findLazyUnknownUsage(code);
+    expect(warnings.length).toBe(0);
   });
 });

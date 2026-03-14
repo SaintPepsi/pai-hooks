@@ -18,6 +18,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx/.svelte files are Read. For .svelte files, extracts `<script lang="ts">` block before scanning. |
 | **CodeQualityGuard** | PostToolUse | SOLID quality scoring for .ts/.tsx/.svelte and other source files (suppresses `type-import-ratio` and `options-object-width` for test files). For .svelte files, extracts `<script lang="ts">` block before scoring. |
 | **CodeQualityBaseline** | PostToolUse | Stores quality baselines on Read for later delta comparison. Supports .svelte files via script block extraction. |
+| **TypeCheckVerifier** | PostToolUse | Advisory type-checking after Edit/Write on .ts/.tsx/.svelte files. Discovers project type-check command (svelte-check, tsc --noEmit), runs it with 10s timeout, injects errors for the edited file as context. Debounced per file (60s). Never blocks. |
 | **DocObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until docs updated |
 | **GitAutoSync** | SessionEnd | Auto-commits and pushes ~/.claude on session end (debounced, with key file backup from `pai-hooks/hooks/`). Skips entirely if `.git/index.lock` exists to avoid racing with active sessions. Cleans up stale index.lock if a git operation fails and leaves one behind. |
 | **HookExecutePermission** | PostToolUse | Auto-chmod on new hook files |

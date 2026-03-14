@@ -130,6 +130,89 @@ function getFilePath(input: ToolHookInput): string | null {
   return (input.tool_input.file_path as string) ?? null;
 }
 
+// ─── Lazy Unknown Detection ─────────────────────────────────────────────────
+
+interface UnknownWarning {
+  line: number;
+  content: string;
+  pattern: string;
+}
+
+/**
+ * Patterns where `unknown` is legitimate and should NOT be flagged:
+ * - catch (e: unknown) or catch (e) — error handling
+ * - Type guard parameters: (value: unknown) => value is T
+ * - JSON.parse result assignment (always returns unknown-ish data)
+ * - Generic constraints: T extends unknown
+ */
+const UNKNOWN_EXEMPTIONS: RegExp[] = [
+  /\bcatch\s*\(\s*\w+\s*(?::\s*unknown\s*)?\)/, // catch (e: unknown) or catch (e)
+  /\)\s*(?::\s*\w+\s+is\s+)/, // type guard return: value is T
+  /JSON\.parse\(/, // JSON.parse result
+  /\bextends\s+unknown\b/, // generic constraint
+  /\bPromise<unknown>/, // Promise<unknown> is often correct for generic async
+  /\bRecord<string,\s*unknown>/, // Record<string, unknown> is the correct "any object" type
+  /\bReadonlyArray<unknown>/, // ReadonlyArray<unknown> for typed-but-unspecified arrays
+];
+
+/** Detect bare `unknown` usage that looks like a lazy `any` replacement. */
+export function findLazyUnknownUsage(content: string): UnknownWarning[] {
+  const stripped = stripCommentsAndStrings(content);
+  const originalLines = content.split("\n");
+  const strippedLines = stripped.split("\n");
+  const warnings: UnknownWarning[] = [];
+
+  const UNKNOWN_PATTERNS: Array<{ regex: RegExp; description: string }> = [
+    { regex: /:\s*unknown\b/, description: "bare `: unknown` annotation" },
+    { regex: /\bas\s+unknown\b/, description: "bare `as unknown` assertion" },
+    { regex: /\bunknown\s*\[\s*\]/, description: "bare `unknown[]` array" },
+  ];
+
+  for (let i = 0; i < strippedLines.length; i++) {
+    const strippedLine = strippedLines[i];
+    const originalLine = originalLines[i];
+
+    for (const p of UNKNOWN_PATTERNS) {
+      if (!p.regex.test(strippedLine)) continue;
+
+      // Check exemptions against original line (needs string content for JSON.parse etc.)
+      const isExempt = UNKNOWN_EXEMPTIONS.some(ex => ex.test(originalLine));
+      if (isExempt) continue;
+
+      warnings.push({
+        line: i + 1,
+        content: originalLine.trim(),
+        pattern: p.description,
+      });
+      break;
+    }
+  }
+
+  return warnings;
+}
+
+function formatLazyUnknownAdvisory(warnings: UnknownWarning[], filePath: string): string {
+  const lines = warnings.map(
+    (w) => `  Line ${w.line}: ${w.content}\n           → ${w.pattern}`
+  );
+
+  return [
+    `⚠️ LAZY TYPE WARNING — ${warnings.length} bare \`unknown\` usage${warnings.length === 1 ? "" : "s"} in ${filePath}:`,
+    "",
+    ...lines,
+    "",
+    "Do not use `unknown` as a quick replacement for `any`. Take time to find the correct type:",
+    "  1. Read the type definitions of imported modules — the correct type likely exists",
+    "  2. Check call sites to understand what data shape is actually passed",
+    "  3. Define a proper interface if the type doesn't exist yet",
+    "  4. Only use `unknown` when the type is genuinely unknowable, with a type guard to narrow it",
+    "",
+    "Getting types right matters more than getting them fast.",
+  ].join("\n");
+}
+
+// ─── Block Message ──────────────────────────────────────────────────────────
+
 function formatBlockMessage(violations: AnyViolation[], filePath: string): string {
   const lines = violations.map(
     (v) => `  Line ${v.line}: ${v.content}\n           → ${v.pattern}`
@@ -143,14 +226,22 @@ function formatBlockMessage(violations: AnyViolation[], filePath: string): strin
     "",
     ...lines,
     "",
-    "Fix: Replace `any` with proper types:",
-    "  • `: any`  → `: unknown` (safe) or the actual type",
-    "  • `as any` → `as unknown` or proper type narrowing",
-    "  • `<any>`  → `<unknown>` or the actual generic type",
-    "  • `any[]`  → `unknown[]` or typed array",
+    "STOP. Do not just replace `any` with `unknown` — that is not a fix, it is a band-aid.",
     "",
-    "`unknown` is type-safe: it forces you to narrow before use.",
-    "`any` disables ALL type checking — it is never acceptable.",
+    "Before writing any type replacement:",
+    "  1. READ the type definitions of the modules you are importing",
+    "  2. CHECK if the correct type is already exported from a dependency",
+    "  3. DEFINE an interface if the data shape is known but untyped",
+    "  4. Only use `unknown` as a LAST RESORT when the type is genuinely unknowable,",
+    "     and ALWAYS pair it with a type guard that narrows before use",
+    "",
+    "Common correct fixes:",
+    "  • `: any` on a function param  → read the call site, use the actual type",
+    "  • `as any` for casting         → find the intermediate type, use `as IntermediateType`",
+    "  • `<any>` in a generic         → use the concrete type the generic expects",
+    "  • `catch (e: any)`             → `catch (e: unknown)` is correct here (exempted)",
+    "",
+    "Take the time to get this right. Type correctness > speed.",
   ].join("\n");
 }
 
@@ -217,6 +308,29 @@ export const TypeStrictness: HookContract<
     });
 
     if (violations.length === 0) {
+      // No `any` violations — check for lazy `unknown` usage (advisory only)
+      const unknownWarnings = findLazyUnknownUsage(content);
+      if (unknownWarnings.length > 0) {
+        const advisory = formatLazyUnknownAdvisory(unknownWarnings, filePath);
+        deps.stderr(`[TypeStrictness] ${filePath}: ${unknownWarnings.length} lazy unknown warning(s)`);
+
+        logSignal(deps.signal, "type-strictness.jsonl", {
+          session_id: input.session_id,
+          hook: "TypeStrictness",
+          event: "PreToolUse",
+          tool: input.tool_name,
+          file: filePath,
+          outcome: "continue",
+          lazy_unknown_count: unknownWarnings.length,
+        });
+
+        return ok({
+          type: "continue",
+          continue: true,
+          additionalContext: advisory,
+        });
+      }
+
       deps.stderr(`[TypeStrictness] ${filePath}: clean`);
       return ok({ type: "continue", continue: true });
     }
