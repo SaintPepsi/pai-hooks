@@ -11,7 +11,7 @@ Business logic, types, and tests live in `../contracts/`. See the top-level `REA
 
 ## All hooks
 
-All 43 hooks are consolidated here. Settings.json references them via `${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/`.
+All 44 hooks are consolidated here. Settings.json references them via `${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/`.
 
 | Hook | Contract | Event |
 |------|----------|-------|
@@ -33,6 +33,7 @@ All 43 hooks are consolidated here. Settings.json references them via `${SAINTPE
 | DestructiveDeleteGuard | DestructiveDeleteGuard | PreToolUse |
 | DocObligationEnforcer | DocObligationStateMachine | Stop |
 | DocObligationTracker | DocObligationStateMachine | PostToolUse |
+| ExecutionEvidenceVerifier | ExecutionEvidenceVerifier | PostToolUse |
 | GitAutoSync | GitAutoSync | SessionEnd |
 | GitignoreRecommender | GitignoreRecommender | SessionStart |
 | HookExecutePermission | HookExecutePermission | PostToolUse |

@@ -11,6 +11,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **CitationEnforcement** | PostToolUse | Ensures sources are cited after research |
 | **CodingStandardsEnforcer** | PreToolUse | Blocks Edit/Write on .ts/.tsx files with coding standard violations (including export default) |
 | **DestructiveDeleteGuard** | PreToolUse | Blocks destructive delete patterns in Bash/Edit/Write: `rm -r`, `find -delete`, `python rmtree`, `node/bun rmSync`, `rsync --delete`, `git clean -d`, `ruby rm_rf`, `perl rmtree` (skips .md/.mdx) |
+| **ExecutionEvidenceVerifier** | PostToolUse | Injects context reminder when state-changing Bash commands (git push, deploy, curl POST, etc.) produce thin/absent output. Never blocks — nudges the agent to show actual execution evidence. Classification logic in `lib/execution-classification.ts`. |
 | **SecurityValidator** | PreToolUse | Validates Bash commands and file paths against YAML security patterns |
 | **SonnetDelegation** | PostToolUse | Injects Sonnet subagent delegation guidance when executing-plans skill loads |
 | **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx files are Read |
