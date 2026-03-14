@@ -39,6 +39,35 @@ describe("GitAutoSync contract", () => {
     expect(GitAutoSync.accepts(makeInput())).toBe(true);
   });
 
+  it("skips when index.lock exists (active session using git)", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      fileExists: (path: string) => path.endsWith("index.lock"),
+      stderr: (msg: string) => stderrMessages.push(msg),
+    });
+
+    const result = GitAutoSync.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("silent");
+    }
+    expect(stderrMessages.some(m => m.includes("index.lock exists"))).toBe(true);
+  });
+
+  it("proceeds when index.lock does not exist", () => {
+    const deps = makeDeps({
+      fileExists: () => false,
+      execSync: (cmd: string) => {
+        if (cmd === "git status --porcelain") return ok("M settings.json");
+        if (cmd.includes("git log")) return ok("");
+        return ok("");
+      },
+    });
+
+    const result = GitAutoSync.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+  });
+
   it("returns silent output when status is clean", () => {
     const deps = makeDeps({
       execSync: (cmd: string) => {

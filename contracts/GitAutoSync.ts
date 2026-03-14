@@ -47,11 +47,14 @@ export const KEY_HOOK_PATTERN = /^hooks\/.*\.ts$/;
 
 // ─── Pure Logic Functions ────────────────────────────────────────────────────
 
-function cleanupLock(deps: GitAutoSyncDeps): void {
+/**
+ * Returns true if another git process holds index.lock — meaning an active
+ * session is doing git operations. GitAutoSync should skip entirely rather
+ * than force-remove the lock (which causes the race condition).
+ */
+function isGitBusy(deps: GitAutoSyncDeps): boolean {
   const lockPath = join(deps.claudeDir, ".git", "index.lock");
-  if (deps.fileExists(lockPath)) {
-    deps.removeFile(lockPath);
-  }
+  return deps.fileExists(lockPath);
 }
 
 function isDebounced(deps: GitAutoSyncDeps): boolean {
@@ -169,13 +172,18 @@ export const GitAutoSync: HookContract<
     _input: SessionEndInput,
     deps: GitAutoSyncDeps,
   ): Result<SilentOutput, PaiError> {
+    // 0. Skip if another session is actively using git
+    if (isGitBusy(deps)) {
+      deps.stderr("[GitAutoSync] Skipped — index.lock exists (active session using git)");
+      return ok({ type: "silent" });
+    }
+
     // 1. Check for uncommitted changes
     const statusResult = deps.execSync("git status --porcelain", {
       cwd: deps.claudeDir,
       timeout: 5000,
     });
     if (!statusResult.ok) {
-      cleanupLock(deps);
       deps.stderr(`[GitAutoSync] git status failed: ${statusResult.error.message}`);
       return ok({ type: "silent" });
     }
@@ -196,7 +204,6 @@ export const GitAutoSync: HookContract<
       timeout: 5000,
     });
     if (!addResult.ok) {
-      cleanupLock(deps);
       deps.stderr(`[GitAutoSync] git add failed: ${addResult.error.message}`);
       return ok({ type: "silent" });
     }
@@ -208,7 +215,6 @@ export const GitAutoSync: HookContract<
       { cwd: deps.claudeDir, timeout: 10000 },
     );
     if (!commitResult.ok) {
-      cleanupLock(deps);
       deps.stderr(`[GitAutoSync] git commit failed: ${commitResult.error.message}`);
       return ok({ type: "silent" });
     }
@@ -222,7 +228,6 @@ export const GitAutoSync: HookContract<
       timeout: 15000,
     });
     if (!pullResult.ok) {
-      cleanupLock(deps);
       deps.stderr(`[GitAutoSync] git pull failed: ${pullResult.error.message}`);
       return ok({ type: "silent" });
     }
