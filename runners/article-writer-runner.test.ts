@@ -6,12 +6,15 @@ import { processSpawnFailed } from "@hooks/core/error";
 function makeDeps(overrides: Partial<RunnerDeps> = {}): RunnerDeps {
   return {
     spawnSyncSafe: () => ok({ stdout: "", exitCode: 0 }),
+    fileExists: () => true,
+    ensureDir: () => ok(undefined),
     writeFile: () => ok(undefined),
     removeFile: () => ok(undefined),
     appendFile: () => ok(undefined),
     buildPrompt: () => "test prompt",
     env: { HOME: "/mock/home" },
-    websiteRepo: "/mock/Projects/website",
+    websiteRepo: "TestOrg/test-repo",
+    cacheDir: "/mock/cache/repos",
     principalName: "Test User",
     daName: "TestDA",
     stderr: () => {},

@@ -8,33 +8,41 @@
 
 import { join } from "path";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
-import { writeFile, removeFile, appendFile } from "@hooks/core/adapters/fs";
+import { fileExists, writeFile, removeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { buildArticlePrompt } from "@hooks/contracts/ArticleWriter";
-import { getDAName, getPrincipalName } from "@hooks/lib/identity";
+import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface RunnerDeps {
   spawnSyncSafe: typeof spawnSyncSafe;
+  fileExists: typeof fileExists;
+  ensureDir: typeof ensureDir;
   writeFile: typeof writeFile;
   removeFile: typeof removeFile;
   appendFile: typeof appendFile;
   buildPrompt: typeof buildArticlePrompt;
   env: Record<string, string | undefined>;
   websiteRepo: string;
+  cacheDir: string;
   principalName: string;
   daName: string;
   stderr: (msg: string) => void;
 }
 
+const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+
 const defaultDeps: RunnerDeps = {
   spawnSyncSafe,
+  fileExists,
+  ensureDir,
   writeFile,
   removeFile,
   appendFile,
   buildPrompt: buildArticlePrompt,
   env: process.env as Record<string, string | undefined>,
-  websiteRepo: process.env.PAI_WEBSITE_REPO || "",
+  websiteRepo: ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)?.repo || "",
+  cacheDir: join(BASE_DIR, "cache/repos"),
   principalName: getPrincipalName(),
   daName: getDAName(),
   stderr: (msg) => process.stderr.write(msg + "\n"),
@@ -45,6 +53,35 @@ const defaultDeps: RunnerDeps = {
 function logEntry(logPath: string, message: string, deps: RunnerDeps): void {
   const timestamp = new Date().toISOString();
   deps.appendFile(logPath, `${timestamp} ${message}\n`);
+}
+
+// ─── Repo Cache ─────────────────────────────────────────────────────────────
+
+function resolveRepoDir(repoSlug: string, deps: RunnerDeps): string | null {
+  const localPath = join(deps.cacheDir, repoSlug);
+
+  if (deps.fileExists(localPath)) {
+    // Cached — fetch latest
+    const fetchResult = deps.spawnSyncSafe("git", ["fetch", "origin"], { cwd: localPath, timeout: 30000 });
+    if (!fetchResult.ok) {
+      deps.stderr(`[article-writer-runner] git fetch failed: ${fetchResult.error.message}`);
+    }
+    return localPath;
+  }
+
+  // Clone fresh
+  deps.ensureDir(deps.cacheDir);
+  const cloneResult = deps.spawnSyncSafe(
+    "gh", ["repo", "clone", repoSlug, localPath],
+    { timeout: 60000 },
+  );
+
+  if (!cloneResult.ok) {
+    deps.stderr(`[article-writer-runner] clone failed: ${cloneResult.error.message}`);
+    return null;
+  }
+
+  return localPath;
 }
 
 // ─── Runner ─────────────────────────────────────────────────────────────────
@@ -60,9 +97,17 @@ export function run(
   const cooldownPath = join(articlesDir, ".last-article");
   const logPath = join(articlesDir, ".writing-log");
 
+  // Resolve GitHub slug to local cached clone
+  const repoDir = resolveRepoDir(deps.websiteRepo, deps);
+  if (!repoDir) {
+    logEntry(logPath, `ERROR could not clone ${deps.websiteRepo}`, deps);
+    deps.removeFile(lockPath);
+    return;
+  }
+
   const prompt = deps.buildPrompt({
     baseDir,
-    websiteRepo: deps.websiteRepo,
+    websiteRepo: repoDir,
     principalName: deps.principalName,
     daName: deps.daName,
   }, sessionId);
@@ -72,7 +117,7 @@ export function run(
   // spawnSyncSafe wraps the call in Result — never throws. Cleanup below always runs.
   const envWithoutClaudeCode = { ...deps.env, CLAUDECODE: undefined, MAPLE_ARTICLE_AGENT: "1" };
   const result = deps.spawnSyncSafe(cmd, ["-p", prompt, "--max-turns", "25"], {
-    cwd: deps.websiteRepo,
+    cwd: repoDir,
     stdio: "ignore",
     timeout: 10 * 60 * 1000,
     env: envWithoutClaudeCode,

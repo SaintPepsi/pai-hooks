@@ -7,7 +7,7 @@
  * article, and creates a PR. Runner handles lock cleanup in finally block.
  *
  * Gates:
- * - Website repo must exist on disk (PAI_WEBSITE_REPO env var)
+ * - Website repo must exist on disk (settings.json articleWriter.repo)
  * - Lock file prevents concurrent agents (.writing with 30-min stale timeout)
  * - Substance: session's work directory must have a PRD with 4+ checked criteria
  * - max-turns caps agent cost
@@ -30,7 +30,7 @@ import {
 import { spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
 import { getISOTimestamp } from "@hooks/lib/time";
-import { getDAName, getPrincipalName } from "@hooks/lib/identity";
+import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -203,7 +203,7 @@ This MUST be a single Bash call. Do not split into multiple commands.
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
 function hasWebsiteRepo(deps: ArticleWriterDeps): boolean {
-  return deps.websiteRepo !== "" && deps.fileExists(deps.websiteRepo);
+  return deps.websiteRepo !== "";
 }
 
 interface WorkState {
@@ -262,7 +262,7 @@ const defaultDeps: ArticleWriterDeps = {
   spawnBackground,
   getISOTimestamp,
   baseDir: BASE_DIR,
-  websiteRepo: process.env.PAI_WEBSITE_REPO || "",
+  websiteRepo: ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)?.repo || "",
   principalName: getPrincipalName(),
   daName: getDAName(),
   stderr: (msg) => process.stderr.write(msg + "\n"),
