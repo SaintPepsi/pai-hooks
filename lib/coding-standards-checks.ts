@@ -184,6 +184,10 @@ export function findAsAnyCasts(lines: string[]): Violation[] {
 /** Detect relative imports (./  or ../ paths). Use non-relative path aliases instead. */
 export function findRelativeImports(lines: string[], filePath?: string): Violation[] {
   const violations: Violation[] = [];
+
+  // Test files legitimately import the module they test from the same directory
+  const isTestFile = filePath && /\.(test|spec)\.(ts|tsx)$/.test(filePath);
+
   // Matches: from './..', from "../..", import('./..'), import("../.."), require('./..'), require("../..")
   // Note: checks original line (not stripped) because the import path IS the string content we need to inspect.
   const RELATIVE_FROM = /\bfrom\s+['"]\.\.?\//;
@@ -201,6 +205,8 @@ export function findRelativeImports(lines: string[], filePath?: string): Violati
     if (DOLLAR_PREFIX_IMPORT.test(line)) continue;
     // Svelte components are imported relatively by convention — exempt .svelte imports
     if (SVELTE_COMPONENT_IMPORT.test(line)) continue;
+    // Test files: exempt same-directory imports (./module) but still catch parent traversals (../foo)
+    if (isTestFile && /\bfrom\s+['"]\.\//.test(line)) continue;
     if (RELATIVE_FROM.test(line) || RELATIVE_DYNAMIC.test(line) || RELATIVE_REQUIRE.test(line)) {
       violations.push({
         line: i + 1,
