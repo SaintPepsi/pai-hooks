@@ -11,7 +11,7 @@ import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, ensureDir, removeFile, copyFile } from "@hooks/core/adapters/fs";
+import { fileExists, readFile, ensureDir, removeFile, copyFile, stat } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
 import { homedir } from "os";
@@ -27,6 +27,7 @@ export interface GitAutoSyncDeps {
   ensureDir: (path: string) => Result<void, PaiError>;
   copyFile: (src: string, dest: string) => Result<void, PaiError>;
   removeFile: (path: string) => Result<void, PaiError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
   dateNow: () => number;
   getTimestamp: () => string;
   claudeDir: string;
@@ -42,6 +43,7 @@ interface BackupResult {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 export const DEBOUNCE_MINUTES = 15;
+export const STALE_LOCK_MINUTES = 2;
 export const KEY_FILES = ["statusline-command.sh", "statusline-helpers.ts", "settings.json"];
 export const KEY_HOOK_PATTERN = /^(?:hooks|pai-hooks\/hooks)\/.*\.ts$/;
 
@@ -51,10 +53,31 @@ export const KEY_HOOK_PATTERN = /^(?:hooks|pai-hooks\/hooks)\/.*\.ts$/;
  * Returns true if another git process holds index.lock — meaning an active
  * session is doing git operations. GitAutoSync should skip entirely rather
  * than force-remove the lock (which causes the race condition).
+ *
+ * Stale lock detection: if the lock file is older than STALE_LOCK_MINUTES,
+ * it was left behind by a crashed/timed-out git operation. Remove it and
+ * proceed rather than permanently blocking all future syncs.
  */
 function isGitBusy(deps: GitAutoSyncDeps): boolean {
   const lockPath = join(deps.claudeDir, ".git", "index.lock");
-  return deps.fileExists(lockPath);
+  if (!deps.fileExists(lockPath)) return false;
+
+  const statResult = deps.stat(lockPath);
+  if (!statResult.ok) {
+    // Can't determine age — assume active, skip safely
+    return true;
+  }
+
+  const ageMinutes = (deps.dateNow() - statResult.value.mtimeMs) / (1000 * 60);
+  if (ageMinutes > STALE_LOCK_MINUTES) {
+    deps.stderr(
+      `[GitAutoSync] Removing stale index.lock (${Math.round(ageMinutes)}m old, threshold ${STALE_LOCK_MINUTES}m)`,
+    );
+    deps.removeFile(lockPath);
+    return false;
+  }
+
+  return true;
 }
 
 function isDebounced(deps: GitAutoSyncDeps): boolean {
@@ -147,6 +170,7 @@ const defaultDeps: GitAutoSyncDeps = {
   ensureDir,
   copyFile,
   removeFile,
+  stat,
   dateNow: () => Date.now(),
   getTimestamp: getLocalTimestamp,
   claudeDir: BASE_DIR,
@@ -201,7 +225,7 @@ export const GitAutoSync: HookContract<
     // 3. Stage all changes
     const addResult = deps.execSync("git add -A", {
       cwd: deps.claudeDir,
-      timeout: 5000,
+      timeout: 15000,
     });
     if (!addResult.ok) {
       deps.stderr(`[GitAutoSync] git add failed: ${addResult.error.message}`);
@@ -217,7 +241,7 @@ export const GitAutoSync: HookContract<
     const timestamp = deps.getTimestamp();
     const commitResult = deps.execSync(
       `git commit -m "auto-sync: session end ${timestamp}"`,
-      { cwd: deps.claudeDir, timeout: 10000 },
+      { cwd: deps.claudeDir, timeout: 20000 },
     );
     if (!commitResult.ok) {
       deps.stderr(`[GitAutoSync] git commit failed: ${commitResult.error.message}`);

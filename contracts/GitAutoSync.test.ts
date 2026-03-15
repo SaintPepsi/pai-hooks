@@ -1,7 +1,8 @@
 import { describe, it, expect } from "bun:test";
-import { GitAutoSync, type GitAutoSyncDeps } from "@hooks/contracts/GitAutoSync";
+import { GitAutoSync, STALE_LOCK_MINUTES, type GitAutoSyncDeps } from "@hooks/contracts/GitAutoSync";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ok } from "@hooks/core/result";
+import { ok, err } from "@hooks/core/result";
+import { ErrorCode, type PaiError } from "@hooks/core/error";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -14,6 +15,7 @@ function makeDeps(overrides: Partial<GitAutoSyncDeps> = {}): GitAutoSyncDeps {
     ensureDir: () => ok(undefined),
     copyFile: () => ok(undefined),
     removeFile: () => ok(undefined),
+    stat: () => ok({ mtimeMs: 0 }),
     dateNow: () => Date.now(),
     getTimestamp: () => "2026-03-09 17:00:00 AEDT",
     claudeDir: "/tmp/test-git-auto-sync",
@@ -39,10 +41,53 @@ describe("GitAutoSync contract", () => {
     expect(GitAutoSync.accepts(makeInput())).toBe(true);
   });
 
-  it("skips when index.lock exists (active session using git)", () => {
+  it("skips when index.lock exists and is recent (active session)", () => {
+    const now = Date.now();
     const stderrMessages: string[] = [];
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("index.lock"),
+      stat: () => ok({ mtimeMs: now - 30_000 }), // 30 seconds old — within threshold
+      dateNow: () => now,
+      stderr: (msg: string) => stderrMessages.push(msg),
+    });
+
+    const result = GitAutoSync.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("silent");
+    }
+    expect(stderrMessages.some(m => m.includes("index.lock exists"))).toBe(true);
+  });
+
+  it("removes stale index.lock and proceeds with sync", () => {
+    const now = Date.now();
+    const stderrMessages: string[] = [];
+    let lockRemoved = false;
+    const deps = makeDeps({
+      fileExists: (path: string) => path.endsWith("index.lock"),
+      stat: () => ok({ mtimeMs: now - (STALE_LOCK_MINUTES + 1) * 60_000 }), // older than threshold
+      dateNow: () => now,
+      removeFile: () => { lockRemoved = true; return ok(undefined); },
+      stderr: (msg: string) => stderrMessages.push(msg),
+      execSync: (cmd: string) => {
+        if (cmd === "git status --porcelain") return ok("M settings.json");
+        if (cmd.includes("git log")) return ok("");
+        return ok("");
+      },
+    });
+
+    const result = GitAutoSync.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(lockRemoved).toBe(true);
+    expect(stderrMessages.some(m => m.includes("Removing stale index.lock"))).toBe(true);
+  });
+
+  it("skips when stat fails on index.lock (assumes active)", () => {
+    const stderrMessages: string[] = [];
+    const statError: PaiError = { code: ErrorCode.FsReadFailed, message: "stat failed" };
+    const deps = makeDeps({
+      fileExists: (path: string) => path.endsWith("index.lock"),
+      stat: () => err(statError),
       stderr: (msg: string) => stderrMessages.push(msg),
     });
 
