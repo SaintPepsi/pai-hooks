@@ -10,7 +10,10 @@ function makeDeps(overrides: Partial<RunnerDeps> = {}): RunnerDeps {
     removeFile: () => ok(undefined),
     appendFile: () => ok(undefined),
     buildPrompt: () => "test prompt",
-    env: { HOME: "/Users/hogers" },
+    env: { HOME: "/mock/home" },
+    websiteRepo: "/mock/Projects/website",
+    principalName: "Test User",
+    daName: "TestDA",
     stderr: () => {},
     ...overrides,
   };

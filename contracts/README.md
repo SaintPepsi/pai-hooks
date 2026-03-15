@@ -15,7 +15,7 @@ Six contracts use `AsyncHookContract`: CheckAlgorithmVersion, CheckVersion, Load
 
 | Contract | Event | Purpose |
 |----------|-------|---------|
-| **ArticleWriter** | SessionEnd | Spawns background agent to write Maple's Corner articles. Gates: mac-only, lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). |
+| **ArticleWriter** | SessionEnd | Spawns background agent to write blog articles. Gates: website repo exists (`PAI_WEBSITE_REPO` env var), lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). Identity (DA name, principal name) read from `settings.json` via `lib/identity.ts`. |
 | **BranchAwareness** | PostToolUse | Tracks git branch context |
 | **CheckVersion** | SessionStart | Notifies if Claude Code update available |
 | **CitationEnforcement** | PostToolUse | Ensures sources are cited after research |

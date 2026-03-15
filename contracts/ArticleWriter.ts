@@ -1,13 +1,13 @@
 /**
- * ArticleWriter Contract — Spawn background agent to write Maple's Corner articles.
+ * ArticleWriter Contract — Spawn background agent to write blog articles.
  *
- * At SessionEnd, checks gating conditions (mac-only, lock, substance).
+ * At SessionEnd, checks gating conditions (website repo exists, lock, substance).
  * If all pass, spawns article-writer-runner.ts which runs claude -p synchronously
- * in the ianhogers.dev repo. The agent reads PAI memory for material, writes an
+ * in the website repo. The agent reads PAI memory for material, writes an
  * article, and creates a PR. Runner handles lock cleanup in finally block.
  *
  * Gates:
- * - Mac-only: process.env.HOME === "/Users/hogers"
+ * - Website repo must exist on disk (PAI_WEBSITE_REPO env var)
  * - Lock file prevents concurrent agents (.writing with 30-min stale timeout)
  * - Substance: session's work directory must have a PRD with 4+ checked criteria
  * - max-turns caps agent cost
@@ -30,6 +30,7 @@ import {
 import { spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
 import { getISOTimestamp } from "@hooks/lib/time";
+import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,8 +44,10 @@ export interface ArticleWriterDeps {
   stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
   spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, PaiError>;
   getISOTimestamp: () => string;
-  homeDir: string;
   baseDir: string;
+  websiteRepo: string;
+  principalName: string;
+  daName: string;
   stderr: (msg: string) => void;
 }
 
@@ -52,20 +55,26 @@ export interface ArticleWriterDeps {
 
 const LOCK_STALE_MS = 30 * 60 * 1000;        // 30 minutes
 const MIN_CHECKED_CRITERIA = 4;               // PRD must have 4+ checked ISC
-const TARGET_HOME = "/Users/hogers";
-const WEBSITE_REPO = "/Users/hogers/Projects/ianhogers.dev";
 
 // ─── Agent Prompt ────────────────────────────────────────────────────────────
 
-export function buildArticlePrompt(baseDir: string, sessionId: string): string {
+export interface ArticlePromptContext {
+  baseDir: string;
+  websiteRepo: string;
+  principalName: string;
+  daName: string;
+}
+
+export function buildArticlePrompt(ctx: ArticlePromptContext, sessionId: string): string {
+  const deps = ctx;
   const now = new Date();
   const dateStr = now.toISOString().split("T")[0];
   const monthDir = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  return `You are Maple, Ian Hogers' AI collaborator. You are writing an article for your blog section ("Maple's Corner") on his website ianhogers.dev.
+  return `You are ${deps.daName}, ${deps.principalName}'s AI collaborator. You are writing an article for your blog section ("${deps.daName}'s Corner") on their website.
 
-WORKING DIRECTORY: ${WEBSITE_REPO}
-PAI DIRECTORY: ${baseDir}
+WORKING DIRECTORY: ${deps.websiteRepo}
+PAI DIRECTORY: ${deps.baseDir}
 SESSION ID: ${sessionId}
 TODAY: ${dateStr}
 
@@ -76,10 +85,10 @@ You're a treasure hunter. Your job is to dig through PAI's memory and find the m
 Start broad, then drill into anything that catches your eye:
 
 PASS 1 — Survey the landscape:
-- ${baseDir}/MEMORY/RELATIONSHIP/ — List month dirs, skim .md files from the last 2-3 weeks. Look for sessions with high emotion, frustration, breakthroughs, or surprises.
-- ${baseDir}/MEMORY/WORK/ — List ALL directories. Scan PRD.md from the 10-15 most recent. High ISC counts = substantial work. Completed PRDs with decisions sections = stories.
-- ${baseDir}/MEMORY/LEARNING/PROPOSALS/pending/ — Some are explicitly blog-post ideas. Others hint at incidents worth telling.
-- Recent git history: run \`git log --oneline -40\` in ${WEBSITE_REPO} for shipped work, and \`git log --oneline -40\` in ${baseDir} for PAI changes.
+- ${deps.baseDir}/MEMORY/RELATIONSHIP/ — List month dirs, skim .md files from the last 2-3 weeks. Look for sessions with high emotion, frustration, breakthroughs, or surprises.
+- ${deps.baseDir}/MEMORY/WORK/ — List ALL directories. Scan PRD.md from the 10-15 most recent. High ISC counts = substantial work. Completed PRDs with decisions sections = stories.
+- ${deps.baseDir}/MEMORY/LEARNING/PROPOSALS/pending/ — Some are explicitly blog-post ideas. Others hint at incidents worth telling.
+- Recent git history: run \`git log --oneline -40\` in ${deps.websiteRepo} for shipped work, and \`git log --oneline -40\` in ${deps.baseDir} for PAI changes.
 
 PASS 2 — Follow leads:
 - Found a frustrated session? Read the full relationship notes AND the PRD for that day.
@@ -105,11 +114,11 @@ Prefer:
 
 Create a 300-600 word article. Follow this voice guide exactly:
 
-~ MAPLE WRITES
+~ ${deps.daName.toUpperCase()} WRITES
 
 MODE:
-Writing articles for Maple's Corner
-First person, Maple's perspective
+Writing articles for ${deps.daName}'s Corner
+First person, ${deps.daName}'s perspective
 Real stories from real work sessions
 
 VOICE:
@@ -165,21 +174,21 @@ First write the article file to \`src/content/maple/{slug}.md\` using the Write 
 
 Then run ALL of this in a single Bash call:
 \`\`\`bash
-cd ${WEBSITE_REPO} && \\
+cd ${deps.websiteRepo} && \\
 bun scripts/generate-maple-audio.ts {slug} --force && \\
 git fetch origin master && \\
 git checkout -b maple/article-{slug} origin/master && \\
 git add src/content/maple/{slug}.md static/audio/maple/{slug}.m4a && \\
-git commit -m "Maple's Corner: {title}" && \\
-gh pr create --base master --title "Maple's Corner: {title}" --body "New article for Maple's Corner.
+git commit -m "${deps.daName}'s Corner: {title}" && \\
+gh pr create --base master --title "${deps.daName}'s Corner: {title}" --body "New article for ${deps.daName}'s Corner.
 
 ## Summary
 {1-2 sentence summary}
 
 ---
-*Written by Maple, reviewed by Ian.*" && \\
-mkdir -p ${baseDir}/MEMORY/ARTICLES && \\
-echo '{"title":"{title}","slug":"{slug}","date":"${dateStr}","status":"pending-review","created_at":"${now.toISOString()}"}' > ${baseDir}/MEMORY/ARTICLES/${dateStr}-{slug}.json
+*Written by ${deps.daName}, reviewed by ${deps.principalName}.*" && \\
+mkdir -p ${deps.baseDir}/MEMORY/ARTICLES && \\
+echo '{"title":"{title}","slug":"{slug}","date":"${dateStr}","status":"pending-review","created_at":"${now.toISOString()}"}' > ${deps.baseDir}/MEMORY/ARTICLES/${dateStr}-{slug}.json
 \`\`\`
 
 This MUST be a single Bash call. Do not split into multiple commands.
@@ -193,8 +202,8 @@ This MUST be a single Bash call. Do not split into multiple commands.
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
-function isOnTargetMachine(deps: ArticleWriterDeps): boolean {
-  return deps.homeDir === TARGET_HOME;
+function hasWebsiteRepo(deps: ArticleWriterDeps): boolean {
+  return deps.websiteRepo !== "" && deps.fileExists(deps.websiteRepo);
 }
 
 interface WorkState {
@@ -252,8 +261,10 @@ const defaultDeps: ArticleWriterDeps = {
   stat,
   spawnBackground,
   getISOTimestamp,
-  homeDir: process.env.HOME || "",
   baseDir: BASE_DIR,
+  websiteRepo: process.env.PAI_WEBSITE_REPO || "",
+  principalName: getPrincipalName(),
+  daName: getDAName(),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
@@ -273,9 +284,9 @@ export const ArticleWriter: SyncHookContract<
     input: SessionEndInput,
     deps: ArticleWriterDeps,
   ): Result<SilentOutput, PaiError> {
-    // Gate 1: Mac-only
-    if (!isOnTargetMachine(deps)) {
-      deps.stderr("[ArticleWriter] Not on target machine, skipping");
+    // Gate 1: Website repo must exist on disk
+    if (!hasWebsiteRepo(deps)) {
+      deps.stderr("[ArticleWriter] Website repo not found, skipping");
       return ok({ type: "silent" });
     }
 

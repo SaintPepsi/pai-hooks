@@ -8,7 +8,7 @@ Each runner imports a prompt builder from its contract, runs `claude -p` synchro
 
 | Runner | Spawned by | Purpose |
 |--------|-----------|---------|
-| **article-writer-runner** | `ArticleWriter` contract | Runs claude to write Maple's Corner blog articles in the ianhogers.dev repo |
+| **article-writer-runner** | `ArticleWriter` contract | Runs claude to write blog articles in the website repo (`PAI_WEBSITE_REPO` env var). Identity from `settings.json`. |
 | **learning-agent-runner** | `LearningActioner` contract | Runs claude to analyze learning signals and create proposals |
 
 ## How They Work
