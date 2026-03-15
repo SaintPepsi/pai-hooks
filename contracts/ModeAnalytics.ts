@@ -6,7 +6,7 @@
  *   2. GenerateDashboard.ts — reads JSON, writes HTML (opens browser every 25th run)
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -34,7 +34,7 @@ const defaultDeps: ModeAnalyticsDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const ModeAnalytics: HookContract<
+export const ModeAnalytics: SyncHookContract<
   SessionEndInput,
   SilentOutput,
   ModeAnalyticsDeps

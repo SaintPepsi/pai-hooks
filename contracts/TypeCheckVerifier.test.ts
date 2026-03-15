@@ -169,7 +169,7 @@ describe("TypeCheckVerifier contract", () => {
 
     const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.type).toBe("continue");
   });
 
   test("returns advisory context when type errors found", () => {
@@ -197,9 +197,11 @@ describe("TypeCheckVerifier contract", () => {
       deps,
     );
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
-    expect((result.value as { additionalContext?: string }).additionalContext).toContain("TYPE ERRORS");
-    expect((result.value as { additionalContext?: string }).additionalContext).toContain("not assignable");
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+      expect((result.value as { additionalContext?: string }).additionalContext).toContain("TYPE ERRORS");
+      expect((result.value as { additionalContext?: string }).additionalContext).toContain("not assignable");
+    }
   });
 
   test("returns clean continue when no errors for target file", () => {
@@ -227,8 +229,10 @@ describe("TypeCheckVerifier contract", () => {
       deps,
     );
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
-    expect((result.value as { additionalContext?: string }).additionalContext).toBeUndefined();
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+      expect((result.value as { additionalContext?: string }).additionalContext).toBeUndefined();
+    }
   });
 
   test("handles timeout gracefully", () => {
@@ -256,6 +260,6 @@ describe("TypeCheckVerifier contract", () => {
       deps,
     );
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.type).toBe("continue");
   });
 });

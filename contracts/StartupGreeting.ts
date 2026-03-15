@@ -5,15 +5,15 @@
  * Skips for subagents.
  */
 
-import type { HookContract } from "../core/contract";
-import type { SessionStartInput } from "../core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists, readJson, writeFile, ensureDir } from "../core/adapters/fs";
-import { spawnSyncSafe } from "../core/adapters/process";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists, readJson, writeFile, ensureDir } from "@hooks/core/adapters/fs";
+import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import { join } from "path";
-import { persistKittySession } from "../lib/tab-setter";
+import { persistKittySession } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -32,17 +32,15 @@ export interface StartupGreetingDeps {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-function getPaiDir(): string {
-  return process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-}
-
 const defaultDeps: StartupGreetingDeps = {
   readSettings: () => {
-    const settingsPath = join(getPaiDir(), "settings.json");
+    const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+    const settingsPath = join(paiDir, "settings.json");
     return readJson<Record<string, unknown>>(settingsPath);
   },
   runBanner: () => {
-    const bannerPath = join(getPaiDir(), "PAI/Tools/Banner.ts");
+    const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+    const bannerPath = join(paiDir, "PAI/Tools/Banner.ts");
     const result = spawnSyncSafe("bun", ["run", bannerPath], {
       encoding: "utf-8",
       stdio: ["inherit", "pipe", "pipe"],
@@ -67,11 +65,11 @@ const defaultDeps: StartupGreetingDeps = {
   fileExists,
   ensureDir,
   writeFile,
-  paiDir: getPaiDir(),
+  paiDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const StartupGreeting: HookContract<
+export const StartupGreeting: SyncHookContract<
   SessionStartInput,
   ContextOutput | SilentOutput,
   StartupGreetingDeps

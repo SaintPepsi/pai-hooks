@@ -15,15 +15,15 @@ function makeDeps(overrides: Partial<LearningActionerDeps> = {}): LearningAction
     ...LearningActioner.defaultDeps,
     fileExists: () => false,
     readDir: () => ({ ok: true, value: [] }),
-    readJson: (path: string) => {
+    readJson: ((path: string) => {
       if (path.includes("learning-agent-credit.json")) {
         return { ok: true, value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" } };
       }
       if (path.includes("usage-cache.json")) {
         return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
       }
-      return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
-    },
+      return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+    }) as unknown as LearningActionerDeps["readJson"],
     ensureDir: () => ({ ok: true, value: undefined }),
     writeFile: () => ({ ok: true, value: undefined }),
     removeFile: () => ({ ok: true, value: undefined }),
@@ -57,7 +57,7 @@ describe("LearningActioner contract", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("silent");
+    expect(result.value!.type).toBe("silent");
   });
 
   it("returns silent when .analyzing lock file exists and is fresh", () => {
@@ -67,7 +67,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("silent");
+    expect(result.value!.type).toBe("silent");
   });
 
   it("cleans up stale .analyzing lock file (>45 min old)", () => {
@@ -138,34 +138,34 @@ describe("LearningActioner contract", () => {
   it("returns silent when credit is below threshold", () => {
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      readJson: (path: string) => {
+      readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
           return { ok: true, value: { credit: 3.0, last_updated: "2026-01-01T00:00:00Z" } };
         }
         if (path.includes("usage-cache.json")) {
           return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
-      },
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+      }) as unknown as LearningActionerDeps["readJson"],
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("silent");
+    expect(result.value!.type).toBe("silent");
   });
 
   it("spawns when credit crosses threshold of 10", () => {
     let spawned = false;
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      readJson: (path: string) => {
+      readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
           return { ok: true, value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" } };
         }
         if (path.includes("usage-cache.json")) {
           return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
-      },
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+      }) as unknown as LearningActionerDeps["readJson"],
       spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
     });
     LearningActioner.execute(makeInput(), deps);
@@ -176,7 +176,7 @@ describe("LearningActioner contract", () => {
     let spawned = false;
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      readJson: (path: string) => {
+      readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
           return { ok: true, value: { credit: 9.99, last_updated: "2026-01-01T00:00:00Z" } };
         }
@@ -184,8 +184,8 @@ describe("LearningActioner contract", () => {
           // 80% with 4h remaining (1h elapsed) → projected 400%
           return { ok: true, value: { five_hour: { utilization: 80, resets_at: new Date(Date.now() + 4 * 3600 * 1000).toISOString() } } };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
-      },
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+      }) as unknown as LearningActionerDeps["readJson"],
       spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
     });
     LearningActioner.execute(makeInput(), deps);
@@ -201,7 +201,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("silent");
+    expect(result.value!.type).toBe("silent");
     expect(spawned).toBe(false);
   });
 
@@ -214,7 +214,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("silent");
+    expect(result.value!.type).toBe("silent");
     expect(spawned).toBe(false);
   });
 
@@ -380,18 +380,19 @@ describe("evaluateCredit", () => {
     resetsAt?: string;
     usageMissing?: boolean;
   } = {}): LearningActionerDeps {
+    const notFound = { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
     return makeDeps({
-      readJson: (path: string) => {
+      readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
-          if (opts.creditMissing) return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+          if (opts.creditMissing) return notFound;
           return { ok: true, value: { credit: opts.credit ?? 0, last_updated: "2026-01-01T00:00:00Z" } };
         }
         if (path.includes("usage-cache.json")) {
-          if (opts.usageMissing) return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+          if (opts.usageMissing) return notFound;
           return { ok: true, value: { five_hour: { utilization: opts.utilization ?? 0, resets_at: opts.resetsAt ?? "" } } };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
-      },
+        return notFound;
+      }) as unknown as LearningActionerDeps["readJson"],
     });
   }
 

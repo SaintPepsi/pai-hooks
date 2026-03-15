@@ -7,7 +7,7 @@
  * to Sonnet subagents. Zero context cost when other skills load.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -65,7 +65,7 @@ const defaultDeps: SonnetDelegationDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const SonnetDelegation: HookContract<
+export const SonnetDelegation: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   SonnetDelegationDeps

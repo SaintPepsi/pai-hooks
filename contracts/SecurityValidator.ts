@@ -6,9 +6,9 @@
  * with code 2 (handled by the runner's format layer).
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput, AskOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, err, type Result } from "@hooks/core/result";
 import { type PaiError, securityBlock as securityBlockError } from "@hooks/core/error";
 import { fileExists, readFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
@@ -347,7 +347,7 @@ const defaultDeps: SecurityValidatorDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const SecurityValidator: HookContract<
+export const SecurityValidator: SyncHookContract<
   ToolHookInput,
   ContinueOutput | AskOutput | BlockOutput,
   SecurityValidatorDeps

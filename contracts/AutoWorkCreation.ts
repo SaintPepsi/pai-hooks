@@ -5,15 +5,15 @@
  * On subsequent prompts: classifies as continuation or new topic.
  */
 
-import type { HookContract } from "../core/contract";
-import type { UserPromptSubmitInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import { join } from "path";
-import { fileExists, readJson, writeFile, ensureDir, removeFile, symlink, lstat } from "../core/adapters/fs";
-import { getLocalComponents, getISOTimestamp } from "../lib/time";
-import { generatePRDTemplate, generatePRDFilename } from "../lib/prd-template";
+import { fileExists, readJson, writeFile, ensureDir, removeFile, symlink, lstat } from "@hooks/core/adapters/fs";
+import { getLocalComponents, getISOTimestamp } from "@hooks/lib/time";
+import { generatePRDTemplate, generatePRDFilename } from "@hooks/lib/prd-template";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ const defaultDeps: AutoWorkCreationDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const AutoWorkCreation: HookContract<
+export const AutoWorkCreation: SyncHookContract<
   UserPromptSubmitInput,
   SilentOutput,
   AutoWorkCreationDeps

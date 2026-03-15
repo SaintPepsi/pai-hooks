@@ -5,12 +5,12 @@
  * Subagents get blocked silently.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists } from "../core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists } from "@hooks/core/adapters/fs";
 import { join } from "path";
 import { homedir } from "os";
 
@@ -45,7 +45,7 @@ function isMainSession(sessionId: string, deps: VoiceGateDeps): boolean {
   return deps.existsSync(join(kittySessionsDir, `${sessionId}.json`));
 }
 
-export const VoiceGate: HookContract<
+export const VoiceGate: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   VoiceGateDeps

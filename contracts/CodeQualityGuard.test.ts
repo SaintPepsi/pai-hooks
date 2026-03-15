@@ -138,12 +138,12 @@ describe("CodeQualityGuard", () => {
     });
 
     test("rejects when tool_input is a string", () => {
-      const input = makeInput({ tool_input: "/src/app.ts" });
+      const input = makeInput({ tool_input: "/src/app.ts" as unknown as Record<string, unknown> });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is null", () => {
-      const input = makeInput({ tool_input: null });
+      const input = makeInput({ tool_input: null as unknown as Record<string, unknown> });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
   });
@@ -213,7 +213,7 @@ describe("CodeQualityGuard", () => {
       };
       const deps = makeDeps({
         readFile: () => ok(CLEAN_TS),
-        readJson: () => ok(baseline) as Result<unknown, PaiError>,
+        readJson: <T>(_path: string) => ok(baseline as T),
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);

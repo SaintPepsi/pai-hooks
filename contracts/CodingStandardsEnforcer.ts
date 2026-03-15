@@ -18,7 +18,7 @@
  * for pattern analysis.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -139,7 +139,7 @@ const defaultDeps: CodingStandardsEnforcerDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const CodingStandardsEnforcer: HookContract<
+export const CodingStandardsEnforcer: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   CodingStandardsEnforcerDeps

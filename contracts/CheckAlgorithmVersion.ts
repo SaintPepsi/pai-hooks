@@ -5,29 +5,27 @@
  * Writes state file for Banner.ts to read. Skips for subagents.
  */
 
-import type { HookContract } from "../core/contract";
-import type { SessionStartInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import type { AsyncHookContract } from "@hooks/core/contract";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, err, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import { join } from "path";
-import { fileExists, readFile, writeFile, ensureDir } from "../core/adapters/fs";
+import { fileExists, readFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface CheckAlgorithmVersionDeps {
   getLocalVersion: () => string;
-  getUpstreamVersion: () => Promise<string>;
+  getUpstreamVersion: () => Promise<Result<string, PaiError>>;
   writeStateFile: (data: Record<string, unknown>) => void;
   isSubagent: () => boolean;
   stderr: (msg: string) => void;
+  homeDir: string;
 }
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
-const HOME = process.env.HOME!;
-const ALGORITHM_DIR = join(HOME, ".claude/PAI/Components/Algorithm");
-const LATEST_FILE = join(ALGORITHM_DIR, "LATEST");
 const UPSTREAM_REPO = "danielmiessler/Personal_AI_Infrastructure";
 const UPSTREAM_PATH = "Releases/v3.0/.claude/PAI/Components/Algorithm/LATEST";
 
@@ -47,56 +45,56 @@ export function isNewer(upstream: string, local: string): boolean {
   return u.patch > l.patch;
 }
 
-function defaultGetLocalVersion(): string {
-  const result = readFile(LATEST_FILE);
+function defaultGetLocalVersion(homeDir: string): string {
+  const latestFile = join(homeDir, ".claude/PAI/Components/Algorithm/LATEST");
+  const result = readFile(latestFile);
   return result.ok ? result.value.trim() : "unknown";
 }
 
-async function defaultGetUpstreamVersion(): Promise<string> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+async function defaultGetUpstreamVersion(): Promise<Result<string, PaiError>> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
 
-    const proc = Bun.spawn(
-      ["gh", "api", `repos/${UPSTREAM_REPO}/contents/${UPSTREAM_PATH}`, "--jq", ".content"],
-      { stdout: "pipe", stderr: "pipe", signal: controller.signal },
-    );
+  const proc = Bun.spawn(
+    ["gh", "api", `repos/${UPSTREAM_REPO}/contents/${UPSTREAM_PATH}`, "--jq", ".content"],
+    { stdout: "pipe", stderr: "pipe", signal: controller.signal },
+  );
 
-    const output = await new Response(proc.stdout).text();
-    clearTimeout(timeout);
+  const output = await new Response(proc.stdout).text();
+  clearTimeout(timeout);
 
-    const decoded = atob(output.trim());
-    return decoded.trim();
-  } catch {
-    return "unknown";
-  }
+  const decoded = atob(output.trim());
+  return ok(decoded.trim());
 }
 
-function defaultWriteStateFile(data: Record<string, unknown>): void {
-  const stateDir = join(HOME, ".claude/MEMORY/STATE");
+function defaultWriteStateFile(homeDir: string, data: Record<string, unknown>): void {
+  const stateDir = join(homeDir, ".claude/MEMORY/STATE");
   ensureDir(stateDir);
   writeFile(join(stateDir, "algorithm-update.json"), JSON.stringify(data));
 }
 
-function defaultIsSubagent(): boolean {
-  const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
+function defaultIsSubagent(envGet: (key: string) => string | undefined): boolean {
+  const claudeProjectDir = envGet("CLAUDE_PROJECT_DIR") || "";
   return (
     claudeProjectDir.includes("/.claude/Agents/") ||
-    process.env.CLAUDE_AGENT_TYPE !== undefined
+    envGet("CLAUDE_AGENT_TYPE") !== undefined
   );
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
+const HOME = process.env.HOME!;
+
 const defaultDeps: CheckAlgorithmVersionDeps = {
-  getLocalVersion: defaultGetLocalVersion,
+  getLocalVersion: () => defaultGetLocalVersion(HOME),
   getUpstreamVersion: defaultGetUpstreamVersion,
-  writeStateFile: defaultWriteStateFile,
-  isSubagent: defaultIsSubagent,
+  writeStateFile: (data) => defaultWriteStateFile(HOME, data),
+  isSubagent: () => defaultIsSubagent((key) => process.env[key]),
   stderr: (msg) => process.stderr.write(msg + "\n"),
+  homeDir: HOME,
 };
 
-export const CheckAlgorithmVersion: HookContract<
+export const CheckAlgorithmVersion: AsyncHookContract<
   SessionStartInput,
   SilentOutput,
   CheckAlgorithmVersionDeps
@@ -117,7 +115,8 @@ export const CheckAlgorithmVersion: HookContract<
     }
 
     const localVersion = deps.getLocalVersion();
-    const upstreamVersion = await deps.getUpstreamVersion();
+    const upstreamResult = await deps.getUpstreamVersion();
+    const upstreamVersion = upstreamResult.ok ? upstreamResult.value : "unknown";
 
     if (
       localVersion !== "unknown" &&

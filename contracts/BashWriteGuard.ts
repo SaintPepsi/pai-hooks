@@ -9,7 +9,7 @@
  * coding standards enforcement.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -63,7 +63,7 @@ const defaultDeps: BashWriteGuardDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const BashWriteGuard: HookContract<
+export const BashWriteGuard: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   BashWriteGuardDeps

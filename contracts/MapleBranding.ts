@@ -6,7 +6,7 @@
  * the AI to replace it with the Maple pixel-art sign-off.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -29,7 +29,7 @@ const defaultDeps: MapleBrandingDeps = {
 const GH_COMMAND_PATTERN = /\bgh\s+(?:(pr|issue)\s+(create|comment|edit|review)|api\b)/;
 const CLAUDE_CODE_FOOTER = /Generated with \[Claude Code\]/i;
 
-const MAPLE_SIGNOFF = `<img src="https://github.com/user-attachments/assets/08e4e5de-c220-46c6-968d-1976411654b3" alt="🍁" width="32" height="32"> Maple`;
+const MAPLE_SIGNOFF = `<img src="https://github.com/user-attachments/assets/08e4e5de-c220-46c6-968d-1976411654b3" alt="🍁" width="16" height="16"> Maple`;
 
 function isGhCommandWithBody(command: string): boolean {
   return GH_COMMAND_PATTERN.test(command);
@@ -41,7 +41,7 @@ function containsClaudeCodeFooter(command: string): boolean {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const MapleBranding: HookContract<
+export const MapleBranding: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   MapleBrandingDeps

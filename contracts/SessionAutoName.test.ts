@@ -7,16 +7,16 @@ import {
   type SessionAutoNameDeps,
 } from "@hooks/contracts/SessionAutoName";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ok, err } from "@hooks/core/result";
+import { PaiError, ErrorCode } from "@hooks/core/error";
 
 function makeDeps(overrides: Partial<SessionAutoNameDeps> = {}): SessionAutoNameDeps {
   return {
     fileExists: () => false,
-    readJson: () => ({ ok: false, error: { code: "NOT_FOUND", message: "not found" } }) as Result<never, PaiError>,
+    readJson: <T>(_path: string) => err<T, PaiError>(new PaiError(ErrorCode.FileNotFound, "not found")),
     writeFile: () => ok(undefined),
     ensureDir: () => ok(undefined),
-    inference: async () => ({ success: true, output: "Test Session", model: "fast", cached: false }),
+    inference: async () => ({ success: true, output: "Test Session", latencyMs: 0, level: "fast" as const }),
     getCustomTitle: () => null,
     spawnSync: () => ({ stdout: { toString: () => "" } }),
     baseDir: "/tmp/test-pai",
@@ -59,7 +59,7 @@ describe("SessionAutoName", () => {
     let writtenPath = "";
     let writtenContent = "";
     const deps = makeDeps({
-      inference: async () => ({ success: true, output: "Dashboard Redesign", model: "fast", cached: false }),
+      inference: async () => ({ success: true, output: "Dashboard Redesign", latencyMs: 0, level: "fast" as const }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           writtenPath = path;
@@ -78,15 +78,15 @@ describe("SessionAutoName", () => {
   it("skips if session already has a name", async () => {
     let inferCalled = false;
     const deps = makeDeps({
-      readJson: (<T>(_path: string) => {
+      readJson: <T>(_path: string) => {
         if (_path.endsWith("session-names.json")) {
-          return ok({ "test-session-123": "Existing Name" } as unknown as T);
+          return ok({ "test-session-123": "Existing Name" } as T);
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found" } } as Result<T, PaiError>;
-      }) as SessionAutoNameDeps["readJson"],
+        return err<T, PaiError>(new PaiError(ErrorCode.FileNotFound, "not found"));
+      },
       inference: async () => {
         inferCalled = true;
-        return { success: true, output: "New Name", model: "fast", cached: false };
+        return { success: true, output: "New Name", latencyMs: 0, level: "fast" as const };
       },
     });
 
@@ -98,7 +98,7 @@ describe("SessionAutoName", () => {
   it("syncs custom title from /rename", async () => {
     let storedName = "";
     const deps = makeDeps({
-      readJson: (<T>() => ok({} as unknown as T)) as SessionAutoNameDeps["readJson"],
+      readJson: <T>(_path: string) => ok({} as T),
       getCustomTitle: () => "My Custom Title",
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
@@ -116,7 +116,7 @@ describe("SessionAutoName", () => {
   it("falls back to extractFallbackName when inference fails", async () => {
     let storedName = "";
     const deps = makeDeps({
-      inference: async () => ({ success: false, output: "", model: "fast", cached: false }),
+      inference: async () => ({ success: false, output: "", latencyMs: 0, level: "fast" as const }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           storedName = content;
@@ -150,7 +150,7 @@ describe("SessionAutoName", () => {
   it("rejects single-word inference names", async () => {
     let storedName = "";
     const deps = makeDeps({
-      inference: async () => ({ success: true, output: "Dashboard", model: "fast", cached: false }),
+      inference: async () => ({ success: true, output: "Dashboard", latencyMs: 0, level: "fast" as const }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           storedName = content;
@@ -166,7 +166,7 @@ describe("SessionAutoName", () => {
   it("rejects names with short words", async () => {
     let storedName = "";
     const deps = makeDeps({
-      inference: async () => ({ success: true, output: "AI ML Ops", model: "fast", cached: false }),
+      inference: async () => ({ success: true, output: "AI ML Ops", latencyMs: 0, level: "fast" as const }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           storedName = content;

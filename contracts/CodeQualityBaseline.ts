@@ -9,7 +9,7 @@
  * Skips small files (under 50 lines), non-source files, and test files.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -100,7 +100,7 @@ const defaultDeps: CodeQualityBaselineDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const CodeQualityBaseline: HookContract<
+export const CodeQualityBaseline: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   CodeQualityBaselineDeps

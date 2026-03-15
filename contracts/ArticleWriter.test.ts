@@ -4,8 +4,7 @@ import {
   buildArticlePrompt,
   type ArticleWriterDeps,
 } from "@hooks/contracts/ArticleWriter";
-import { ok, err } from "@hooks/core/result";
-import { ioFailed } from "@hooks/core/error";
+import { ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 
 const baseInput: SessionEndInput = {
@@ -15,8 +14,8 @@ const baseInput: SessionEndInput = {
 function makeDeps(overrides: Partial<ArticleWriterDeps> = {}): ArticleWriterDeps {
   return {
     fileExists: () => false,
-    readDir: () => ok([]),
-    readJson: () => ok({}),
+    readFile: () => ok(""),
+    readJson: <T>(_path: string) => ok({} as T),
     writeFile: () => ok(undefined),
     removeFile: () => ok(undefined),
     ensureDir: () => ok(undefined),
@@ -49,7 +48,7 @@ describe("ArticleWriter", () => {
     expect(ArticleWriter.accepts({ session_id: "" })).toBe(false);
   });
 
-  // ─── Gating logic ──────────────────────────────────────────────────────
+  // ─── Gate 1: Machine check ────────────────────────────────────────────
 
   test("skips on non-target machine", () => {
     const deps = makeDeps({ homeDir: "/home/other" });
@@ -57,6 +56,8 @@ describe("ArticleWriter", () => {
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("silent");
   });
+
+  // ─── Gate 2: Lock file ────────────────────────────────────────────────
 
   test("skips when lock file is fresh", () => {
     const deps = makeDeps({
@@ -77,60 +78,13 @@ describe("ArticleWriter", () => {
       },
       stat: () => ok({ mtimeMs: Date.now() - 60 * 60 * 1000 }),
       removeFile: (p: string) => { removed.push(p); return ok(undefined); },
-      // No substance, so will still skip after lock cleanup
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
     expect(removed.some((p) => p.endsWith(".writing"))).toBe(true);
   });
 
-  test("skips when session counter below threshold", () => {
-    const deps = makeDeps({
-      readJson: (p: string) => {
-        if (p.endsWith(".session-counter.json")) return ok({ count: 10 });
-        return ok({});
-      },
-    });
-    const result = ArticleWriter.execute(baseInput, deps);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
-  });
-
-  test("increments counter on each session end", () => {
-    const written: Array<{ path: string; content: string }> = [];
-    const deps = makeDeps({
-      readJson: (p: string) => {
-        if (p.endsWith(".session-counter.json")) return ok({ count: 5 });
-        return ok({});
-      },
-      writeFile: (p: string, c: string) => { written.push({ path: p, content: c }); return ok(undefined); },
-    });
-    ArticleWriter.execute(baseInput, deps);
-    const counterWrite = written.find((w) => w.path.endsWith(".session-counter.json"));
-    expect(counterWrite).toBeDefined();
-    expect(JSON.parse(counterWrite!.content).count).toBe(6);
-  });
-
-  test("resets counter and proceeds when threshold reached", () => {
-    let spawned = false;
-    const written: Array<{ path: string; content: string }> = [];
-    const deps = makeDeps({
-      readJson: (p: string) => {
-        if (p.endsWith(".session-counter.json")) return ok({ count: 24 });
-        if (p.includes("algorithms")) return ok({ criteria: [1, 2, 3, 4] });
-        return ok({});
-      },
-      fileExists: (p: string) => p.includes("algorithms"),
-      writeFile: (p: string, c: string) => { written.push({ path: p, content: c }); return ok(undefined); },
-      spawnBackground: () => { spawned = true; return ok(undefined); },
-    });
-    ArticleWriter.execute(baseInput, deps);
-    const counterReset = written.find((w) =>
-      w.path.endsWith(".session-counter.json") && JSON.parse(w.content).count === 0
-    );
-    expect(counterReset).toBeDefined();
-    expect(spawned).toBe(true);
-  });
+  // ─── Gate 3: Substance ───────────────────────────────────────────────
 
   test("skips when session had no substantial work", () => {
     const deps = makeDeps();
@@ -139,22 +93,77 @@ describe("ArticleWriter", () => {
     if (result.ok) expect(result.value.type).toBe("silent");
   });
 
-  test("spawns agent when all gates pass", () => {
+  test("skips when PRD has fewer than 4 checked criteria", () => {
+    const deps = makeDeps({
+      fileExists: (p: string) => {
+        if (p.includes("current-work-")) return true;
+        if (p.endsWith("PRD.md")) return true;
+        return false;
+      },
+      readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
+      readFile: () => ok("- [x] ISC-1: one\n- [x] ISC-2: two\n- [ ] ISC-3: three\n"),
+    });
+    const result = ArticleWriter.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("silent");
+  });
+
+  test("detects substantial work from PRD with 4+ checked criteria", () => {
     let spawned = false;
     const deps = makeDeps({
       fileExists: (p: string) => {
-        if (p.includes("algorithms")) return true;
+        if (p.includes("current-work-")) return true;
+        if (p.endsWith("PRD.md")) return true;
         return false;
       },
-      readJson: (p: string) => {
-        if (p.endsWith(".session-counter.json")) return ok({ count: 24 });
-        return ok({ criteria: [1, 2, 3, 4] });
-      },
+      readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
+      readFile: () => ok(
+        "- [x] ISC-1: one\n- [x] ISC-2: two\n- [x] ISC-3: three\n- [x] ISC-4: four\n- [ ] ISC-5: five\n",
+      ),
       spawnBackground: () => { spawned = true; return ok(undefined); },
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
     expect(spawned).toBe(true);
+  });
+
+  // ─── Full pass-through ────────────────────────────────────────────────
+
+  test("spawns agent when all gates pass", () => {
+    let spawned = false;
+    const deps = makeDeps({
+      fileExists: (p: string) => {
+        if (p.includes("current-work-")) return true;
+        if (p.endsWith("PRD.md")) return true;
+        return false;
+      },
+      readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
+      readFile: () => ok(
+        "- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n- [x] ISC-5\n",
+      ),
+      spawnBackground: () => { spawned = true; return ok(undefined); },
+    });
+    const result = ArticleWriter.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    expect(spawned).toBe(true);
+  });
+
+  test("writes lock file before spawning", () => {
+    const written: Array<{ path: string; content: string }> = [];
+    const deps = makeDeps({
+      fileExists: (p: string) => {
+        if (p.includes("current-work-")) return true;
+        if (p.endsWith("PRD.md")) return true;
+        return false;
+      },
+      readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
+      readFile: () => ok(
+        "- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n",
+      ),
+      writeFile: (p: string, c: string) => { written.push({ path: p, content: c }); return ok(undefined); },
+    });
+    ArticleWriter.execute(baseInput, deps);
+    expect(written.some((w) => w.path.endsWith(".writing"))).toBe(true);
   });
 });
 
@@ -208,7 +217,7 @@ describe("buildArticlePrompt", () => {
   test("includes audio generation before git add", () => {
     const prompt = buildArticlePrompt("/Users/hogers/.claude", "test-123");
     expect(prompt).toContain("generate-maple-audio.ts");
-    expect(prompt).toContain("public/audio/maple/");
+    expect(prompt).toContain("static/audio/maple/");
   });
 
   test("includes session ID and base dir", () => {

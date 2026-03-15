@@ -1,28 +1,26 @@
 /**
  * ArticleWriter Contract — Spawn background agent to write Maple's Corner articles.
  *
- * At SessionEnd, checks gating conditions (mac-only, lock, cooldown, substance).
+ * At SessionEnd, checks gating conditions (mac-only, lock, substance).
  * If all pass, spawns article-writer-runner.ts which runs claude -p synchronously
  * in the ianhogers.dev repo. The agent reads PAI memory for material, writes an
- * article, and creates a PR. Wrapper handles lock/cooldown cleanup in finally block.
+ * article, and creates a PR. Runner handles lock cleanup in finally block.
  *
- * Mitigations:
- * - Mac-only gate: process.env.HOME === "/Users/hogers"
+ * Gates:
+ * - Mac-only: process.env.HOME === "/Users/hogers"
  * - Lock file prevents concurrent agents (.writing with 30-min stale timeout)
- * - Cooldown file prevents redundant runs (.last-article with 8-hour window)
- * - Substance gate: session must have 4+ ISC criteria or work items
- * - Wrapper cleans up lock + cooldown in finally block
+ * - Substance: session's work directory must have a PRD with 4+ checked criteria
  * - max-turns caps agent cost
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import {
   fileExists,
-  readDir,
+  readFile,
   readJson,
   writeFile,
   removeFile,
@@ -37,7 +35,7 @@ import { getISOTimestamp } from "@hooks/lib/time";
 
 export interface ArticleWriterDeps {
   fileExists: (path: string) => boolean;
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], PaiError>;
+  readFile: (path: string) => Result<string, PaiError>;
   readJson: <T = unknown>(path: string) => Result<T, PaiError>;
   writeFile: (path: string, content: string) => Result<void, PaiError>;
   removeFile: (path: string) => Result<void, PaiError>;
@@ -53,7 +51,7 @@ export interface ArticleWriterDeps {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const LOCK_STALE_MS = 30 * 60 * 1000;        // 30 minutes
-const SESSION_FREQUENCY = 25;                  // attempt article every N session ends
+const MIN_CHECKED_CRITERIA = 4;               // PRD must have 4+ checked ISC
 const TARGET_HOME = "/Users/hogers";
 const WEBSITE_REPO = "/Users/hogers/Projects/ianhogers.dev";
 
@@ -171,7 +169,7 @@ cd ${WEBSITE_REPO} && \\
 bun scripts/generate-maple-audio.ts {slug} --force && \\
 git fetch origin master && \\
 git checkout -b maple/article-{slug} origin/master && \\
-git add src/content/maple/{slug}.md public/audio/maple/{slug}.m4a && \\
+git add src/content/maple/{slug}.md static/audio/maple/{slug}.m4a && \\
 git commit -m "Maple's Corner: {title}" && \\
 gh pr create --base master --title "Maple's Corner: {title}" --body "New article for Maple's Corner.
 
@@ -199,29 +197,13 @@ function isOnTargetMachine(deps: ArticleWriterDeps): boolean {
   return deps.homeDir === TARGET_HOME;
 }
 
-function readSessionCounter(counterPath: string, deps: ArticleWriterDeps): number {
-  const result = deps.readJson<{ count: number }>(counterPath);
-  if (result.ok && typeof result.value.count === "number") return result.value.count;
-  return 0;
-}
-
-function incrementSessionCounter(counterPath: string, deps: ArticleWriterDeps): number {
-  const current = readSessionCounter(counterPath, deps);
-  const next = current + 1;
-  deps.writeFile(counterPath, JSON.stringify({ count: next }));
-  return next;
-}
-
-function resetSessionCounter(counterPath: string, deps: ArticleWriterDeps): void {
-  deps.writeFile(counterPath, JSON.stringify({ count: 0 }));
-}
-
-interface AlgoState {
-  criteria?: unknown[];
-}
-
 interface WorkState {
   session_dir?: string;
+}
+
+function countCheckedCriteria(prdContent: string): number {
+  const matches = prdContent.match(/- \[x\]/gi);
+  return matches ? matches.length : 0;
 }
 
 function sessionHadSubstantialWork(
@@ -229,25 +211,21 @@ function sessionHadSubstantialWork(
   baseDir: string,
   deps: ArticleWriterDeps,
 ): boolean {
-  // Check 1: Algorithm state with 4+ criteria
-  const algoPath = join(baseDir, "MEMORY", "STATE", "algorithms", `${sessionId}.json`);
-  if (deps.fileExists(algoPath)) {
-    const result = deps.readJson<AlgoState>(algoPath);
-    if (result.ok && result.value.criteria && result.value.criteria.length >= 4) {
-      return true;
-    }
-  }
-
-  // Check 2: Work directory has items
+  // Find session's work directory via state file
   const statePath = join(baseDir, "MEMORY", "STATE", `current-work-${sessionId}.json`);
-  if (deps.fileExists(statePath)) {
-    const stateResult = deps.readJson<WorkState>(statePath);
-    if (stateResult.ok && stateResult.value.session_dir) {
-      const itemsDir = join(baseDir, "MEMORY", "WORK", stateResult.value.session_dir, "items");
-      if (deps.fileExists(itemsDir)) {
-        const items = deps.readDir(itemsDir, { withFileTypes: true });
-        if (items.ok && items.value.length > 0) return true;
-      }
+  if (!deps.fileExists(statePath)) return false;
+
+  const stateResult = deps.readJson<WorkState>(statePath);
+  if (!stateResult.ok || !stateResult.value.session_dir) return false;
+
+  const workDir = join(baseDir, "MEMORY", "WORK", stateResult.value.session_dir);
+
+  // Check root PRD.md for checked criteria
+  const prdPath = join(workDir, "PRD.md");
+  if (deps.fileExists(prdPath)) {
+    const prd = deps.readFile(prdPath);
+    if (prd.ok && countCheckedCriteria(prd.value) >= MIN_CHECKED_CRITERIA) {
+      return true;
     }
   }
 
@@ -266,7 +244,7 @@ const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
 
 const defaultDeps: ArticleWriterDeps = {
   fileExists,
-  readDir: readDir as (path: string, opts?: { withFileTypes: true }) => Result<unknown[], PaiError>,
+  readFile,
   readJson,
   writeFile,
   removeFile,
@@ -279,7 +257,7 @@ const defaultDeps: ArticleWriterDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const ArticleWriter: HookContract<
+export const ArticleWriter: SyncHookContract<
   SessionEndInput,
   SilentOutput,
   ArticleWriterDeps
@@ -304,7 +282,7 @@ export const ArticleWriter: HookContract<
     const articlesDir = join(deps.baseDir, "MEMORY/ARTICLES");
     const lockPath = join(articlesDir, ".writing");
 
-    // Gate 2: Lock file
+    // Gate 2: Lock file (prevents concurrent agents)
     if (deps.fileExists(lockPath)) {
       if (isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) {
         deps.stderr("[ArticleWriter] Agent already running (lock fresh), skipping");
@@ -314,16 +292,7 @@ export const ArticleWriter: HookContract<
       deps.removeFile(lockPath);
     }
 
-    // Gate 3: Frequency — only attempt every N session ends
-    const counterPath = join(articlesDir, ".session-counter.json");
-    const sessionCount = incrementSessionCounter(counterPath, deps);
-    if (sessionCount < SESSION_FREQUENCY) {
-      deps.stderr(`[ArticleWriter] Session ${sessionCount}/${SESSION_FREQUENCY}, skipping`);
-      return ok({ type: "silent" });
-    }
-    resetSessionCounter(counterPath, deps);
-
-    // Gate 4: Substance
+    // Gate 3: Substance — session must have real work with checked criteria
     if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) {
       deps.stderr("[ArticleWriter] Session had no substantial work, skipping");
       return ok({ type: "silent" });

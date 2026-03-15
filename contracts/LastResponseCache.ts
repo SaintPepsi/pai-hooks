@@ -8,12 +8,12 @@
  * Always returns SilentOutput — never blocks or delays the Stop event.
  */
 
-import type { HookContract } from "../core/contract";
-import type { StopInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { readFile, writeFile } from "../core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import { join } from "path";
 import { homedir } from "os";
 
@@ -96,7 +96,7 @@ const defaultDeps: LastResponseCacheDeps = {
   baseDir: process.env.PAI_DIR || join(homedir(), ".claude"),
 };
 
-export const LastResponseCache: HookContract<
+export const LastResponseCache: SyncHookContract<
   StopInput,
   SilentOutput,
   LastResponseCacheDeps

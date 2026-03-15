@@ -5,16 +5,16 @@
  * deleting current-work state, and resetting the Kitty tab.
  */
 
-import type { HookContract } from "../core/contract";
-import type { SessionEndInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { unknownError } from "../core/error";
-import { fileExists, readFile, readJson, writeFile, removeFile } from "../core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { unknownError } from "@hooks/core/error";
+import { fileExists, readFile, readJson, writeFile, removeFile } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { getISOTimestamp } from "../lib/time";
-import { setTabState, cleanupKittySession } from "../lib/tab-setter";
+import { getISOTimestamp } from "@hooks/lib/time";
+import { setTabState, cleanupKittySession } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,13 +96,13 @@ const defaultDeps: SessionSummaryDeps = {
   writeFile,
   unlinkSync: (path) => { removeFile(path); },
   getTimestamp: getISOTimestamp,
-  setTabState: (opts) => setTabState(opts),
+  setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
   cleanupKittySession: (id) => cleanupKittySession(id),
   baseDir: BASE_DIR,
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const SessionSummary: HookContract<
+export const SessionSummary: SyncHookContract<
   SessionEndInput,
   SilentOutput,
   SessionSummaryDeps

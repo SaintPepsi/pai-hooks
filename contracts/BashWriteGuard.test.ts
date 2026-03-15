@@ -14,7 +14,7 @@ function makeInput(command: string): ToolHookInput {
 }
 
 function result(input: ToolHookInput): Result<ContinueOutput | BlockOutput, PaiError> {
-  return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps);
+  return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps) as Result<ContinueOutput | BlockOutput, PaiError>;
 }
 
 describe("BashWriteGuard", () => {

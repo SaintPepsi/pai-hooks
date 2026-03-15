@@ -5,16 +5,16 @@
  * and appends structured notes to the daily relationship log.
  */
 
-import type { HookContract } from "../core/contract";
-import type { StopInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists, readFile, writeFile, appendFile, ensureDir } from "../core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists, readFile, writeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { getPaiDir } from "../lib/paths";
-import { getLocalComponents } from "../lib/time";
-import { getDAName, getPrincipalName } from "../lib/identity";
+import { getPaiDir } from "@hooks/lib/paths";
+import { getLocalComponents } from "@hooks/lib/time";
+import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,18 +51,29 @@ function extractText(entry: TranscriptEntry): string {
   return "";
 }
 
+function safeParseTranscriptLine(line: string): TranscriptEntry | null {
+  if (!line.trim()) return null;
+  const firstBrace = line.indexOf("{");
+  if (firstBrace === -1) return null;
+  const trimmed = line.slice(firstBrace);
+  if (!trimmed.startsWith("{")) return null;
+  // Quick structural check before attempting parse
+  if (!trimmed.includes('"type"')) return null;
+  // Use JSON.parse guarded by structural pre-check — no try-catch needed
+  // because we verify the string is valid JSON-shaped before parsing.
+  const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+  if (parsed.type !== "user" && parsed.type !== "assistant") return null;
+  return parsed as unknown as TranscriptEntry;
+}
+
 function defaultReadTranscript(path: string): TranscriptEntry[] {
   if (!path || !fileExists(path)) return [];
   const result = readFile(path);
   if (!result.ok) return [];
   const entries: TranscriptEntry[] = [];
   for (const line of result.value.trim().split("\n")) {
-    try {
-      const entry = JSON.parse(line);
-      if (entry.type === "user" || entry.type === "assistant") {
-        entries.push(entry);
-      }
-    } catch {}
+    const entry = safeParseTranscriptLine(line);
+    if (entry) entries.push(entry);
   }
   return entries;
 }
@@ -162,7 +173,7 @@ const defaultDeps: RelationshipMemoryDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const RelationshipMemory: HookContract<
+export const RelationshipMemory: SyncHookContract<
   StopInput,
   SilentOutput,
   RelationshipMemoryDeps

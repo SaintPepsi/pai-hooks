@@ -9,7 +9,7 @@
  * Fails open: any read error yields continue with no context.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -145,7 +145,7 @@ const defaultDeps: PreCompactStatePersistDeps = {
 
 const CONTINUE_SILENT: ContinueOutput = { type: "continue", continue: true };
 
-export const PreCompactStatePersist: HookContract<
+export const PreCompactStatePersist: SyncHookContract<
   PreCompactInput,
   ContinueOutput,
   PreCompactStatePersistDeps

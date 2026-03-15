@@ -5,7 +5,7 @@
  * on unrelated prompts.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -14,7 +14,7 @@ import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 export const BLOCKED_SKILLS = ["keybindings-help"];
 
-export const SkillGuard: HookContract<
+export const SkillGuard: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   Record<string, never>

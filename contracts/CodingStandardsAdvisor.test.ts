@@ -120,7 +120,7 @@ describe("CodingStandardsAdvisor", () => {
       const input: ToolHookInput = {
         session_id: "test-sess",
         tool_name: "Read",
-        tool_input: "/src/app.ts",
+        tool_input: "/src/app.ts" as unknown as Record<string, unknown>,
       };
       expect(CodingStandardsAdvisor.accepts(input)).toBe(false);
     });
@@ -129,7 +129,7 @@ describe("CodingStandardsAdvisor", () => {
       const input: ToolHookInput = {
         session_id: "test-sess",
         tool_name: "Read",
-        tool_input: null,
+        tool_input: null as unknown as Record<string, unknown>,
       };
       expect(CodingStandardsAdvisor.accepts(input)).toBe(false);
     });

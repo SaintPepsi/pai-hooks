@@ -7,12 +7,12 @@
  * Pattern from obra/superpowers systematic-debugging skill Phase 4.5.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import { type PaiError } from "../core/error";
-import { readJson, writeJson, fileExists, ensureDir } from "../core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import { type PaiError } from "@hooks/core/error";
+import { readJson, writeJson, fileExists, ensureDir } from "@hooks/core/adapters/fs";
 import { join, dirname } from "path";
 import { homedir } from "os";
 
@@ -121,7 +121,7 @@ const defaultDeps: ArchEscalationDeps = {
   ensureDir,
 };
 
-export const ArchitectureEscalation: HookContract<
+export const ArchitectureEscalation: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   ArchEscalationDeps

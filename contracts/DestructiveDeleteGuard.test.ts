@@ -147,6 +147,30 @@ describe("DestructiveDeleteGuard Bash allowed", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("grep -rf pattern /tmp"), mockDeps);
     expect(result.ok && result.value.type).toBe("continue");
   });
+
+  test("allows rm of multiple files with hyphens in paths", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm /project/references/device-profile.md /project/references/dead-vectors.md"),
+      mockDeps,
+    );
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows rm of files whose names contain 'r' after hyphen", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm /tmp/my-report.txt /tmp/test-results.json"),
+      mockDeps,
+    );
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows rm -f of files with hyphens in paths", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm -f /project/temp-reference.md"),
+      mockDeps,
+    );
+    expect(result.ok && result.value.type).toBe("continue");
+  });
 });
 
 // ─── Edit/Write: Code Pattern Detection ───────────────────────────────────────
@@ -292,7 +316,7 @@ describe("DestructiveDeleteGuard Bash edge cases", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Bash",
-      tool_input: "ls -la",
+      tool_input: "ls -la" as unknown as Record<string, unknown>,
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok && result.value.type).toBe("continue");

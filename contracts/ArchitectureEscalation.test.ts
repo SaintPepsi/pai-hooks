@@ -10,8 +10,8 @@ import {
   getStatePath,
 } from "@hooks/contracts/ArchitectureEscalation";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ok, err, type Result } from "@hooks/core/result";
+import { PaiError, ErrorCode } from "@hooks/core/error";
 
 /**
  * In-memory fs mock -- no real filesystem needed.
@@ -25,8 +25,8 @@ function makeDeps(overrides: Partial<ArchEscalationDeps> = {}): ArchEscalationDe
     now: () => Date.now(),
     stderr: () => {},
     fileExists: (path: string) => store.has(path),
-    readJson: <T>(path: string) => {
-      if (!store.has(path)) return err({ code: "FileNotFound", message: path } as unknown as PaiError);
+    readJson: <T>(path: string): Result<T, PaiError> => {
+      if (!store.has(path)) return err(new PaiError(ErrorCode.FileNotFound, path));
       return ok(store.get(path) as T);
     },
     writeJson: (path: string, data: unknown) => {
@@ -159,8 +159,8 @@ describe("ArchitectureEscalation", () => {
     const store = new Map<string, unknown>();
     const deps = makeDeps({
       fileExists: (path: string) => store.has(path),
-      readJson: <T>(path: string) => {
-        if (!store.has(path)) return err({ code: "FileNotFound", message: path } as unknown as PaiError);
+      readJson: <T>(path: string): Result<T, PaiError> => {
+        if (!store.has(path)) return err(new PaiError(ErrorCode.FileNotFound, path));
         return ok(store.get(path) as T);
       },
       writeJson: (path: string, data: unknown) => {
@@ -188,7 +188,7 @@ describe("loadState", () => {
   it("returns empty state when readJson fails", () => {
     const deps = makeDeps({
       fileExists: () => true,
-      readJson: () => err({ code: "READ_FAILED", message: "corrupt" } as unknown as PaiError),
+      readJson: <T>(_path: string): Result<T, PaiError> => err(new PaiError(ErrorCode.FileReadFailed, "corrupt")),
     });
     const state = loadState("test", deps);
     expect(state.sessionId).toBe("test");
@@ -198,7 +198,7 @@ describe("loadState", () => {
   it("returns parsed state when file exists and is valid", () => {
     const deps = makeDeps({
       fileExists: () => true,
-      readJson: () => ok({ sessionId: "test", criteria: { C1: { inProgressCount: 3, lastSeenAt: 100 } } }),
+      readJson: <T>(_path: string): Result<T, PaiError> => ok({ sessionId: "test", criteria: { C1: { inProgressCount: 3, lastSeenAt: 100 } } } as T),
     });
     const state = loadState("test", deps);
     expect(state.criteria.C1.inProgressCount).toBe(3);

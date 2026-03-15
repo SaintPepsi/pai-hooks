@@ -9,7 +9,7 @@
  * quality delta and reports directional change (Phase 7d: QualityDelta).
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -98,7 +98,7 @@ const defaultDeps: CodeQualityGuardDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const CodeQualityGuard: HookContract<
+export const CodeQualityGuard: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   CodeQualityGuardDeps

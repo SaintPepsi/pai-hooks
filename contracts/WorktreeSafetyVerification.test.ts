@@ -238,7 +238,7 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
         if (typeof cmd === "string" && cmd.includes("check-ignore")) {
           const error = new Error("not ignored");
-          (error as Record<string, unknown>).status = 1;
+          (error as unknown as Record<string, unknown>).status = 1;
           throw error;
         }
         if (typeof cmd === "string" && cmd.includes("git add")) return "";
@@ -259,7 +259,7 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
         if (typeof cmd === "string" && cmd.includes("check-ignore")) {
           const error = new Error("not ignored");
-          (error as Record<string, unknown>).status = 1;
+          (error as unknown as Record<string, unknown>).status = 1;
           throw error;
         }
         return "";
@@ -277,7 +277,7 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/other/project";
         if (typeof cmd === "string" && cmd.includes("check-ignore")) {
           const error = new Error("not ignored");
-          (error as Record<string, unknown>).status = 1;
+          (error as unknown as Record<string, unknown>).status = 1;
           throw error;
         }
         return "";
@@ -295,7 +295,7 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
         if (typeof cmd === "string" && cmd.includes("check-ignore")) {
           const error = new Error("not ignored");
-          (error as Record<string, unknown>).status = 1;
+          (error as unknown as Record<string, unknown>).status = 1;
           throw error;
         }
         if (typeof cmd === "string" && cmd.includes("git add")) {
@@ -316,7 +316,7 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
         if (typeof cmd === "string" && cmd.includes("check-ignore")) {
           const error = new Error("not ignored");
-          (error as Record<string, unknown>).status = 1;
+          (error as unknown as Record<string, unknown>).status = 1;
           throw error;
         }
         return ""; // git add and commit succeed
@@ -334,7 +334,7 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
         if (typeof cmd === "string" && cmd.includes("check-ignore")) {
           const error = new Error("unknown error");
-          (error as Record<string, unknown>).status = 128;
+          (error as unknown as Record<string, unknown>).status = 128;
           throw error;
         }
         return "";

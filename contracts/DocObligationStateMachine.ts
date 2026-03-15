@@ -11,7 +11,7 @@
  * update related documentation.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput, StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -136,7 +136,7 @@ const defaultDeps: DocObligationDeps = {
 
 // ─── Contract 1: DocObligationTracker ────────────────────────────────────────
 
-export const DocObligationTracker: HookContract<
+export const DocObligationTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   DocObligationDeps
@@ -232,7 +232,7 @@ function buildDocSuggestions(pending: string[], deps: DocObligationDeps): string
 
 // ─── Contract 2: DocObligationEnforcer ───────────────────────────────────────
 
-export const DocObligationEnforcer: HookContract<
+export const DocObligationEnforcer: SyncHookContract<
   StopInput,
   BlockOutput | SilentOutput,
   DocObligationDeps

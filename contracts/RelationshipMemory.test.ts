@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { RelationshipMemory, type RelationshipMemoryDeps } from "./RelationshipMemory";
-import type { StopInput } from "../core/types/hook-inputs";
+import { RelationshipMemory, type RelationshipMemoryDeps } from "@hooks/contracts/RelationshipMemory";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Types (mirrored for test use) ───────────────────────────────────────────
 
@@ -22,7 +22,6 @@ function makeInput(overrides: Partial<StopInput> = {}): StopInput {
   return {
     transcript_path: "/tmp/test-transcript.jsonl",
     session_id: "test-session",
-    stop_hook_active: false,
     ...overrides,
   };
 }
@@ -64,9 +63,9 @@ describe("RelationshipMemory", () => {
     });
 
     test("returns false when transcript_path is undefined", () => {
-      const input = makeInput();
-      delete (input as any).transcript_path;
-      expect(RelationshipMemory.accepts(input)).toBe(false);
+      const input: Partial<StopInput> = makeInput();
+      delete input.transcript_path;
+      expect(RelationshipMemory.accepts(input as StopInput)).toBe(false);
     });
   });
 

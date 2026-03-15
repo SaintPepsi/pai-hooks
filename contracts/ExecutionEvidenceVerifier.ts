@@ -11,7 +11,7 @@
  * Classification logic: lib/execution-classification.ts
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -36,7 +36,7 @@ const defaultDeps: ExecutionEvidenceVerifierDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const ExecutionEvidenceVerifier: HookContract<
+export const ExecutionEvidenceVerifier: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   ExecutionEvidenceVerifierDeps

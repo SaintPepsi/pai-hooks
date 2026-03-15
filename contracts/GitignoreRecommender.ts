@@ -6,7 +6,7 @@
  * offer to add it. Skips when running in the PAI root (~/.claude).
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -68,7 +68,7 @@ function fileHasRespectGitignore(
 
 // ─── Contract ─────────────────────────────────────────────────────────────────
 
-export const GitignoreRecommender: HookContract<
+export const GitignoreRecommender: SyncHookContract<
   SessionStartInput,
   ContinueOutput,
   GitignoreRecommenderDeps

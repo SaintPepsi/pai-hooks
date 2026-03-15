@@ -16,7 +16,7 @@
  * which legitimately wrap builtins.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -56,7 +56,7 @@ const defaultDeps: CodingStandardsAdvisorDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const CodingStandardsAdvisor: HookContract<
+export const CodingStandardsAdvisor: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   CodingStandardsAdvisorDeps

@@ -1,8 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
-import { RatingCapture, parseExplicitRating } from "./RatingCapture";
-import type { RatingCaptureDeps } from "./RatingCapture";
-import type { UserPromptSubmitInput } from "../core/types/hook-inputs";
-import { ok, err } from "../core/result";
+import { RatingCapture, parseExplicitRating } from "@hooks/contracts/RatingCapture";
+import type { RatingCaptureDeps } from "@hooks/contracts/RatingCapture";
+import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import { ok, err } from "@hooks/core/result";
+import { PaiError, ErrorCode } from "@hooks/core/error";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
   return {
     inference: mock(async () => ({
       success: true,
+      output: "",
       parsed: {
         rating: 7,
         sentiment: "positive",
@@ -25,15 +27,17 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
         summary: "good",
         detailed_context: "details",
       },
+      latencyMs: 0,
+      level: "fast" as const,
     })),
-    captureFailure: mock(async () => undefined),
+    captureFailure: mock(async () => null),
     getPrincipalName: mock(() => "TestUser"),
-    getPrincipal: mock(() => ({ name: "TestUser" })),
-    getIdentity: mock(() => ({ name: "TestBot" })),
-    getLearningCategory: mock(() => "SYSTEM"),
+    getPrincipal: mock(() => ({ name: "TestUser", pronunciation: "", timezone: "UTC" })),
+    getIdentity: mock(() => ({ name: "TestBot", fullName: "TestBot", displayName: "TestBot", mainDAVoiceID: "", color: "#000000" })),
+    getLearningCategory: mock((_content: string, _comment?: string) => "SYSTEM" as const),
     getISOTimestamp: mock(() => "2026-02-27T10:00:00Z"),
     getLocalComponents: mock(() => ({
-      year: "2026",
+      year: 2026,
       month: "02",
       day: "27",
       hours: "10",
@@ -41,7 +45,7 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
       seconds: "00",
     })),
     fileExists: mock(() => false),
-    readFile: mock(() => err({ code: "NOT_FOUND", message: "not found" } as any)),
+    readFile: mock(() => err(new PaiError(ErrorCode.FileNotFound, "not found"))),
     writeFile: mock(() => ok(undefined)),
     appendFile: mock(() => ok(undefined)),
     ensureDir: mock(() => ok(undefined)),
@@ -253,6 +257,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     const deps = makeDeps({
       inference: mock(async () => ({
         success: true,
+        output: "",
         parsed: {
           rating: 7,
           sentiment: "positive",
@@ -260,6 +265,8 @@ describe("RatingCapture.execute — implicit sentiment", () => {
           summary: "low confidence",
           detailed_context: "not sure",
         },
+        latencyMs: 0,
+        level: "fast" as const,
       })),
     });
     await RatingCapture.execute(makeInput("maybe good"), deps);

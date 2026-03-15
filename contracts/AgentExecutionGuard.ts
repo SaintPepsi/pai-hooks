@@ -5,19 +5,33 @@
  * run_in_background: true, unless it's a fast-tier agent.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput, ContextOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput, ContextOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface AgentExecutionGuardDeps {
+  stderr: (msg: string) => void;
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
 
 const FAST_AGENT_TYPES = ["Explore"];
 const FAST_MODELS = ["haiku"];
 
-export const AgentExecutionGuard: HookContract<
+// ─── Contract ────────────────────────────────────────────────────────────────
+
+const defaultDeps: AgentExecutionGuardDeps = {
+  stderr: (msg) => process.stderr.write(msg + "\n"),
+};
+
+export const AgentExecutionGuard: SyncHookContract<
   ToolHookInput,
   ContinueOutput | ContextOutput,
-  {}
+  AgentExecutionGuardDeps
 > = {
   name: "AgentExecutionGuard",
   event: "PreToolUse",
@@ -73,5 +87,5 @@ Only exceptions: Explore agents, haiku-model agents, and agents with ## Scope FA
     return ok({ type: "context", content: warning });
   },
 
-  defaultDeps: {},
+  defaultDeps,
 };

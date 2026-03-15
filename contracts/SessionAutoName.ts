@@ -7,7 +7,7 @@
  * Custom titles from /rename are synced as authoritative.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { AsyncHookContract } from "@hooks/core/contract";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -175,7 +175,7 @@ const defaultDeps: SessionAutoNameDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const SessionAutoName: HookContract<
+export const SessionAutoName: AsyncHookContract<
   UserPromptSubmitInput,
   SilentOutput,
   SessionAutoNameDeps

@@ -8,7 +8,7 @@
  * Skips for subagents. Fails silently if git command fails.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -27,7 +27,7 @@ export interface BranchAwarenessDeps {
 
 const defaultDeps: BranchAwarenessDeps = {
   getBranch: () => {
-    const result = execSyncSafe("git branch --show-current", { encoding: "utf-8" });
+    const result = execSyncSafe("git branch --show-current");
     if (!result.ok) return null;
     return result.value.trim() || null;
   },
@@ -43,7 +43,7 @@ const defaultDeps: BranchAwarenessDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const BranchAwareness: HookContract<
+export const BranchAwareness: SyncHookContract<
   SessionStartInput,
   ContextOutput | SilentOutput,
   BranchAwarenessDeps

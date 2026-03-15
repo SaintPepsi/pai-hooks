@@ -14,7 +14,7 @@
  * - Markdown files (.md, .mdx) — documentation mentioning patterns is normal
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -37,8 +37,10 @@ function detectsDestructiveDelete(command: string): boolean {
   const rmSegments = command.match(/\brm\b[^|&;]*/g);
   if (rmSegments) {
     for (const segment of rmSegments) {
-      if (/\brm\b.*-[a-z]*r[a-z]*\b/.test(segment)) return true;
-      if (/\brm\b.*--recursive\b/.test(segment)) return true;
+      // Require whitespace before the dash so file paths like device-profile.md
+      // don't false-positive as recursive flags
+      if (/\brm\b.*\s-[a-z]*r[a-z]*\b/.test(segment)) return true;
+      if (/\brm\b.*\s--recursive\b/.test(segment)) return true;
     }
   }
 
@@ -113,6 +115,12 @@ function isDocumentationFile(input: ToolHookInput): boolean {
   return /\.mdx?$/.test(filePath);
 }
 
+/** Check if the target file is the fs adapter — the one place raw rmSync belongs. */
+function isFsAdapter(input: ToolHookInput): boolean {
+  const filePath = (input.tool_input?.file_path as string) || "";
+  return filePath.endsWith("core/adapters/fs.ts");
+}
+
 /** Extract content to check from Edit or Write tool input. */
 function getContentToCheck(input: ToolHookInput): string {
   if (input.tool_name === "Write") {
@@ -136,7 +144,7 @@ const defaultDeps: DestructiveDeleteGuardDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const DestructiveDeleteGuard: HookContract<
+export const DestructiveDeleteGuard: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   DestructiveDeleteGuardDeps
@@ -181,6 +189,11 @@ export const DestructiveDeleteGuard: HookContract<
 
     // Edit/Write: skip markdown files — documentation mentioning delete patterns is normal
     if (isDocumentationFile(input)) {
+      return ok({ type: "continue", continue: true });
+    }
+
+    // Edit/Write: skip the fs adapter — it is the safe wrapper, raw rmSync belongs there
+    if (isFsAdapter(input)) {
       return ok({ type: "continue", continue: true });
     }
 

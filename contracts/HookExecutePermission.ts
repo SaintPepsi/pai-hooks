@@ -6,7 +6,7 @@
  * where new hooks are created without +x and fail silently.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -27,7 +27,7 @@ function isHookFile(filePath: string): boolean {
   return filePath.includes("/hooks/") && filePath.endsWith(".hook.ts");
 }
 
-export const HookExecutePermission: HookContract<
+export const HookExecutePermission: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   HookExecutePermissionDeps

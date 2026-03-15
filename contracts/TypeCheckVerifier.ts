@@ -9,7 +9,7 @@
  * Never blocks. Debounced per file (60s). Times out after 10s.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -261,7 +261,7 @@ const defaultDeps: TypeCheckVerifierDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const TypeCheckVerifier: HookContract<
+export const TypeCheckVerifier: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   TypeCheckVerifierDeps
@@ -304,6 +304,8 @@ export const TypeCheckVerifier: HookContract<
       logSignal(deps.signal, "type-check-verifier.jsonl", {
         session_id: input.session_id,
         hook: "TypeCheckVerifier",
+        event: "PostToolUse",
+        tool: input.tool_name,
         file: filePath,
         outcome: "timeout",
       });
@@ -317,6 +319,8 @@ export const TypeCheckVerifier: HookContract<
     logSignal(deps.signal, "type-check-verifier.jsonl", {
       session_id: input.session_id,
       hook: "TypeCheckVerifier",
+      event: "PostToolUse",
+      tool: input.tool_name,
       file: filePath,
       outcome: errors.length > 0 ? "errors" : "clean",
       error_count: errors.length,

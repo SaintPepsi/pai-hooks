@@ -62,7 +62,7 @@ describe("CitationTracker", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Skill",
-      tool_input: "Research",
+      tool_input: "Research" as unknown as Record<string, unknown>,
     };
     expect(CitationTracker.accepts(input)).toBe(false);
   });
@@ -71,7 +71,7 @@ describe("CitationTracker", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Skill",
-      tool_input: null,
+      tool_input: null as unknown as Record<string, unknown>,
     };
     expect(CitationTracker.accepts(input)).toBe(false);
   });
@@ -186,7 +186,7 @@ describe("CitationEnforcement", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Write",
-      tool_input: "/tmp/test.md",
+      tool_input: "/tmp/test.md" as unknown as Record<string, unknown>,
     };
     const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, PaiError>;
 

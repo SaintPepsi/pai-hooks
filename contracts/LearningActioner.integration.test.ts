@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, rmSync, existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
-import { LearningActioner, type LearningActionerDeps } from "./LearningActioner";
-import type { SessionEndInput } from "../core/types/hook-inputs";
+import { LearningActioner, type LearningActionerDeps } from "@hooks/contracts/LearningActioner";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { ensureDir, writeFile, fileExists, removeDir, setFileTimes } from "@hooks/core/adapters/fs";
 
 const TEST_DIR = join(import.meta.dir, "__test-learning-actioner__");
 
@@ -18,18 +18,18 @@ function makeLiveDeps(overrides: Partial<LearningActionerDeps> = {}): LearningAc
 
 describe("LearningActioner integration", () => {
   beforeEach(() => {
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/applied"), { recursive: true });
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/rejected"), { recursive: true });
+    ensureDir(join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS"));
+    ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"));
+    ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/applied"));
+    ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/rejected"));
   });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    removeDir(TEST_DIR);
   });
 
   it("creates lock + prompt files and calls spawnBackground when reflections exist", () => {
-    writeFileSync(
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
       '{"timestamp":"2026-01-01","reflection_q1":"test"}\n'
     );
@@ -47,10 +47,10 @@ describe("LearningActioner integration", () => {
     const result = LearningActioner.execute({ session_id: "int-test" }, deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("silent");
+    expect(result.value!.type).toBe("silent");
     expect(spawnedCmd).toBe("bun");
     expect(spawnedArgs[0]).toContain("learning-agent-runner.ts");
-    expect(existsSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"))).toBe(true);
+    expect(fileExists(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"))).toBe(true);
   });
 
   it("skips when no learning sources exist", () => {
@@ -66,11 +66,11 @@ describe("LearningActioner integration", () => {
   });
 
   it("skips when fresh lock file exists on real filesystem", () => {
-    writeFileSync(
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
       '{"timestamp":"2026-01-01"}\n'
     );
-    writeFileSync(
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
       new Date().toISOString()
     );
@@ -87,16 +87,15 @@ describe("LearningActioner integration", () => {
   });
 
   it("cleans stale lock and proceeds on real filesystem", () => {
-    writeFileSync(
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
       '{"timestamp":"2026-01-01"}\n'
     );
     const lockPath = join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing");
-    writeFileSync(lockPath, "stale");
+    writeFile(lockPath, "stale");
     // Backdate the lock file mtime by 15 minutes
     const past = new Date(Date.now() - 15 * 60 * 1000);
-    const { utimesSync } = require("fs");
-    utimesSync(lockPath, past, past);
+    setFileTimes(lockPath, past, past);
 
     let spawned = false;
     const deps = makeLiveDeps({
@@ -110,12 +109,11 @@ describe("LearningActioner integration", () => {
   });
 
   it("respects cooldown on real filesystem", () => {
-    writeFileSync(
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
       '{"timestamp":"2026-01-01"}\n'
     );
-    // Write a fresh cooldown file
-    writeFileSync(
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.last-analysis"),
       new Date().toISOString()
     );
@@ -132,8 +130,8 @@ describe("LearningActioner integration", () => {
   });
 
   it("detects learning sources in LEARNING_DIRS with real files", () => {
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/ALGORITHM"), { recursive: true });
-    writeFileSync(
+    ensureDir(join(TEST_DIR, "MEMORY/LEARNING/ALGORITHM"));
+    writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/ALGORITHM/test-learning.md"),
       "# Test learning"
     );

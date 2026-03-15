@@ -14,7 +14,7 @@
  * - max-turns (25) and model (opus) cap agent cost
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -349,7 +349,7 @@ const defaultDeps: LearningActionerDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const LearningActioner: HookContract<
+export const LearningActioner: SyncHookContract<
   SessionEndInput,
   SilentOutput,
   LearningActionerDeps

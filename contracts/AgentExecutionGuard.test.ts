@@ -1,6 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { AgentExecutionGuard } from "./AgentExecutionGuard";
-import type { ToolHookInput } from "../core/types/hook-inputs";
+import { AgentExecutionGuard, type AgentExecutionGuardDeps } from "@hooks/contracts/AgentExecutionGuard";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput, ContextOutput } from "@hooks/core/types/hook-outputs";
+import type { Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+
+const noDeps: AgentExecutionGuardDeps = { stderr: () => {} };
 
 function makeInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
@@ -17,45 +22,47 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("passes when run_in_background is true", () => {
-    const result = AgentExecutionGuard.execute(makeInput({ run_in_background: true }), {}) as any;
+    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(makeInput({ run_in_background: true }), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
+    expect(result.value!.type).toBe("continue");
   });
 
   it("passes for Explore agent type", () => {
-    const result = AgentExecutionGuard.execute(makeInput({ subagent_type: "Explore" }), {}) as any;
+    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(makeInput({ subagent_type: "Explore" }), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
+    expect(result.value!.type).toBe("continue");
   });
 
   it("passes for haiku model", () => {
-    const result = AgentExecutionGuard.execute(makeInput({ model: "haiku" }), {}) as any;
+    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(makeInput({ model: "haiku" }), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
+    expect(result.value!.type).toBe("continue");
   });
 
   it("passes for FAST timing in prompt scope", () => {
-    const result = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
       makeInput({ prompt: "## Scope\nTiming: FAST\nDo something quick" }),
-      {},
-    ) as any;
+      noDeps,
+    );
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("continue");
+    expect(result.value!.type).toBe("continue");
   });
 
   it("warns for foreground non-fast agent", () => {
-    const result = AgentExecutionGuard.execute(makeInput(), {}) as any;
+    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(makeInput(), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value.type).toBe("context");
-    expect(result.value.content).toContain("FOREGROUND AGENT DETECTED");
-    expect(result.value.content).toContain("run_in_background");
+    expect(result.value!.type).toBe("context");
+    const output = result.value as ContextOutput;
+    expect(output.content).toContain("FOREGROUND AGENT DETECTED");
+    expect(output.content).toContain("run_in_background");
   });
 
   it("warning includes agent description", () => {
-    const result = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
       makeInput({ description: "research task" }),
-      {},
-    ) as any;
-    expect(result.value.content).toContain("research task");
+      noDeps,
+    );
+    const output = result.value as ContextOutput;
+    expect(output.content).toContain("research task");
   });
 });

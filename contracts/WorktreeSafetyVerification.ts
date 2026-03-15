@@ -8,14 +8,14 @@
  * Always returns ContinueOutput — never blocks worktree creation.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput } from "../core/types/hook-outputs";
-import { ok, err, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { processExecFailed } from "../core/error";
-import { fileExists, appendFile, writeFile, ensureDir } from "../core/adapters/fs";
-import { execSyncSafe, spawnBackground } from "../core/adapters/process";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ok, err, tryCatch, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { processExecFailed } from "@hooks/core/error";
+import { fileExists, appendFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
+import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join, dirname } from "path";
 
 // ─── Types (re-exported for backward compatibility) ──────────────────────────
@@ -68,14 +68,12 @@ export const TEST_CONFIGS: TestConfig[] = [
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Bridge throwing deps.execSync into Result. Single try-catch for the whole contract. */
+/** Bridge throwing deps.execSync into Result. */
 function tryExec(deps: WorktreeSafetyDeps, cmd: string, opts?: Record<string, unknown>): Result<string, PaiError> {
-  try {
-    const result = deps.execSync(cmd, opts);
-    return ok(String(result).trim());
-  } catch (e) {
-    return err(processExecFailed(cmd, e));
-  }
+  return tryCatch(
+    () => String(deps.execSync(cmd, opts)).trim(),
+    (e) => processExecFailed(cmd, e),
+  );
 }
 
 // ─── Pure Logic Functions ────────────────────────────────────────────────────
@@ -98,7 +96,7 @@ export function extractWorktreePath(input: ToolHookInput): string | null {
   }
 
   if (typeof response === "object" && response !== null) {
-    const resp = response as Record<string, unknown>;
+    const resp = response as unknown as Record<string, unknown>;
     for (const key of ["worktree_path", "path", "worktree", "directory"]) {
       if (typeof resp[key] === "string") return resp[key] as string;
     }
@@ -138,7 +136,7 @@ export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps):
   }
 
   // Inspect the error cause for exit code
-  const cause = checkResult.error.cause as any;
+  const cause = checkResult.error.cause as unknown as Record<string, unknown>;
   const exitCode = cause?.status ?? cause?.code;
 
   if (exitCode === 1) {
@@ -224,7 +222,7 @@ const defaultDeps: WorktreeSafetyDeps = {
   cwd: () => process.cwd(),
 };
 
-export const WorktreeSafetyVerification: HookContract<
+export const WorktreeSafetyVerification: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   WorktreeSafetyDeps

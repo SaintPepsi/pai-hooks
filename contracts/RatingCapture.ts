@@ -9,18 +9,18 @@
  * Rating/sentiment writes happen as side effects via deps.
  */
 
-import type { HookContract } from "../core/contract";
-import type { UserPromptSubmitInput } from "../core/types/hook-inputs";
-import type { ContextOutput } from "../core/types/hook-outputs";
-import { ok, tryCatch, tryCatchAsync, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists, readFile, writeFile, appendFile, ensureDir } from "../core/adapters/fs";
+import type { HookContract, AsyncHookContract } from "@hooks/core/contract";
+import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import type { ContextOutput } from "@hooks/core/types/hook-outputs";
+import { ok, tryCatch, tryCatchAsync, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists, readFile, writeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { inference } from "../../PAI/Tools/Inference";
-import { getIdentity, getPrincipal, getPrincipalName } from "../lib/identity";
-import { getLearningCategory } from "../lib/learning-utils";
-import { getISOTimestamp, getLocalComponents } from "../lib/time";
-import { captureFailure } from "../../PAI/Tools/FailureCapture";
+import { inference, type InferenceResult } from "@pai/Tools/Inference";
+import { getIdentity, getPrincipal, getPrincipalName } from "@hooks/lib/identity";
+import { getLearningCategory } from "@hooks/lib/learning-utils";
+import { getISOTimestamp, getLocalComponents } from "@hooks/lib/time";
+import { captureFailure } from "@pai/Tools/FailureCapture";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -255,7 +255,7 @@ const defaultDeps: RatingCaptureDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const RatingCapture: HookContract<
+export const RatingCapture: AsyncHookContract<
   UserPromptSubmitInput,
   ContextOutput,
   RatingCaptureDeps
@@ -301,7 +301,7 @@ export const RatingCapture: HookContract<
 
         if (explicitResult.rating <= 3) {
           await deps.captureFailure({
-            transcriptPath: input.transcript_path,
+            transcriptPath: input.transcript_path ?? "",
             rating: explicitResult.rating,
             sentimentSummary: explicitResult.comment || `Explicit low rating: ${explicitResult.rating}/10`,
             detailedContext: responseContext,
@@ -324,7 +324,7 @@ export const RatingCapture: HookContract<
     const systemPrompt = buildSentimentPrompt(principal.name, identity.name);
     const userPrompt = context ? `CONTEXT:\n${context}\n\nCURRENT MESSAGE:\n${prompt}` : prompt;
 
-    const inferenceResult = await tryCatchAsync(
+    const inferenceResult = await tryCatchAsync<InferenceResult, null>(
       () => deps.inference({
         systemPrompt,
         userPrompt,
@@ -366,7 +366,7 @@ export const RatingCapture: HookContract<
 
         if (sentiment.rating <= 3) {
           await deps.captureFailure({
-            transcriptPath: input.transcript_path,
+            transcriptPath: input.transcript_path ?? "",
             rating: sentiment.rating,
             sentimentSummary: sentiment.summary,
             detailedContext: sentiment.detailed_context || "",

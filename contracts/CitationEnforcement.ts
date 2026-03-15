@@ -10,7 +10,7 @@
  * Zero context cost when no research has occurred.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -81,7 +81,7 @@ const defaultDeps: CitationEnforcementDeps = {
 
 // ─── Contract 1: CitationTracker ─────────────────────────────────────────────
 
-export const CitationTracker: HookContract<
+export const CitationTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   CitationEnforcementDeps
@@ -122,7 +122,7 @@ function buildCitationReminder(): string {
   ].join("\n");
 }
 
-export const CitationEnforcement: HookContract<
+export const CitationEnforcement: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   CitationEnforcementDeps

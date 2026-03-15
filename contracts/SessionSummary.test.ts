@@ -1,8 +1,8 @@
 import { describe, test, expect } from "bun:test";
-import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary";
-import type { SessionEndInput } from "../core/types/hook-inputs";
-import { ok, err, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import { SessionSummary, type SessionSummaryDeps } from "@hooks/contracts/SessionSummary";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { ok, err, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ describe("SessionSummary", () => {
     });
 
     test("accepts with undefined session_id", () => {
-      expect(SessionSummary.accepts({ session_id: undefined } as SessionEndInput)).toBe(true);
+      expect(SessionSummary.accepts({ session_id: undefined as unknown as string } as SessionEndInput)).toBe(true);
     });
   });
 

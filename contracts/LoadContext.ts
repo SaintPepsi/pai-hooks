@@ -6,7 +6,7 @@
  * everything as a <system-reminder> ContextOutput.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { AsyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
@@ -398,7 +398,7 @@ const defaultDeps: LoadContextDeps = {
   readDir,
   stat,
   execSyncSafe,
-  setTabState: (opts) => tryCatch(() => setTabState(opts), (e) => unknownError(e)),
+  setTabState: (opts) => tryCatch(() => setTabState(opts as Parameters<typeof setTabState>[0]), (e) => unknownError(e)),
   readTabState: (id) => tryCatch(() => readTabState(id), (e) => unknownError(e)),
   getDAName,
   recordSessionStart,
@@ -416,7 +416,7 @@ const defaultDeps: LoadContextDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const LoadContext: HookContract<
+export const LoadContext: AsyncHookContract<
   SessionStartInput,
   ContextOutput | SilentOutput,
   LoadContextDeps

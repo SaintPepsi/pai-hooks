@@ -9,7 +9,7 @@
  * then matches type annotation patterns (`: any`, `as any`, generic `<any>`, `any[]`).
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -252,7 +252,7 @@ const defaultDeps: TypeStrictnessDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const TypeStrictness: HookContract<
+export const TypeStrictness: SyncHookContract<
   ToolHookInput,
   ContinueOutput | BlockOutput,
   TypeStrictnessDeps

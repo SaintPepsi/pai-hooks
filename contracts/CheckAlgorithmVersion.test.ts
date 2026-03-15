@@ -5,6 +5,7 @@ import {
   type CheckAlgorithmVersionDeps,
 } from "@hooks/contracts/CheckAlgorithmVersion";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { ok } from "@hooks/core/result";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -15,10 +16,11 @@ const baseInput: SessionStartInput = {
 function makeDeps(overrides: Partial<CheckAlgorithmVersionDeps> = {}): CheckAlgorithmVersionDeps {
   return {
     getLocalVersion: () => "v3.5.0",
-    getUpstreamVersion: async () => "v3.5.0",
+    getUpstreamVersion: async () => ok("v3.5.0"),
     writeStateFile: () => {},
     isSubagent: () => false,
     stderr: () => {},
+    homeDir: "/mock/home",
     ...overrides,
   };
 }
@@ -80,7 +82,7 @@ describe("CheckAlgorithmVersion", () => {
       let stateData: Record<string, unknown> = {};
       const deps = makeDeps({
         getLocalVersion: () => "v3.4.0",
-        getUpstreamVersion: async () => "v3.5.0",
+        getUpstreamVersion: async () => ok("v3.5.0"),
         writeStateFile: (data) => { stateData = data; },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
@@ -93,7 +95,7 @@ describe("CheckAlgorithmVersion", () => {
     test("returns silent even when update is available", async () => {
       const deps = makeDeps({
         getLocalVersion: () => "v3.4.0",
-        getUpstreamVersion: async () => "v3.5.0",
+        getUpstreamVersion: async () => ok("v3.5.0"),
       });
       const result = await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(result.ok).toBe(true);
@@ -106,7 +108,7 @@ describe("CheckAlgorithmVersion", () => {
       let stateData: Record<string, unknown> = {};
       const deps = makeDeps({
         getLocalVersion: () => "v3.5.0",
-        getUpstreamVersion: async () => "v3.5.0",
+        getUpstreamVersion: async () => ok("v3.5.0"),
         writeStateFile: (data) => { stateData = data; },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
@@ -118,7 +120,7 @@ describe("CheckAlgorithmVersion", () => {
       let stateData: Record<string, unknown> = {};
       const deps = makeDeps({
         getLocalVersion: () => "v4.0.0",
-        getUpstreamVersion: async () => "v3.5.0",
+        getUpstreamVersion: async () => ok("v3.5.0"),
         writeStateFile: (data) => { stateData = data; },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
@@ -131,7 +133,7 @@ describe("CheckAlgorithmVersion", () => {
       let stateData: Record<string, unknown> = {};
       const deps = makeDeps({
         getLocalVersion: () => "unknown",
-        getUpstreamVersion: async () => "v3.5.0",
+        getUpstreamVersion: async () => ok("v3.5.0"),
         writeStateFile: (data) => { stateData = data; },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
@@ -142,7 +144,7 @@ describe("CheckAlgorithmVersion", () => {
       let stateData: Record<string, unknown> = {};
       const deps = makeDeps({
         getLocalVersion: () => "v3.5.0",
-        getUpstreamVersion: async () => "unknown",
+        getUpstreamVersion: async () => ok("unknown"),
         writeStateFile: (data) => { stateData = data; },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
@@ -153,7 +155,7 @@ describe("CheckAlgorithmVersion", () => {
       let stateData: Record<string, unknown> = {};
       const deps = makeDeps({
         getLocalVersion: () => "unknown",
-        getUpstreamVersion: async () => "unknown",
+        getUpstreamVersion: async () => ok("unknown"),
         writeStateFile: (data) => { stateData = data; },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);

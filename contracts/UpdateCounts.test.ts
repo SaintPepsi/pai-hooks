@@ -3,8 +3,7 @@ import { UpdateCounts } from "@hooks/contracts/UpdateCounts";
 import type { UpdateCountsDeps } from "@hooks/contracts/UpdateCounts";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { ErrorCode } from "@hooks/core/error";
+import { PaiError, ErrorCode } from "@hooks/core/error";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -54,10 +53,7 @@ describe("UpdateCounts", () => {
     });
 
     it("returns silent even when spawn fails", () => {
-      const spawnError: PaiError = {
-        code: ErrorCode.ProcessSpawnFailed,
-        message: "spawn failed",
-      };
+      const spawnError = new PaiError(ErrorCode.ProcessSpawnFailed, "spawn failed");
       const deps = makeDeps({
         spawnBackground: mock(() => err(spawnError)),
       });
@@ -72,10 +68,7 @@ describe("UpdateCounts", () => {
     });
 
     it("logs error message when spawn fails", () => {
-      const spawnError: PaiError = {
-        code: ErrorCode.ProcessSpawnFailed,
-        message: "bun not found",
-      };
+      const spawnError = new PaiError(ErrorCode.ProcessSpawnFailed, "bun not found");
       const stderrMessages: string[] = [];
       const deps = makeDeps({
         spawnBackground: mock(() => err(spawnError)),

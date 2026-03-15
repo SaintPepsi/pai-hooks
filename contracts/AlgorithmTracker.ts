@@ -8,18 +8,18 @@
  * 4. Agent tracking: Task tool for agent spawns → agentAdd()
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import {
   readState, writeState, phaseTransition, criteriaAdd, criteriaUpdate, agentAdd, effortLevelUpdate,
-} from "../lib/algorithm-state";
-import type { AlgorithmCriterion, AlgorithmPhase, AlgorithmState } from "../lib/algorithm-state";
+} from "@hooks/lib/algorithm-state";
+import type { AlgorithmCriterion, AlgorithmPhase, AlgorithmState } from "@hooks/lib/algorithm-state";
 import { join } from "path";
-import { fileExists, readJson } from "../core/adapters/fs";
-import { setPhaseTab } from "../lib/tab-setter";
+import { fileExists, readJson } from "@hooks/core/adapters/fs";
+import { setPhaseTab } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,7 @@ export interface AlgorithmTrackerDeps {
   readJson: <T = unknown>(path: string) => Result<T, PaiError>;
   fetch: typeof globalThis.fetch;
   baseDir: string;
+  voiceId: string;
   stderr: (msg: string) => void;
 }
 
@@ -151,10 +152,11 @@ const defaultDeps: AlgorithmTrackerDeps = {
   readJson,
   fetch: globalThis.fetch,
   baseDir: BASE_DIR,
+  voiceId: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const AlgorithmTracker: HookContract<
+export const AlgorithmTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   AlgorithmTrackerDeps
@@ -171,7 +173,7 @@ export const AlgorithmTracker: HookContract<
     deps: AlgorithmTrackerDeps,
   ): Result<ContinueOutput, PaiError> {
     const { tool_name, tool_input, session_id } = input;
-    const tool_result = (input as any).tool_result;
+    const tool_result = (input as unknown as Record<string, unknown>).tool_result;
     if (!session_id) return ok({ type: "continue", continue: true });
 
     // 1. Bash → Phase detection from voice curls
@@ -202,7 +204,7 @@ export const AlgorithmTracker: HookContract<
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               message: `Re-entering algorithm. Rework iteration ${reworkNum}.`,
-              voice_id: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
+              voice_id: deps.voiceId,
             }),
           }).catch(() => {});
           deps.stderr(`[AlgorithmTracker] REWORK detected — iteration ${reworkNum}`);
@@ -244,7 +246,7 @@ export const AlgorithmTracker: HookContract<
         const updated = deps.readState(session_id);
         if (updated && updated.sla === "Standard") {
           const count = updated.criteria.length;
-          let inferred: typeof updated.sla | null = null;
+          let inferred: "Standard" | "Extended" | "Advanced" | "Deep" | "Comprehensive" | null = null;
           if (count >= 40) inferred = "Deep";
           else if (count >= 20) inferred = "Advanced";
           else if (count >= 12) inferred = "Extended";

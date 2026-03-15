@@ -5,12 +5,12 @@
  * state (orange) after the user answers an AskUserQuestion.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { setTabState, readTabState, stripPrefix } from "../lib/tab-setter";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { setTabState, readTabState, stripPrefix } from "@hooks/lib/tab-setter";
 
 export interface QuestionAnsweredDeps {
   setTabState: typeof setTabState;
@@ -26,7 +26,7 @@ const defaultDeps: QuestionAnsweredDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const QuestionAnswered: HookContract<
+export const QuestionAnswered: SyncHookContract<
   ToolHookInput,
   SilentOutput,
   QuestionAnsweredDeps

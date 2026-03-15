@@ -52,7 +52,7 @@ describe("SonnetDelegation", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Skill",
-      tool_input: "executing-plans",
+      tool_input: "executing-plans" as unknown as Record<string, unknown>,
     };
     expect(SonnetDelegation.accepts(input)).toBe(false);
   });
@@ -61,7 +61,7 @@ describe("SonnetDelegation", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Skill",
-      tool_input: null,
+      tool_input: null as unknown as Record<string, unknown>,
     };
     expect(SonnetDelegation.accepts(input)).toBe(false);
   });

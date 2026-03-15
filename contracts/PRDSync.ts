@@ -9,17 +9,17 @@
  * Always returns ContinueOutput — never blocks the tool result.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import {
   readFile,
   writeFile,
   fileExists,
   readJson,
-} from "../core/adapters/fs";
+} from "@hooks/core/adapters/fs";
 import { join } from "path";
 import { homedir } from "os";
 
@@ -152,7 +152,7 @@ const defaultDeps: PRDSyncDeps = {
   baseDir: process.env.PAI_DIR || join(homedir(), ".claude"),
 };
 
-export const PRDSync: HookContract<
+export const PRDSync: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   PRDSyncDeps

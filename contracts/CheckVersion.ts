@@ -5,7 +5,7 @@
  * to stderr if an update is available. Skips for subagents.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { AsyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -49,7 +49,7 @@ const defaultDeps: CheckVersionDeps = {
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
-export const CheckVersion: HookContract<
+export const CheckVersion: AsyncHookContract<
   SessionStartInput,
   SilentOutput,
   CheckVersionDeps

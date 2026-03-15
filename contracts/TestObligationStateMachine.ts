@@ -11,7 +11,7 @@
  * and run tests" instruction; files with tests get a "run tests" instruction.
  */
 
-import type { HookContract } from "@hooks/core/contract";
+import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput, StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
@@ -201,7 +201,7 @@ const defaultDeps: TestObligationDeps = {
 
 // ─── Contract 1: TestObligationTracker ───────────────────────────────────────
 
-export const TestObligationTracker: HookContract<
+export const TestObligationTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
   TestObligationDeps
@@ -277,7 +277,7 @@ export const TestObligationTracker: HookContract<
 
 // ─── Contract 2: TestObligationEnforcer ──────────────────────────────────────
 
-export const TestObligationEnforcer: HookContract<
+export const TestObligationEnforcer: SyncHookContract<
   StopInput,
   BlockOutput | SilentOutput,
   TestObligationDeps

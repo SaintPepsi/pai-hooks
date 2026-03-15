@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { GitAutoSync, STALE_LOCK_MINUTES, type GitAutoSyncDeps } from "@hooks/contracts/GitAutoSync";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
-import { ErrorCode, type PaiError } from "@hooks/core/error";
+import { ErrorCode, PaiError } from "@hooks/core/error";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ describe("GitAutoSync contract", () => {
 
   it("skips when stat fails on index.lock (assumes active)", () => {
     const stderrMessages: string[] = [];
-    const statError: PaiError = { code: ErrorCode.FsReadFailed, message: "stat failed" };
+    const statError: PaiError = new PaiError(ErrorCode.FileReadFailed, "stat failed");
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("index.lock"),
       stat: () => err(statError),

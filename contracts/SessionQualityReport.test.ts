@@ -16,7 +16,7 @@ const MOCK_BASELINES = {
 };
 
 const MOCK_TIME = {
-  year: "2026",
+  year: 2026,
   month: "02",
   day: "27",
   hours: "10",

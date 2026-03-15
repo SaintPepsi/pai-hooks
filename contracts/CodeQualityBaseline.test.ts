@@ -113,12 +113,12 @@ describe("CodeQualityBaseline", () => {
     });
 
     test("rejects when tool_input is a string", () => {
-      const input = makeInput({ tool_input: "/src/app.ts" });
+      const input = makeInput({ tool_input: "/src/app.ts" as unknown as Record<string, unknown> });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is null", () => {
-      const input = makeInput({ tool_input: null });
+      const input = makeInput({ tool_input: null as unknown as Record<string, unknown> });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
   });
@@ -145,7 +145,7 @@ describe("CodeQualityBaseline", () => {
       const existing = { "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" } };
       const deps = makeDeps({
         readFile: () => ok(LONG_CLEAN),
-        readJson: () => ok(existing) as Result<unknown, PaiError>,
+        readJson: (() => ok(existing)) as unknown as CodeQualityBaselineDeps["readJson"],
       });
       CodeQualityBaseline.execute(makeInput(), deps);
       const store = lastWrittenJson as Record<string, BaselineStoreEntry>;
@@ -185,12 +185,12 @@ describe("CodeQualityBaseline", () => {
       const lowScore: QualityScore = {
         score: 3.0,
         violations: [
-          { check: "SRP", category: "srp", severity: "warning", message: "Too many functions" },
-          { check: "DIP", category: "dip", severity: "warning", message: "Missing DI" },
+          { check: "SRP", category: "SRP", severity: "moderate", message: "Too many functions", value: 24, threshold: 15 },
+          { check: "DIP", category: "DIP", severity: "moderate", message: "Missing DI", value: 0, threshold: 1 },
         ],
         checkResults: [
-          { check: "SRP", score: 3, maxScore: 10, violations: [] },
-          { check: "DIP", score: 3, maxScore: 10, violations: [] },
+          { check: "SRP", passed: false, value: 24, threshold: 15 },
+          { check: "DIP", passed: false, value: 0, threshold: 1 },
         ],
       };
       const deps = makeDeps({

@@ -1,6 +1,15 @@
 # Hook Contracts
 
-Pure business logic for PAI hooks. Each contract implements `HookContract<Input, Output, Deps>`.
+Pure business logic for PAI hooks. Each contract implements one of two typed interfaces from `core/contract.ts`:
+
+- **`SyncHookContract<I, O, D>`** — `execute()` returns `Result<O, PaiError>`. Used by most hooks.
+- **`AsyncHookContract<I, O, D>`** — `execute()` returns `Promise<Result<O, PaiError>>`. Used by hooks that perform async I/O (network calls, inference).
+
+The runner accepts `HookContract<I, O, D>` (a union of both) and normalizes via `await Promise.resolve()`.
+
+### Async Contracts
+
+Six contracts use `AsyncHookContract`: CheckAlgorithmVersion, CheckVersion, LoadContext, RatingCapture, SessionAutoName, StopOrchestrator. All others use `SyncHookContract`.
 
 ## Contracts
 

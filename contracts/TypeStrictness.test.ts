@@ -228,7 +228,7 @@ describe("TypeStrictness.accepts", () => {
   });
 
   it("rejects when tool_input is a string", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: "/src/foo.ts" }))).toBe(false);
+    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: "/src/foo.ts" as unknown as Record<string, unknown> }))).toBe(false);
   });
 });
 
@@ -290,7 +290,7 @@ describe("TypeStrictness.execute", () => {
     const input: ToolHookInput = {
       session_id: "test-session",
       tool_name: "Edit",
-      tool_input: "/src/foo.ts",
+      tool_input: "/src/foo.ts" as unknown as Record<string, unknown>,
     };
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
