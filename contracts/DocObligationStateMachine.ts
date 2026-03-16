@@ -16,10 +16,26 @@ import type { ToolHookInput, StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { writeFile, readFile, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
+import { writeFile, readFile, fileExists as fsFileExists, removeFile, readDir as fsReadDir } from "@hooks/core/adapters/fs";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { join, dirname } from "path";
+import type { Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+
+// ─── Project Hook Deduplication ──────────────────────────────────────────────
+
+export function projectHasHook(
+  name: string,
+  dirExists: (path: string) => boolean = fsFileExists,
+  listDir: (path: string) => Result<string[], PaiError> = fsReadDir,
+): boolean {
+  const hookDir = join(process.cwd(), ".claude", "hooks");
+  if (!dirExists(hookDir)) return false;
+  const result = listDir(hookDir);
+  if (!result.ok) return false;
+  return result.value.some((f) => f.startsWith(`${name}.hook.`));
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -145,6 +161,7 @@ export const DocObligationTracker: SyncHookContract<
   event: "PostToolUse",
 
   accepts(input: ToolHookInput): boolean {
+    if (projectHasHook("DocObligationTracker")) return false;
     if (input.tool_name !== "Edit" && input.tool_name !== "Write") return false;
     const filePath = getFilePath(input);
     if (!filePath) return false;
@@ -241,6 +258,7 @@ export const DocObligationEnforcer: SyncHookContract<
   event: "Stop",
 
   accepts(_input: StopInput): boolean {
+    if (projectHasHook("DocObligationEnforcer")) return false;
     return true;
   },
 

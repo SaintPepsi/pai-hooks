@@ -2,13 +2,15 @@ import { describe, it, expect } from "bun:test";
 import {
   DocObligationTracker,
   DocObligationEnforcer,
+  projectHasHook,
   type DocObligationDeps,
 } from "@hooks/contracts/DocObligationStateMachine";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, SilentOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
+import { ok, err, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+import { fileReadFailed } from "@hooks/core/error";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -555,6 +557,51 @@ describe("DocObligationEnforcer", () => {
 
     // Should clean up pending flag and block count file
     expect(removedPaths.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ─── projectHasHook ──────────────────────────────────────────────────────────
+
+describe("projectHasHook", () => {
+  it("returns false when .claude/hooks/ does not exist", () => {
+    const result = projectHasHook("DocObligationTracker", () => false, () => ok([]));
+    expect(result).toBe(false);
+  });
+
+  it("returns true when matching hook file exists", () => {
+    const result = projectHasHook(
+      "DocObligationTracker",
+      () => true,
+      () => ok(["DocObligationTracker.hook.js", "SpotCheckReview.hook.ts"]),
+    );
+    expect(result).toBe(true);
+  });
+
+  it("returns false when no matching hook file exists", () => {
+    const result = projectHasHook(
+      "DocObligationTracker",
+      () => true,
+      () => ok(["SpotCheckReview.hook.ts"]),
+    );
+    expect(result).toBe(false);
+  });
+
+  it("matches any extension (.js, .ts, .mjs)", () => {
+    const result = projectHasHook(
+      "DocObligationTracker",
+      () => true,
+      () => ok(["DocObligationTracker.hook.mjs"]),
+    );
+    expect(result).toBe(true);
+  });
+
+  it("returns false when readDir returns an error", () => {
+    const result = projectHasHook(
+      "DocObligationTracker",
+      () => true,
+      () => err(fileReadFailed(".claude/hooks", new Error("EACCES"))),
+    );
+    expect(result).toBe(false);
   });
 });
 
