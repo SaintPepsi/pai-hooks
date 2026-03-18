@@ -88,6 +88,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentExecutionGuard.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentTrackerPre.hook.ts"
           }
         ]
       },
@@ -152,6 +156,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracker.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentTrackerPost.hook.ts"
           }
         ]
       },

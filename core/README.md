@@ -37,6 +37,16 @@ Boundary layer wrapping Node builtins in `Result`:
 - `stdin.ts` — readStdin with timeout
 - `log.ts` — appendHookLog for structured hook logging
 
+## Quality Scorer (`quality-scorer.ts`)
+
+SOLID heuristic analysis for source files. `scoreFile(content, profile, filePath)` returns a composite score (0-10) with per-check breakdown across 18 checks in 3 categories:
+
+- **SRP** (4): function-count, naming-clusters, mixed-io-patterns, section-headers, try-catch-count
+- **DIP** (8): import-depth, infra-imports, type-import-ratio, missing-deps-interface, contract-pattern, adapter-bypass, throw-count, null-return-count, mixed-error-strategy
+- **ISP** (3): interface-members, parameter-count, options-object-width
+
+Contract-specific checks (missing-deps-interface, contract-pattern, adapter-bypass, throw-count, mixed-error-strategy) only fire on files in `/contracts/` and skip test files (`.test.`/`.spec.`). Language profiles from `language-profiles.ts` provide per-language regex patterns.
+
 ## Types (`types/`)
 
 - `hook-inputs.ts` — ToolHookInput, SessionStartInput, UserPromptSubmitInput, etc.

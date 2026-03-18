@@ -178,6 +178,7 @@ function typeImportRatio(content: string, profile: LanguageProfile): number {
 
 function hasDepsInterface(content: string, filePath: string): boolean | null {
   if (!filePath.includes("/contracts/")) return null;
+  if (filePath.includes(".test.") || filePath.includes(".spec.")) return null;
   return /interface\s+\w*Deps\b/m.test(content);
 }
 

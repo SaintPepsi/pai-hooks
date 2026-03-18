@@ -11,11 +11,13 @@ Business logic, types, and tests live in `../contracts/`. See the top-level `REA
 
 ## All hooks
 
-All 46 hooks are consolidated here. Settings.json references them via `${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/`.
+All 48 hooks are consolidated here. Settings.json references them via `${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/`.
 
 | Hook | Contract | Event |
 |------|----------|-------|
 | AgentExecutionGuard | AgentExecutionGuard | PreToolUse |
+| AgentTrackerPre | AgentTracker | PreToolUse |
+| AgentTrackerPost | AgentTracker | PostToolUse |
 | AlgorithmTracker | AlgorithmTracker | PostToolUse |
 | ArchitectureEscalation | ArchitectureEscalation | PostToolUse |
 | ArticleWriter | ArticleWriter | SessionEnd |

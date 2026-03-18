@@ -11,7 +11,7 @@ import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, ensureDir, removeFile, copyFile, stat } from "@hooks/core/adapters/fs";
+import { fileExists, readFile, ensureDir, removeFile, copyFile, stat, readDir } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
 import { homedir } from "os";
@@ -24,6 +24,7 @@ export interface GitAutoSyncDeps {
   spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, PaiError>;
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, PaiError>;
+  readDir: (path: string) => Result<string[], PaiError>;
   ensureDir: (path: string) => Result<void, PaiError>;
   copyFile: (src: string, dest: string) => Result<void, PaiError>;
   removeFile: (path: string) => Result<void, PaiError>;
@@ -44,6 +45,7 @@ interface BackupResult {
 
 export const DEBOUNCE_MINUTES = 15;
 export const STALE_LOCK_MINUTES = 2;
+const AGENT_FILE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const KEY_FILES = ["statusline-command.sh", "statusline-helpers.ts", "settings.json"];
 export const KEY_HOOK_PATTERN = /^(?:hooks|pai-hooks\/hooks)\/.*\.ts$/;
 
@@ -158,6 +160,39 @@ function checkPostMergeDiff(deps: GitAutoSyncDeps, backup: BackupResult): void {
   }
 }
 
+/**
+ * Remove stale active-agents-*.json files from MEMORY/STATE/.
+ * "Stale" means: PID is dead OR file is older than AGENT_FILE_TTL_MS.
+ * Non-stale files (live PID, recent) are left alone.
+ */
+function cleanupStaleAgentFiles(deps: GitAutoSyncDeps): void {
+  const stateDir = join(deps.claudeDir, "MEMORY", "STATE");
+  const entries = deps.readDir(stateDir);
+  if (!entries.ok) return;
+
+  for (const name of entries.value) {
+    const match = (name as string).match(/^active-agents-(\d+)\.json$/);
+    if (!match) continue;
+
+    const filePath = join(stateDir, name as string);
+    const pid = parseInt(match[1]);
+
+    // Check file age
+    const fileStat = deps.stat(filePath);
+    const isOld = fileStat.ok && (deps.dateNow() - fileStat.value.mtimeMs) > AGENT_FILE_TTL_MS;
+
+    // Check if PID is dead
+    let pidDead = false;
+    const killCheck = deps.execSync(`kill -0 ${pid} 2>/dev/null; echo $?`, { timeout: 2000 });
+    if (killCheck.ok && killCheck.value.trim() !== "0") pidDead = true;
+
+    if (isOld || pidDead) {
+      deps.removeFile(filePath);
+      deps.stderr(`[GitAutoSync] Cleaned stale agent file: ${name} (${pidDead ? "dead PID" : "TTL expired"})`);
+    }
+  }
+}
+
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const BASE_DIR = join(homedir(), ".claude");
@@ -167,6 +202,11 @@ const defaultDeps: GitAutoSyncDeps = {
   spawnBackground,
   fileExists,
   readFile,
+  readDir: (path: string) => {
+    const result = readDir(path);
+    if (!result.ok) return result;
+    return { ok: true, value: result.value.map((e: { name?: string }) => typeof e === "string" ? e : e.name ?? "") } as Result<string[], PaiError>;
+  },
   ensureDir,
   copyFile,
   removeFile,
@@ -196,7 +236,10 @@ export const GitAutoSync: SyncHookContract<
     _input: SessionEndInput,
     deps: GitAutoSyncDeps,
   ): Result<SilentOutput, PaiError> {
-    // 0. Skip if another session is actively using git
+    // 0. Clean up stale agent tracking files (dead PIDs or TTL expired)
+    cleanupStaleAgentFiles(deps);
+
+    // 1. Skip if another session is actively using git
     if (isGitBusy(deps)) {
       deps.stderr("[GitAutoSync] Skipped — index.lock exists (active session using git)");
       return ok({ type: "silent" });

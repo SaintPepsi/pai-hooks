@@ -15,6 +15,7 @@ Six contracts use `AsyncHookContract`: CheckAlgorithmVersion, CheckVersion, Load
 
 | Contract | Event | Purpose |
 |----------|-------|---------|
+| **AgentTracker** | PreToolUse + PostToolUse | Tracks active sub-agent count per Claude session. PreToolUse increments, PostToolUse decrements a per-PID state file (`MEMORY/STATE/active-agents-{pid}.json`). Tracks session high-water mark (`maxCount`). Clamps count to 0 on decrement. Used by the statusline to display `★cli+agents/maxCli+maxAgents`. |
 | **ArticleWriter** | SessionEnd | Spawns background agent to write blog articles. Gates: `articleWriter.repo` configured in `settings.json`, lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). Repo auto-cloned to `~/.claude/cache/repos/`. Identity (DA name, principal name) from `settings.json`. |
 | **BranchAwareness** | PostToolUse | Tracks git branch context |
 | **CheckVersion** | SessionStart | Notifies if Claude Code update available |

@@ -15,6 +15,7 @@ function makeDeps(overrides: Partial<GitAutoSyncDeps> = {}): GitAutoSyncDeps {
     ensureDir: () => ok(undefined),
     copyFile: () => ok(undefined),
     removeFile: () => ok(undefined),
+    readDir: () => ok([]),
     stat: () => ok({ mtimeMs: 0 }),
     dateNow: () => Date.now(),
     getTimestamp: () => "2026-03-09 17:00:00 AEDT",
