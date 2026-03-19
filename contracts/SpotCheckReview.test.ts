@@ -14,9 +14,12 @@ function makeDeps(overrides: Partial<SpotCheckReviewDeps> = {}): SpotCheckReview
   return {
     stateDir: "/tmp/pai-spot-check",
     getChangedFiles: () => [],
+    getFileHashes: () => new Map(),
     fileExists: () => false,
     readBlockCount: () => 0,
     writeBlockCount: () => {},
+    readReviewedHashes: () => ({}),
+    writeReviewedHashes: () => {},
     removeFlag: () => {},
     stderr: () => {},
     ...overrides,
@@ -197,6 +200,157 @@ describe("SpotCheckReview", () => {
 
     expect(writtenPath).toContain("my-session-abc");
   });
+  // ── hash dedup: skip already-reviewed files ──
+
+  it("returns silent when all files already reviewed with same hash", () => {
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/index.ts", "src/app.ts"],
+      getFileHashes: () => new Map([
+        ["src/index.ts", "hash-aaa"],
+        ["src/app.ts", "hash-bbb"],
+      ]),
+      readReviewedHashes: () => ({
+        "src/index.ts": "hash-aaa",
+        "src/app.ts": "hash-bbb",
+      }),
+    });
+
+    const result = SpotCheckReview.execute(makeStopInput(), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("silent");
+  });
+
+  it("blocks only unreviewed files when some are already reviewed", () => {
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/index.ts", "src/app.ts", "src/new.ts"],
+      getFileHashes: () => new Map([
+        ["src/index.ts", "hash-aaa"],
+        ["src/app.ts", "hash-bbb"],
+        ["src/new.ts", "hash-ccc"],
+      ]),
+      readReviewedHashes: () => ({
+        "src/index.ts": "hash-aaa",
+        "src/app.ts": "hash-bbb",
+      }),
+    });
+
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("block");
+    expect(result.value.reason).toContain("src/new.ts");
+    expect(result.value.reason).not.toContain("src/index.ts");
+    expect(result.value.reason).not.toContain("src/app.ts");
+  });
+
+  it("blocks file when its hash changed since last review", () => {
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/index.ts"],
+      getFileHashes: () => new Map([["src/index.ts", "hash-new"]]),
+      readReviewedHashes: () => ({ "src/index.ts": "hash-old" }),
+    });
+
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("block");
+    expect(result.value.reason).toContain("src/index.ts");
+  });
+
+  it("treats files with no hash as unreviewed", () => {
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/index.ts"],
+      getFileHashes: () => new Map(), // no hashes returned (e.g. deleted file)
+      readReviewedHashes: () => ({ "src/index.ts": "hash-aaa" }),
+    });
+
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("block");
+  });
+
+  // ── escape valve writes reviewed hashes ──
+
+  it("writes reviewed hashes on escape valve release", () => {
+    let writtenHashes: Record<string, string> = {};
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/index.ts", "src/app.ts"],
+      getFileHashes: () => new Map([
+        ["src/index.ts", "hash-aaa"],
+        ["src/app.ts", "hash-bbb"],
+      ]),
+      readBlockCount: () => 1, // at limit
+      readReviewedHashes: () => ({}),
+      writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
+        writtenHashes = hashes;
+      },
+    });
+
+    SpotCheckReview.execute(makeStopInput(), deps);
+
+    expect(writtenHashes["src/index.ts"]).toBe("hash-aaa");
+    expect(writtenHashes["src/app.ts"]).toBe("hash-bbb");
+  });
+
+  it("prunes stale entries not in current unpushed diff on release", () => {
+    let writtenHashes: Record<string, string> = {};
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/new.ts"],
+      getFileHashes: () => new Map([["src/new.ts", "hash-ccc"]]),
+      readBlockCount: () => 1,
+      readReviewedHashes: () => ({ "src/old.ts": "hash-old" }),
+      writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
+        writtenHashes = hashes;
+      },
+    });
+
+    SpotCheckReview.execute(makeStopInput(), deps);
+
+    expect(writtenHashes["src/old.ts"]).toBeUndefined();
+    expect(writtenHashes["src/new.ts"]).toBe("hash-ccc");
+  });
+
+  it("retains existing entries for files still in unpushed diff on release", () => {
+    let writtenHashes: Record<string, string> = {};
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/kept.ts", "src/new.ts"],
+      getFileHashes: () => new Map([
+        ["src/kept.ts", "hash-kept"],
+        ["src/new.ts", "hash-new"],
+      ]),
+      readBlockCount: () => 1,
+      readReviewedHashes: () => ({ "src/kept.ts": "hash-kept", "src/gone.ts": "hash-gone" }),
+      writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
+        writtenHashes = hashes;
+      },
+    });
+
+    SpotCheckReview.execute(makeStopInput(), deps);
+
+    expect(writtenHashes["src/kept.ts"]).toBe("hash-kept");
+    expect(writtenHashes["src/new.ts"]).toBe("hash-new");
+    expect(writtenHashes["src/gone.ts"]).toBeUndefined();
+  });
+
+  it("uses stateDir for reviewed hashes path", () => {
+    let hashPath = "";
+    const deps = makeDeps({
+      getChangedFiles: () => ["src/index.ts"],
+      getFileHashes: () => new Map([["src/index.ts", "hash-aaa"]]),
+      readReviewedHashes: (path: string) => { hashPath = path; return {}; },
+    });
+
+    SpotCheckReview.execute(makeStopInput(), deps);
+
+    expect(hashPath).toContain("spot-check");
+    expect(hashPath).toContain("reviewed-hashes");
+  });
 });
 
 // ─── defaultDeps coverage ─────────────────────────────────────────────────────
@@ -233,5 +387,20 @@ describe("SpotCheckReview defaultDeps", () => {
     // This calls git diff — will return [] if not in a git repo or no upstream
     const result = SpotCheckReview.defaultDeps.getChangedFiles();
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("defaultDeps.getFileHashes returns a Map", () => {
+    const result = SpotCheckReview.defaultDeps.getFileHashes([]);
+    expect(result instanceof Map).toBe(true);
+  });
+
+  it("defaultDeps.readReviewedHashes returns object for nonexistent file", () => {
+    const result = SpotCheckReview.defaultDeps.readReviewedHashes("/tmp/nonexistent-pai-rh-12345.json");
+    expect(typeof result).toBe("object");
+  });
+
+  it("defaultDeps.writeReviewedHashes writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-rh-" + Date.now() + ".json";
+    expect(() => SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, { "test.ts": "abc" })).not.toThrow();
   });
 });
