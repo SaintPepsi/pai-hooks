@@ -16,8 +16,8 @@ All 48 hooks are consolidated here. Settings.json references them via `${SAINTPE
 | Hook | Contract | Event |
 |------|----------|-------|
 | AgentExecutionGuard | AgentExecutionGuard | PreToolUse |
-| AgentTrackerPre | AgentTracker | PreToolUse |
-| AgentTrackerPost | AgentTracker | PostToolUse |
+| AgentLifecycleStart | AgentLifecycle | SubagentStart |
+| AgentLifecycleStop | AgentLifecycle | SubagentStop |
 | AlgorithmTracker | AlgorithmTracker | PostToolUse |
 | ArchitectureEscalation | ArchitectureEscalation | PostToolUse |
 | ArticleWriter | ArticleWriter | SessionEnd |

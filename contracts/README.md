@@ -15,7 +15,7 @@ Six contracts use `AsyncHookContract`: CheckAlgorithmVersion, CheckVersion, Load
 
 | Contract | Event | Purpose |
 |----------|-------|---------|
-| **AgentTracker** | PreToolUse + PostToolUse | Tracks active sub-agent count per Claude session. PreToolUse increments, PostToolUse decrements a per-PID state file (`MEMORY/STATE/active-agents-{pid}.json`). Tracks session high-water mark (`maxCount`). Clamps count to 0 on decrement. Used by the statusline to display `★cli+agents/maxCli+maxAgents`. |
+| **AgentLifecycle** | SubagentStart + SubagentStop | Tracks sub-agent lifecycle via per-agent files (`MEMORY/STATE/agents/agent-{session_id}.json`). SubagentStart creates file, SubagentStop marks completion. Includes orphan cleanup (30min TTL) and 60-second grace period for statusline display fade-out. Replaces counter-based AgentTrackerPre/Post. |
 | **ArticleWriter** | SessionEnd | Spawns background agent to write blog articles. Gates: `articleWriter.repo` configured in `settings.json`, lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). Repo auto-cloned to `~/.claude/cache/repos/`. Identity (DA name, principal name) from `settings.json`. |
 | **BranchAwareness** | PostToolUse | Tracks git branch context |
 | **CheckVersion** | SessionStart | Notifies if Claude Code update available |
@@ -30,6 +30,7 @@ Six contracts use `AsyncHookContract`: CheckAlgorithmVersion, CheckVersion, Load
 | **CodeQualityGuard** | PostToolUse | SOLID quality scoring for .ts/.tsx/.svelte and other source files (suppresses `type-import-ratio` and `options-object-width` for test files). For .svelte files, extracts `<script lang="ts">` block before scoring. |
 | **CodeQualityBaseline** | PostToolUse | Stores quality baselines on Read for later delta comparison. Supports .svelte files via script block extraction. |
 | **TypeCheckVerifier** | PostToolUse | Advisory type-checking after Edit/Write on .ts/.tsx/.svelte files. Discovers project type-check command (svelte-check, tsc --noEmit), runs it with 10s timeout, injects errors for the edited file as context. Debounced per file (60s). Never blocks. |
+| **SpotCheckReview** | Stop | Blocks session end when unpushed files need code review. Spawns Sonnet agent for review. Tracks reviewed file content hashes in `MEMORY/STATE/spot-check/reviewed-hashes.json` to skip files already spot-checked. Escape valve after 1 block marks files as reviewed and releases. |
 | **DocObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until docs updated |
 | **GitAutoSync** | SessionEnd | Auto-commits and pushes ~/.claude on session end (debounced, with key file backup from `pai-hooks/hooks/`). Detects stale `index.lock` files (older than 2 minutes) and removes them to prevent permanent sync block. Respects active locks (recent) to avoid racing with active sessions. Cleans up stale index.lock if a git operation fails and leaves one behind. Timeouts: 15s git add, 20s git commit. |
 | **HookExecutePermission** | PostToolUse | Auto-chmod on new hook files |
