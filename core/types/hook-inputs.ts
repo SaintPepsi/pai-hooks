@@ -1,5 +1,5 @@
 /**
- * Typed hook inputs for all six Claude Code hook event types.
+ * Typed hook inputs for all eight Claude Code hook event types.
  */
 
 // ─── Event Types ─────────────────────────────────────────────────────────────
@@ -11,7 +11,9 @@ export type HookEventType =
   | "SessionEnd"
   | "UserPromptSubmit"
   | "PreCompact"
-  | "Stop";
+  | "Stop"
+  | "SubagentStart"
+  | "SubagentStop";
 
 // ─── Base Input ──────────────────────────────────────────────────────────────
 
@@ -58,6 +60,16 @@ export interface StopInput extends HookInputBase {
   transcript_path?: string;
 }
 
+// ─── Subagent Lifecycle Inputs ────────────────────────────────────────────────
+
+export interface SubagentStartInput extends HookInputBase {
+  transcript_path?: string;
+}
+
+export interface SubagentStopInput extends HookInputBase {
+  transcript_path?: string;
+}
+
 // ─── Union Type ──────────────────────────────────────────────────────────────
 
 export type HookInput =
@@ -66,4 +78,6 @@ export type HookInput =
   | SessionEndInput
   | UserPromptSubmitInput
   | PreCompactInput
-  | StopInput;
+  | StopInput
+  | SubagentStartInput
+  | SubagentStopInput;

@@ -49,5 +49,5 @@ Contract-specific checks (missing-deps-interface, contract-pattern, adapter-bypa
 
 ## Types (`types/`)
 
-- `hook-inputs.ts` — ToolHookInput, SessionStartInput, UserPromptSubmitInput, etc.
+- `hook-inputs.ts` — ToolHookInput, SessionStartInput, UserPromptSubmitInput, SubagentStartInput, SubagentStopInput, etc.
 - `hook-outputs.ts` — ContinueOutput, BlockOutput, ContextOutput, SilentOutput, AskOutput
