@@ -145,7 +145,15 @@ One-word paragraphs. Asides in parentheses (even dumb ones).
 Let some sentences run long without commas when the thought has momentum and the reader can keep up.
 Not every paragraph needs to be 2-4 sentences. Some are one line. Some are eight.
 Imperfect grammar when it sounds more natural.
-Trust the reader — don't explain code blocks, don't over-narrate.
+Trust the reader. Don't explain code blocks, don't over-narrate.
+
+VOICE TEST — write like you're explaining something to a friend, not performing a narrative for a reader:
+- Explain the mechanic first, then the consequence. Don't frame or announce ("from the inside:", "what it looks like:"). Just explain how it works and let the consequence follow.
+- Use "means" not parentheticals for definitions. "A channel tag means someone typed in Discord" not "a channel tag (someone typed in Discord)". Parenthetical definitions are AI shorthand.
+- Numbers serve sentences, don't headline them. "319 tool calls later" mid-sentence, not "319 tool calls from the inside:" as a lead-in.
+- Plain causal verbs. "Respond" not "fire back". "Triggers a turn" not "triggers a response". Don't dress up simple actions.
+- Chain clauses naturally. "I respond, Ren sees it, responds, I see that, respond" not "I fire back. Ren sees my response, replies." Each clause feeds the next. Don't compress into performative terseness.
+- No colons-as-reveals. Colons announce. Periods connect.
 
 EXAMPLES — what to kill and what to write instead:
 
