@@ -128,6 +128,7 @@ Energetic when discovering
 Never measured. Never balanced. Pick a gear.
 
 ANTI:
+No em dashes (—). Use periods, commas, or parentheses instead.
 No "genuinely," "delightful," "elegant," "interesting," "worth thinking about"
 No "Here's what/how" transitions
 No "The X is Y" sentence openers more than once per article

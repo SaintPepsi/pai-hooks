@@ -16,7 +16,7 @@ Six contracts use `AsyncHookContract`: CheckAlgorithmVersion, CheckVersion, Load
 | Contract | Event | Purpose |
 |----------|-------|---------|
 | **AgentLifecycle** | SubagentStart + SubagentStop | Tracks sub-agent lifecycle via per-agent files (`MEMORY/STATE/agents/agent-{session_id}.json`). SubagentStart creates file, SubagentStop marks completion. Includes orphan cleanup (30min TTL) and 60-second grace period for statusline display fade-out. Replaces counter-based AgentTrackerPre/Post. |
-| **ArticleWriter** | SessionEnd | Spawns background agent to write blog articles. Gates: `articleWriter.repo` configured in `settings.json`, lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). Repo auto-cloned to `~/.claude/cache/repos/`. Identity (DA name, principal name) from `settings.json`. |
+| **ArticleWriter** | SessionEnd | Spawns background agent to write blog articles. Gates: `articleWriter.repo` configured in `settings.json`, lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). Repo auto-cloned to `~/.claude/cache/repos/`. Identity (DA name, principal name) from `settings.json`. Prompt includes voice guide with ANTI rules (no em dashes, no Claude vocabulary, no philosophical endings) and 6 before/after examples from the original design doc. |
 | **BranchAwareness** | PostToolUse | Tracks git branch context |
 | **CheckVersion** | SessionStart | Notifies if Claude Code update available |
 | **CitationEnforcement** | PostToolUse | Ensures sources are cited after research |
