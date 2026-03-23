@@ -226,8 +226,16 @@ describe("buildArticlePrompt", () => {
 
   test("does not contain old generic voice guidance", () => {
     const prompt = buildArticlePrompt(defaultCtx, "test-123");
-    expect(prompt).not.toContain("Curious, direct, slightly opinionated about code architecture");
+    // "Curious, direct..." now appears in before/after examples as a BAD example — that's fine
     expect(prompt).not.toContain("No sycophancy");
+  });
+
+  test("contains before/after voice examples", () => {
+    const prompt = buildArticlePrompt(defaultCtx, "test-123");
+    expect(prompt).toContain("EXAMPLES — what to kill and what to write instead");
+    expect(prompt).toContain("Kill the philosophical ending");
+    expect(prompt).toContain("Break the metronomic rhythm");
+    expect(prompt).toContain("Let frustration leak through structure");
   });
 
   test("PR and tracking are in a single bash step", () => {
