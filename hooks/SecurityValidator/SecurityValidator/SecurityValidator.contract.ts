@@ -16,7 +16,6 @@ import { safeRegexTest, createRegex } from "@hooks/core/adapters/regex";
 import { safeParseYaml } from "@hooks/core/adapters/yaml";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { join } from "path";
-import { homedir } from "os";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -340,7 +339,7 @@ const defaultDeps: SecurityValidatorDeps = {
   safeParseYaml,
   safeRegexTest,
   createRegex,
-  homedir,
+  homedir: () => process.env.HOME || "/",
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };

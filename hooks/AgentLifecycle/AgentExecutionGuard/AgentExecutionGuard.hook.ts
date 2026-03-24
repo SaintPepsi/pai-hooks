@@ -10,8 +10,8 @@ import { runHook } from "@hooks/core/runner";
 import { AgentExecutionGuard } from "@hooks/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.contract";
 
 if (import.meta.main) {
-  runHook(AgentExecutionGuard).catch(() => {
-
+  runHook(AgentExecutionGuard).catch((e) => {
+    process.stderr.write(`[hook] fatal: ${e instanceof Error ? e.message : e}\n`);
     process.exit(0);
   });
 }

@@ -10,8 +10,8 @@ import { runHook } from "@hooks/core/runner";
 import { HookExecutePermission } from "@hooks/hooks/GitSafety/HookExecutePermission/HookExecutePermission.contract";
 
 if (import.meta.main) {
-  runHook(HookExecutePermission).catch(() => {
-
+  runHook(HookExecutePermission).catch((e) => {
+    process.stderr.write(`[hook] fatal: ${e instanceof Error ? e.message : e}\n`);
     process.exit(0);
   });
 }

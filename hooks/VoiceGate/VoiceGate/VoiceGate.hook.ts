@@ -10,8 +10,8 @@ import { runHook } from "@hooks/core/runner";
 import { VoiceGate } from "@hooks/hooks/VoiceGate/VoiceGate/VoiceGate.contract";
 
 if (import.meta.main) {
-  runHook(VoiceGate).catch(() => {
-
+  runHook(VoiceGate).catch((e) => {
+    process.stderr.write(`[hook] fatal: ${e instanceof Error ? e.message : e}\n`);
     process.exit(0);
   });
 }

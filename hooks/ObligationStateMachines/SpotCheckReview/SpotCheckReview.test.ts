@@ -12,6 +12,7 @@ import type { PaiError } from "@hooks/core/error";
 
 function makeDeps(overrides: Partial<SpotCheckReviewDeps> = {}): SpotCheckReviewDeps {
   return {
+    paiDir: "/tmp/pai-test",
     stateDir: "/tmp/pai-spot-check",
     getChangedFiles: () => [],
     getFileHashes: () => new Map(),

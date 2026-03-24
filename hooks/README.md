@@ -6,6 +6,11 @@ Each `.hook.ts` file:
 1. Imports `runHook` from `@hooks/core/runner`
 2. Imports its contract from `@hooks/contracts/`
 3. Calls `runHook(Contract)` in `import.meta.main`
+4. Catches fatal errors (runner load failures) with `.catch((e) => { stderr; exit(0) })`
+
+The `.catch` handler is a last-resort safety net. The runner itself handles all contract-level
+errors internally. This outer catch only fires if the runner module fails to load or throws
+synchronously before reaching the pipeline. Errors are logged to stderr before exiting.
 
 Business logic, types, and tests live in `../contracts/`. See the top-level `README.md` for the full hook reference with categories and descriptions.
 
@@ -80,3 +85,13 @@ Hooks are registered in `~/.claude/settings.json` under the appropriate event (`
 ## Testing
 
 Hook shims are thin wrappers with no logic beyond `runHook(Contract)`. They do not have their own test files. All business logic and test coverage lives in the contract files (`../contracts/*.test.ts`). The runner itself is tested in `../core/runner.test.ts` and `../core/runner.coverage.test.ts`.
+
+## Coding Standards
+
+All hook and contract files follow the standards in `CLAUDE.md`:
+- `@hooks/` path aliases (no relative imports)
+- No raw Node builtins — use `core/adapters/` or `process.env.HOME` in defaultDeps
+- No `process.env` outside `defaultDeps` object literals
+- `import type` for type-only imports
+- Result pipelines (no try-catch in business logic)
+- Every `.catch` logs the error to stderr before discarding

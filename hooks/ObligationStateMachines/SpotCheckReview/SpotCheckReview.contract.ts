@@ -11,6 +11,7 @@ import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligati
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface SpotCheckReviewDeps {
+  paiDir: string;
   stateDir: string;
   getChangedFiles: () => string[];
   getFileHashes: (files: string[]) => Map<string, string>;
@@ -53,13 +54,9 @@ Review for: bugs, security issues, missing error handling, code quality, and adh
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
-function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-  return join(paiDir, "MEMORY", "STATE", "spot-check");
-}
-
 const defaultDeps: SpotCheckReviewDeps = {
-  stateDir: getStateDir(),
+  paiDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  stateDir: join(process.env.PAI_DIR || join(process.env.HOME!, ".claude"), "MEMORY", "STATE", "spot-check"),
   getChangedFiles: getUnpushedFiles,
   getFileHashes: (files: string[]) => {
     const map = new Map<string, string>();
@@ -107,8 +104,6 @@ export const SpotCheckReview: SyncHookContract<
 
   accepts(_input: StopInput): boolean {
     if (projectHasHook("SpotCheckReview")) return false;
-    const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-    if (process.cwd() === paiDir) return false;
     return true;
   },
 
@@ -116,6 +111,7 @@ export const SpotCheckReview: SyncHookContract<
     input: StopInput,
     deps: SpotCheckReviewDeps,
   ): Result<BlockOutput | SilentOutput, PaiError> {
+    if (process.cwd() === deps.paiDir) return ok({ type: "silent" });
     const files = deps.getChangedFiles();
 
     if (files.length === 0) {

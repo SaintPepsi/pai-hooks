@@ -11,7 +11,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
-import { type PaiError } from "@hooks/core/error";
+import type { PaiError } from "@hooks/core/error";
 import { readJson, writeJson, fileExists, ensureDir } from "@hooks/core/adapters/fs";
 import { join, dirname } from "path";
 

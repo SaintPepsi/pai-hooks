@@ -19,7 +19,6 @@ import { handleRebuildSkill } from "@hooks/handlers/RebuildSkill";
 import { handleAlgorithmEnrichment } from "@hooks/handlers/AlgorithmEnrichment";
 import { fileExists } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { homedir } from "os";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,9 +50,9 @@ const defaultDeps: StopOrchestratorDeps = {
   handleTabState,
   handleRebuildSkill,
   handleAlgorithmEnrichment,
-  isMainSession: (sessionId) => defaultIsMainSession(sessionId, process.env.PAI_DIR || join(homedir(), ".claude")),
+  isMainSession: (sessionId) => defaultIsMainSession(sessionId, process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
   delay: (ms) => new Promise((r) => setTimeout(r, ms)),
-  baseDir: process.env.PAI_DIR || join(homedir(), ".claude"),
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

@@ -10,7 +10,8 @@ import { runHook } from "@hooks/core/runner";
 import { QuestionAnswered } from "@hooks/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.contract";
 
 if (import.meta.main) {
-  runHook(QuestionAnswered).catch(() => {
+  runHook(QuestionAnswered).catch((e) => {
+    process.stderr.write(`[hook] fatal: ${e instanceof Error ? e.message : e}\n`);
     process.exit(0);
   });
 }
