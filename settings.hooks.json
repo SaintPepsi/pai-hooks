@@ -103,24 +103,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "CronCreate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronCreate/CronCreate.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "CronDelete",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
-          }
-        ]
-      },
-      {
         "matcher": "AskUserQuestion",
         "hooks": [
           {
@@ -404,10 +386,6 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionAutoName.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronFire/CronFire.hook.ts"
           }
         ]
       }
@@ -439,10 +417,6 @@
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitignoreRecommender.hook.ts",
             "once": true
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts"
           }
         ]
       }
