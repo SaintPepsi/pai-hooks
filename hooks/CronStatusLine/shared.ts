@@ -19,9 +19,9 @@ export interface CronEntry {
   schedule: string;
   recurring: boolean;
   prompt: string;
-  createdAt: string;
+  createdAt: number;
   fireCount: number;
-  lastFired: string | null;
+  lastFired: number | null;
 }
 
 export interface CronSessionFile {
