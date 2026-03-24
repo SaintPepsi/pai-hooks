@@ -15,6 +15,12 @@ All 48 hooks are consolidated here. Settings.json references them via `${SAINTPE
 
 | Hook | Contract | Event |
 |------|----------|-------|
+| **CronStatusLine group** (`CronStatusLine/`) | | |
+| CronCreate | CronStatusLine/CronCreate/CronCreate.contract | PostToolUse |
+| CronDelete | CronStatusLine/CronDelete/CronDelete.contract | PostToolUse |
+| CronFire | CronStatusLine/CronFire/CronFire.contract | UserPromptSubmit |
+| CronPrune | CronStatusLine/CronPrune/CronPrune.contract | SessionStart |
+| | | |
 | AgentExecutionGuard | AgentExecutionGuard | PreToolUse |
 | AgentLifecycleStart | AgentLifecycle | SubagentStart |
 | AgentLifecycleStop | AgentLifecycle | SubagentStop |
