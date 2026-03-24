@@ -7,7 +7,7 @@
  */
 
 import { runHook } from "@hooks/core/runner";
-import { AgentLifecycleStart } from "./AgentLifecycleStart.contract";
+import { AgentLifecycleStart } from "@hooks/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.contract";
 
 if (import.meta.main) {
   runHook(AgentLifecycleStart).catch(() => {

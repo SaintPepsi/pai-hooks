@@ -124,8 +124,6 @@ function buildReport(
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: SessionQualityReportDeps = {
   fileExists,
   readFile,
@@ -133,7 +131,7 @@ const defaultDeps: SessionQualityReportDeps = {
   writeFile,
   ensureDir,
   getLocalComponents,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

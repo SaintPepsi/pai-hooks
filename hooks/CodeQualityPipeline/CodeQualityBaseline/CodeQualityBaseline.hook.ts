@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { CodeQualityBaseline } from "./CodeQualityBaseline.contract";
+import { CodeQualityBaseline } from "@hooks/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract";
 
 if (import.meta.main) {
   runHook(CodeQualityBaseline).catch(() => {

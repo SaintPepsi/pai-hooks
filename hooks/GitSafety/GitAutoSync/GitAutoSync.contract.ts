@@ -14,7 +14,6 @@ import type { PaiError } from "@hooks/core/error";
 import { fileExists, readFile, ensureDir, removeFile, copyFile, stat, readDir } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
-import { homedir } from "os";
 import { getLocalTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -195,8 +194,6 @@ function cleanupStaleAgentFiles(deps: GitAutoSyncDeps): void {
 
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
-const BASE_DIR = join(homedir(), ".claude");
-
 const defaultDeps: GitAutoSyncDeps = {
   execSync: execSyncSafe,
   spawnBackground,
@@ -213,8 +210,12 @@ const defaultDeps: GitAutoSyncDeps = {
   stat,
   dateNow: () => Date.now(),
   getTimestamp: getLocalTimestamp,
-  claudeDir: BASE_DIR,
-  backupDir: join(BASE_DIR, ".backup"),
+  get claudeDir() {
+    return process.env.PAI_DIR ?? join(process.env.HOME!, ".claude");
+  },
+  get backupDir() {
+    return join(this.claudeDir, ".backup");
+  },
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

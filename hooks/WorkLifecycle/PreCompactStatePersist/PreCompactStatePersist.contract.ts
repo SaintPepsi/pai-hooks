@@ -16,7 +16,6 @@ import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { readFile, readDir, stat } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { homedir } from "os";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -133,14 +132,12 @@ export function buildContextSummary(state: PRDState): string {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(homedir(), ".claude");
-
 const defaultDeps: PreCompactStatePersistDeps = {
   readDir,
   readFile,
   stat,
   stderr: (msg) => process.stderr.write(msg + "\n"),
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
 
 const CONTINUE_SILENT: ContinueOutput = { type: "continue", continue: true };

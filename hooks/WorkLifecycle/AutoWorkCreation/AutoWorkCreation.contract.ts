@@ -91,8 +91,6 @@ export function classifyPrompt(prompt: string, hasExistingSession: boolean): Pro
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: AutoWorkCreationDeps = {
   fileExists,
   readJson,
@@ -105,7 +103,7 @@ const defaultDeps: AutoWorkCreationDeps = {
   getLocalComponents,
   generatePRDTemplate,
   generatePRDFilename,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

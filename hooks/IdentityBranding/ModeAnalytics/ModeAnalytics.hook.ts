@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { ModeAnalytics } from "./ModeAnalytics.contract";
+import { ModeAnalytics } from "@hooks/hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.contract";
 
 if (import.meta.main) {
   runHook(ModeAnalytics).catch(() => {

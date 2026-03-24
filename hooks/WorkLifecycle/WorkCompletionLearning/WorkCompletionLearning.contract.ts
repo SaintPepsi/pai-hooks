@@ -54,11 +54,16 @@ export interface WorkCompletionLearningDeps {
 
 // ─── YAML Parser ─────────────────────────────────────────────────────────────
 
+type LineageKey = "tools_used" | "files_changed" | "agents_spawned";
+const LINEAGE_KEYS: readonly string[] = ["tools_used", "files_changed", "agents_spawned"];
+
 function parseYaml(content: string): WorkMeta {
-  const meta: any = {};
+  const fields: Record<string, string | string[] | null> = {};
+  let lineage: Record<LineageKey, string[]> | undefined;
   const lines = content.split("\n");
   let inArray = false;
   let arrayKey = "";
+  let arrayIsLineage = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -66,11 +71,12 @@ function parseYaml(content: string): WorkMeta {
 
     if (trimmed.startsWith("- ") && inArray) {
       const value = trimmed.slice(2).replace(/^["']|["']$/g, "");
-      if (arrayKey === "lineage") {
-        const lastKey = Object.keys(meta.lineage).pop();
-        if (lastKey) meta.lineage[lastKey].push(value);
+      if (arrayIsLineage && lineage) {
+        const lastKey = Object.keys(lineage).pop() as LineageKey | undefined;
+        if (lastKey) lineage[lastKey].push(value);
       } else {
-        meta[arrayKey].push(value);
+        const arr = fields[arrayKey];
+        if (Array.isArray(arr)) arr.push(value);
       }
       continue;
     }
@@ -80,43 +86,50 @@ function parseYaml(content: string): WorkMeta {
       const [, key, value] = match;
 
       if (key === "lineage") {
-        meta.lineage = { tools_used: [], files_changed: [], agents_spawned: [] };
+        lineage = { tools_used: [], files_changed: [], agents_spawned: [] };
         inArray = false;
         continue;
       }
 
       if (value === "[]") {
-        if (meta.lineage) meta.lineage[key] = [];
-        else meta[key] = [];
+        if (lineage && LINEAGE_KEYS.includes(key)) lineage[key as LineageKey] = [];
+        else fields[key] = [];
         inArray = false;
       } else if (value === "") {
-        if (meta.lineage && ["tools_used", "files_changed", "agents_spawned"].includes(key)) {
-          meta.lineage[key] = [];
-          arrayKey = "lineage";
+        if (lineage && LINEAGE_KEYS.includes(key)) {
+          lineage[key as LineageKey] = [];
+          arrayKey = key;
+          arrayIsLineage = true;
           inArray = true;
         } else {
-          meta[key] = [];
+          fields[key] = [];
           arrayKey = key;
+          arrayIsLineage = false;
           inArray = true;
         }
       } else {
         const cleanValue = value.replace(/^["']|["']$/g, "");
-        if (meta.lineage && ["tools_used", "files_changed", "agents_spawned"].includes(key)) {
-          meta.lineage[key] = cleanValue === "null" ? [] : [cleanValue];
+        if (lineage && LINEAGE_KEYS.includes(key)) {
+          lineage[key as LineageKey] = cleanValue === "null" ? [] : [cleanValue];
         } else {
-          meta[key] = cleanValue === "null" ? null : cleanValue;
+          fields[key] = cleanValue === "null" ? null : cleanValue;
         }
         inArray = false;
       }
     }
   }
 
-  return meta as WorkMeta;
+  return {
+    title: (fields.title as string) ?? "",
+    created_at: (fields.created_at as string) ?? "",
+    completed_at: (fields.completed_at as string | null) ?? null,
+    source: (fields.source as string) ?? "",
+    session_id: (fields.session_id as string) ?? "",
+    ...(lineage ? { lineage } : {}),
+  };
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
-
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
 
 const defaultDeps: WorkCompletionLearningDeps = {
   fileExists,
@@ -127,7 +140,7 @@ const defaultDeps: WorkCompletionLearningDeps = {
   getTimestamp: getISOTimestamp,
   getLocalDate,
   getLearningCategory,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
@@ -193,14 +206,20 @@ export const WorkCompletionLearning: SyncHookContract<
     // Read ISC if available
     let idealContent = "";
     const iscPath = join(workPath, "ISC.json");
-    const iscResult = deps.readJson<any>(iscPath);
+    interface IscData {
+      current?: { criteria?: string[]; antiCriteria?: string[] };
+      satisfaction?: { satisfied: number; total: number; partial: number; failed: number };
+    }
+    const iscResult = deps.readJson<IscData>(iscPath);
     if (iscResult.ok) {
       const iscData = iscResult.value;
-      if (iscData.current?.criteria?.length > 0) {
-        idealContent = "**Criteria:**\n" + iscData.current.criteria.map((c: string) => `- ${c}`).join("\n");
+      const criteria = iscData.current?.criteria;
+      if (criteria && criteria.length > 0) {
+        idealContent = "**Criteria:**\n" + criteria.map((c: string) => `- ${c}`).join("\n");
       }
-      if (iscData.current?.antiCriteria?.length > 0) {
-        idealContent += "\n\n**Anti-Criteria:**\n" + iscData.current.antiCriteria.map((c: string) => `- ${c}`).join("\n");
+      const antiCriteria = iscData.current?.antiCriteria;
+      if (antiCriteria && antiCriteria.length > 0) {
+        idealContent += "\n\n**Anti-Criteria:**\n" + antiCriteria.map((c: string) => `- ${c}`).join("\n");
       }
       if (iscData.satisfaction) {
         const s = iscData.satisfaction;

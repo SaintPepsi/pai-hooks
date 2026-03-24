@@ -8,8 +8,8 @@
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { fileExists, readFile, writeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { join } from "path";
 import { getPaiDir } from "@hooks/lib/paths";
@@ -59,9 +59,12 @@ function safeParseTranscriptLine(line: string): TranscriptEntry | null {
   if (!trimmed.startsWith("{")) return null;
   // Quick structural check before attempting parse
   if (!trimmed.includes('"type"')) return null;
-  // Use JSON.parse guarded by structural pre-check — no try-catch needed
-  // because we verify the string is valid JSON-shaped before parsing.
-  const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+  const parseResult = tryCatch(
+    () => JSON.parse(trimmed) as Record<string, unknown>,
+    (e) => jsonParseFailed(trimmed, e),
+  );
+  if (!parseResult.ok) return null;
+  const parsed = parseResult.value;
   if (parsed.type !== "user" && parsed.type !== "assistant") return null;
   return parsed as unknown as TranscriptEntry;
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { CheckAlgorithmVersion } from "./CheckAlgorithmVersion.contract";
+import { CheckAlgorithmVersion } from "@hooks/hooks/AlgorithmTracking/CheckAlgorithmVersion/CheckAlgorithmVersion.contract";
 
 if (import.meta.main) {
   runHook(CheckAlgorithmVersion).catch(() => {

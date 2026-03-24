@@ -14,7 +14,8 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { fileExists } from "@hooks/core/adapters/fs";
+import { fileExists, readFile } from "@hooks/core/adapters/fs";
+import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
 import { isSvelteFile } from "@hooks/lib/svelte-utils";
 import { join, dirname } from "path";
@@ -233,28 +234,26 @@ function getFilePath(input: ToolHookInput): string | null {
 }
 
 const defaultDeps: TypeCheckVerifierDeps = {
-  fileExists: (path: string): boolean => {
-    const { fileExists: fe } = require("@hooks/core/adapters/fs");
-    return fe(path);
-  },
+  fileExists,
   readFile: (path: string): string | null => {
-    const { readFile: rf } = require("@hooks/core/adapters/fs");
-    const result = rf(path);
+    const result = readFile(path);
     return result.ok ? result.value : null;
   },
   execWithTimeout: (cmd: string, args: string[], cwd: string, timeoutMs: number): ExecResult => {
-    const { spawnSync } = require("child_process");
-    const result = spawnSync(cmd, args, {
+    const result = spawnSyncSafe(cmd, args, {
       cwd,
       timeout: timeoutMs,
       encoding: "utf-8",
       stdio: ["ignore", "pipe", "pipe"],
     });
+    if (!result.ok) {
+      return { stdout: "", stderr: "", exitCode: 1, timedOut: false };
+    }
     return {
-      stdout: (result.stdout ?? "") as string,
-      stderr: (result.stderr ?? "") as string,
-      exitCode: result.status ?? 1,
-      timedOut: result.signal === "SIGTERM",
+      stdout: result.value.stdout,
+      stderr: "",
+      exitCode: result.value.exitCode,
+      timedOut: result.value.exitCode === -1,
     };
   },
   signal: defaultSignalLoggerDeps,

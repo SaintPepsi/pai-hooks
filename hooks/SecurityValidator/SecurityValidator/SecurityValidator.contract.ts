@@ -332,8 +332,6 @@ function logSecurityEvent(event: SecurityEvent, deps: SecurityValidatorDeps): vo
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: SecurityValidatorDeps = {
   fileExists,
   readFile,
@@ -343,7 +341,7 @@ const defaultDeps: SecurityValidatorDeps = {
   safeRegexTest,
   createRegex,
   homedir,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

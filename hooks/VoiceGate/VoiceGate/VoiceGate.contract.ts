@@ -12,7 +12,6 @@ import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { fileExists } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { homedir } from "os";
 
 export interface VoiceGateDeps {
   existsSync: (path: string) => boolean;
@@ -25,7 +24,7 @@ const defaultDeps: VoiceGateDeps = {
   existsSync: fileExists,
   getTermProgram: () => process.env.TERM_PROGRAM,
   getItermSessionId: () => process.env.ITERM_SESSION_ID,
-  getPaiDir: () => process.env.PAI_DIR || join(homedir(), ".claude"),
+  getPaiDir: () => process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
 
 function isMainSession(sessionId: string, deps: VoiceGateDeps): boolean {

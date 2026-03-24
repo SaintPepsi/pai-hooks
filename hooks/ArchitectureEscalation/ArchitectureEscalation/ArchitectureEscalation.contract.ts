@@ -14,7 +14,6 @@ import { ok, type Result } from "@hooks/core/result";
 import { type PaiError } from "@hooks/core/error";
 import { readJson, writeJson, fileExists, ensureDir } from "@hooks/core/adapters/fs";
 import { join, dirname } from "path";
-import { homedir } from "os";
 
 type FsReadJson = <T = unknown>(path: string) => Result<T, PaiError>;
 type FsWriteJson = (path: string, data: unknown) => Result<void, PaiError>;
@@ -112,7 +111,7 @@ export function buildWarningMessage(criterionId: string, failedAttempts: number)
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: ArchEscalationDeps = {
-  getPaiDir: () => process.env.PAI_DIR ?? join(homedir(), ".claude"),
+  getPaiDir: () => process.env.PAI_DIR ?? join(process.env.HOME!, ".claude"),
   now: () => Date.now(),
   stderr: (msg) => process.stderr.write(msg + "\n"),
   fileExists,

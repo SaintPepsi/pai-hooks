@@ -14,7 +14,7 @@ import {
   type AgentLifecycleDeps,
   defaultDeps,
   agentFilePath,
-} from "../shared";
+} from "@hooks/hooks/AgentLifecycle/shared";
 
 export const AgentLifecycleStart: SyncHookContract<
   SubagentStartInput,

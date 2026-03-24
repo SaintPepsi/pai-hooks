@@ -137,8 +137,6 @@ function ensureSessionActive(sessionId: string, deps: AlgorithmTrackerDeps): voi
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: AlgorithmTrackerDeps = {
   readState,
   writeState,
@@ -151,7 +149,7 @@ const defaultDeps: AlgorithmTrackerDeps = {
   fileExists,
   readJson,
   fetch: globalThis.fetch,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   voiceId: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
@@ -206,7 +204,7 @@ export const AlgorithmTracker: SyncHookContract<
               message: `Re-entering algorithm. Rework iteration ${reworkNum}.`,
               voice_id: deps.voiceId,
             }),
-          }).catch(() => {});
+          }).catch((e) => deps.stderr("[AlgorithmTracker] rework notification error: " + String(e)));
           deps.stderr(`[AlgorithmTracker] REWORK detected — iteration ${reworkNum}`);
         }
 

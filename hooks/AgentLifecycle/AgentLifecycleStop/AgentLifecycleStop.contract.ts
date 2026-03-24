@@ -15,7 +15,7 @@ import {
   defaultDeps,
   agentFilePath,
   cleanupOrphans,
-} from "../shared";
+} from "@hooks/hooks/AgentLifecycle/shared";
 
 export const AgentLifecycleStop: SyncHookContract<
   SubagentStopInput,

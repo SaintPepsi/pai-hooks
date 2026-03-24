@@ -128,15 +128,14 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
-function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-  return join(paiDir, "MEMORY", "STATE", "test-obligation");
+function getStateDir(baseDir: string): string {
+  return join(baseDir, "MEMORY", "STATE", "test-obligation");
 }
 
 const stderr = (msg: string) => process.stderr.write(msg + "\n");
 
 export const defaultDeps: TestObligationDeps = {
-  stateDir: getStateDir(),
+  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
     const result = readJson<unknown>(path);

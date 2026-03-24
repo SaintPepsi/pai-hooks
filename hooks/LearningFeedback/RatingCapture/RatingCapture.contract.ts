@@ -225,8 +225,6 @@ function getLastAssistantContext(transcriptPath: string | undefined, deps: Ratin
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: RatingCaptureDeps = {
   inference,
   captureFailure,
@@ -242,16 +240,18 @@ const defaultDeps: RatingCaptureDeps = {
   appendFile,
   ensureDir,
   spawnTrending: () => {
-    const script = join(BASE_DIR, "tools", "TrendingAnalysis.ts");
+    const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+    const script = join(baseDir, "tools", "TrendingAnalysis.ts");
     if (fileExists(script)) {
       Bun.spawn(["bun", script, "--force"], { stdout: "ignore", stderr: "ignore" });
     }
   },
   readAlgoVersion: () => {
-    const result = readFile(join(BASE_DIR, "PAI", "Algorithm", "LATEST"));
+    const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+    const result = readFile(join(baseDir, "PAI", "Algorithm", "LATEST"));
     return result.ok ? result.value.trim() : "v?.?.?";
   },
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
@@ -306,7 +306,7 @@ export const RatingCapture: AsyncHookContract<
             sentimentSummary: explicitResult.comment || `Explicit low rating: ${explicitResult.rating}/10`,
             detailedContext: responseContext,
             sessionId,
-          }).catch(() => {});
+          }).catch((e) => deps.stderr("[RatingCapture] captureFailure error: " + String(e)));
         }
       }
 
@@ -371,7 +371,7 @@ export const RatingCapture: AsyncHookContract<
             sentimentSummary: sentiment.summary,
             detailedContext: sentiment.detailed_context || "",
             sessionId,
-          }).catch(() => {});
+          }).catch((e) => deps.stderr("[RatingCapture] captureFailure error: " + String(e)));
         }
       }
 

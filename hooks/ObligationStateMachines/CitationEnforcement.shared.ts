@@ -44,13 +44,12 @@ export function remindedPath(stateDir: string): string {
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
-function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-  return join(paiDir, "MEMORY", "STATE", "citation");
+function getStateDir(baseDir: string): string {
+  return join(baseDir, "MEMORY", "STATE", "citation");
 }
 
 export const defaultDeps: CitationEnforcementDeps = {
-  stateDir: getStateDir(),
+  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
   fileExists: (path: string) => fsFileExists(path),
   writeFlag: (path: string) => {
     writeFile(path, new Date().toISOString());

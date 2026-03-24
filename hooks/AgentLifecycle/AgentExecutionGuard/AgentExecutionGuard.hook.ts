@@ -7,7 +7,7 @@
  */
 
 import { runHook } from "@hooks/core/runner";
-import { AgentExecutionGuard } from "./AgentExecutionGuard.contract";
+import { AgentExecutionGuard } from "@hooks/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.contract";
 
 if (import.meta.main) {
   runHook(AgentExecutionGuard).catch(() => {

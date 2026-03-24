@@ -14,10 +14,11 @@ import { join, dirname } from "path";
 
 export function projectHasHook(
   name: string,
+  cwd: string = process.cwd(),
   dirExists: (path: string) => boolean = fsFileExists,
   listDir: (path: string) => Result<string[], PaiError> = fsReadDir,
 ): boolean {
-  const hookDir = join(process.cwd(), ".claude", "hooks");
+  const hookDir = join(cwd, ".claude", "hooks");
   if (!dirExists(hookDir)) return false;
   const result = listDir(hookDir);
   if (!result.ok) return false;
@@ -132,13 +133,12 @@ export function buildDocSuggestions(pending: string[], deps: DocObligationDeps):
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
-function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-  return join(paiDir, "MEMORY", "STATE", "doc-obligation");
+function getStateDir(baseDir: string): string {
+  return join(baseDir, "MEMORY", "STATE", "doc-obligation");
 }
 
 export const defaultDeps: DocObligationDeps = {
-  stateDir: getStateDir(),
+  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
     const result = readFile(path);

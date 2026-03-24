@@ -83,8 +83,6 @@ function getBaselinePath(sessionId: string, baseDir: string): string {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: CodeQualityBaselineDeps = {
   fileExists,
   readFile,
@@ -96,7 +94,7 @@ const defaultDeps: CodeQualityBaselineDeps = {
   scoreFile,
   formatAdvisory,
   getTimestamp: () => new Date().toISOString(),
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

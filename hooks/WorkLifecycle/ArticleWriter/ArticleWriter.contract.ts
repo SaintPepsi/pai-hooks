@@ -284,8 +284,6 @@ function isTimestampFresh(path: string, maxAgeMs: number, deps: ArticleWriterDep
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: ArticleWriterDeps = {
   fileExists,
   readFile,
@@ -296,7 +294,7 @@ const defaultDeps: ArticleWriterDeps = {
   stat,
   spawnBackground,
   getISOTimestamp,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   websiteRepo: ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)?.repo || "",
   principalName: getPrincipalName(),
   daName: getDAName(),

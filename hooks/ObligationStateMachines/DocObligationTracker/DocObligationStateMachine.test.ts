@@ -561,13 +561,14 @@ describe("DocObligationEnforcer", () => {
 
 describe("projectHasHook", () => {
   it("returns false when .claude/hooks/ does not exist", () => {
-    const result = projectHasHook("DocObligationTracker", () => false, () => ok([]));
+    const result = projectHasHook("DocObligationTracker", "/fake/project", () => false, () => ok([]));
     expect(result).toBe(false);
   });
 
   it("returns true when matching hook file exists", () => {
     const result = projectHasHook(
       "DocObligationTracker",
+      "/fake/project",
       () => true,
       () => ok(["DocObligationTracker.hook.js", "SpotCheckReview.hook.ts"]),
     );
@@ -577,6 +578,7 @@ describe("projectHasHook", () => {
   it("returns false when no matching hook file exists", () => {
     const result = projectHasHook(
       "DocObligationTracker",
+      "/fake/project",
       () => true,
       () => ok(["SpotCheckReview.hook.ts"]),
     );
@@ -586,6 +588,7 @@ describe("projectHasHook", () => {
   it("matches any extension (.js, .ts, .mjs)", () => {
     const result = projectHasHook(
       "DocObligationTracker",
+      "/fake/project",
       () => true,
       () => ok(["DocObligationTracker.hook.mjs"]),
     );
@@ -595,6 +598,7 @@ describe("projectHasHook", () => {
   it("returns false when readDir returns an error", () => {
     const result = projectHasHook(
       "DocObligationTracker",
+      "/fake/project",
       () => true,
       () => err(fileReadFailed(".claude/hooks", new Error("EACCES"))),
     );

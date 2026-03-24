@@ -161,8 +161,6 @@ function defaultGetCustomTitle(sessionId: string, deps: SessionAutoNameDeps): st
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: SessionAutoNameDeps = {
   fileExists,
   readJson,
@@ -171,7 +169,7 @@ const defaultDeps: SessionAutoNameDeps = {
   inference,
   getCustomTitle: defaultGetCustomTitle,
   spawnSync: (cmd, opts) => Bun.spawnSync(cmd, { stdout: "pipe", stderr: "pipe", timeout: opts?.timeout }),
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
@@ -258,7 +256,7 @@ export const SessionAutoName: AsyncHookContract<
       userPrompt: prompt.slice(0, 800),
       level: "fast",
       timeout: 10000,
-    }).catch(() => null);
+    }).catch((e) => { deps.stderr("[SessionAutoName] inference error: " + String(e)); return null; });
 
     if (inferenceResult?.success && inferenceResult.output) {
       let label = inferenceResult.output.replace(/^["']|["']$/g, "").replace(/[.!?,;:]/g, "").trim();

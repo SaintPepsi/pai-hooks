@@ -15,7 +15,6 @@ import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { homedir } from "os";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -93,7 +92,7 @@ const defaultDeps: LastResponseCacheDeps = {
   readFile,
   writeFile,
   stderr: (msg) => process.stderr.write(msg + "\n"),
-  baseDir: process.env.PAI_DIR || join(homedir(), ".claude"),
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
 
 export const LastResponseCache: SyncHookContract<

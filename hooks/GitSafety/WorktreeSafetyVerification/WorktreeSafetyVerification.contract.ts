@@ -21,7 +21,7 @@ import { join, dirname } from "path";
 // ─── Types (re-exported for backward compatibility) ──────────────────────────
 
 export interface WorktreeSafetyDeps {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => any;
+  execSync: (cmd: string, opts?: Record<string, unknown>) => string;
   spawnSync: (cmd: string, args: string[], opts?: Record<string, unknown>) => { status: number | null };
   spawn: (cmd: string, args: string[], opts?: Record<string, unknown>) => { unref(): void };
   existsSync: (path: string) => boolean;

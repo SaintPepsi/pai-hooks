@@ -31,14 +31,14 @@ export interface StopOrchestratorDeps {
   handleAlgorithmEnrichment: typeof handleAlgorithmEnrichment;
   isMainSession: (sessionId: string) => boolean;
   delay: (ms: number) => Promise<void>;
+  baseDir: string;
   stderr: (msg: string) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function defaultIsMainSession(sessionId: string): boolean {
-  const paiDir = process.env.PAI_DIR || join(homedir(), ".claude");
-  const kittySessionsDir = join(paiDir, "MEMORY", "STATE", "kitty-sessions");
+function defaultIsMainSession(sessionId: string, baseDir: string): boolean {
+  const kittySessionsDir = join(baseDir, "MEMORY", "STATE", "kitty-sessions");
   if (!fileExists(kittySessionsDir)) return true;
   return fileExists(join(kittySessionsDir, `${sessionId}.json`));
 }
@@ -51,8 +51,9 @@ const defaultDeps: StopOrchestratorDeps = {
   handleTabState,
   handleRebuildSkill,
   handleAlgorithmEnrichment,
-  isMainSession: defaultIsMainSession,
+  isMainSession: (sessionId) => defaultIsMainSession(sessionId, process.env.PAI_DIR || join(homedir(), ".claude")),
   delay: (ms) => new Promise((r) => setTimeout(r, ms)),
+  baseDir: process.env.PAI_DIR || join(homedir(), ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

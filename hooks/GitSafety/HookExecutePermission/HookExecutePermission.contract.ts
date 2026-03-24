@@ -18,14 +18,14 @@ export interface HookExecutePermissionDeps {
   stderr: (msg: string) => void;
 }
 
+function isHookFile(filePath: string): boolean {
+  return filePath.includes("/hooks/") && filePath.endsWith(".hook.ts");
+}
+
 const defaultDeps: HookExecutePermissionDeps = {
   execSync: (cmd) => execSyncSafe(cmd, { timeout: 5000 }),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
-
-function isHookFile(filePath: string): boolean {
-  return filePath.includes("/hooks/") && filePath.endsWith(".hook.ts");
-}
 
 export const HookExecutePermission: SyncHookContract<
   ToolHookInput,

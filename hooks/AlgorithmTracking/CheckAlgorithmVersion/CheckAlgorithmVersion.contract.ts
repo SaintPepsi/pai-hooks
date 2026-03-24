@@ -83,15 +83,13 @@ function defaultIsSubagent(envGet: (key: string) => string | undefined): boolean
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const HOME = process.env.HOME!;
-
 const defaultDeps: CheckAlgorithmVersionDeps = {
-  getLocalVersion: () => defaultGetLocalVersion(HOME),
+  getLocalVersion: () => defaultGetLocalVersion(process.env.HOME!),
   getUpstreamVersion: defaultGetUpstreamVersion,
-  writeStateFile: (data) => defaultWriteStateFile(HOME, data),
+  writeStateFile: (data) => defaultWriteStateFile(process.env.HOME!, data),
   isSubagent: () => defaultIsSubagent((key) => process.env[key]),
   stderr: (msg) => process.stderr.write(msg + "\n"),
-  homeDir: HOME,
+  homeDir: process.env.HOME!,
 };
 
 export const CheckAlgorithmVersion: AsyncHookContract<

@@ -24,12 +24,10 @@ export interface ModeAnalyticsDeps {
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: ModeAnalyticsDeps = {
   execSyncSafe,
   stderr: (msg) => process.stderr.write(msg + "\n"),
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────

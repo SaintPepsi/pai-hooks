@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { BranchAwareness } from "./BranchAwareness.contract";
+import { BranchAwareness } from "@hooks/hooks/SessionFraming/BranchAwareness/BranchAwareness.contract";
 
 if (import.meta.main) {
   runHook(BranchAwareness).catch(() => {

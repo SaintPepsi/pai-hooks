@@ -333,8 +333,6 @@ export function evaluateCredit(
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: LearningActionerDeps = {
   fileExists,
   readDir,
@@ -345,7 +343,7 @@ const defaultDeps: LearningActionerDeps = {
   stat,
   spawnBackground,
   getISOTimestamp,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

@@ -45,9 +45,9 @@ export interface LoadContextDeps {
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, PaiError>;
   readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<any[], PaiError>;
+  readDir: (path: string, opts?: { withFileTypes: true }) => Result<{ name: string; isDirectory(): boolean }[], PaiError>;
   stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
-  execSyncSafe: (cmd: string, opts?: { cwd?: string; timeout?: number; stdio?: any }) => Result<string, PaiError>;
+  execSyncSafe: (cmd: string, opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined }) => Result<string, PaiError>;
   setTabState: (opts: { title: string; state: string; sessionId: string }) => Result<void, PaiError>;
   readTabState: (sessionId: string) => Result<{ state: string } | null, PaiError>;
   getDAName: typeof getDAName;
@@ -246,8 +246,8 @@ function getRecentWorkSessions(baseDir: string, deps: LoadContextDeps): WorkSess
   if (!allDirsResult.ok) return [];
 
   const allDirs = allDirsResult.value
-    .filter((d: any) => d.isDirectory() && /^\d{8}-\d{6}_/.test(d.name))
-    .map((d: any) => d.name)
+    .filter((d) => d.isDirectory() && /^\d{8}-\d{6}_/.test(d.name))
+    .map((d) => d.name)
     .sort()
     .reverse()
     .slice(0, 30);
@@ -287,8 +287,8 @@ function getRecentWorkSessions(baseDir: string, deps: LoadContextDeps): WorkSess
     const filesResult = deps.readDir(dirPath, { withFileTypes: true });
     if (filesResult.ok) {
       const prdFiles = filesResult.value
-        .filter((f: any) => !f.isDirectory() && f.name.startsWith("PRD-") && f.name.endsWith(".md"))
-        .map((f: any) => f.name);
+        .filter((f) => !f.isDirectory() && f.name.startsWith("PRD-") && f.name.endsWith(".md"))
+        .map((f) => f.name);
       if (prdFiles.length > 0) {
         const prdContentResult = deps.readFile(join(dirPath, prdFiles[0]));
         if (prdContentResult.ok) {
@@ -353,7 +353,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   if (!filesResult.ok) return null;
 
   const proposals = filesResult.value.filter(
-    (f: any) => !f.isDirectory() && f.name.endsWith(".md") && f.name !== ".gitkeep"
+    (f) => !f.isDirectory() && f.name.endsWith(".md") && f.name !== ".gitkeep"
   );
   if (proposals.length === 0) return null;
 
@@ -389,8 +389,6 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: LoadContextDeps = {
   fileExists,
   readFile,
@@ -412,7 +410,7 @@ const defaultDeps: LoadContextDeps = {
     const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
     return claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined;
   },
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

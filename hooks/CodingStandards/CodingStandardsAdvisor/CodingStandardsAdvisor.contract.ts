@@ -30,6 +30,7 @@ import {
   isSkippedFilename,
 } from "@hooks/lib/coding-standards-checks";
 import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
+import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,9 +50,8 @@ function getFilePath(input: ToolHookInput): string | null {
 
 const defaultDeps: CodingStandardsAdvisorDeps = {
   readFile: (path: string): string | null => {
-    const fs = require("fs");
-    if (!fs.existsSync(path)) return null;
-    return fs.readFileSync(path, "utf-8");
+    const result = adapterReadFile(path);
+    return result.ok ? result.value : null;
   },
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };

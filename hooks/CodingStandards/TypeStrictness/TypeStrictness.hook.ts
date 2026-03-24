@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { TypeStrictness } from "./TypeStrictness.contract";
+import { TypeStrictness } from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
 
 if (import.meta.main) {
   runHook(TypeStrictness).catch(() => {

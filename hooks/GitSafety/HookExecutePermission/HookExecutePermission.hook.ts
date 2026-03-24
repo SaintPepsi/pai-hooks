@@ -7,7 +7,7 @@
  */
 
 import { runHook } from "@hooks/core/runner";
-import { HookExecutePermission } from "./HookExecutePermission.contract";
+import { HookExecutePermission } from "@hooks/hooks/GitSafety/HookExecutePermission/HookExecutePermission.contract";
 
 if (import.meta.main) {
   runHook(HookExecutePermission).catch(() => {

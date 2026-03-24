@@ -21,7 +21,6 @@ import {
   readJson,
 } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { homedir } from "os";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -202,7 +201,7 @@ const defaultDeps: PRDSyncDeps = {
   fileExists,
   readJson,
   stderr: (msg) => process.stderr.write(msg + "\n"),
-  baseDir: process.env.PAI_DIR || join(homedir(), ".claude"),
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
 
 export const PRDSync: SyncHookContract<

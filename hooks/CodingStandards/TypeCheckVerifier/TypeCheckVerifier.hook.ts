@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { TypeCheckVerifier } from "./TypeCheckVerifier.contract";
+import { TypeCheckVerifier } from "@hooks/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract";
 
 if (import.meta.main) {
   runHook(TypeCheckVerifier).catch(() => {

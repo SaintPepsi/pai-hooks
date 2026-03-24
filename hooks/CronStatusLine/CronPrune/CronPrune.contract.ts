@@ -10,8 +10,9 @@
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+import { jsonParseFailed } from "@hooks/core/error";
 import type { CronFileDeps, CronPathDeps, CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
 import { cronDir, appendCronLog } from "@hooks/hooks/CronStatusLine/shared";
 import { join } from "path";
@@ -76,9 +77,9 @@ function pruneStaleFiles(
     const readResult = deps.readFile(filePath);
     if (readResult.ok) {
       const parsed = safeParseCronFile(readResult.value);
-      if (parsed) {
-        sessionId = parsed.sessionId;
-        cronCount = parsed.crons.length;
+      if (parsed.ok && parsed.value) {
+        sessionId = parsed.value.sessionId;
+        cronCount = parsed.value.crons.length;
       }
     }
 
@@ -96,13 +97,18 @@ function pruneStaleFiles(
   return ok({ type: "silent" });
 }
 
-function safeParseCronFile(raw: string): CronSessionFile | null {
+function safeParseCronFile(raw: string): Result<CronSessionFile | null, PaiError> {
   const trimmed = raw.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return ok(null);
 
-  const result: unknown = JSON.parse(trimmed);
-  if (typeof result !== "object" || result === null) return null;
-  return result as CronSessionFile;
+  const parsed = tryCatch(
+    () => JSON.parse(trimmed) as unknown,
+    (e) => jsonParseFailed(trimmed.slice(0, 120), e),
+  );
+  if (!parsed.ok) return parsed;
+
+  if (typeof parsed.value !== "object" || parsed.value === null) return ok(null);
+  return ok(parsed.value as CronSessionFile);
 }
 
 // ─── Default Deps ───────────────────────────────────────────────────────────

@@ -87,8 +87,6 @@ function clearSessionWork(
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
 const defaultDeps: SessionSummaryDeps = {
   fileExists,
   readFile,
@@ -98,7 +96,7 @@ const defaultDeps: SessionSummaryDeps = {
   getTimestamp: getISOTimestamp,
   setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
   cleanupKittySession: (id) => cleanupKittySession(id),
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

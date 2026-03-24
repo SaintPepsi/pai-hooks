@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { AlgorithmTracker } from "./AlgorithmTracker.contract";
+import { AlgorithmTracker } from "@hooks/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.contract";
 
 if (import.meta.main) {
   runHook(AlgorithmTracker).catch(() => {
