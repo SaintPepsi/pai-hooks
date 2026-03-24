@@ -1,6 +1,45 @@
 {
   "envVar": "SAINTPEPSI_PAI_HOOKS_DIR",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/StartupGreeting.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LoadContext.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CheckVersion.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CheckAlgorithmVersion.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/BranchAwareness.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitignoreRecommender.hook.ts",
+            "once": true
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
@@ -308,6 +347,24 @@
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/TestObligationTracker.hook.ts"
           }
         ]
+      },
+      {
+        "matcher": "CronDelete",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
+          }
+        ]
+      },
+      {
+        "matcher": "CronCreate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronCreate/CronCreate.hook.ts"
+          }
+        ]
       }
     ],
     "SubagentStart": [
@@ -388,35 +445,12 @@
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionAutoName.hook.ts"
           }
         ]
-      }
-    ],
-    "SessionStart": [
+      },
       {
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/StartupGreeting.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LoadContext.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CheckVersion.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CheckAlgorithmVersion.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/BranchAwareness.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitignoreRecommender.hook.ts",
-            "once": true
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronFire/CronFire.hook.ts"
           }
         ]
       }

@@ -71,6 +71,9 @@ export function extractHooksForRepo(
  * Filter exported hooks to only those whose .hook.ts file exists in the repo.
  * Prevents exporting hooks that live in the source settings but aren't
  * implemented in this repo (e.g., PAI-specific hooks like ArticleWriter).
+ *
+ * Resolves the full relative path from the command (e.g., hooks/CronStatusLine/CronCreate/CronCreate.hook.ts)
+ * to support both flat hooks (hooks/MyHook.hook.ts) and group hooks (hooks/Group/Hook/Hook.hook.ts).
  */
 export function filterToExistingFiles(
   exported: ExportedHooks,
@@ -78,14 +81,18 @@ export function filterToExistingFiles(
   checkExists: (path: string) => boolean,
 ): ExportedHooks {
   const filtered: Record<string, MatcherGroup[]> = {};
+  const envVarPrefix = `\${${exported.envVar}}/`;
 
   for (const [event, matchers] of Object.entries(exported.hooks)) {
     const filteredMatchers: MatcherGroup[] = [];
 
     for (const group of matchers) {
       const existingHooks = group.hooks.filter((h) => {
-        const basename = h.command.split("/").pop() || "";
-        return checkExists(join(repoRoot, "hooks", basename));
+        // Strip env var prefix to get relative path (e.g., hooks/CronStatusLine/CronCreate/CronCreate.hook.ts)
+        const relativePath = h.command.startsWith(envVarPrefix)
+          ? h.command.slice(envVarPrefix.length)
+          : h.command.split("/").pop() || "";
+        return checkExists(join(repoRoot, relativePath));
       });
 
       if (existingHooks.length > 0) {
@@ -99,6 +106,54 @@ export function filterToExistingFiles(
   }
 
   return { envVar: exported.envVar, hooks: filtered };
+}
+
+function safeJsonParse(content: string): Record<string, MatcherGroup[]> | null {
+  const parsed = JSON.parse(content);
+  if (typeof parsed !== "object" || parsed === null) return null;
+  return parsed as Record<string, MatcherGroup[]>;
+}
+
+/**
+ * Discover per-hook settings.hooks.json files from group directories.
+ * Scans hooks/{Group}/{Hook}/settings.hooks.json and merges them into a combined registry.
+ *
+ * This enables hook groups where each hook owns its registration config:
+ *   hooks/CronStatusLine/CronCreate/settings.hooks.json
+ *   hooks/CronStatusLine/CronDelete/settings.hooks.json
+ */
+export function discoverGroupHooks(
+  repoRoot: string,
+  deps: { readFile: ExportHooksDeps["readFile"]; fileExists: ExportHooksDeps["fileExists"]; stderr: ExportHooksDeps["stderr"] },
+): Record<string, MatcherGroup[]> {
+  const hooksDir = join(repoRoot, "hooks");
+  const discovered: Record<string, MatcherGroup[]> = {};
+
+  if (!deps.fileExists(hooksDir)) return discovered;
+
+  const glob = new Bun.Glob("*/*/settings.hooks.json");
+  const matches = Array.from(glob.scanSync({ cwd: hooksDir }));
+
+  for (const relPath of matches) {
+    const fullPath = join(hooksDir, relPath);
+    const result = deps.readFile(fullPath);
+    if (!result.ok) continue;
+
+    const config = safeJsonParse(result.value!);
+    if (!config) {
+      deps.stderr(`[discover-hooks] Skipping malformed ${relPath}`);
+      continue;
+    }
+
+    for (const [event, matchers] of Object.entries(config)) {
+      if (!discovered[event]) discovered[event] = [];
+      discovered[event].push(...matchers);
+    }
+
+    deps.stderr(`[discover-hooks] Found ${relPath}`);
+  }
+
+  return discovered;
 }
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
@@ -144,6 +199,22 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
 
   const extracted = extractHooksForRepo(settings, sourcePrefix, targetPrefix);
   const exported = filterToExistingFiles(extracted, repoRoot, deps.fileExists);
+
+  // Discover per-hook settings.hooks.json from group directories and merge
+  const groupHooks = discoverGroupHooks(repoRoot, deps);
+  for (const [event, matchers] of Object.entries(groupHooks)) {
+    if (!exported.hooks[event]) exported.hooks[event] = [];
+    // Avoid duplicates: skip matchers whose commands already exist
+    for (const matcher of matchers) {
+      const existingCommands = new Set(
+        exported.hooks[event].flatMap(m => m.hooks.map(h => h.command)),
+      );
+      const newHooks = matcher.hooks.filter(h => !existingCommands.has(h.command));
+      if (newHooks.length > 0) {
+        exported.hooks[event].push({ ...matcher, hooks: newHooks });
+      }
+    }
+  }
 
   const matcherCount = Object.values(exported.hooks).flat().length;
 
