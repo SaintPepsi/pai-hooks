@@ -22,6 +22,13 @@ describe("LearningActioner integration", () => {
     ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"));
     ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/applied"));
     ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/rejected"));
+    // Seed credit state so evaluateCredit() returns shouldSpawn: true
+    // SPAWN_CREDIT_THRESHOLD is 10 (LearningActioner.contract.ts:54)
+    ensureDir(join(TEST_DIR, "MEMORY/STATE"));
+    writeFile(
+      join(TEST_DIR, "MEMORY/STATE/learning-agent-credit.json"),
+      JSON.stringify({ credit: 10, last_updated: new Date().toISOString() }),
+    );
   });
 
   afterEach(() => {
@@ -93,8 +100,8 @@ describe("LearningActioner integration", () => {
     );
     const lockPath = join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing");
     writeFile(lockPath, "stale");
-    // Backdate the lock file mtime by 15 minutes
-    const past = new Date(Date.now() - 15 * 60 * 1000);
+    // Backdate lock mtime past LOCK_STALE_MS (45min, contract.ts:53)
+    const past = new Date(Date.now() - 46 * 60 * 1000);
     setFileTimes(lockPath, past, past);
 
     let spawned = false;
@@ -108,14 +115,15 @@ describe("LearningActioner integration", () => {
     expect(spawned).toBe(true);
   });
 
-  it("respects cooldown on real filesystem", () => {
+  it("skips when credit is below spawn threshold", () => {
     writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
       '{"timestamp":"2026-01-01"}\n'
     );
+    // Override credit to below SPAWN_CREDIT_THRESHOLD (10, contract.ts:54)
     writeFile(
-      join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.last-analysis"),
-      new Date().toISOString()
+      join(TEST_DIR, "MEMORY/STATE/learning-agent-credit.json"),
+      JSON.stringify({ credit: 2, last_updated: new Date().toISOString() }),
     );
 
     let spawned = false;
