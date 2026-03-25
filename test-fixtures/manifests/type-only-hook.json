@@ -1,0 +1,15 @@
+{
+  "name": "TypeOnlyHook",
+  "group": "TestGroup",
+  "event": "PreToolUse",
+  "description": "Hook with type-only imports correctly excluded",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["result"],
+    "lib": [],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": ["test"],
+  "presets": ["default"]
+}

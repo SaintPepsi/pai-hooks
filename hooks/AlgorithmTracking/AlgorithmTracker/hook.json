@@ -1,0 +1,15 @@
+{
+  "name": "AlgorithmTracker",
+  "group": "AlgorithmTracking",
+  "event": "PostToolUse",
+  "description": "Track algorithm phase transitions, criteria, and agent spawns from tool events",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["contract", "result", "error", "types/hook-inputs", "types/hook-outputs"],
+    "lib": ["algorithm-state", "tab-setter"],
+    "adapters": ["fs"],
+    "shared": false
+  },
+  "tags": ["tracking"],
+  "presets": ["full"]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "MissingDepHook",
+  "group": "TestGroup",
+  "event": "PreToolUse",
+  "description": "Hook missing lib/paths dep",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["result"],
+    "lib": [],
+    "adapters": ["fs"],
+    "shared": false
+  },
+  "tags": ["test"],
+  "presets": ["default"]
+}

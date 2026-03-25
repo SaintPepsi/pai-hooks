@@ -1,0 +1,15 @@
+{
+  "name": "SharedMissingHook",
+  "group": "TestGroup",
+  "event": "PreToolUse",
+  "description": "Hook referencing nonexistent shared file",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["result"],
+    "lib": [],
+    "adapters": [],
+    "shared": ["nonexistent.shared.ts"]
+  },
+  "tags": ["test"],
+  "presets": ["default"]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "ValidHook",
+  "group": "TestGroup",
+  "event": "PreToolUse",
+  "description": "A valid test hook",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["result"],
+    "lib": [],
+    "adapters": ["fs"],
+    "shared": false
+  },
+  "tags": ["test"],
+  "presets": ["default"]
+}

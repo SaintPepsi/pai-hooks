@@ -1,0 +1,14 @@
+{
+  "minimal": {
+    "description": "Essential safety hooks only",
+    "hooks": ["SecurityValidator", "DestructiveDeleteGuard", "ProtectedBranchGuard"]
+  },
+  "quality": {
+    "description": "Code quality and safety",
+    "groups": ["CodingStandards", "CodeQualityPipeline", "GitSafety"]
+  },
+  "full": {
+    "description": "All hooks",
+    "groups": ["*"]
+  }
+}

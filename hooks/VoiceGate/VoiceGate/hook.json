@@ -1,0 +1,15 @@
+{
+  "name": "VoiceGate",
+  "group": "VoiceGate",
+  "event": "PreToolUse",
+  "description": "Block voice notification curls from subagent sessions",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["contract", "result", "error", "types/hook-inputs", "types/hook-outputs"],
+    "lib": [],
+    "adapters": ["fs"],
+    "shared": false
+  },
+  "tags": ["safety"],
+  "presets": ["full"]
+}

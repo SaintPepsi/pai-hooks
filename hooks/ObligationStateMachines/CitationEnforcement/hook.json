@@ -1,0 +1,15 @@
+{
+  "name": "CitationEnforcement",
+  "group": "ObligationStateMachines",
+  "event": "PostToolUse",
+  "description": "Inject citation reminders on first write to each file when obligation is active",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["contract", "result", "error", "types/hook-inputs", "types/hook-outputs"],
+    "lib": ["narrative-reader"],
+    "adapters": [],
+    "shared": ["CitationEnforcement.shared.ts"]
+  },
+  "tags": ["quality"],
+  "presets": ["full"]
+}

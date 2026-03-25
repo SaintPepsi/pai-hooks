@@ -1,0 +1,15 @@
+{
+  "name": "GhostDepHook",
+  "group": "TestGroup",
+  "event": "PreToolUse",
+  "description": "Hook with ghost dep lib/identity",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["result"],
+    "lib": ["identity"],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": ["test"],
+  "presets": ["default"]
+}

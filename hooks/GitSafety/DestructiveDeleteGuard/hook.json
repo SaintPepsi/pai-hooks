@@ -1,0 +1,15 @@
+{
+  "name": "DestructiveDeleteGuard",
+  "group": "GitSafety",
+  "event": "PreToolUse",
+  "description": "Block destructive delete patterns in Bash commands and code edits",
+  "schemaVersion": 1,
+  "deps": {
+    "core": ["contract", "result", "error", "types/hook-inputs", "types/hook-outputs"],
+    "lib": [],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": ["safety"],
+  "presets": ["minimal", "quality", "full"]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "CodingStandards",
+  "description": "TypeScript quality enforcement hooks",
+  "hooks": [
+    "BashWriteGuard",
+    "CodingStandardsAdvisor",
+    "CodingStandardsEnforcer",
+    "TypeCheckVerifier",
+    "TypeStrictness"
+  ],
+  "sharedFiles": []
+}
