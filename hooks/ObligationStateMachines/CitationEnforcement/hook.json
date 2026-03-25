@@ -12,7 +12,9 @@
       "narrative-reader"
     ],
     "adapters": [],
-    "shared": ["CitationEnforcement.shared.ts"]
+    "shared": [
+      "CitationEnforcement.shared.ts"
+    ]
   },
   "tags": [
     "quality"

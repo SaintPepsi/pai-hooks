@@ -12,7 +12,9 @@
       "narrative-reader"
     ],
     "adapters": [],
-    "shared": false
+    "shared": [
+      "DocObligationStateMachine.shared.ts"
+    ]
   },
   "tags": [],
   "presets": []

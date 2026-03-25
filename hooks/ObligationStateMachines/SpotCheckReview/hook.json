@@ -13,7 +13,9 @@
       "fs",
       "process"
     ],
-    "shared": false
+    "shared": [
+      "DocObligationStateMachine.shared.ts"
+    ]
   },
   "tags": [],
   "presets": []

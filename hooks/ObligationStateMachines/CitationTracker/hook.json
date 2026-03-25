@@ -10,7 +10,9 @@
     ],
     "lib": [],
     "adapters": [],
-    "shared": false
+    "shared": [
+      "CitationEnforcement.shared.ts"
+    ]
   },
   "tags": [],
   "presets": []

@@ -10,7 +10,9 @@
     ],
     "lib": [],
     "adapters": [],
-    "shared": false
+    "shared": [
+      "TestObligationStateMachine.shared.ts"
+    ]
   },
   "tags": [],
   "presets": []

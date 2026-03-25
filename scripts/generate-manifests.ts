@@ -245,10 +245,25 @@ function discoverSharedFiles(
 }
 
 /**
- * Determine if a hook imports from its group's shared files.
+ * Determine which shared files a hook imports from its group.
+ * Matches both `@hooks/hooks/Group/shared` and `@hooks/hooks/Group/Name.shared`.
+ * Returns the list of matched shared filenames (e.g., ["shared.ts", "Name.shared.ts"]).
  */
-function hookUsesShared(source: string, groupName: string): boolean {
-  return source.includes(`@hooks/hooks/${groupName}/shared`);
+export function hookUsesShared(
+  source: string,
+  groupName: string,
+  availableSharedFiles: string[],
+): string[] {
+  const used: string[] = [];
+  for (const sharedFile of availableSharedFiles) {
+    // shared.ts → import stem is "shared"
+    // Name.shared.ts → import stem is "Name.shared"
+    const stem = sharedFile.replace(/\.ts$/, "");
+    if (source.includes(`@hooks/hooks/${groupName}/${stem}`)) {
+      used.push(sharedFile);
+    }
+  }
+  return used.sort();
 }
 
 // ─── Duplicate Check ────────────────────────────────────────────────────────
@@ -287,7 +302,7 @@ function buildHookManifest(
   }
 
   const deps = parseImports(source);
-  const usesShared = hookUsesShared(source, hook.group);
+  const usedSharedFiles = hookUsesShared(source, hook.group, sharedFiles);
 
   const manifest: HookManifest = {
     name: hook.name,
@@ -300,7 +315,7 @@ function buildHookManifest(
       core: deps.core,
       lib: deps.lib,
       adapters: deps.adapters,
-      shared: usesShared ? sharedFiles : false,
+      shared: usedSharedFiles.length > 0 ? usedSharedFiles : false,
     },
     tags: existing?.tags ?? [],
     presets: existing?.presets ?? [],

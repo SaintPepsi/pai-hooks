@@ -10,7 +10,7 @@ import { ok, err } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import type { GeneratorDeps, GeneratorOptions } from "@hooks/scripts/generate-manifests";
-import { generate, parseImports, extractEvent } from "@hooks/scripts/generate-manifests";
+import { generate, parseImports, extractEvent, hookUsesShared } from "@hooks/scripts/generate-manifests";
 import type { HookManifest, GroupManifest } from "@hooks/cli/types/manifest";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
@@ -151,6 +151,51 @@ describe("extractEvent", () => {
   it("returns error for invalid event type", () => {
     const result = extractEvent(`  event: "InvalidEvent",`);
     expect(result.ok).toBe(false);
+  });
+});
+
+// ─── hookUsesShared ─────────────────────────────────────────────────────────
+
+describe("hookUsesShared", () => {
+  it("matches plain shared.ts imports", () => {
+    const source = `import { readCronFile } from "@hooks/hooks/MyCronGroup/shared";`;
+    const result = hookUsesShared(source, "MyCronGroup", ["shared.ts"]);
+    expect(result).toEqual(["shared.ts"]);
+  });
+
+  it("matches Name.shared.ts imports", () => {
+    const source = `import { enforce } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";`;
+    const result = hookUsesShared(source, "ObligationStateMachines", [
+      "CitationEnforcement.shared.ts",
+      "DocObligationStateMachine.shared.ts",
+      "TestObligationStateMachine.shared.ts",
+    ]);
+    expect(result).toEqual(["CitationEnforcement.shared.ts"]);
+  });
+
+  it("matches multiple shared files from the same group", () => {
+    const source = `
+import { enforce } from "@hooks/hooks/MyGroup/Alpha.shared";
+import { check } from "@hooks/hooks/MyGroup/Beta.shared";
+`;
+    const result = hookUsesShared(source, "MyGroup", [
+      "Alpha.shared.ts",
+      "Beta.shared.ts",
+      "Gamma.shared.ts",
+    ]);
+    expect(result).toEqual(["Alpha.shared.ts", "Beta.shared.ts"]);
+  });
+
+  it("returns empty array when hook uses no shared files", () => {
+    const source = `import { ok } from "@hooks/core/result";`;
+    const result = hookUsesShared(source, "MyGroup", ["shared.ts"]);
+    expect(result).toEqual([]);
+  });
+
+  it("does not match shared files from a different group", () => {
+    const source = `import { x } from "@hooks/hooks/OtherGroup/shared";`;
+    const result = hookUsesShared(source, "MyGroup", ["shared.ts"]);
+    expect(result).toEqual([]);
   });
 });
 
@@ -332,6 +377,45 @@ export const MyHook = {
     );
     const manifest = JSON.parse(hookFile!.content) as HookManifest;
     expect(manifest.deps.shared).toEqual(["shared.ts"]);
+  });
+
+  it("populates shared deps for Name.shared.ts import pattern", () => {
+    const contractWithNamedShared = `
+import type { SyncHookContract } from "@hooks/core/contract";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { enforce } from "@hooks/hooks/ObligationGroup/Citation.shared";
+import { readFile } from "@hooks/core/adapters/fs";
+
+export const MyEnforcer = {
+  name: "MyEnforcer",
+  event: "PostToolUse",
+  accepts() { return true; },
+  execute() { return ok({ type: "silent" }); },
+  defaultDeps: {},
+};
+`;
+
+    const deps = makeFs(
+      {
+        "/hooks/ObligationGroup/MyEnforcer/MyEnforcer.contract.ts": contractWithNamedShared,
+      },
+      {
+        "/hooks": ["ObligationGroup"],
+        "/hooks/ObligationGroup": ["MyEnforcer", "Citation.shared.ts", "Other.shared.ts"],
+      },
+    );
+
+    const result = generate(baseOptions("/hooks", "/repo"), deps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const hookFile = result.value.files.find((f) =>
+      f.path.endsWith("hook.json") && f.path.includes("MyEnforcer"),
+    );
+    const manifest = JSON.parse(hookFile!.content) as HookManifest;
+    // Should only include the shared file actually imported, not all shared files
+    expect(manifest.deps.shared).toEqual(["Citation.shared.ts"]);
   });
 
   it("generates group.json with hooks sorted alphabetically", () => {
