@@ -10,8 +10,9 @@ the external statusline process.
 CronCreate/  — PostToolUse on CronCreate  → writes new cron to session file + JSONL log
 CronDelete/  — PostToolUse on CronDelete  → removes cron, deletes file if empty
 CronFire/    — UserPromptSubmit            → matches prompt against stored crons, bumps fireCount
-CronPrune/   — SessionStart               → removes orphan files from dead sessions (mtime > 5min)
-shared.ts    — Types, path helpers, file I/O used by all four hooks
+CronPrune/      — SessionStart               → removes orphan files from dead sessions (mtime > 5min)
+CronSessionEnd/ — SessionEnd                 → removes this session's cron file on clean exit
+shared.ts       — Types, path helpers, file I/O used by all five hooks
 ```
 
 ## State Files

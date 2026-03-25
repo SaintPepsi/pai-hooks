@@ -420,6 +420,10 @@
           },
           {
             "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronSessionEnd/CronSessionEnd.hook.ts"
+          },
+          {
+            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/LearningActioner/LearningActioner.hook.ts"
           },
           {
