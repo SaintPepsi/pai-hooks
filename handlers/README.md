@@ -33,7 +33,12 @@ Sends voice completion messages to the PAI Voice Server for TTS playback.
 
 ### AlgorithmEnrichment.ts
 
-Enriches agent responses with Algorithm-mode context.
+Enriches algorithm state after response completion. Extracts task description,
+summary, SLA, quality gate, and capabilities from the transcript, then sweeps
+stale active sessions.
+
+**Imports:** Uses `@hooks/lib/algorithm-state` for state management and
+`@pai/Tools/TranscriptParser` for the `ParsedTranscript` type.
 
 ### DocCrossRefIntegrity.ts
 
@@ -49,7 +54,13 @@ Validates system-level invariants and configuration consistency.
 
 ### TabState.ts
 
-Tracks and persists tab/session state.
+Updates Kitty terminal tab title on response completion. Converts the working
+title from gerund to past tense ("Fixing auth" → "Fixed auth"), falls back to
+voice line extraction, then response content (TASK/SUMMARY lines), then defers
+to the session name.
+
+**Imports:** Uses `@hooks/lib/tab-setter` for Kitty integration and
+`@pai/Tools/TranscriptParser` for the `ParsedTranscript` type.
 
 ### UpdateCounts.ts
 

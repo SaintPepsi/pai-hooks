@@ -12,6 +12,7 @@ Contracts never import Node builtins directly — all I/O goes through these ada
 | `process.ts` | `child_process` (execSync, spawnSync, spawn) | `exec`, `execSyncSafe`, `spawnSyncSafe`, `spawnBackground` |
 | `stdin.ts` | `process.stdin` | `readStdin(timeoutMs)` — reads stdin with timeout, returns `Result<string, PaiError>` |
 | `log.ts` | `fs.appendFileSync` | `appendHookLog(entry)` — structured JSON logging for hook execution |
+| `fetch.ts` | `globalThis.fetch` | `fetchJson`, `fetchText` — HTTP requests with timeout, returns `Result<T, PaiError>` |
 
 ## Pattern
 
@@ -30,3 +31,7 @@ export function readFile(path: string): Result<string, PaiError> {
 ## Testing
 
 Tests mock the `Deps` interface in contracts, never the adapters directly. Adapter tests (`*.test.ts`) use real filesystem operations in temp directories.
+
+## Type Safety
+
+`readDir` uses TypeScript overloads: call with `{ withFileTypes: true }` to get `Result<Dirent[], PaiError>`, or without options to get `Result<string[], PaiError>`. `spawnSyncSafe` accepts `BufferEncoding` for encoding and typed stdio options.

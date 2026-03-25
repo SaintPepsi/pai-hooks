@@ -32,7 +32,9 @@ bun run scripts/export-hooks.ts '${PAI_DIR}/hooks/'
 ## import-hooks.ts
 
 Reads `settings.hooks.json` and merges entries into `~/.claude/settings.json`.
-Reuses `mergeHooksIntoSettings` from `install.ts` for idempotent merge logic.
+Reuses `mergeHooksIntoSettings(settings, exported)` from `install.ts` for
+idempotent merge logic. The install path is resolved from the env var in the
+manifest, not passed as a separate argument.
 
 **Used by:** Husky post-merge hook (keeps settings in sync after pulling changes).
 
