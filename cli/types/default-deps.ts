@@ -19,7 +19,7 @@ import {
   removeDir,
   stat,
 } from "@hooks/cli/adapters/fs";
-import { cwd } from "@hooks/cli/adapters/process";
+import { cwd, exec } from "@hooks/cli/adapters/process";
 
 // ─── Factory ────────────────────────────────────────────────────────────────
 
@@ -35,5 +35,6 @@ export function makeDefaultDeps(): CliDeps {
     removeDir,
     stat,
     cwd,
+    exec,
   };
 }

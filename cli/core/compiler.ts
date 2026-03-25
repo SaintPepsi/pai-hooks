@@ -21,7 +21,6 @@ import { ok, err } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
 import { buildFailed } from "@hooks/cli/core/error";
 import type { CliDeps } from "@hooks/cli/types/deps";
-import type { ExecResult } from "@hooks/cli/adapters/process";
 import type { OutputMode } from "@hooks/cli/types/lockfile";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -38,8 +37,6 @@ export interface CompiledMeta {
 }
 
 export interface CompilerDeps extends CliDeps {
-  /** Execute a shell command. Returns ExecResult with stdout/stderr/exitCode. */
-  exec: (cmd: string, opts?: { cwd?: string }) => Result<ExecResult, PaihError>;
   /** Set file permissions (chmod). */
   chmod: (path: string, mode: number) => Result<void, PaihError>;
   /** Rename a file atomically (temp → final). */

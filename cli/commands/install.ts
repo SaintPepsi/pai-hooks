@@ -71,6 +71,15 @@ export function install(
   const dryRun = args.flags.dryRun === true;
   const outputMode = resolveOutputMode(args);
 
+  // Step 0: Validate bun is available on PATH before any file ops
+  const bunCheck = deps.exec("bun --version");
+  if (!bunCheck.ok) {
+    return err(invalidArgs("bun is not available on PATH. Install bun (https://bun.sh) before running paih install."));
+  }
+  if (bunCheck.value.exitCode !== 0) {
+    return err(invalidArgs("bun is not available on PATH. Install bun (https://bun.sh) before running paih install."));
+  }
+
   // Step 1: Resolve target .claude/ directory
   const toFlag = typeof args.flags.to === "string" ? args.flags.to : undefined;
   const targetResult = resolveTarget(deps, toFlag);

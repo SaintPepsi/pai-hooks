@@ -247,10 +247,12 @@ function removeTree(
     if (statResult.value.isDirectory) {
       const subResult = removeTree(entryPath, deps);
       if (!subResult.ok) return subResult;
+    } else {
+      const deleteResult = deps.deleteFile(entryPath);
+      if (!deleteResult.ok) return deleteResult;
     }
-    // For InMemoryDeps, files are cleaned when the dir is removed
-    // For real fs, we'd need an unlink adapter — acceptable for MVP
   }
 
-  return ok(undefined);
+  // Remove the now-empty directory itself
+  return deps.removeDir(dir);
 }

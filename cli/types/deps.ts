@@ -8,6 +8,7 @@
 import type { Result } from "@hooks/cli/core/result";
 import { ok, err } from "@hooks/cli/core/result";
 import { PaihError, PaihErrorCode, manifestMissing } from "@hooks/cli/core/error";
+import type { ExecResult } from "@hooks/cli/adapters/process";
 
 // ─── Deps Interface ─────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ export interface CliDeps {
 
   // Process
   cwd: () => string;
+  exec: (cmd: string, opts?: { cwd?: string }) => Result<ExecResult, PaihError>;
 }
 
 // ─── InMemoryDeps ───────────────────────────────────────────────────────────
@@ -148,6 +150,14 @@ export class InMemoryDeps implements CliDeps {
 
   cwd(): string {
     return this._cwd;
+  }
+
+  exec(cmd: string, _opts?: { cwd?: string }): Result<ExecResult, PaihError> {
+    // Default stub: simulate successful execution for common checks
+    if (cmd === "bun --version") {
+      return ok({ stdout: "1.0.0\n", stderr: "", exitCode: 0 });
+    }
+    return ok({ stdout: "", stderr: "", exitCode: 0 });
   }
 
   /** Add a file after construction (for test setup). */
