@@ -1,0 +1,16 @@
+{
+  "lockfileVersion": 1,
+  "source": "/source/repo",
+  "sourceCommit": "abc123",
+  "installedAt": "2025-01-01T00:00:00Z",
+  "outputMode": "source",
+  "hooks": [
+    {
+      "name": "OrphanHook",
+      "group": "OrphanGroup",
+      "event": "PreToolUse",
+      "commandString": "./hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts",
+      "files": ["hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts"]
+    }
+  ]
+}

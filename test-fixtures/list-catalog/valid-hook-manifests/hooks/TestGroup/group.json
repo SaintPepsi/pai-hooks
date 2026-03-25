@@ -1,0 +1,6 @@
+{
+  "name": "TestGroup",
+  "description": "A test group for catalog tests",
+  "hooks": ["TestHook"],
+  "sharedFiles": []
+}

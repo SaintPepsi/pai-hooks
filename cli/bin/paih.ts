@@ -12,6 +12,8 @@ import { PaihErrorCode } from "@hooks/cli/core/error";
 import type { PaihError } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { install } from "@hooks/cli/commands/install";
+import { list } from "@hooks/cli/commands/list";
+import { catalog } from "@hooks/cli/commands/catalog";
 import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
 
 // ─── Version ────────────────────────────────────────────────────────────────
@@ -28,7 +30,8 @@ Usage:
 Commands:
   install     Install hooks to target project
   uninstall   Remove hooks from target project
-  list        List available hooks, groups, and presets
+  list        Show installed hooks and their status
+  catalog     Show available hooks, groups, and presets
   status      Show installed hook status
   validate    Validate hook manifests
 
@@ -41,6 +44,8 @@ Flags:
   --force      Overwrite existing hooks
   --dry-run    Preview changes without writing
   --json       Output as JSON
+  --groups     Show group summary (catalog)
+  --presets    Show preset summary (catalog)
 `;
 
 // ─── Known Commands ─────────────────────────────────────────────────────────
@@ -49,6 +54,7 @@ const KNOWN_COMMANDS = new Set([
   "install",
   "uninstall",
   "list",
+  "catalog",
   "status",
   "validate",
 ]);
@@ -121,11 +127,15 @@ function routeCommand(
   command: string,
   args: { command: string; names: string[]; flags: Record<string, boolean | string> },
 ): Result<string, PaihError> {
+  const deps = makeDefaultDeps();
   switch (command) {
     case "install":
-      return install(args, makeDefaultDeps());
-    case "uninstall":
+      return install(args, deps);
     case "list":
+      return list(args, deps);
+    case "catalog":
+      return catalog(args, deps, deps.cwd());
+    case "uninstall":
     case "status":
     case "validate":
       return { ok: true, value: `${command}: not yet implemented` };

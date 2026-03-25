@@ -1,0 +1,8 @@
+{
+  "lockfileVersion": 1,
+  "source": "/source/repo",
+  "sourceCommit": "abc123",
+  "installedAt": "2025-01-01T00:00:00Z",
+  "outputMode": "source",
+  "hooks": []
+}

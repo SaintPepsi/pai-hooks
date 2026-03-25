@@ -1,0 +1,23 @@
+{
+  "lockfileVersion": 1,
+  "source": "/source/repo",
+  "sourceCommit": "abc123",
+  "installedAt": "2025-01-01T00:00:00Z",
+  "outputMode": "source",
+  "hooks": [
+    {
+      "name": "TestHook",
+      "group": "TestGroup",
+      "event": "PreToolUse",
+      "commandString": "./hooks/TestGroup/TestHook/TestHook.hook.ts",
+      "files": ["hooks/TestGroup/TestHook/TestHook.hook.ts"]
+    },
+    {
+      "name": "AnotherHook",
+      "group": "AnotherGroup",
+      "event": "PostToolUse",
+      "commandString": "./hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts",
+      "files": ["hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts"]
+    }
+  ]
+}

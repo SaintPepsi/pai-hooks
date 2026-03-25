@@ -1,0 +1,10 @@
+{
+  "default": {
+    "description": "Default preset with all standard hooks",
+    "groups": ["TestGroup"]
+  },
+  "minimal": {
+    "description": "Minimal setup",
+    "hooks": ["TestHook"]
+  }
+}
