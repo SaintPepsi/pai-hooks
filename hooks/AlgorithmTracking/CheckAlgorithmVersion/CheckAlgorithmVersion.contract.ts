@@ -9,7 +9,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { ok, err, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { PaiError, ErrorCode } from "@hooks/core/error";
 import { join } from "path";
 import { fileExists, readFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
 
@@ -66,7 +66,7 @@ async function defaultGetUpstreamVersion(): Promise<Result<string, PaiError>> {
   const trimmed = output.trim();
   const isValidBase64 = trimmed.length > 0 && /^[A-Za-z0-9+/\n=]+$/.test(trimmed);
   if (!isValidBase64) {
-    return err({ code: "UPSTREAM_FETCH_FAILED", message: "GitHub API returned non-base64 response" });
+    return err(new PaiError(ErrorCode.FetchFailed, "GitHub API returned non-base64 response"));
   }
 
   const decoded = atob(trimmed);

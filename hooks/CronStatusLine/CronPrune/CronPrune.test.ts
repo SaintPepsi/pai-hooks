@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { CronPrune, PRUNE_THRESHOLD_MS, type CronPruneDeps } from "./CronPrune.contract";
+import { CronPrune, DEFAULT_PRUNE_THRESHOLD_MS, cronIntervalMs, type CronPruneDeps } from "./CronPrune.contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
 import { ok, err } from "@hooks/core/result";
@@ -14,7 +14,9 @@ import { PaiError, ErrorCode } from "@hooks/core/error";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
-const FIVE_MINUTES_AGO = Date.now() - PRUNE_THRESHOLD_MS - 1000;
+// Default mock cron has "* * * * *" which returns DEFAULT_PRUNE_THRESHOLD_MS from cronIntervalMs.
+// Dynamic threshold = 2x that = 10 minutes. Set stale time to exceed it.
+const STALE_AGO = Date.now() - (DEFAULT_PRUNE_THRESHOLD_MS * 2) - 1000;
 const ONE_MINUTE_AGO = Date.now() - 60_000;
 
 function makeDeps(overrides: Partial<CronPruneDeps> = {}): CronPruneDeps {
@@ -33,7 +35,7 @@ function makeDeps(overrides: Partial<CronPruneDeps> = {}): CronPruneDeps {
     appendFile: () => ok(undefined),
     stderr: () => {},
     now: () => Date.now(),
-    stat: () => ok({ mtimeMs: FIVE_MINUTES_AGO }),
+    stat: () => ok({ mtimeMs: STALE_AGO }),
     ...overrides,
   };
 }
@@ -132,7 +134,7 @@ describe("CronPrune execute", () => {
         if (path.includes("bad-file")) {
           return err(new PaiError(ErrorCode.FileReadFailed, "stat failed"));
         }
-        return ok({ mtimeMs: FIVE_MINUTES_AGO });
+        return ok({ mtimeMs: STALE_AGO });
       },
       removeFile: (path: string) => { removed.push(path); return ok(undefined); },
     });
@@ -177,5 +179,101 @@ describe("CronPrune execute", () => {
     if (result.ok) {
       expect(result.value.type).toBe("silent");
     }
+  });
+
+  it("uses dynamic threshold based on longest cron interval (2x)", () => {
+    const removed: string[] = [];
+    // File is 20 minutes old — stale by default 5min threshold,
+    // but the cron runs every 30 min, so 2x = 60 min threshold → keep it
+    const twentyMinAgo = Date.now() - 20 * 60 * 1000;
+    const sessionFile: CronSessionFile = {
+      sessionId: "long-cron-session",
+      crons: [
+        { id: "c1", name: "chore-loop", schedule: "*/30 * * * *", recurring: true, prompt: "chore", createdAt: 0, fireCount: 0, lastFired: null },
+      ],
+    };
+    const deps = makeDeps({
+      stat: () => ok({ mtimeMs: twentyMinAgo }),
+      readFile: () => ok(JSON.stringify(sessionFile)),
+      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+    });
+
+    const result = CronPrune.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(removed.length).toBe(0); // NOT pruned — within 2x 30min threshold
+  });
+
+  it("prunes file when older than 2x longest cron interval", () => {
+    const removed: string[] = [];
+    // File is 70 minutes old, cron is every 30 min → 2x = 60 min → prune
+    const seventyMinAgo = Date.now() - 70 * 60 * 1000;
+    const sessionFile: CronSessionFile = {
+      sessionId: "expired-session",
+      crons: [
+        { id: "c1", name: "chore-loop", schedule: "*/30 * * * *", recurring: true, prompt: "chore", createdAt: 0, fireCount: 0, lastFired: null },
+      ],
+    };
+    const deps = makeDeps({
+      stat: () => ok({ mtimeMs: seventyMinAgo }),
+      readFile: () => ok(JSON.stringify(sessionFile)),
+      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+    });
+
+    const result = CronPrune.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(removed.length).toBe(1);
+  });
+
+  it("uses longest cron interval when file has multiple crons", () => {
+    const removed: string[] = [];
+    // File is 15 minutes old, has 5min and 30min crons → 2x 30min = 60 min → keep
+    const fifteenMinAgo = Date.now() - 15 * 60 * 1000;
+    const sessionFile: CronSessionFile = {
+      sessionId: "multi-cron",
+      crons: [
+        { id: "c1", name: "fast-poll", schedule: "*/5 * * * *", recurring: true, prompt: "poll", createdAt: 0, fireCount: 0, lastFired: null },
+        { id: "c2", name: "chore-loop", schedule: "*/30 * * * *", recurring: true, prompt: "chore", createdAt: 0, fireCount: 0, lastFired: null },
+      ],
+    };
+    const deps = makeDeps({
+      stat: () => ok({ mtimeMs: fifteenMinAgo }),
+      readFile: () => ok(JSON.stringify(sessionFile)),
+      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+    });
+
+    const result = CronPrune.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(removed.length).toBe(0);
+  });
+});
+
+// ─── cronIntervalMs ──────────────────────────────────────────────────────────
+
+describe("cronIntervalMs", () => {
+  it("parses */N minute patterns", () => {
+    expect(cronIntervalMs("*/5 * * * *")).toBe(5 * 60 * 1000);
+    expect(cronIntervalMs("*/30 * * * *")).toBe(30 * 60 * 1000);
+    expect(cronIntervalMs("*/1 * * * *")).toBe(60 * 1000);
+  });
+
+  it("parses */N hour patterns", () => {
+    expect(cronIntervalMs("0 */2 * * *")).toBe(2 * 3600 * 1000);
+    expect(cronIntervalMs("0 */6 * * *")).toBe(6 * 3600 * 1000);
+  });
+
+  it("parses specific minute + wildcard hour as hourly", () => {
+    expect(cronIntervalMs("15 * * * *")).toBe(3600 * 1000);
+    expect(cronIntervalMs("0 * * * *")).toBe(3600 * 1000);
+  });
+
+  it("parses specific minute + specific hour as daily", () => {
+    expect(cronIntervalMs("30 9 * * *")).toBe(86400 * 1000);
+    expect(cronIntervalMs("0 0 * * *")).toBe(86400 * 1000);
+  });
+
+  it("returns default for unparseable expressions", () => {
+    expect(cronIntervalMs("bad")).toBe(DEFAULT_PRUNE_THRESHOLD_MS);
+    expect(cronIntervalMs("")).toBe(DEFAULT_PRUNE_THRESHOLD_MS);
+    expect(cronIntervalMs("* * * * *")).toBe(DEFAULT_PRUNE_THRESHOLD_MS); // every minute, but * doesn't match */N
   });
 });

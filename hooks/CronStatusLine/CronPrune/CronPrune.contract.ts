@@ -29,7 +29,22 @@ import {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-export const PRUNE_THRESHOLD_MS = 5 * 60 * 1000;
+export const DEFAULT_PRUNE_THRESHOLD_MS = 5 * 60 * 1000;
+
+/** Parse a 5-field cron expression and return the approximate interval in ms.
+ *  Used to compute dynamic prune thresholds (2x longest cron interval). */
+export function cronIntervalMs(schedule: string): number {
+  const parts = schedule.trim().split(/\s+/);
+  if (parts.length < 5) return DEFAULT_PRUNE_THRESHOLD_MS;
+  const [minute, hour] = parts;
+  const minStep = minute.match(/^\*\/(\d+)$/);
+  if (minStep) return Number(minStep[1]) * 60 * 1000;
+  const hourStep = hour.match(/^\*\/(\d+)$/);
+  if (hourStep) return Number(hourStep[1]) * 3600 * 1000;
+  if (/^\d+$/.test(minute) && hour === "*") return 3600 * 1000;
+  if (/^\d+$/.test(minute) && /^\d+$/.test(hour)) return 86400 * 1000;
+  return DEFAULT_PRUNE_THRESHOLD_MS;
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -68,11 +83,11 @@ function pruneStaleFiles(
     if (!statResult.ok) continue;
 
     const ageMs = now - statResult.value.mtimeMs;
-    if (ageMs <= PRUNE_THRESHOLD_MS) continue;
 
-    // File is stale — read it for logging before deletion
+    // Read the file first to compute dynamic threshold from cron schedules
     let sessionId = filename.replace(/\.json$/, "");
     let cronCount = 0;
+    let longestCronMs = 0;
 
     const readResult = deps.readFile(filePath);
     if (readResult.ok) {
@@ -80,10 +95,22 @@ function pruneStaleFiles(
       if (parsed.ok && parsed.value) {
         sessionId = parsed.value.sessionId;
         cronCount = parsed.value.crons.length;
+        // Compute 2x the longest cron interval as the prune threshold
+        for (const cron of parsed.value.crons) {
+          const intervalMs = cronIntervalMs(cron.schedule);
+          if (intervalMs > longestCronMs) longestCronMs = intervalMs;
+        }
       }
     }
 
-    // Delete the stale file
+    // Dynamic threshold: 2x longest cron interval, or default if no crons parseable
+    const pruneThreshold = longestCronMs > 0
+      ? longestCronMs * 2
+      : DEFAULT_PRUNE_THRESHOLD_MS;
+
+    if (ageMs <= pruneThreshold) continue;
+
+    // File is stale — delete it
     deps.removeFile(filePath);
 
     // Log the pruning event

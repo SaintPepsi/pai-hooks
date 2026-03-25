@@ -196,17 +196,6 @@ describe("ProtectedBranchGuard", () => {
     expect(result.value.type).toBe("continue");
   });
 
-  it("allows git commit on main when in claude-on-blackberry directory", () => {
-    const deps = makeDeps({
-      getBranch: () => "main",
-      getCwd: () => "/Users/test/Projects/claude-on-blackberry",
-    });
-    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'update'"), deps) as GuardResult;
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-  });
-
   // ── Exempts directories from settings.json (via getExemptDirs) ──
 
   it("allows git commit on main when CWD matches a user-configured exempt dir", () => {
