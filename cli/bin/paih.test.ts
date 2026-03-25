@@ -42,11 +42,18 @@ describe("paih CLI", () => {
     expect(result.output).toContain("--bogus");
   });
 
-  it("known command exits 0 with stub message", () => {
+  it("install with no names exits 1 with error", () => {
     const result = main(["install"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stream).toBe("stderr");
+    expect(result.output).toContain("requires at least one");
+  });
+
+  it("known stub command exits 0 with stub message", () => {
+    const result = main(["status"]);
     expect(result.exitCode).toBe(0);
     expect(result.stream).toBe("stdout");
-    expect(result.output).toContain("install");
+    expect(result.output).toContain("status");
   });
 
   it("--help takes priority over command", () => {

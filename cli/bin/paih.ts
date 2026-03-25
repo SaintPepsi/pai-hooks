@@ -11,6 +11,8 @@ import { parseArgs } from "@hooks/cli/core/args";
 import { PaihErrorCode } from "@hooks/cli/core/error";
 import type { PaihError } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
+import { install } from "@hooks/cli/commands/install";
+import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
 
 // ─── Version ────────────────────────────────────────────────────────────────
 
@@ -117,11 +119,11 @@ export function main(argv: string[]): { exitCode: number; output: string; stream
 
 function routeCommand(
   command: string,
-  _args: { command: string; names: string[]; flags: Record<string, boolean | string> },
+  args: { command: string; names: string[]; flags: Record<string, boolean | string> },
 ): Result<string, PaihError> {
-  // Stubs — each command will be implemented in cli/commands/*.ts
   switch (command) {
     case "install":
+      return install(args, makeDefaultDeps());
     case "uninstall":
     case "list":
     case "status":
