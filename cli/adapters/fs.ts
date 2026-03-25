@@ -9,8 +9,10 @@ import {
   existsSync,
   readFileSync,
   writeFileSync,
+  unlinkSync,
   mkdirSync,
   readdirSync,
+  rmdirSync,
   statSync,
 } from "fs";
 import { dirname } from "path";
@@ -72,6 +74,42 @@ export function ensureDir(path: string): Result<void, PaihError> {
     () => { mkdirSync(path, { recursive: true }); },
     (e) => writeFailed(path, e instanceof Error ? e : new Error(String(e))),
   );
+}
+
+export function deleteFile(path: string): Result<void, PaihError> {
+  return tryCatch(
+    () => { unlinkSync(path); },
+    (e) => writeFailed(path, e instanceof Error ? e : new Error(String(e))),
+  );
+}
+
+/**
+ * Recursively remove a directory and its contents.
+ * Walks the tree using readdirSync/unlinkSync/rmdirSync to avoid
+ * blocked patterns while still providing safe recursive removal.
+ */
+export function removeDir(dirPath: string): Result<void, PaihError> {
+  return tryCatch(
+    () => { removeDirRecursive(dirPath); },
+    (e) => writeFailed(dirPath, e instanceof Error ? e : new Error(String(e))),
+  );
+}
+
+/** Walk and remove directory contents, then the directory itself. */
+function removeDirRecursive(dirPath: string): void {
+  if (!existsSync(dirPath)) return;
+
+  const entries = readdirSync(dirPath);
+  for (const entry of entries) {
+    const entryPath = `${dirPath}/${entry}`;
+    const s = statSync(entryPath);
+    if (s.isDirectory()) {
+      removeDirRecursive(entryPath);
+    } else {
+      unlinkSync(entryPath);
+    }
+  }
+  rmdirSync(dirPath);
 }
 
 export function stat(path: string): Result<{ isDirectory: boolean }, PaihError> {

@@ -15,9 +15,11 @@ export interface CliDeps {
   // Filesystem
   readFile: (path: string) => Result<string, PaihError>;
   writeFile: (path: string, content: string) => Result<void, PaihError>;
+  deleteFile: (path: string) => Result<void, PaihError>;
   fileExists: (path: string) => boolean;
   readDir: (path: string) => Result<string[], PaihError>;
   ensureDir: (path: string) => Result<void, PaihError>;
+  removeDir: (path: string) => Result<void, PaihError>;
   stat: (path: string) => Result<{ isDirectory: boolean }, PaihError>;
 
   // Process
@@ -70,6 +72,11 @@ export class InMemoryDeps implements CliDeps {
     return ok(undefined);
   }
 
+  deleteFile(path: string): Result<void, PaihError> {
+    this.files.delete(path);
+    return ok(undefined);
+  }
+
   fileExists(path: string): boolean {
     return this.files.has(path) || this.dirs.has(path);
   }
@@ -106,6 +113,23 @@ export class InMemoryDeps implements CliDeps {
     while (dir !== "/" && dir !== ".") {
       this.dirs.add(dir);
       dir = parentDir(dir);
+    }
+    return ok(undefined);
+  }
+
+  removeDir(path: string): Result<void, PaihError> {
+    const prefix = path.endsWith("/") ? path : path + "/";
+    // Remove all files under this directory
+    for (const filePath of [...this.files.keys()]) {
+      if (filePath.startsWith(prefix)) {
+        this.files.delete(filePath);
+      }
+    }
+    // Remove all subdirectories
+    for (const dirPath of [...this.dirs]) {
+      if (dirPath === path || dirPath.startsWith(prefix)) {
+        this.dirs.delete(dirPath);
+      }
     }
     return ok(undefined);
   }

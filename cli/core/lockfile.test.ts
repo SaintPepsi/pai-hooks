@@ -23,6 +23,7 @@ const SAMPLE_LOCKFILE: Lockfile = {
       event: "PreToolUse",
       commandString: "./hooks/TestGroup/TestHook/TestHook.hook.ts",
       files: ["hooks/TestGroup/TestHook/TestHook.hook.ts"],
+      fileHashes: {},
     },
   ],
 };
@@ -91,6 +92,7 @@ describe("addHookEntry", () => {
       event: "SessionStart",
       commandString: "./hooks/NewGroup/NewHook/NewHook.hook.ts",
       files: ["hooks/NewGroup/NewHook/NewHook.hook.ts"],
+      fileHashes: {},
     };
     const updated = addHookEntry(SAMPLE_LOCKFILE, entry);
     expect(updated.hooks).toHaveLength(2);
@@ -104,6 +106,7 @@ describe("addHookEntry", () => {
       event: "PreToolUse",
       commandString: "./hooks/TestGroup/TestHook/TestHook.hook.ts",
       files: ["hooks/TestGroup/TestHook/TestHook.hook.ts", "hooks/TestGroup/TestHook/TestHook.contract.ts"],
+      fileHashes: {},
     };
     const updated = addHookEntry(SAMPLE_LOCKFILE, entry);
     expect(updated.hooks).toHaveLength(1);
@@ -117,6 +120,7 @@ describe("addHookEntry", () => {
       event: "SessionStart",
       commandString: "./hooks/NewGroup/NewHook/NewHook.hook.ts",
       files: [],
+      fileHashes: {},
     };
     addHookEntry(SAMPLE_LOCKFILE, entry);
     expect(SAMPLE_LOCKFILE.hooks).toHaveLength(1);

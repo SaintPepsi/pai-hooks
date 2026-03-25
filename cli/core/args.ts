@@ -30,6 +30,8 @@ const BOOLEAN_FLAGS = new Set([
   "--force",
   "--dry-run",
   "--json",
+  "--fix",
+  "--installed",
 ]);
 
 /** Flags that take a string value. */

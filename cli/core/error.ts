@@ -19,6 +19,9 @@ export enum PaihErrorCode {
   SettingsConflict = "SETTINGS_CONFLICT",
   WriteFailed = "WRITE_FAILED",
   LockCorrupt = "LOCK_CORRUPT",
+  LockMissing = "LOCK_MISSING",
+  FileModified = "FILE_MODIFIED",
+  HashError = "HASH_ERROR",
 }
 
 // ─── PaihError Class ─────────────────────────────────────────────────────────
@@ -126,5 +129,29 @@ export function lockCorrupt(path: string): PaihError {
     PaihErrorCode.LockCorrupt,
     `Lock file corrupt or invalid: ${path}`,
     { path },
+  );
+}
+
+export function lockMissing(claudeDir: string): PaihError {
+  return new PaihError(
+    PaihErrorCode.LockMissing,
+    `No lockfile found at ${claudeDir}/hooks/paih.lock.json. Run "paih install" first.`,
+    { claudeDir },
+  );
+}
+
+export function fileModified(filePath: string): PaihError {
+  return new PaihError(
+    PaihErrorCode.FileModified,
+    `File modified since install: ${filePath}. Use --force to override.`,
+    { filePath },
+  );
+}
+
+export function hashError(filePath: string, cause?: string): PaihError {
+  return new PaihError(
+    PaihErrorCode.HashError,
+    `Failed to compute hash for ${filePath}${cause ? `: ${cause}` : ""}`,
+    { filePath },
   );
 }

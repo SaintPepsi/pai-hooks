@@ -12,9 +12,11 @@ import type { CliDeps } from "@hooks/cli/types/deps";
 import {
   readFile,
   writeFile,
+  deleteFile,
   fileExists,
   readDir,
   ensureDir,
+  removeDir,
   stat,
 } from "@hooks/cli/adapters/fs";
 import { cwd } from "@hooks/cli/adapters/process";
@@ -26,9 +28,11 @@ export function makeDefaultDeps(): CliDeps {
   return {
     readFile,
     writeFile,
+    deleteFile,
     fileExists,
     readDir,
     ensureDir,
+    removeDir,
     stat,
     cwd,
   };

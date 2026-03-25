@@ -37,7 +37,7 @@ import {
   mergeHookEntry,
 } from "@hooks/cli/core/settings";
 import type { SettingsJson } from "@hooks/cli/core/settings";
-import { readLockfile, writeLockfile, addHookEntry } from "@hooks/cli/core/lockfile";
+import { readLockfile, writeLockfile, addHookEntry, computeFileHash } from "@hooks/cli/core/lockfile";
 import { generateTsconfig } from "@hooks/cli/core/tsconfig-gen";
 
 // ─── Install Pipeline ───────────────────────────────────────────────────────
@@ -150,12 +150,23 @@ export function install(
   let lockfile: Lockfile = existingLockResult.value ?? createLockfile(source, null);
 
   for (const { hookDef, staged } of stagedHooks) {
+    // Compute file hashes for modification detection
+    const fileHashes: Record<string, string> = {};
+    for (const relFile of staged.files) {
+      const absPath = `${claudeDir}/${relFile}`;
+      const hashResult = computeFileHash(absPath, deps);
+      if (hashResult.ok) {
+        fileHashes[relFile] = hashResult.value;
+      }
+    }
+
     const entry: LockfileHookEntry = {
       name: hookDef.manifest.name,
       group: hookDef.manifest.group,
       event: hookDef.manifest.event,
       commandString: staged.commandString,
       files: staged.files,
+      fileHashes,
     };
     lockfile = addHookEntry(lockfile, entry);
   }

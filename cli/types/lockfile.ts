@@ -19,6 +19,8 @@ export interface LockfileHookEntry {
   files: string[];
   /** SHA-256 hash of source files at install time. */
   sourceHash?: string;
+  /** SHA-256 content hash per file (key = relative path from .claude/). */
+  fileHashes: Record<string, string>;
 }
 
 export interface Lockfile {

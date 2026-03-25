@@ -41,6 +41,13 @@ export function readLockfile(
     return err(lockCorrupt(lockPath));
   }
 
+  // Backward compat: ensure fileHashes exists on every hook entry
+  for (const hook of lockfile.hooks) {
+    if (!hook.fileHashes) {
+      hook.fileHashes = {};
+    }
+  }
+
   return ok(lockfile);
 }
 
@@ -78,6 +85,28 @@ export function addHookEntry(
   }
 
   return { ...lockfile, hooks };
+}
+
+/** Remove a hook entry from the lockfile by name. */
+export function removeHookEntry(
+  lockfile: Lockfile,
+  hookName: string,
+): Lockfile {
+  const hooks = lockfile.hooks.filter((h) => h.name !== hookName);
+  return { ...lockfile, hooks };
+}
+
+/** Compute SHA-256 content hash of a file. */
+export function computeFileHash(
+  filePath: string,
+  deps: CliDeps,
+): Result<string, PaihError> {
+  const content = deps.readFile(filePath);
+  if (!content.ok) return content;
+
+  const hasher = new Bun.CryptoHasher("sha256");
+  hasher.update(content.value);
+  return ok(hasher.digest("hex"));
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

@@ -138,6 +138,44 @@ export function mergeHookEntry(
   return ok(result);
 }
 
+// ─── Unmerge Logic ──────────────────────────────────────────────────────────
+
+/**
+ * Remove a hook entry from settings by commandString. Inverse of mergeHookEntry.
+ * Removes the entry from its matcher group. If the group becomes empty, removes the group.
+ * If the event becomes empty, removes the event key.
+ */
+export function unmergeHookEntry(
+  settings: SettingsJson,
+  event: string,
+  commandString: string,
+): Result<SettingsJson, PaihError> {
+  const result: SettingsJson = JSON.parse(JSON.stringify(settings));
+
+  if (!result.hooks?.[event]) {
+    return ok(result);
+  }
+
+  for (const group of result.hooks[event]) {
+    group.hooks = group.hooks.filter((h) => h.command !== commandString);
+  }
+
+  // Remove empty matcher groups
+  result.hooks[event] = result.hooks[event].filter((g) => g.hooks.length > 0);
+
+  // Remove empty event key
+  if (result.hooks[event].length === 0) {
+    delete result.hooks[event];
+  }
+
+  // Remove empty hooks object
+  if (Object.keys(result.hooks).length === 0) {
+    delete result.hooks;
+  }
+
+  return ok(result);
+}
+
 // ─── Foreign Hook Detection ─────────────────────────────────────────────────
 
 /**

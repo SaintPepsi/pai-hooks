@@ -12,6 +12,9 @@ import { PaihErrorCode } from "@hooks/cli/core/error";
 import type { PaihError } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { install } from "@hooks/cli/commands/install";
+import { uninstall } from "@hooks/cli/commands/uninstall";
+import { update } from "@hooks/cli/commands/update";
+import { verify } from "@hooks/cli/commands/verify";
 import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
 
 // ─── Version ────────────────────────────────────────────────────────────────
@@ -28,19 +31,23 @@ Usage:
 Commands:
   install     Install hooks to target project
   uninstall   Remove hooks from target project
+  update      Re-install hooks whose source changed
+  verify      Validate hooks (source or installed)
   list        List available hooks, groups, and presets
   status      Show installed hook status
   validate    Validate hook manifests
 
 Flags:
-  --help       Show this help message
-  --version    Show version
-  --to <dir>   Target project directory
-  --from <dir> Source hooks directory
-  --in <dir>   Working directory override
-  --force      Overwrite existing hooks
-  --dry-run    Preview changes without writing
-  --json       Output as JSON
+  --help        Show this help message
+  --version     Show version
+  --to <dir>    Target project directory
+  --from <dir>  Source hooks directory
+  --in <dir>    Working directory override
+  --force       Overwrite existing hooks
+  --dry-run     Preview changes without writing
+  --json        Output as JSON
+  --fix         Auto-fix derivable manifest fields (verify)
+  --installed   Verify installed hooks (verify)
 `;
 
 // ─── Known Commands ─────────────────────────────────────────────────────────
@@ -48,6 +55,8 @@ Flags:
 const KNOWN_COMMANDS = new Set([
   "install",
   "uninstall",
+  "update",
+  "verify",
   "list",
   "status",
   "validate",
@@ -65,6 +74,8 @@ const USER_ERROR_CODES = new Set<string>([
   PaihErrorCode.InvalidArgs,
   PaihErrorCode.SettingsConflict,
   PaihErrorCode.DepCycle,
+  PaihErrorCode.LockMissing,
+  PaihErrorCode.FileModified,
 ]);
 
 function exitCodeFromError(error: PaihError): number {
@@ -121,10 +132,16 @@ function routeCommand(
   command: string,
   args: { command: string; names: string[]; flags: Record<string, boolean | string> },
 ): Result<string, PaihError> {
+  const deps = makeDefaultDeps();
   switch (command) {
     case "install":
-      return install(args, makeDefaultDeps());
+      return install(args, deps);
     case "uninstall":
+      return uninstall(args, deps);
+    case "update":
+      return update(args, deps);
+    case "verify":
+      return verify(args, deps);
     case "list":
     case "status":
     case "validate":

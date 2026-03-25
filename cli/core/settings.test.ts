@@ -161,6 +161,7 @@ describe("detectForeignHooks", () => {
           event: "PreToolUse",
           commandString: "./hooks/A/A.hook.ts",
           files: [],
+          fileHashes: {},
         },
       ],
     };
@@ -190,6 +191,7 @@ describe("detectForeignHooks", () => {
           event: "PreToolUse",
           commandString: "./hooks/A/A.hook.ts",
           files: [],
+          fileHashes: {},
         },
       ],
     };
