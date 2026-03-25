@@ -32,6 +32,8 @@ const BOOLEAN_FLAGS = new Set([
   "--json",
   "--groups",
   "--presets",
+  "--compiled",
+  "--compiled-ts",
 ]);
 
 /** Flags that take a string value. */

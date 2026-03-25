@@ -4,6 +4,20 @@
  * Written to .claude/hooks/paih.lock.json after successful install.
  */
 
+// ─── Output Mode ─────────────────────────────────────────────────────────────
+
+/**
+ * Output mode for installed hooks.
+ *
+ * - "source":      raw .ts files, run via bun (default)
+ * - "compiled":    bundled .js via bun build --target=node, shebang #!/usr/bin/env node
+ * - "compiled-ts": bundled .ts via bun build --bundle, shebang #!/usr/bin/env bun
+ */
+export type OutputMode = "source" | "compiled" | "compiled-ts";
+
+/** Default output mode for lockfiles that omit the field. */
+export const DEFAULT_OUTPUT_MODE: OutputMode = "source";
+
 // ─── Lockfile Schema ─────────────────────────────────────────────────────────
 
 export interface LockfileHookEntry {
@@ -30,21 +44,25 @@ export interface Lockfile {
   sourceCommit: string | null;
   /** ISO8601 timestamp of install. */
   installedAt: string;
-  /** Output mode used for install. */
-  outputMode: "source";
+  /** Output mode used for install. Defaults to "source" for old lockfiles. */
+  outputMode: OutputMode;
   /** Installed hooks. */
   hooks: LockfileHookEntry[];
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
-export function createLockfile(source: string, sourceCommit: string | null): Lockfile {
+export function createLockfile(
+  source: string,
+  sourceCommit: string | null,
+  outputMode: OutputMode = DEFAULT_OUTPUT_MODE,
+): Lockfile {
   return {
     lockfileVersion: 1,
     source,
     sourceCommit,
     installedAt: new Date().toISOString(),
-    outputMode: "source",
+    outputMode,
     hooks: [],
   };
 }

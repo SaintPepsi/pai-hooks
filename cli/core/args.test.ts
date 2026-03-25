@@ -104,4 +104,20 @@ describe("parseArgs()", () => {
       expect(result.value.flags.in).toBe("/workspace");
     }
   });
+
+  it("parses --compiled flag", () => {
+    const result = parseArgs(["install", "MyHook", "--compiled"]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.flags.compiled).toBe(true);
+    }
+  });
+
+  it("parses --compiled-ts flag", () => {
+    const result = parseArgs(["install", "MyHook", "--compiled-ts"]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.flags.compiledTs).toBe(true);
+    }
+  });
 });

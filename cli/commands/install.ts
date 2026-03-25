@@ -1,14 +1,20 @@
 /**
- * install command — Copy hooks from source repo to target .claude/hooks/.
+ * install command — Copy or compile hooks from source repo to target .claude/hooks/.
  *
- * Pipeline: parseArgs → resolveTarget → loadManifests → resolve → stage → mergeSettings → writeLockfile
+ * Pipeline: parseArgs → resolveTarget → loadManifests → resolve → stage/compile → mergeSettings → writeLockfile
+ *
+ * Supports three output modes:
+ *   source (default): copy .ts files, run via bun
+ *   --compiled:       bun build --target=node → .js with node shebang
+ *   --compiled-ts:    bun build --bundle → .ts with bun shebang
  *
  * Follows the pipe() pattern from cli/core/pipe.ts and uses CliDeps for DI.
- * Settings merge is append-only and idempotent per cli/core/settings.ts.
- * File staging is atomic per cli/core/staging.ts.
- *
- * Entry point wired from cli/bin/paih.ts routeCommand (see
- * /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/bin/paih.ts).
+ * Settings merge is append-only and idempotent per cli/core/settings.ts
+ * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/settings.ts).
+ * File staging is atomic per cli/core/staging.ts
+ * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/staging.ts).
+ * Compiler defined in cli/core/compiler.ts
+ * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
  */
 
 import type { Result } from "@hooks/cli/core/result";
@@ -18,8 +24,8 @@ import { invalidArgs } from "@hooks/cli/core/error";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { HookDef } from "@hooks/cli/types/resolved";
-import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
-import { createLockfile } from "@hooks/cli/types/lockfile";
+import type { Lockfile, LockfileHookEntry, OutputMode } from "@hooks/cli/types/lockfile";
+import { createLockfile, DEFAULT_OUTPUT_MODE } from "@hooks/cli/types/lockfile";
 import { resolveTarget } from "@hooks/cli/core/target";
 import { loadManifests } from "@hooks/cli/core/manifest-loader";
 import { resolve } from "@hooks/cli/core/resolver";
@@ -39,6 +45,8 @@ import {
 import type { SettingsJson } from "@hooks/cli/core/settings";
 import { readLockfile, writeLockfile, addHookEntry } from "@hooks/cli/core/lockfile";
 import { generateTsconfig } from "@hooks/cli/core/tsconfig-gen";
+import { compileHook, compiledCommandString } from "@hooks/cli/core/compiler";
+import type { CompilerDeps } from "@hooks/cli/core/compiler";
 
 // ─── Install Pipeline ───────────────────────────────────────────────────────
 
@@ -46,7 +54,7 @@ import { generateTsconfig } from "@hooks/cli/core/tsconfig-gen";
  * Execute the install command.
  *
  * @param args - Parsed CLI arguments with names and flags.
- * @param deps - Injectable filesystem/process dependencies.
+ * @param deps - Injectable filesystem/process dependencies (or CompilerDeps for compiled modes).
  * @param sourceRoot - Override source repo root (defaults to deps.cwd()).
  */
 export function install(
@@ -61,6 +69,7 @@ export function install(
 
   const force = args.flags.force === true;
   const dryRun = args.flags.dryRun === true;
+  const outputMode = resolveOutputMode(args);
 
   // Step 1: Resolve target .claude/ directory
   const toFlag = typeof args.flags.to === "string" ? args.flags.to : undefined;
@@ -69,13 +78,17 @@ export function install(
   const targetDir = targetResult.value;
   const claudeDir = `${targetDir}/.claude`;
 
-  // Step 2: Load manifests from source repo
+  // Step 2: Check for mode change requiring --force
+  const modeCheckResult = checkModeChange(claudeDir, outputMode, force, deps);
+  if (!modeCheckResult.ok) return modeCheckResult;
+
+  // Step 3: Load manifests from source repo
   const source = sourceRoot ?? deps.cwd();
   const manifestResult = loadManifests(source, deps);
   if (!manifestResult.ok) return manifestResult;
   const manifests = manifestResult.value;
 
-  // Step 3: Resolve names to hooks
+  // Step 4: Resolve names to hooks
   const resolveResult = resolve(args.names, manifests);
   if (!resolveResult.ok) return resolveResult;
   const { hooks } = resolveResult.value;
@@ -85,15 +98,15 @@ export function install(
   }
 
   if (dryRun) {
-    return ok(formatDryRun(hooks));
+    return ok(formatDryRun(hooks, outputMode));
   }
 
-  // Step 4: Create staging directory
+  // Step 5: Create staging directory
   const stagingResult = createStaging(claudeDir, deps);
   if (!stagingResult.ok) return stagingResult;
   const ctx = { ...stagingResult.value, sourceRoot: source };
 
-  // Step 5: Stage hook files
+  // Step 6: Stage hook files
   const stagedHooks: Array<{ hookDef: HookDef; staged: StagedFiles }> = [];
   const allCoreDeps = new Set<string>();
 
@@ -104,37 +117,60 @@ export function install(
       return stageResult;
     }
     stagedHooks.push({ hookDef, staged: stageResult.value });
-
-    // Collect core deps for deduplication
     collectCoreDeps(hookDef, allCoreDeps);
   }
 
-  // Step 6: Stage core modules (deduped)
+  // Step 7: Stage core modules (deduped)
   const coreResult = stageCoreModules(ctx, allCoreDeps, deps);
   if (!coreResult.ok) {
     cleanStaging(ctx.stagingDir, deps);
     return coreResult;
   }
 
-  // Step 7: Commit staging (atomic move)
+  // Step 8: Commit staging (atomic move)
   const commitResult = commitStaging(ctx, deps);
   if (!commitResult.ok) {
     cleanStaging(ctx.stagingDir, deps);
     return commitResult;
   }
 
-  // Step 8: Merge settings
+  // Step 9: Compile hooks if in compiled mode
+  const installedEntries: Array<{ hookDef: HookDef; commandString: string; files: string[] }> = [];
+
+  if (outputMode !== "source") {
+    const compilerDeps = deps as CompilerDeps;
+    for (const { hookDef, staged } of stagedHooks) {
+      const hookEntryPath = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
+      const outputDir = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}`;
+      const compileResult = compileHook(
+        { hookPath: hookEntryPath, mode: outputMode, outputDir, outputName: hookDef.manifest.name, sourceRoot: source },
+        compilerDeps,
+      );
+      if (!compileResult.ok) return compileResult;
+
+      const ext = outputMode === "compiled" ? ".js" : ".ts";
+      const relPath = `./hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
+      const cmdString = compiledCommandString(relPath, outputMode);
+      installedEntries.push({ hookDef, commandString: cmdString, files: staged.files });
+    }
+  } else {
+    for (const { hookDef, staged } of stagedHooks) {
+      installedEntries.push({ hookDef, commandString: staged.commandString, files: staged.files });
+    }
+  }
+
+  // Step 10: Merge settings
   const settingsResult = readSettings(claudeDir, deps);
   if (!settingsResult.ok) return settingsResult;
   let settings: SettingsJson = settingsResult.value;
 
-  for (const { hookDef, staged } of stagedHooks) {
+  for (const { hookDef, commandString } of installedEntries) {
     const matcher = getMatcherForHook(hookDef);
     const mergeResult = mergeHookEntry(
       settings,
       hookDef.manifest.event,
       matcher,
-      staged.commandString,
+      commandString,
     );
     if (!mergeResult.ok) return mergeResult;
     settings = mergeResult.value;
@@ -143,19 +179,20 @@ export function install(
   const writeSettingsResult = writeSettings(claudeDir, settings, deps);
   if (!writeSettingsResult.ok) return writeSettingsResult;
 
-  // Step 9: Write lockfile
+  // Step 11: Write lockfile
   const existingLockResult = readLockfile(claudeDir, deps);
   if (!existingLockResult.ok) return existingLockResult;
 
-  let lockfile: Lockfile = existingLockResult.value ?? createLockfile(source, null);
+  let lockfile: Lockfile = existingLockResult.value ?? createLockfile(source, null, outputMode);
+  lockfile = { ...lockfile, outputMode };
 
-  for (const { hookDef, staged } of stagedHooks) {
+  for (const { hookDef, commandString, files } of installedEntries) {
     const entry: LockfileHookEntry = {
       name: hookDef.manifest.name,
       group: hookDef.manifest.group,
       event: hookDef.manifest.event,
-      commandString: staged.commandString,
-      files: staged.files,
+      commandString,
+      files,
     };
     lockfile = addHookEntry(lockfile, entry);
   }
@@ -163,11 +200,13 @@ export function install(
   const writeLockResult = writeLockfile(claudeDir, lockfile, deps);
   if (!writeLockResult.ok) return writeLockResult;
 
-  // Step 10: Generate tsconfig.json
-  const tsconfigResult = generateTsconfig(claudeDir, deps);
-  if (!tsconfigResult.ok) return tsconfigResult;
+  // Step 12: Generate tsconfig.json (only relevant for source mode)
+  if (outputMode === "source") {
+    const tsconfigResult = generateTsconfig(claudeDir, deps);
+    if (!tsconfigResult.ok) return tsconfigResult;
+  }
 
-  return ok(formatSuccess(stagedHooks.map((s) => s.hookDef)));
+  return ok(formatSuccess(installedEntries.map((e) => e.hookDef), outputMode));
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -201,16 +240,55 @@ function getMatcherForHook(_hookDef: HookDef): string | undefined {
   return undefined;
 }
 
-function formatDryRun(hooks: HookDef[]): string {
-  const lines = ["Dry run — would install:"];
+/**
+ * Determine output mode from parsed flags.
+ *
+ * Flag precedence defined in cli/core/args.ts
+ * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/args.ts).
+ */
+function resolveOutputMode(args: ParsedArgs): OutputMode {
+  if (args.flags.compiled === true) return "compiled";
+  if (args.flags.compiledTs === true) return "compiled-ts";
+  return DEFAULT_OUTPUT_MODE;
+}
+
+/**
+ * Check if the requested output mode differs from an existing lockfile's mode.
+ * Mode changes require --force to prevent accidental overwrites.
+ */
+function checkModeChange(
+  claudeDir: string,
+  requestedMode: OutputMode,
+  force: boolean,
+  deps: CliDeps,
+): Result<void, PaihError> {
+  const lockResult = readLockfile(claudeDir, deps);
+  if (!lockResult.ok) return lockResult;
+
+  const existing = lockResult.value;
+  if (!existing) return ok(undefined);
+
+  if (existing.outputMode !== requestedMode && !force) {
+    return err(invalidArgs(
+      `Output mode change from "${existing.outputMode}" to "${requestedMode}" requires --force`,
+    ));
+  }
+
+  return ok(undefined);
+}
+
+function formatDryRun(hooks: HookDef[], mode: OutputMode): string {
+  const modeLabel = mode === "source" ? "" : ` [${mode}]`;
+  const lines = [`Dry run — would install${modeLabel}:`];
   for (const hook of hooks) {
     lines.push(`  ${hook.manifest.group}/${hook.manifest.name} (${hook.manifest.event})`);
   }
   return lines.join("\n");
 }
 
-function formatSuccess(hooks: HookDef[]): string {
-  const lines = [`Installed ${hooks.length} hook${hooks.length === 1 ? "" : "s"}:`];
+function formatSuccess(hooks: HookDef[], mode: OutputMode): string {
+  const modeLabel = mode === "source" ? "" : ` (${mode})`;
+  const lines = [`Installed ${hooks.length} hook${hooks.length === 1 ? "" : "s"}${modeLabel}:`];
   for (const hook of hooks) {
     lines.push(`  ${hook.manifest.group}/${hook.manifest.name} (${hook.manifest.event})`);
   }

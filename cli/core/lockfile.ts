@@ -15,6 +15,7 @@ import type { PaihError } from "@hooks/cli/core/error";
 import { lockCorrupt, PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
+import { DEFAULT_OUTPUT_MODE } from "@hooks/cli/types/lockfile";
 
 // ─── Read / Write ───────────────────────────────────────────────────────────
 
@@ -39,6 +40,12 @@ export function readLockfile(
 
   if (lockfile.lockfileVersion !== 1) {
     return err(lockCorrupt(lockPath));
+  }
+
+  // Backward compat: old lockfiles may omit outputMode
+  // (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/lockfile.ts)
+  if (!lockfile.outputMode) {
+    lockfile.outputMode = DEFAULT_OUTPUT_MODE;
   }
 
   return ok(lockfile);
