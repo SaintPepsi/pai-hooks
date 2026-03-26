@@ -192,5 +192,63 @@ describe("MapleBranding", () => {
         expect(result.value.type).toBe("continue");
       }
     });
+
+    it("blocks gh pr create with emoji sign-off instead of HTML image", () => {
+      const input = makeInput(
+        'gh pr create --title "fix" --body "$(cat <<\'EOF\'\n## Summary\nFixed the bug.\n\n🍁 Maple\nEOF\n)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+        expect(result.value.decision).toBe("block");
+        expect(result.value.reason).toContain("emoji");
+        expect(result.value.reason).toContain("img src");
+      }
+    });
+
+    it("blocks gh issue comment with emoji sign-off", () => {
+      const input = makeInput(
+        'gh issue comment 42 --body "Maple here.\n\nDone.\n\n🍁 Maple"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("blocks gh pr review with emoji sign-off", () => {
+      const input = makeInput(
+        'gh pr review 7 --comment -b "Looks good.\n\n🍁 Maple"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("block");
+      }
+    });
+
+    it("allows gh pr create with HTML image sign-off", () => {
+      const input = makeInput(
+        'gh pr create --title "fix" --body "$(cat <<\'EOF\'\n## Summary\nFixed.\n\n<img src=\\"https://github.com/user-attachments/assets/08e4e5de-c220-46c6-968d-1976411654b3\\" alt=\\"🍁\\" width=\\"16\\" height=\\"16\\"> Maple\nEOF\n)"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+      }
+    });
+
+    it("does not false-positive on emoji maple leaf without Maple name", () => {
+      const input = makeInput(
+        'gh pr create --title "autumn" --body "Love the 🍁 season"',
+      );
+      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+      }
+    });
   });
 });
