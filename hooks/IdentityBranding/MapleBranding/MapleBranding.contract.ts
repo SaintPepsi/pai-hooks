@@ -11,6 +11,7 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,11 +71,14 @@ export const MapleBranding: SyncHookContract<
     const command = String(input.tool_input?.command ?? "");
 
     if (containsClaudeCodeFooter(command)) {
+      const opener = pickNarrative("MapleBranding", 1);
       deps.stderr("[MapleBranding] Blocked: Claude Code footer detected in gh command");
       return ok({
         type: "block",
         decision: "block",
         reason: [
+          opener,
+          "",
           'Your gh command contains "Generated with [Claude Code]". Replace that entire line with the Maple sign-off:',
           "",
           MAPLE_SIGNOFF,
@@ -85,11 +89,14 @@ export const MapleBranding: SyncHookContract<
     }
 
     if (containsEmojiSignoff(command)) {
+      const opener = pickNarrative("MapleBranding", 1);
       deps.stderr("[MapleBranding] Blocked: emoji sign-off used instead of HTML image");
       return ok({
         type: "block",
         decision: "block",
         reason: [
+          opener,
+          "",
           "Your gh command uses the emoji sign-off (🍁 Maple). GitHub renders HTML, so use the image sign-off instead:",
           "",
           MAPLE_SIGNOFF,
