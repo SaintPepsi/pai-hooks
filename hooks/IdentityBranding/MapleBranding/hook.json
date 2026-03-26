@@ -9,7 +9,9 @@
       "result",
       "runner"
     ],
-    "lib": [],
+    "lib": [
+      "narrative-reader"
+    ],
     "adapters": [],
     "shared": false
   },
