@@ -124,6 +124,22 @@ export function install(
   const stagedHooks: Array<{ hookDef: HookDef; staged: StagedFiles }> = [];
   const allCoreDeps = new Set<string>();
 
+  // Runner's transitive deps — always needed regardless of manifest declarations
+  const RUNNER_BASELINE_DEPS = [
+    "core/contract",
+    "core/error",
+    "core/result",
+    "core/runner",
+    "core/adapters/stdin",
+    "core/adapters/log",
+    "core/adapters/fs",
+    "core/types/hook-inputs",
+    "core/types/hook-outputs",
+  ];
+  for (const dep of RUNNER_BASELINE_DEPS) {
+    allCoreDeps.add(dep);
+  }
+
   for (const hookDef of hooks) {
     const stageResult = stageHook(ctx, hookDef, deps);
     if (!stageResult.ok) {

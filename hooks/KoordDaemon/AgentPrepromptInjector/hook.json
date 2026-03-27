@@ -10,11 +10,13 @@
       "runner",
       "types/hook-outputs"
     ],
-    "lib": [],
+    "lib": ["paths"],
     "adapters": [
       "fs"
     ],
-    "shared": true
+    "shared": [
+      "shared.ts"
+    ]
   },
   "tags": [
     "koord"

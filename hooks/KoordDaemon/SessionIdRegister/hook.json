@@ -9,11 +9,13 @@
       "result",
       "runner"
     ],
-    "lib": [],
+    "lib": ["paths"],
     "adapters": [
       "fetch"
     ],
-    "shared": true
+    "shared": [
+      "shared.ts"
+    ]
   },
   "tags": [
     "koord"
