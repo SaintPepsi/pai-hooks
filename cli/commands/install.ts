@@ -133,8 +133,16 @@ export function install(
     "core/adapters/stdin",
     "core/adapters/log",
     "core/adapters/fs",
+    "core/adapters/process",
     "core/types/hook-inputs",
     "core/types/hook-outputs",
+    "core/language-profiles",
+    "core/quality-scorer",
+    "lib/paths",
+    "lib/narrative-reader",
+    "lib/time",
+    "lib/identity",
+    "lib/signal-logger",
   ];
   for (const dep of RUNNER_BASELINE_DEPS) {
     allCoreDeps.add(dep);
