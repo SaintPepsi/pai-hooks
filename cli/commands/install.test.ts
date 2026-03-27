@@ -111,7 +111,7 @@ describe("install command", () => {
     const settings: SettingsJson = JSON.parse(settingsContent);
     expect(settings.hooks?.PreToolUse).toBeDefined();
     expect(settings.hooks?.PreToolUse?.[0].hooks[0].command).toBe(
-      "bun ./hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "bun .claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
 
     // Lockfile written

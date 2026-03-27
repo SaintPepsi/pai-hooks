@@ -21,7 +21,7 @@ const SAMPLE_LOCKFILE: Lockfile = {
       name: "TestHook",
       group: "TestGroup",
       event: "PreToolUse",
-      commandString: "./hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+      commandString: ".claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
       files: ["hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts"],
       fileHashes: {},
     },
@@ -90,7 +90,7 @@ describe("addHookEntry", () => {
       name: "NewHook",
       group: "NewGroup",
       event: "SessionStart",
-      commandString: "./hooks/pai-hooks/NewGroup/NewHook/NewHook.hook.ts",
+      commandString: ".claude/hooks/pai-hooks/NewGroup/NewHook/NewHook.hook.ts",
       files: ["hooks/pai-hooks/NewGroup/NewHook/NewHook.hook.ts"],
       fileHashes: {},
     };
@@ -104,7 +104,7 @@ describe("addHookEntry", () => {
       name: "TestHook",
       group: "TestGroup",
       event: "PreToolUse",
-      commandString: "./hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+      commandString: ".claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
       files: ["hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts", "hooks/pai-hooks/TestGroup/TestHook/TestHook.contract.ts"],
       fileHashes: {},
     };
