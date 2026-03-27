@@ -37,6 +37,7 @@ Some frameworks require `export default`. These are exempted in `findExportDefau
 - `.config.(ts|js|mts|mjs)` files — build tool convention
 - `spacetimedb/src/index.ts` — SpacetimeDB's `spacetime generate` CLI requires `export default` on the schema object
 - `.svelte` files — Svelte components use implicit default exports by framework convention
+- `.storybook/` directory — Storybook config files (`main.ts`, `preview.ts`) require `export default`
 
 ### Svelte conventions
 

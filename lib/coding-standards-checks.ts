@@ -238,6 +238,8 @@ export function findExportDefaults(lines: string[], filePath?: string): Violatio
   if (filePath && /spacetimedb\/src\/index\.ts$/.test(filePath)) return [];
   // Svelte components use implicit default exports by framework convention
   if (filePath && /\.svelte$/.test(filePath)) return [];
+  // Storybook config files require default exports by framework convention
+  if (filePath && /\/\.storybook\//.test(filePath)) return [];
 
   const violations: Violation[] = [];
   for (let i = 0; i < lines.length; i++) {
