@@ -71,7 +71,7 @@ describe("lifecycle integration", () => {
 
     // Step 3: Modify an installed file
     deps.addFile(
-      "/project/.claude/hooks/TestGroup/TestHook/TestHook.hook.ts",
+      "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
       "// MODIFIED BY USER\n",
     );
 

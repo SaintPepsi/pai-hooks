@@ -92,7 +92,7 @@ describe("update command", () => {
 
     // Verify the new content was copied
     const files = deps.getFiles();
-    const content = files.get("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts");
+    const content = files.get("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts");
     expect(content).toContain("v2 — UPDATED");
 
     // Verify lockfile updated
@@ -117,7 +117,7 @@ describe("update command", () => {
 
     // Installed file should NOT be auto-deleted
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
   });
 
   it("local mod without --force → abort", () => {
@@ -131,7 +131,7 @@ describe("update command", () => {
 
     // Also modify local installed copy
     deps.addFile(
-      "/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       '// LOCALLY MODIFIED\n',
     );
 
@@ -154,7 +154,7 @@ describe("update command", () => {
 
     // Modify local copy
     deps.addFile(
-      "/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       '// LOCALLY MODIFIED\n',
     );
 
@@ -176,7 +176,7 @@ describe("update command", () => {
     );
 
     const originalContent = deps.getFiles().get(
-      "/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
 
     const result = update(updateArgs({ dryRun: true }), deps, "/source");
@@ -189,7 +189,7 @@ describe("update command", () => {
 
     // File should not have been changed
     const currentContent = deps.getFiles().get(
-      "/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
     expect(currentContent).toBe(originalContent);
   });

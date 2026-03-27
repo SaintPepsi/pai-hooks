@@ -1,0 +1,23 @@
+{
+  "name": "AgentPrepromptInjector",
+  "group": "KoordDaemon",
+  "event": "PreToolUse",
+  "description": "Injects worker preprompt into background agent prompts",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner",
+      "types/hook-outputs"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": true
+  },
+  "tags": [
+    "koord"
+  ],
+  "presets": []
+}

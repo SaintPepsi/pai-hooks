@@ -100,8 +100,8 @@ describe("install command", () => {
     const files = deps.getFiles();
 
     // Hook files copied
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
 
     // Core dep deduped into pai-hooks/
     expect(files.has("/project/.claude/hooks/pai-hooks/core/result.ts")).toBe(true);
@@ -111,7 +111,7 @@ describe("install command", () => {
     const settings: SettingsJson = JSON.parse(settingsContent);
     expect(settings.hooks?.PreToolUse).toBeDefined();
     expect(settings.hooks?.PreToolUse?.[0].hooks[0].command).toBe(
-      "bun ./hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "bun ./hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
 
     // Lockfile written
@@ -137,8 +137,8 @@ describe("install command", () => {
     if (!result.ok) return;
 
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
-    expect(files.has("/project/.claude/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts")).toBe(true);
 
     const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
     const lock = JSON.parse(lockContent);
@@ -153,7 +153,7 @@ describe("install command", () => {
     if (!result.ok) return;
 
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
   });
 
   it("is idempotent — re-install does not duplicate settings entries", () => {
@@ -201,7 +201,7 @@ describe("install command", () => {
 
     expect(result.ok).toBe(true);
     const files = deps.getFiles();
-    expect(files.has("/other/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(files.has("/other/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
   });
 
   it("--dry-run previews without writing", () => {
@@ -217,7 +217,7 @@ describe("install command", () => {
 
     // No files written to target
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(false);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(false);
   });
 
   it("returns HOOK_NOT_FOUND for unknown name", () => {
@@ -268,7 +268,7 @@ describe("install command", () => {
 
     expect(result.ok).toBe(true);
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/AgentLifecycle/shared.ts")).toBe(true);
-    expect(files.has("/project/.claude/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/AgentLifecycle/shared.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts")).toBe(true);
   });
 });

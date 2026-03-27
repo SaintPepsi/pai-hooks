@@ -21,8 +21,8 @@ const SAMPLE_LOCKFILE: Lockfile = {
       name: "TestHook",
       group: "TestGroup",
       event: "PreToolUse",
-      commandString: "./hooks/TestGroup/TestHook/TestHook.hook.ts",
-      files: ["hooks/TestGroup/TestHook/TestHook.hook.ts"],
+      commandString: "./hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+      files: ["hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts"],
       fileHashes: {},
     },
   ],
@@ -90,8 +90,8 @@ describe("addHookEntry", () => {
       name: "NewHook",
       group: "NewGroup",
       event: "SessionStart",
-      commandString: "./hooks/NewGroup/NewHook/NewHook.hook.ts",
-      files: ["hooks/NewGroup/NewHook/NewHook.hook.ts"],
+      commandString: "./hooks/pai-hooks/NewGroup/NewHook/NewHook.hook.ts",
+      files: ["hooks/pai-hooks/NewGroup/NewHook/NewHook.hook.ts"],
       fileHashes: {},
     };
     const updated = addHookEntry(SAMPLE_LOCKFILE, entry);
@@ -104,8 +104,8 @@ describe("addHookEntry", () => {
       name: "TestHook",
       group: "TestGroup",
       event: "PreToolUse",
-      commandString: "./hooks/TestGroup/TestHook/TestHook.hook.ts",
-      files: ["hooks/TestGroup/TestHook/TestHook.hook.ts", "hooks/TestGroup/TestHook/TestHook.contract.ts"],
+      commandString: "./hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+      files: ["hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts", "hooks/pai-hooks/TestGroup/TestHook/TestHook.contract.ts"],
       fileHashes: {},
     };
     const updated = addHookEntry(SAMPLE_LOCKFILE, entry);

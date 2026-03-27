@@ -185,18 +185,17 @@ describe("resolver", () => {
     }
   });
 
-  // 9. Dependency cycle detection
-  it("detects dependency cycles via shared deps", () => {
-    // Two hooks in same group both with shared deps create a cycle
+  // 9. Shared deps are co-dependencies, not cycles
+  it("shared deps do not cause false cycle detection", () => {
     const hookA = makeHookDef("HookA", "Cycle", ["shared.ts"]);
     const hookB = makeHookDef("HookB", "Cycle", ["shared.ts"]);
     const group = makeGroup("Cycle", ["HookA", "HookB"]);
     const index = makeIndex([hookA, hookB], [group]);
 
     const result = resolve(["Cycle"], index);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.code).toBe(PaihErrorCode.DepCycle);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.hooks).toHaveLength(2);
     }
   });
 

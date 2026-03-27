@@ -172,37 +172,10 @@ function detectCycles(
     hooksByGroup.set(group, existing);
   }
 
-  // Build directed graph from manifest deps.shared references
-  const adj = new Map<string, Set<string>>();
-  const hookNames = new Set(hooks.map((h) => h.manifest.name));
-
-  for (const hook of hooks) {
-    const deps = hook.manifest.deps;
-    if (Array.isArray(deps.shared)) {
-      // Shared deps create edges to other hooks in the same group
-      const groupHooks = hooksByGroup.get(hook.manifest.group) ?? [];
-      for (const other of groupHooks) {
-        if (other !== hook.manifest.name && hookNames.has(other)) {
-          const edges = adj.get(hook.manifest.name) ?? new Set();
-          edges.add(other);
-          adj.set(hook.manifest.name, edges);
-        }
-      }
-    }
-  }
-
-  // DFS cycle detection
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-  const path: string[] = [];
-
-  for (const hookName of hookNames) {
-    const cycle = dfs(hookName, adj, visited, inStack, path);
-    if (cycle) {
-      return err(depCycle(cycle));
-    }
-  }
-
+  // Shared files (deps.shared) are NOT hook-to-hook dependencies — they are
+  // source files shared by multiple hooks in the same group. Two hooks
+  // importing the same shared file does not create a directed dependency.
+  // Skip cycle detection until the schema supports explicit hook-to-hook deps.
   return ok(undefined);
 }
 

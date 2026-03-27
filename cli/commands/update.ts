@@ -277,10 +277,19 @@ function updateLockfileEntries(
  * Hook files map to source hooks/ directory.
  */
 function mapToSourcePath(relFile: string, source: string): string | null {
-  // pai-hooks/ files: hooks/pai-hooks/core/result.ts → /source/core/result.ts
+  // All installed files live under hooks/pai-hooks/ in the target project.
+  // Core/lib deps: hooks/pai-hooks/core/... or hooks/pai-hooks/lib/...
+  //   → /source/core/... or /source/lib/...
+  // Hook files: hooks/pai-hooks/Group/Hook/file.ts
+  //   → /source/hooks/Group/Hook/file.ts
   if (relFile.startsWith("hooks/pai-hooks/")) {
-    const corePath = relFile.replace("hooks/pai-hooks/", "");
-    return `${source}/${corePath}`;
+    const inner = relFile.replace("hooks/pai-hooks/", "");
+    // Core deps start with core/ or lib/ — map directly to source root
+    if (inner.startsWith("core/") || inner.startsWith("lib/")) {
+      return `${source}/${inner}`;
+    }
+    // Everything else is a hook file — map to source hooks/ directory
+    return `${source}/hooks/${inner}`;
   }
 
   // Legacy _core/ files: hooks/_core/core/result.ts → /source/core/result.ts
@@ -289,7 +298,7 @@ function mapToSourcePath(relFile: string, source: string): string | null {
     return `${source}/${corePath}`;
   }
 
-  // Hook files: hooks/Group/Hook/file.ts → /source/hooks/Group/Hook/file.ts
+  // Legacy flat layout: hooks/Group/Hook/file.ts → /source/hooks/Group/Hook/file.ts
   if (relFile.startsWith("hooks/")) {
     return `${source}/${relFile}`;
   }

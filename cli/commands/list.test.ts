@@ -26,16 +26,16 @@ const VALID_LOCKFILE: Lockfile = {
       name: "TestHook",
       group: "TestGroup",
       event: "PreToolUse",
-      commandString: "./hooks/TestGroup/TestHook/TestHook.hook.ts",
-      files: ["hooks/TestGroup/TestHook/TestHook.hook.ts"],
+      commandString: "./hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+      files: ["hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts"],
       fileHashes: {},
     },
     {
       name: "AnotherHook",
       group: "AnotherGroup",
       event: "PostToolUse",
-      commandString: "./hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts",
-      files: ["hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts"],
+      commandString: "./hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts",
+      files: ["hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts"],
       fileHashes: {},
     },
   ],
@@ -52,8 +52,8 @@ const ORPHANED_LOCKFILE: Lockfile = {
       name: "OrphanHook",
       group: "OrphanGroup",
       event: "PreToolUse",
-      commandString: "./hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts",
-      files: ["hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts"],
+      commandString: "./hooks/pai-hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts",
+      files: ["hooks/pai-hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts"],
       fileHashes: {},
     },
   ],
@@ -78,8 +78,8 @@ describe("list command", () => {
   it("shows all columns for valid lockfile with existing files", () => {
     const deps = new InMemoryDeps({
       "/project/.claude/hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
-      "/project/.claude/hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
-      "/project/.claude/hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
+      "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
+      "/project/.claude/hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
     }, "/project");
 
     const result = list(makeArgs(), deps);
@@ -150,8 +150,8 @@ describe("list command", () => {
   it("outputs valid JSON with --json flag", () => {
     const deps = new InMemoryDeps({
       "/project/.claude/hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
-      "/project/.claude/hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
-      "/project/.claude/hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
+      "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
+      "/project/.claude/hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
     }, "/project");
 
     const result = list(makeArgs({ json: true }), deps);
@@ -182,8 +182,8 @@ describe("list command", () => {
   it("reads from --in path instead of CWD", () => {
     const deps = new InMemoryDeps({
       "/other/project/.claude/hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
-      "/other/project/.claude/hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
-      "/other/project/.claude/hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
+      "/other/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
+      "/other/project/.claude/hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
     }, "/somewhere/else");
 
     const result = list(makeArgs({ in: "/other/project" }), deps);

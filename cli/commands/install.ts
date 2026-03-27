@@ -156,7 +156,7 @@ export function install(
 
   // Step 8b: Make hook entry files executable
   for (const { hookDef } of stagedHooks) {
-    const hookFilePath = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
+    const hookFilePath = `${ctx.hooksDir}/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
     deps.chmod(hookFilePath, 0o755);
   }
 
@@ -167,7 +167,7 @@ export function install(
     const compilerDeps = deps as CompilerDeps;
     for (const { hookDef, staged } of stagedHooks) {
       const hookEntryPath = `${source}/hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
-      const outputDir = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}`;
+      const outputDir = `${ctx.hooksDir}/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}`;
       const compileResult = compileHook(
         { hookPath: hookEntryPath, mode: outputMode, outputDir, outputName: hookDef.manifest.name, sourceRoot: source },
         compilerDeps,
@@ -175,7 +175,7 @@ export function install(
       if (!compileResult.ok) return compileResult;
 
       const ext = outputMode === "compiled" ? ".js" : ".ts";
-      const relPath = `./hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
+      const relPath = `./hooks/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
       const cmdString = compiledCommandString(relPath, outputMode);
       // Make compiled output executable
       const compiledPath = `${outputDir}/${hookDef.manifest.name}${ext}`;

@@ -271,7 +271,7 @@ describe("install source mode unchanged", () => {
     if (!result.ok) return;
 
     const files = memDeps.getFiles();
-    expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
 
     const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);

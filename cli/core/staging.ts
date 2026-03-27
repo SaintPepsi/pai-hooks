@@ -75,8 +75,8 @@ export function stageHook(
   const groupName = manifest.group;
   const hookName = manifest.name;
 
-  // Target paths relative to staging
-  const hookDir = `${ctx.stagingDir}/${groupName}/${hookName}`;
+  // Target paths: all hooks go inside pai-hooks/ alongside core/ and lib/
+  const hookDir = `${ctx.stagingDir}/pai-hooks/${groupName}/${hookName}`;
   const ensureResult = deps.ensureDir(hookDir);
   if (!ensureResult.ok) return ensureResult;
 
@@ -87,7 +87,7 @@ export function stageHook(
   const hookDest = `${hookDir}/${hookName}.hook.ts`;
   const hookCopy = copyFile(hookFile, hookDest, deps);
   if (!hookCopy.ok) return hookCopy;
-  files.push(`hooks/${groupName}/${hookName}/${hookName}.hook.ts`);
+  files.push(`hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`);
 
   // Copy contract.ts
   const contractFile = `${sourceDir}/${hookName}.contract.ts`;
@@ -95,7 +95,7 @@ export function stageHook(
   if (deps.fileExists(contractFile)) {
     const contractCopy = copyFile(contractFile, contractDest, deps);
     if (!contractCopy.ok) return contractCopy;
-    files.push(`hooks/${groupName}/${hookName}/${hookName}.contract.ts`);
+    files.push(`hooks/pai-hooks/${groupName}/${hookName}/${hookName}.contract.ts`);
   }
 
   // Copy shared.ts if declared
@@ -103,16 +103,16 @@ export function stageHook(
     const groupSourceDir = sourceDir.substring(0, sourceDir.lastIndexOf("/"));
     for (const sharedFile of manifest.deps.shared) {
       const sharedSrc = `${groupSourceDir}/${sharedFile}`;
-      const sharedDest = `${ctx.stagingDir}/${groupName}/${sharedFile}`;
+      const sharedDest = `${ctx.stagingDir}/pai-hooks/${groupName}/${sharedFile}`;
       if (deps.fileExists(sharedSrc)) {
         const sharedCopy = copyFile(sharedSrc, sharedDest, deps);
         if (!sharedCopy.ok) return sharedCopy;
-        files.push(`hooks/${groupName}/${sharedFile}`);
+        files.push(`hooks/pai-hooks/${groupName}/${sharedFile}`);
       }
     }
   }
 
-  const commandString = `bun ./hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
+  const commandString = `bun ./hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
 
   return ok({ files, commandString });
 }

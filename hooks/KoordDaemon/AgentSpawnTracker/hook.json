@@ -1,0 +1,23 @@
+{
+  "name": "AgentSpawnTracker",
+  "group": "KoordDaemon",
+  "event": "PostToolUse",
+  "description": "Notifies Koord daemon when a background agent is spawned",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner",
+      "types/hook-outputs"
+    ],
+    "lib": [],
+    "adapters": [
+      "fetch"
+    ],
+    "shared": true
+  },
+  "tags": [
+    "koord"
+  ],
+  "presets": []
+}

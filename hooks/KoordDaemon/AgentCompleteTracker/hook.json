@@ -1,0 +1,23 @@
+{
+  "name": "AgentCompleteTracker",
+  "group": "KoordDaemon",
+  "event": "PostToolUse",
+  "description": "Notifies Koord daemon when an agent completes",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner",
+      "types/hook-outputs"
+    ],
+    "lib": [],
+    "adapters": [
+      "fetch"
+    ],
+    "shared": true
+  },
+  "tags": [
+    "koord"
+  ],
+  "presets": []
+}

@@ -184,7 +184,7 @@ describe("verify installed-mode", () => {
 
     // Modify an installed file
     deps.addFile(
-      "/project/.claude/hooks/TestGroup/TestHook/TestHook.hook.ts",
+      "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
       "// MODIFIED\n",
     );
 
@@ -201,7 +201,7 @@ describe("verify installed-mode", () => {
     install(installArgs(["TestHook"]), deps, "/source");
 
     // Delete an installed file
-    deps.deleteFile("/project/.claude/hooks/TestGroup/TestHook/TestHook.hook.ts");
+    deps.deleteFile("/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts");
 
     const result = verify(installedVerifyArgs({ in: "/project" }), deps);
 

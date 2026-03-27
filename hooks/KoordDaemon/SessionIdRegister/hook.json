@@ -1,0 +1,22 @@
+{
+  "name": "SessionIdRegister",
+  "group": "KoordDaemon",
+  "event": "SessionStart",
+  "description": "Registers session ID with Koord daemon for thread agents",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "lib": [],
+    "adapters": [
+      "fetch"
+    ],
+    "shared": true
+  },
+  "tags": [
+    "koord"
+  ],
+  "presets": []
+}

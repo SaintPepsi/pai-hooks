@@ -1,0 +1,13 @@
+{
+  "name": "KoordDaemon",
+  "description": "Koord agent-to-agent daemon lifecycle hooks",
+  "hooks": [
+    "AgentCompleteTracker",
+    "AgentPrepromptInjector",
+    "AgentSpawnTracker",
+    "SessionIdRegister"
+  ],
+  "sharedFiles": [
+    "shared.ts"
+  ]
+}
