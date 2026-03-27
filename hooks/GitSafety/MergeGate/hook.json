@@ -6,15 +6,17 @@
   "schemaVersion": 1,
   "deps": {
     "core": [
-      "error",
       "result",
-      "runner"
+      "runner",
+      "types/hook-outputs"
     ],
     "lib": [],
     "adapters": [
       "process"
     ],
-    "shared": true
+    "shared": [
+      "shared.ts"
+    ]
   },
   "tags": [],
   "presets": []
