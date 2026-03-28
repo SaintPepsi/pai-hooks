@@ -4,8 +4,8 @@
  * The lockfile tracks which hooks were installed, their source,
  * and the command strings written to settings.json.
  *
- * Stored at .claude/hooks/paih.lock.json
- * (schema defined in /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/types/lockfile.ts).
+ * Stored at .claude/hooks/pai-hooks/paih.lock.json
+ * (schema defined in cli/types/lockfile.ts).
  */
 
 import type { Result } from "@hooks/cli/core/result";

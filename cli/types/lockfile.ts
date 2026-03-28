@@ -1,7 +1,7 @@
 /**
  * Lockfile types — tracks installed hooks for idempotency and status.
  *
- * Written to .claude/hooks/paih.lock.json after successful install.
+ * Written to .claude/hooks/pai-hooks/paih.lock.json after successful install.
  */
 
 // ─── Output Mode ─────────────────────────────────────────────────────────────

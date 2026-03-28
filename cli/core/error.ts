@@ -135,7 +135,7 @@ export function lockCorrupt(path: string): PaihError {
 export function lockMissing(claudeDir: string): PaihError {
   return new PaihError(
     PaihErrorCode.LockMissing,
-    `No lockfile found at ${claudeDir}/hooks/paih.lock.json. Run "paih install" first.`,
+    `No lockfile found at ${claudeDir}/hooks/pai-hooks/paih.lock.json. Run "paih install" first.`,
     { claudeDir },
   );
 }
