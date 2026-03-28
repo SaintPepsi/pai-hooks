@@ -1,0 +1,21 @@
+{
+  "name": "MessageQueueRelay",
+  "group": "KoordDaemon",
+  "event": "PostToolUse",
+  "description": "Detects mq-watcher Bash exit and relays queued messages to the agent",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [
+    "koord",
+    "message-queue"
+  ],
+  "presets": []
+}

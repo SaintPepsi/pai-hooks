@@ -1,0 +1,25 @@
+{
+  "name": "MessageQueueServer",
+  "group": "KoordDaemon",
+  "event": "SessionStart",
+  "description": "Spawns message queue HTTP server for realtime Koord daemon relay",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "lib": ["paths"],
+    "adapters": [
+      "process"
+    ],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [
+    "koord",
+    "message-queue"
+  ],
+  "presets": []
+}

@@ -144,6 +144,38 @@ export function extractTask(toolInput: Record<string, unknown>): string | null {
   return null;
 }
 
+// ─── Message Queue Paths ────────────────────────────────────────────────────
+
+const MQ_BASE_DIR = "/tmp/pai-mq";
+
+/** Root queue directory for a session: /tmp/pai-mq/{sessionId} */
+export function getQueueDir(sessionId: string): string {
+  return `${MQ_BASE_DIR}/${sessionId}`;
+}
+
+/** Messages directory: /tmp/pai-mq/{sessionId}/messages/ */
+export function getMessagesDir(sessionId: string): string {
+  return `${MQ_BASE_DIR}/${sessionId}/messages`;
+}
+
+/** Port file written by mq-server: /tmp/pai-mq/{sessionId}/port */
+export function getPortFile(sessionId: string): string {
+  return `${MQ_BASE_DIR}/${sessionId}/port`;
+}
+
+/** PID file written by mq-server: /tmp/pai-mq/{sessionId}/pid */
+export function getPidFile(sessionId: string): string {
+  return `${MQ_BASE_DIR}/${sessionId}/pid`;
+}
+
+/** Cursor file tracking next unread message index: /tmp/pai-mq/{sessionId}/cursor */
+export function getCursorFile(sessionId: string): string {
+  return `${MQ_BASE_DIR}/${sessionId}/cursor`;
+}
+
+/** Marker pattern in Bash commands to identify the watcher script. */
+export const MQ_WATCHER_MARKER = "mq-watcher";
+
 // ─── Shared Deps Helpers ─────────────────────────────────────────────────────
 
 /** Default readFile-or-null for config reading, wrapping the fs adapter. */

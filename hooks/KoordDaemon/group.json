@@ -5,6 +5,8 @@
     "AgentCompleteTracker",
     "AgentPrepromptInjector",
     "AgentSpawnTracker",
+    "MessageQueueRelay",
+    "MessageQueueServer",
     "SessionIdRegister"
   ],
   "sharedFiles": [
