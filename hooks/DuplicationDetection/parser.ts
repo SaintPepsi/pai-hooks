@@ -31,7 +31,7 @@ const NODE_TYPE_INDEX = new Map(TOP_NODE_TYPES.map((t, i) => [t, i]));
 export function buildFingerprint(nodeTypes: string[]): string {
   const counts = new Uint8Array(16);
   for (const t of nodeTypes) {
-    const idx = NODE_TYPE_INDEX.get(t);
+    const idx = NODE_TYPE_INDEX.get(t as typeof TOP_NODE_TYPES[number]);
     if (idx !== undefined && counts[idx] < 255) counts[idx]++;
   }
   return Array.from(counts).map((c) => c.toString(16).padStart(2, "0")).join("");

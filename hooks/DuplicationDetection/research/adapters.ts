@@ -42,7 +42,8 @@ export function sha256Short(content: string): string {
 export function parseTsSourceSafe(source: string, isTsx: boolean): Module | null {
   try {
     return parseSync(source, {
-      syntax: isTsx ? "tsx" : "typescript",
+      syntax: "typescript",
+      tsx: isTsx,
       target: "es2022",
     });
   } catch {

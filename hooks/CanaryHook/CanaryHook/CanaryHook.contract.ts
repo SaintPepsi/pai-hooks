@@ -1,7 +1,8 @@
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result, PaiError } from "@hooks/core/result";
+import type { Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import { ok } from "@hooks/core/result";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
