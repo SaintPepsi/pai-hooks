@@ -8,11 +8,14 @@
     "DocObligationTracker",
     "SpotCheckReview",
     "TestObligationEnforcer",
-    "TestObligationTracker"
+    "TestObligationTracker",
+    "HookDocEnforcer",
+    "HookDocTracker"
   ],
   "sharedFiles": [
     "CitationEnforcement.shared.ts",
     "DocObligationStateMachine.shared.ts",
+    "HookDocStateMachine.shared.ts",
     "TestObligationStateMachine.shared.ts"
   ]
 }

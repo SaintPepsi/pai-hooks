@@ -1,0 +1,190 @@
+/* Hook Documentation — Shared Styles */
+
+:root {
+  --bg: #0d1117;
+  --bg-card: #161b22;
+  --bg-code: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --green: #3fb950;
+  --orange: #d29922;
+  --red: #f85149;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --bg-card: #f6f8fa;
+    --bg-code: #f0f2f4;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-muted: #656d76;
+    --accent: #0969da;
+    --accent-hover: #0550ae;
+    --green: #1a7f37;
+    --orange: #9a6700;
+    --red: #cf222e;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* ── Navigation ────────────────────────────────────────── */
+
+nav.breadcrumb {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+nav.breadcrumb a { color: var(--text-muted); }
+nav.breadcrumb a:hover { color: var(--accent); }
+nav.breadcrumb .sep { margin: 0 0.5rem; }
+
+/* ── Headings ──────────────────────────────────────────── */
+
+h1 { font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; }
+h2 { font-size: 1.25rem; font-weight: 600; margin: 2rem 0 0.75rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border); }
+h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+
+/* ── Meta badge row ────────────────────────────────────── */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+}
+
+.badge.event { border-color: var(--accent); color: var(--accent); }
+.badge.group { border-color: var(--green); color: var(--green); }
+
+/* ── Content sections ──────────────────────────────────── */
+
+.content p { margin-bottom: 0.75rem; }
+
+.content ul, .content ol {
+  margin: 0.5rem 0 1rem 1.5rem;
+}
+
+.content li { margin-bottom: 0.25rem; }
+
+.content blockquote {
+  border-left: 3px solid var(--border);
+  padding: 0.5rem 1rem;
+  margin: 0.75rem 0;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-radius: 0 4px 4px 0;
+}
+
+/* ── Code blocks ───────────────────────────────────────── */
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-code);
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* ── Tables ────────────────────────────────────────────── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+}
+
+th {
+  background: var(--bg-card);
+  font-weight: 600;
+}
+
+/* ── Hook card grid (index pages) ──────────────────────── */
+
+.hook-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.hook-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.15s;
+}
+
+.hook-card:hover { border-color: var(--accent); }
+.hook-card h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+.hook-card .event-tag { font-size: 0.75rem; color: var(--accent); }
+.hook-card p { font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+/* ── Footer ────────────────────────────────────────────── */
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

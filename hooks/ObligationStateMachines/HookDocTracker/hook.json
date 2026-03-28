@@ -1,0 +1,24 @@
+{
+  "name": "HookDocTracker",
+  "group": "ObligationStateMachines",
+  "event": "PostToolUse",
+  "description": "Tracks hook source file changes and marks documentation as stale",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "lib": [
+      "obligation-machine",
+      "paths"
+    ],
+    "adapters": [],
+    "shared": [
+      "HookDocStateMachine.shared.ts",
+      "DocObligationStateMachine.shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}

@@ -1,0 +1,25 @@
+{
+  "name": "HookDocEnforcer",
+  "group": "ObligationStateMachines",
+  "event": "Stop",
+  "description": "Blocks session end when hook source files lack documentation",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "lib": [
+      "obligation-machine",
+      "narrative-reader",
+      "paths"
+    ],
+    "adapters": [],
+    "shared": [
+      "HookDocStateMachine.shared.ts",
+      "DocObligationStateMachine.shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}
