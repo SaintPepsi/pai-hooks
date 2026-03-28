@@ -11,9 +11,8 @@
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err, tryCatch, type Result } from "@hooks/core/result";
+import { ok, err, map, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { processExecFailed } from "@hooks/core/error";
 import { fileExists, appendFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join, dirname } from "path";
@@ -21,7 +20,7 @@ import { join, dirname } from "path";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface WorktreeSafetyDeps {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => string;
+  execSync: (cmd: string, opts?: Record<string, unknown>) => Result<string, PaiError>;
   spawnSync: (cmd: string, args: string[], opts?: Record<string, unknown>) => { status: number | null };
   spawn: (cmd: string, args: string[], opts?: Record<string, unknown>) => { unref(): void };
   existsSync: (path: string) => boolean;
@@ -68,12 +67,9 @@ export const TEST_CONFIGS: TestConfig[] = [
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Bridge throwing deps.execSync into Result. */
+/** Map deps.execSync Result, trimming the output string on success. */
 function tryExec(deps: WorktreeSafetyDeps, cmd: string, opts?: Record<string, unknown>): Result<string, PaiError> {
-  return tryCatch(
-    () => String(deps.execSync(cmd, opts)).trim(),
-    (e) => processExecFailed(cmd, e),
-  );
+  return map(deps.execSync(cmd, opts), (v) => v.trim());
 }
 
 // ─── Pure Logic Functions ────────────────────────────────────────────────────
@@ -201,11 +197,8 @@ export function runBaselineTests(worktreePath: string, deps: WorktreeSafetyDeps)
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: WorktreeSafetyDeps = {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => {
-    const r = execSyncSafe(cmd, { cwd: opts?.cwd as string, timeout: opts?.timeout as number, stdio: opts?.stdio as "pipe" | "ignore" | "inherit" | undefined });
-    if (!r.ok) throw r.error;
-    return r.value;
-  },
+  execSync: (cmd: string, opts?: Record<string, unknown>) =>
+    execSyncSafe(cmd, { cwd: opts?.cwd as string, timeout: opts?.timeout as number, stdio: opts?.stdio as "pipe" | "ignore" | "inherit" | undefined }),
   spawnSync: (cmd: string, args: string[], opts?: Record<string, unknown>) => {
     const r = execSyncSafe([cmd, ...args].join(" "), { cwd: opts?.cwd as string, timeout: opts?.timeout as number });
     return { status: r.ok ? 0 : -1 };

@@ -11,14 +11,19 @@ import {
 } from "./WorktreeSafetyVerification.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ok, err, type Result } from "@hooks/core/result";
+import { processExecFailed, type PaiError } from "@hooks/core/error";
 import { join } from "path";
+
+/** Helper to create an err Result for exec failures in test mocks. */
+function execErr(cmd: string): Result<string, PaiError> {
+  return err(processExecFailed(cmd, new Error(cmd)));
+}
 
 function makeDeps(overrides: Partial<WorktreeSafetyDeps> = {}): WorktreeSafetyDeps {
   return {
     ...WorktreeSafetyVerification.defaultDeps,
-    execSync: () => "",
+    execSync: () => ok(""),
     spawnSync: () => ({ status: 0 }),
     spawn: (_cmd: string, _args: string[]) => ({ unref: () => {} }),
     existsSync: () => true,
@@ -97,8 +102,8 @@ describe("WorktreeSafetyVerification contract", () => {
         return path === "/tmp/test-wt" || path.endsWith("bun.lockb");
       },
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp";
-        return "";
+        if (typeof cmd === "string" && cmd.includes("rev-parse")) return ok("/tmp");
+        return ok("");
       },
     });
 
@@ -209,7 +214,7 @@ describe("ensureGitignore", () => {
   it("skips when git root not found", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
-      execSync: () => { throw new Error("not a git repo"); },
+      execSync: (cmd: string) => execErr(cmd),
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/test-wt", deps);
@@ -220,9 +225,9 @@ describe("ensureGitignore", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) return ""; // exit 0 = ignored
-        return "";
+        if (cmd.includes("rev-parse")) return ok("/tmp/project");
+        if (cmd.includes("check-ignore")) return ok(""); // exit 0 = ignored
+        return ok("");
       },
       stderr: (msg: string) => stderrLines.push(msg),
     });
@@ -235,14 +240,13 @@ describe("ensureGitignore", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) {
-          const error = new Error("not ignored");
-          (error as unknown as Record<string, unknown>).status = 1;
-          throw error;
+        if (cmd.includes("rev-parse")) return ok("/tmp/project");
+        if (cmd.includes("check-ignore")) {
+          const cause = Object.assign(new Error("not ignored"), { status: 1 });
+          return err(processExecFailed(cmd, cause));
         }
-        if (typeof cmd === "string" && cmd.includes("git add")) return "";
-        return "";
+        if (cmd.includes("git add")) return ok("");
+        return ok("");
       },
       appendFileSync: (_path: string, content: string) => { appendedContent = content; },
       stderr: (msg: string) => stderrLines.push(msg),
@@ -256,13 +260,12 @@ describe("ensureGitignore", () => {
     let appendedContent = "";
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) {
-          const error = new Error("not ignored");
-          (error as unknown as Record<string, unknown>).status = 1;
-          throw error;
+        if (cmd.includes("rev-parse")) return ok("/tmp/project");
+        if (cmd.includes("check-ignore")) {
+          const cause = Object.assign(new Error("not ignored"), { status: 1 });
+          return err(processExecFailed(cmd, cause));
         }
-        return "";
+        return ok("");
       },
       appendFileSync: (_path: string, content: string) => { appendedContent = content; },
     });
@@ -274,13 +277,12 @@ describe("ensureGitignore", () => {
     let appendedContent = "";
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/other/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) {
-          const error = new Error("not ignored");
-          (error as unknown as Record<string, unknown>).status = 1;
-          throw error;
+        if (cmd.includes("rev-parse")) return ok("/other/project");
+        if (cmd.includes("check-ignore")) {
+          const cause = Object.assign(new Error("not ignored"), { status: 1 });
+          return err(processExecFailed(cmd, cause));
         }
-        return "";
+        return ok("");
       },
       appendFileSync: (_path: string, content: string) => { appendedContent = content; },
     });
@@ -292,16 +294,15 @@ describe("ensureGitignore", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) {
-          const error = new Error("not ignored");
-          (error as unknown as Record<string, unknown>).status = 1;
-          throw error;
+        if (cmd.includes("rev-parse")) return ok("/tmp/project");
+        if (cmd.includes("check-ignore")) {
+          const cause = Object.assign(new Error("not ignored"), { status: 1 });
+          return err(processExecFailed(cmd, cause));
         }
-        if (typeof cmd === "string" && cmd.includes("git add")) {
-          throw new Error("commit failed");
+        if (cmd.includes("git add")) {
+          return err(processExecFailed(cmd, new Error("commit failed")));
         }
-        return "";
+        return ok("");
       },
       stderr: (msg: string) => stderrLines.push(msg),
     });
@@ -313,13 +314,12 @@ describe("ensureGitignore", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) {
-          const error = new Error("not ignored");
-          (error as unknown as Record<string, unknown>).status = 1;
-          throw error;
+        if (cmd.includes("rev-parse")) return ok("/tmp/project");
+        if (cmd.includes("check-ignore")) {
+          const cause = Object.assign(new Error("not ignored"), { status: 1 });
+          return err(processExecFailed(cmd, cause));
         }
-        return ""; // git add and commit succeed
+        return ok(""); // git add and commit succeed
       },
       stderr: (msg: string) => stderrLines.push(msg),
     });
@@ -331,13 +331,12 @@ describe("ensureGitignore", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (typeof cmd === "string" && cmd.includes("rev-parse")) return "/tmp/project";
-        if (typeof cmd === "string" && cmd.includes("check-ignore")) {
-          const error = new Error("unknown error");
-          (error as unknown as Record<string, unknown>).status = 128;
-          throw error;
+        if (cmd.includes("rev-parse")) return ok("/tmp/project");
+        if (cmd.includes("check-ignore")) {
+          const cause = Object.assign(new Error("unknown error"), { status: 128 });
+          return err(processExecFailed(cmd, cause));
         }
-        return "";
+        return ok("");
       },
       stderr: (msg: string) => stderrLines.push(msg),
     });
@@ -491,13 +490,20 @@ describe("WorktreeSafetyVerification defaultDeps", () => {
     expect(() => WorktreeSafetyVerification.defaultDeps.mkdirSync("/tmp")).not.toThrow();
   });
 
-  it("defaultDeps.execSync returns string for successful command", () => {
+  it("defaultDeps.execSync returns ok Result for successful command", () => {
     const result = WorktreeSafetyVerification.defaultDeps.execSync("echo hello", { timeout: 5000 });
-    expect(typeof result).toBe("string");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(typeof result.value).toBe("string");
+    }
   });
 
-  it("defaultDeps.execSync throws on failed command", () => {
-    expect(() => WorktreeSafetyVerification.defaultDeps.execSync("false", { timeout: 1000 })).toThrow();
+  it("defaultDeps.execSync returns err Result on failed command (never throws)", () => {
+    const result = WorktreeSafetyVerification.defaultDeps.execSync("false", { timeout: 1000 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBeDefined();
+    }
   });
 
   it("defaultDeps.spawn returns object with unref", () => {
