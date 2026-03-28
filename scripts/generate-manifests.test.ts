@@ -10,7 +10,8 @@ import { ok, err } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import type { GeneratorDeps, GeneratorOptions } from "@hooks/scripts/generate-manifests";
-import { generate, parseImports, extractEvent, hookUsesShared } from "@hooks/scripts/generate-manifests";
+import { generate, extractEvent } from "@hooks/scripts/generate-manifests";
+import { parseImports, hookUsesShared } from "@hooks/lib/import-parser";
 import type { HookManifest, GroupManifest } from "@hooks/cli/types/manifest";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────

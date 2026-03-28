@@ -1,8 +1,8 @@
 /**
- * VoiceGate Contract — Block voice curls from subagents.
+ * VoiceGate Contract — Block voice server requests from subagents.
  *
- * Only the main terminal session may curl localhost:8888.
- * Subagents get blocked silently.
+ * Only the main terminal session may access the voice server (localhost:8888).
+ * Subagents are blocked to prevent duplicate TTS notifications.
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
@@ -15,34 +15,13 @@ import { join } from "path";
 
 export interface VoiceGateDeps {
   existsSync: (path: string) => boolean;
-  getTermProgram: () => string | undefined;
-  getItermSessionId: () => string | undefined;
-  getPaiDir: () => string;
+  getIsSubagent: () => boolean;
 }
 
 const defaultDeps: VoiceGateDeps = {
   existsSync: fileExists,
-  getTermProgram: () => process.env.TERM_PROGRAM,
-  getItermSessionId: () => process.env.ITERM_SESSION_ID,
-  getPaiDir: () => process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  getIsSubagent: () => process.env.CLAUDE_CODE_AGENT_SUBAGENT === "true",
 };
-
-function isMainSession(sessionId: string, deps: VoiceGateDeps): boolean {
-  const termProgram = deps.getTermProgram();
-  if (
-    termProgram === "iTerm.app" ||
-    termProgram === "WarpTerminal" ||
-    termProgram === "Alacritty" ||
-    termProgram === "Apple_Terminal" ||
-    deps.getItermSessionId()
-  ) {
-    return true;
-  }
-
-  const kittySessionsDir = join(deps.getPaiDir(), "MEMORY", "STATE", "kitty-sessions");
-  if (!deps.existsSync(kittySessionsDir)) return true;
-  return deps.existsSync(join(kittySessionsDir, `${sessionId}.json`));
-}
 
 export const VoiceGate: SyncHookContract<
   ToolHookInput,
@@ -61,14 +40,14 @@ export const VoiceGate: SyncHookContract<
     input: ToolHookInput,
     deps: VoiceGateDeps,
   ): Result<ContinueOutput | BlockOutput, PaiError> {
-    if (isMainSession(input.session_id, deps)) {
+    if (!deps.getIsSubagent()) {
       return ok({ type: "continue", continue: true });
     }
 
     return ok({
       type: "block",
       decision: "block",
-      reason: "Voice notifications are only sent from the main session. Subagent voice curls are suppressed.",
+      reason: "Voice server access is restricted to the main session. Subagent requests are suppressed to prevent duplicate TTS notifications.",
     });
   },
 

@@ -2,63 +2,52 @@
 
 ## Overview
 
-VoiceGate is a **PreToolUse** hook that prevents subagent sessions from sending voice notifications. Only the main terminal session is permitted to curl `localhost:8888` (the voice notification endpoint). Subagent sessions are blocked silently to prevent duplicate or unexpected voice notifications when multiple agents are running in parallel.
+VoiceGate is a **PreToolUse** hook that prevents subagent sessions from accessing the voice notification server. Only the main session is permitted to reach `localhost:8888` (the Kokoro TTS voice server). Subagent sessions are blocked to prevent duplicate or unexpected TTS notifications when multiple agents are running in parallel.
 
-The hook determines whether a session is the "main" session by checking terminal environment variables (iTerm, Warp, Alacritty, Apple Terminal) or by looking for a persisted Kitty session file.
+The hook uses the `CLAUDE_CODE_AGENT_SUBAGENT` environment variable to determine whether the current session is a subagent.
 
 ## Event
 
-`PreToolUse` — fires before a Bash tool call executes, blocking voice notification curls from subagent sessions.
+`PreToolUse` — fires before a Bash tool call executes, blocking voice server requests from subagent sessions.
 
 ## When It Fires
 
-- The Bash command contains `localhost:8888` (the voice notification endpoint)
-- The session is determined to be a subagent (not the main terminal session)
+- The Bash command contains `localhost:8888` (the voice server endpoint)
+- The session is determined to be a subagent (`CLAUDE_CODE_AGENT_SUBAGENT=true`)
 
 It does **not** fire when:
 
 - The command does not reference `localhost:8888`
-- The session is the main terminal session (identified by terminal environment variables or Kitty session file)
+- The session is the main session (not a subagent)
 - The tool is not Bash
 
 ## What It Does
 
 1. Checks if the command contains `localhost:8888` (accepts gate)
-2. Determines if the current session is the main session by checking:
-   - `TERM_PROGRAM` is iTerm.app, WarpTerminal, Alacritty, or Apple_Terminal
-   - `ITERM_SESSION_ID` environment variable is set
-   - A Kitty session file exists at `MEMORY/STATE/kitty-sessions/{session_id}.json`
-3. If the session is main, returns `continue` to allow the voice curl
+2. Determines if the current session is a subagent via `CLAUDE_CODE_AGENT_SUBAGENT` env var
+3. If the session is the main session, returns `continue` to allow the request
 4. If the session is a subagent, returns `block` with a descriptive reason
 
 ```typescript
-function isMainSession(sessionId: string, deps: VoiceGateDeps): boolean {
-  const termProgram = deps.getTermProgram();
-  if (termProgram === "iTerm.app" || termProgram === "WarpTerminal" ||
-      termProgram === "Alacritty" || termProgram === "Apple_Terminal" ||
-      deps.getItermSessionId()) {
-    return true;
-  }
-  // Fall back to checking persisted Kitty session file
-  const kittySessionsDir = join(deps.getPaiDir(), "MEMORY", "STATE", "kitty-sessions");
-  if (!deps.existsSync(kittySessionsDir)) return true;
-  return deps.existsSync(join(kittySessionsDir, `${sessionId}.json`));
+accepts(input: ToolHookInput): boolean {
+  const command = (input.tool_input?.command as string) || "";
+  return command.includes("localhost:8888");
 }
 ```
 
 ## Examples
 
-### Example 1: Subagent voice curl blocked
+### Example 1: Subagent voice request blocked
 
-> A subagent spawned to handle a parallel task attempts to run `curl localhost:8888/notify -d "Task complete"`. VoiceGate detects the session lacks main terminal environment variables and no Kitty session file exists. The command is blocked with: "Voice notifications are only sent from the main session. Subagent voice curls are suppressed."
+> A subagent spawned to handle a parallel task attempts to access the voice server at `localhost:8888/notify`. VoiceGate detects `CLAUDE_CODE_AGENT_SUBAGENT=true` and blocks the command with: "Voice server access is restricted to the main session."
 
-### Example 2: Main session voice curl allowed
+### Example 2: Main session voice request allowed
 
-> The main iTerm session runs `curl localhost:8888/notify -d "Build finished"`. VoiceGate detects `TERM_PROGRAM=iTerm.app` and returns `continue`, allowing the notification to proceed.
+> The main session sends a request to `localhost:8888/notify`. VoiceGate confirms the session is not a subagent and returns `continue`, allowing the request to proceed.
 
 ## Dependencies
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
-| `fs` | adapter | Provides `fileExists` for checking Kitty session files |
+| `fs` | adapter | Provides `fileExists` for dependency injection |
 | `result` | core | Provides `ok` and `Result` type for error handling |

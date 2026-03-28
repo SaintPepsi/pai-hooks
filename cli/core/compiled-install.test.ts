@@ -214,8 +214,8 @@ describe("mode change detection", () => {
   });
 });
 
-describe("lockfile backward compatibility", () => {
-  it("old lockfile without outputMode defaults to source", () => {
+describe("lockfile mode change detection", () => {
+  it("re-install in same mode succeeds", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
       "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
@@ -223,11 +223,11 @@ describe("lockfile backward compatibility", () => {
         source: "/source",
         sourceCommit: null,
         installedAt: "2025-01-01T00:00:00Z",
+        outputMode: "source",
         hooks: [],
       }),
     });
 
-    // Install in source mode should succeed (same as default)
     const result = install(
       makeArgs(["TypeStrictness"]),
       deps,
@@ -237,7 +237,7 @@ describe("lockfile backward compatibility", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("old lockfile without outputMode requires --force for compiled mode", () => {
+  it("switching to compiled mode requires --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
       "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
@@ -245,6 +245,7 @@ describe("lockfile backward compatibility", () => {
         source: "/source",
         sourceCommit: null,
         installedAt: "2025-01-01T00:00:00Z",
+        outputMode: "source",
         hooks: [],
       }),
     });
