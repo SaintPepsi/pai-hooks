@@ -18,7 +18,7 @@ import { fileExists, appendFile, writeFile, ensureDir } from "@hooks/core/adapte
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join, dirname } from "path";
 
-// ─── Types (re-exported for backward compatibility) ──────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface WorktreeSafetyDeps {
   execSync: (cmd: string, opts?: Record<string, unknown>) => string;

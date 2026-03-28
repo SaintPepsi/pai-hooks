@@ -103,19 +103,16 @@ function loadSettings(): Settings {
 export function getIdentity(): Identity {
   const settings = loadSettings();
 
-  // Prefer settings.daidentity, fall back to env.DA for backward compat
   const daidentity = settings.daidentity || {};
-  const envDA = settings.env?.DA;
 
-  // Support both old (daidentity.voice) and new (daidentity.voices.main) structures
   const voices = (daidentity as any).voices || {};
-  const voiceConfig = voices.main || (daidentity as any).voice;
+  const voiceConfig = voices.main;
 
   return {
-    name: daidentity.name || envDA || DEFAULT_IDENTITY.name,
-    fullName: daidentity.fullName || daidentity.name || envDA || DEFAULT_IDENTITY.fullName,
-    displayName: daidentity.displayName || daidentity.name || envDA || DEFAULT_IDENTITY.displayName,
-    mainDAVoiceID: voiceConfig?.voiceId || (daidentity as any).voiceId || daidentity.mainDAVoiceID || DEFAULT_IDENTITY.mainDAVoiceID,
+    name: daidentity.name || DEFAULT_IDENTITY.name,
+    fullName: daidentity.fullName || daidentity.name || DEFAULT_IDENTITY.fullName,
+    displayName: daidentity.displayName || daidentity.name || DEFAULT_IDENTITY.displayName,
+    mainDAVoiceID: voiceConfig?.voiceId || daidentity.mainDAVoiceID || DEFAULT_IDENTITY.mainDAVoiceID,
     color: daidentity.color || DEFAULT_IDENTITY.color,
     voice: voiceConfig as VoiceProsody | undefined,
     personality: (daidentity as any).personality as VoicePersonality | undefined,
@@ -128,12 +125,10 @@ export function getIdentity(): Identity {
 export function getPrincipal(): Principal {
   const settings = loadSettings();
 
-  // Prefer settings.principal, fall back to env.PRINCIPAL for backward compat
   const principal = settings.principal || {};
-  const envPrincipal = settings.env?.PRINCIPAL;
 
   return {
-    name: principal.name || envPrincipal || DEFAULT_PRINCIPAL.name,
+    name: principal.name || DEFAULT_PRINCIPAL.name,
     pronunciation: principal.pronunciation || DEFAULT_PRINCIPAL.pronunciation,
     timezone: principal.timezone || DEFAULT_PRINCIPAL.timezone,
   };

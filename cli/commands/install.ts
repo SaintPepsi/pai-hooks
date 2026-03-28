@@ -150,7 +150,8 @@ export function install(
   }
 
   for (const hookDef of hooks) {
-    // Parse imports directly from contract source to discover deps
+    // Read contract source to parse its import statements — this drives
+    // which core/lib/adapter modules get staged alongside the hook.
     const contractSource = deps.readFile(hookDef.contractPath);
     if (!contractSource.ok) {
       cleanStaging(ctx.stagingDir, deps);

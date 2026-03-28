@@ -30,9 +30,6 @@ import { MANIFEST_SCHEMA_VERSION } from "@hooks/cli/types/manifest";
 import type { HookEventType } from "@hooks/core/types/hook-inputs";
 import { join, basename, dirname } from "path";
 
-// Re-export for backward compatibility with tests
-export { parseImports, hookUsesShared } from "@hooks/lib/import-parser";
-
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface GeneratorDeps {

@@ -26,15 +26,11 @@ export function readLockfile(
 ): Result<Lockfile | null, PaihError> {
   const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
 
-  // Backward compat: check legacy location too
-  const legacyPath = `${claudeDir}/hooks/paih.lock.json`;
-
-  if (!deps.fileExists(lockPath) && !deps.fileExists(legacyPath)) {
+  if (!deps.fileExists(lockPath)) {
     return ok(null);
   }
 
-  const actualPath = deps.fileExists(lockPath) ? lockPath : legacyPath;
-  const content = deps.readFile(actualPath);
+  const content = deps.readFile(lockPath);
   if (!content.ok) return content;
 
   const parsed = safeJsonParse(content.value, lockPath);
@@ -44,18 +40,6 @@ export function readLockfile(
 
   if (lockfile.lockfileVersion !== 1) {
     return err(lockCorrupt(lockPath));
-  }
-
-  // Backward compat: old lockfiles may omit outputMode
-  if (!lockfile.outputMode) {
-    lockfile.outputMode = DEFAULT_OUTPUT_MODE;
-  }
-
-  // Backward compat: ensure fileHashes exists on every hook entry
-  for (const hook of lockfile.hooks) {
-    if (!hook.fileHashes) {
-      hook.fileHashes = {};
-    }
   }
 
   return ok(lockfile);
