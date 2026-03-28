@@ -189,7 +189,7 @@ describe("DuplicationIndexBuilderContract", () => {
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
-      expect((output as Record<string, unknown>).additionalContext).toBeUndefined();
+      expect((output as unknown as Record<string, unknown>).additionalContext).toBeUndefined();
     });
 
     test("handles missing project root gracefully", () => {
