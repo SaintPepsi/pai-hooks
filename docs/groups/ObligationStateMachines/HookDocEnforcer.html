@@ -1399,137 +1399,229 @@
 </div>
 
 <div class="container">
-  <div class="tags">
+  <div class="tags" style="margin-bottom: var(--sp-2xl);">
     <span class="tag red">Stop</span>
     <span class="tag green">ObligationStateMachines</span>
   </div>
 
-  <h1 id="hookdocenforcer">HookDocEnforcer</h1>
-<div class="section-label">Overview</div>
-<h2 id="overview">Overview</h2>
-<p>HookDocEnforcer is a <strong>Stop-event</strong> hook that blocks session end when hook source files have been modified without updating their corresponding documentation. It works in tandem with the HookDocTracker (PostToolUse) which tracks which files are stale.</p>
-<p>This hook is fully configurable via <code>hookConfig.hookDocEnforcer</code> in <code>settings.json</code>, allowing per-project control over required sections, blocking behavior, and watched file patterns.</p>
-<div class="section-label">Event</div>
-<h2 id="event">Event</h2>
-<p><code>Stop</code> — fires when the user attempts to end a Claude Code session.</p>
-<p>If pending documentation obligations exist, the hook blocks the session and tells Claude exactly which <code>doc.md</code> files need to be created and what sections they must contain.</p>
-<div class="section-label">When It Fires</div>
-<h2 id="when-it-fires">When It Fires</h2>
-<ul>
-<li>The HookDocTracker has flagged one or more hook source files as having stale or missing documentation</li>
-<li>The user attempts to end their session (Stop event)</li>
-<li>The hook is enabled in settings (default: enabled)</li>
-<li>No project-level override exists (checked via <code>projectHasHook</code>)</li>
-</ul>
-<p>It does <strong>not</strong> fire when:</p>
-<ul>
-<li>No source files were modified during the session</li>
-<li>All modified hooks already had their <code>doc.md</code> updated</li>
-<li>The hook is disabled via <code>hookConfig.hookDocEnforcer.enabled: false</code></li>
-<li>A project-level <code>HookDocEnforcer.hook.ts</code> exists in <code>.claude/hooks/</code></li>
-</ul>
-<div class="section-label">What It Does</div>
-<h2 id="what-it-does">What It Does</h2>
-<ol>
-<li>Reads pending state from the session's obligation state file</li>
-<li>If no pending files exist, returns <code>silent</code> (session proceeds)</li>
-<li>Checks the block count against <code>maxBlocks</code> (default: 1)</li>
-<li>If the block limit has been reached, writes a review document and releases the session</li>
-<li>Otherwise, builds a block message containing:</li>
-</ol>
-<ul>
-<li>A narrative opener (escalating tone based on violation count)</li>
-<li>The list of modified source files lacking documentation</li>
-<li>Specific suggestions for which <code>doc.md</code> files to create</li>
-<li>The required sections that each doc must contain</li>
-</ul>
-<div class="code-block"><span class="code-lang">typescript</span>
+  
+
+  
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
+      </div>
+      <p>HookDocEnforcer is a <strong>Stop-event</strong> hook that blocks session end when hook source files have been modified without updating their corresponding documentation. It works in tandem with the HookDocTracker (PostToolUse) which tracks which files are stale.</p>
+      <p>This hook is fully configurable via <code>hookConfig.hookDocEnforcer</code> in <code>settings.json</code>, allowing per-project control over required sections, blocking behavior, and watched file patterns.</p>
+    </div>
+  </section>
+
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
+      </div>
+      <p><code>Stop</code> — fires when the user attempts to end a Claude Code session.</p>
+      <p>If pending documentation obligations exist, the hook blocks the session and tells Claude exactly which <code>doc.md</code> files need to be created and what sections they must contain.</p>
+    </div>
+  </section>
+
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
+      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> The HookDocTracker has flagged one or more hook source files as having stale or missing documentation</div>
+<div class="reason"><span class="ri">&#x2022;</span> The user attempts to end their session (Stop event)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The hook is enabled in settings (default: enabled)</div>
+<div class="reason"><span class="ri">&#x2022;</span> No project-level override exists (checked via <code>projectHasHook</code>)</div>
+      <p>It does <strong>not</strong> fire when:</p>
+      <div class="reason"><span class="ri">&#x2022;</span> No source files were modified during the session</div>
+<div class="reason"><span class="ri">&#x2022;</span> All modified hooks already had their <code>doc.md</code> updated</div>
+<div class="reason"><span class="ri">&#x2022;</span> The hook is disabled via <code>hookConfig.hookDocEnforcer.enabled: false</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> A project-level <code>HookDocEnforcer.hook.ts</code> exists in <code>.claude/hooks/</code></div>
+    </div>
+  </section>
+
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Reads pending state from the session's obligation state file</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>If no pending files exist, returns <code>silent</code> (session proceeds)</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">3</div>
+          <div class="step-content"><p>Checks the block count against <code>maxBlocks</code> (default: 1)</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">4</div>
+          <div class="step-content"><p>If the block limit has been reached, writes a review document and releases the session</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">5</div>
+          <div class="step-content"><p>Otherwise, builds a block message containing:</p></div>
+        </div>
+</div>
+      <div class="reason"><span class="ri">&#x2022;</span> A narrative opener (escalating tone based on violation count)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The list of modified source files lacking documentation</div>
+<div class="reason"><span class="ri">&#x2022;</span> Specific suggestions for which <code>doc.md</code> files to create</div>
+<div class="reason"><span class="ri">&#x2022;</span> The required sections that each doc must contain</div>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">typescript</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">typescript</span>
 // Core enforcer flow (via generic obligation machine)
 const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
-if (result.action === &quot;block&quot;) {
+if (result.action === "block") {
   // Build reason with file list + required sections
-  return ok({ type: &quot;block&quot;, decision: &quot;block&quot;, reason });
-}
-</div>
-<div class="section-label">Examples</div>
-<h2 id="examples">Examples</h2>
-<h3 id="example-1-source-file-edited-without-docs">Example 1: Source file edited without docs</h3>
-<div class="insight">
-<p>You edit <code>FooBar/FooBar.contract.ts</code> during a session. When you try to end the session, HookDocEnforcer blocks with:</p>
-</div>
-<p>></p>
-<div class="insight">
-<p>"Hook source files modified without documentation:</p>
-<p>  - /hooks/MyGroup/FooBar/FooBar.contract.ts</p>
-</div>
-<p>></p>
-<div class="insight">
-<p>Create or update <code>/hooks/MyGroup/FooBar/doc.md</code></p>
-</div>
-<p>></p>
-<div class="insight">
-<p>Required sections in <code>doc.md</code>:</p>
-<p>  - ## Overview</p>
-<p>  - ## Event</p>
-<p>  - ## When It Fires</p>
-<p>  - ## What It Does</p>
-<p>  - ## Examples</p>
-<p>  - ## Dependencies"</p>
-</div>
-<h3 id="example-2-doc-written-session-proceeds">Example 2: Doc written, session proceeds</h3>
-<div class="insight">
-<p>After being blocked, you create <code>FooBar/doc.md</code> with all required sections. The HookDocTracker detects the write and clears the pending flag. On the next Stop attempt, HookDocEnforcer returns <code>silent</code> and the session ends normally.</p>
-</div>
-<h3 id="example-3-block-limit-reached">Example 3: Block limit reached</h3>
-<div class="insight">
-<p>If you attempt to end the session twice without writing docs, the enforcer reaches its block limit (default: 1), writes a review document to <code>MEMORY/STATE/hook-doc-obligation/review-{session_id}.md</code>, and releases the session.</p>
-</div>
-<div class="section-label">Dependencies</div>
-<h2 id="dependencies">Dependencies</h2>
-<table class="tbl">
-<tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr>
-<tr><td><code>obligation-machine</code></td><td>lib</td><td>Generic state machine (checkObligation, createDefaultDeps)</td></tr>
-<tr><td><code>narrative-reader</code></td><td>lib</td><td>Picks escalating narrative tone for block messages</td></tr>
-<tr><td><code>paths</code></td><td>lib</td><td>Resolves settings.json path</td></tr>
-<tr><td><code>DocObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>projectHasHook</code> for deduplication</td></tr>
-<tr><td><code>HookDocStateMachine.shared</code></td><td>shared</td><td>Settings reader, config, doc suggestions builder</td></tr>
-</table>
-<div class="section-label">Configuration</div>
-<h2 id="configuration">Configuration</h2>
-<p>Settings are read from <code>~/.claude/settings.json</code> under <code>hookConfig.hookDocEnforcer</code>:</p>
-<div class="code-block"><span class="code-lang">json</span>
+  return ok({ type: "block", decision: "block", reason });
+}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Source file edited without docs</h3>
+      
+      <div class="uc-example">
+        <div>You edit <code>FooBar/FooBar.contract.ts</code> during a session. When you try to end the session, HookDocEnforcer blocks with:</div>
+        <div>"Hook source files modified without documentation:</div>
+        <div>  - /hooks/MyGroup/FooBar/FooBar.contract.ts</div>
+        <div>Create or update <code>/hooks/MyGroup/FooBar/doc.md</code></div>
+        <div>Required sections in <code>doc.md</code>:</div>
+        <div>  - ## Overview</div>
+        <div>  - ## Event</div>
+        <div>  - ## When It Fires</div>
+        <div>  - ## What It Does</div>
+        <div>  - ## Examples</div>
+        <div>  - ## Dependencies"</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Doc written, session proceeds</h3>
+      
+      <div class="uc-example">
+        <div>After being blocked, you create <code>FooBar/doc.md</code> with all required sections. The HookDocTracker detects the write and clears the pending flag. On the next Stop attempt, HookDocEnforcer returns <code>silent</code> and the session ends normally.</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Block limit reached</h3>
+      
+      <div class="uc-example">
+        <div>If you attempt to end the session twice without writing docs, the enforcer reaches its block limit (default: 1), writes a review document to <code>MEMORY/STATE/hook-doc-obligation/review-{session_id}.md</code>, and releases the session.</div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
+      </div>
+      
+      <table class="tbl">
+        <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>obligation-machine</code></td><td>lib</td><td>Generic state machine (checkObligation, createDefaultDeps)</td></tr>
+          <tr><td><code>narrative-reader</code></td><td>lib</td><td>Picks escalating narrative tone for block messages</td></tr>
+          <tr><td><code>paths</code></td><td>lib</td><td>Resolves settings.json path</td></tr>
+          <tr><td><code>DocObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>projectHasHook</code> for deduplication</td></tr>
+          <tr><td><code>HookDocStateMachine.shared</code></td><td>shared</td><td>Settings reader, config, doc suggestions builder</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="configuration">
+    <div class="section-label accent">Configuration</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>Configuration</h3>
+      </div>
+      <p>Settings are read from <code>~/.claude/settings.json</code> under <code>hookConfig.hookDocEnforcer</code>:</p>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">json</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">json</span>
 {
-  &quot;hookConfig&quot;: {
-    &quot;hookDocEnforcer&quot;: {
-      &quot;enabled&quot;: true,
-      &quot;blocking&quot;: true,
-      &quot;docFileName&quot;: &quot;doc.md&quot;,
-      &quot;requiredSections&quot;: [
-        &quot;## Overview&quot;,
-        &quot;## Event&quot;,
-        &quot;## When It Fires&quot;,
-        &quot;## What It Does&quot;,
-        &quot;## Examples&quot;,
-        &quot;## Dependencies&quot;
+  "hookConfig": {
+    "hookDocEnforcer": {
+      "enabled": true,
+      "blocking": true,
+      "docFileName": "doc.md",
+      "requiredSections": [
+        "## Overview",
+        "## Event",
+        "## When It Fires",
+        "## What It Does",
+        "## Examples",
+        "## Dependencies"
       ],
-      &quot;watchPatterns&quot;: [
-        &quot;\\.contract\\.ts$&quot;,
-        &quot;hook\\.json$&quot;,
-        &quot;group\\.json$&quot;
+      "watchPatterns": [
+        "\\.contract\\.ts$",
+        "hook\\.json$",
+        "group\\.json$"
       ]
     }
   }
-}
-</div>
-<table class="tbl">
-<tr><th>Setting</th><th>Default</th><th>Description</th></tr>
-<tr><td><code>enabled</code></td><td><code>true</code></td><td>Enable or disable the enforcer entirely</td></tr>
-<tr><td><code>blocking</code></td><td><code>true</code></td><td>Whether to block (true) or just log (false)</td></tr>
-<tr><td><code>docFileName</code></td><td><code>"doc.md"</code></td><td>Name of the documentation file to look for</td></tr>
-<tr><td><code>requiredSections</code></td><td>6 headings</td><td>Markdown headings that must appear in the doc</td></tr>
-<tr><td><code>watchPatterns</code></td><td>3 patterns</td><td>Regex patterns for files that trigger the obligation</td></tr>
-</table>
+}</div>
+        </div>
+      </div>
+      
+      <table class="tbl">
+        <thead><tr><th>Setting</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>enabled</code></td><td><code>true</code></td><td>Enable or disable the enforcer entirely</td></tr>
+          <tr><td><code>blocking</code></td><td><code>true</code></td><td>Whether to block (true) or just log (false)</td></tr>
+          <tr><td><code>docFileName</code></td><td><code>"doc.md"</code></td><td>Name of the documentation file to look for</td></tr>
+          <tr><td><code>requiredSections</code></td><td>6 headings</td><td>Markdown headings that must appear in the doc</td></tr>
+          <tr><td><code>watchPatterns</code></td><td>3 patterns</td><td>Regex patterns for files that trigger the obligation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <footer>
     <p>Generated from <code>HookDocEnforcer/doc.md</code> &mdash; pai-hooks documentation</p>
@@ -1555,7 +1647,6 @@ if (result.action === &quot;block&quot;) {
     nav.classList.remove('open');
     overlay.classList.remove('open');
   });
-
   if (nav) nav.querySelectorAll('a').forEach(function(link) {
     link.addEventListener('click', function() {
       if (window.innerWidth <= 1200) {
@@ -1575,7 +1666,6 @@ if (result.action === &quot;block&quot;) {
         if (progressFill) progressFill.style.width = progress + '%';
         if (progressText) progressText.textContent = progress + '% read';
         if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
-
         var current = '';
         for (var i = 0; i < sections.length; i++) {
           if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
