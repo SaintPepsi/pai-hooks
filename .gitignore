@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 coverage/
 MEMORY/
+
+.duplication-index.json
+.duplication-checker.log
