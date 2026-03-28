@@ -2,7 +2,7 @@
   "name": "TestObligationTracker",
   "group": "ObligationStateMachines",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Tracks test changes alongside code",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -2,7 +2,7 @@
   "name": "CodeQualityGuard",
   "group": "CodeQualityPipeline",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Blocks low-quality code patterns",
   "schemaVersion": 1,
   "deps": {
     "core": [

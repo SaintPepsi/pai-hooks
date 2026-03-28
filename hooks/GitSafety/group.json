@@ -1,6 +1,6 @@
 {
   "name": "GitSafety",
-  "description": "",
+  "description": "Git safety, branch protection, and worktree verification",
   "hooks": [
     "ApprovalGate",
     "DestructiveDeleteGuard",

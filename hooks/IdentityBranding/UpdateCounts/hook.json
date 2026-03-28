@@ -2,7 +2,7 @@
   "name": "UpdateCounts",
   "group": "IdentityBranding",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Updates hook/file/signal counters for dashboard",
   "schemaVersion": 1,
   "deps": {
     "core": [

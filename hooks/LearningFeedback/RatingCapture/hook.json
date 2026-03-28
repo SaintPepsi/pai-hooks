@@ -2,7 +2,7 @@
   "name": "RatingCapture",
   "group": "LearningFeedback",
   "event": "UserPromptSubmit",
-  "description": "",
+  "description": "Captures user ratings for learning signals",
   "schemaVersion": 1,
   "deps": {
     "core": [

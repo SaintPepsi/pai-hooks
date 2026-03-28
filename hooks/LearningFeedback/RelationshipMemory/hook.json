@@ -2,7 +2,7 @@
   "name": "RelationshipMemory",
   "group": "LearningFeedback",
   "event": "Stop",
-  "description": "",
+  "description": "Persists relationship context to memory",
   "schemaVersion": 1,
   "deps": {
     "core": [

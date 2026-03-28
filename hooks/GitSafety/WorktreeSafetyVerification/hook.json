@@ -2,7 +2,7 @@
   "name": "WorktreeSafetyVerification",
   "group": "GitSafety",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Prevents cross-worktree contamination",
   "schemaVersion": 1,
   "deps": {
     "core": [

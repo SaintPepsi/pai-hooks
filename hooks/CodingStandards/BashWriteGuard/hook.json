@@ -2,7 +2,7 @@
   "name": "BashWriteGuard",
   "group": "CodingStandards",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Prevents bypassing Edit/Write via Bash sed/echo",
   "schemaVersion": 1,
   "deps": {
     "core": [

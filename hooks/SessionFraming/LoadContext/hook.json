@@ -2,7 +2,7 @@
   "name": "LoadContext",
   "group": "SessionFraming",
   "event": "SessionStart",
-  "description": "",
+  "description": "Loads PAI context files at session start",
   "schemaVersion": 1,
   "deps": {
     "core": [

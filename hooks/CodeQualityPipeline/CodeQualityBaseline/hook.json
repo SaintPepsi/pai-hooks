@@ -2,7 +2,7 @@
   "name": "CodeQualityBaseline",
   "group": "CodeQualityPipeline",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Tracks quality scores over time",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -1,6 +1,6 @@
 {
   "name": "WorkLifecycle",
-  "description": "",
+  "description": "Session work tracking, summaries, and content generation",
   "hooks": [
     "ArticleWriter",
     "AutoWorkCreation",

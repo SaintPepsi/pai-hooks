@@ -2,7 +2,7 @@
   "name": "AgentLifecycleStop",
   "group": "AgentLifecycle",
   "event": "SubagentStop",
-  "description": "",
+  "description": "Cleans up agent lifecycle on subagent stop",
   "schemaVersion": 1,
   "deps": {
     "core": [

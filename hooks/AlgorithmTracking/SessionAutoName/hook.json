@@ -2,7 +2,7 @@
   "name": "SessionAutoName",
   "group": "AlgorithmTracking",
   "event": "UserPromptSubmit",
-  "description": "",
+  "description": "Auto-names sessions from first prompt",
   "schemaVersion": 1,
   "deps": {
     "core": [

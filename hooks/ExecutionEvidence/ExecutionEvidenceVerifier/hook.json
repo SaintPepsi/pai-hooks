@@ -2,7 +2,7 @@
   "name": "ExecutionEvidenceVerifier",
   "group": "ExecutionEvidence",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Verifies execution evidence from tool results",
   "schemaVersion": 1,
   "deps": {
     "core": [

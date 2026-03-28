@@ -1,6 +1,6 @@
 {
   "name": "AgentLifecycle",
-  "description": "",
+  "description": "Agent spawn, stop, and permission management",
   "hooks": [
     "AgentExecutionGuard",
     "AgentLifecycleStart",

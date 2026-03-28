@@ -2,7 +2,7 @@
   "name": "AgentLifecycleStart",
   "group": "AgentLifecycle",
   "event": "SubagentStart",
-  "description": "",
+  "description": "Initializes agent lifecycle on subagent start",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -2,7 +2,7 @@
   "name": "WorkCompletionLearning",
   "group": "WorkLifecycle",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Extracts learning signals from completed work",
   "schemaVersion": 1,
   "deps": {
     "core": [

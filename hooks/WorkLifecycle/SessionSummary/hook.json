@@ -2,7 +2,7 @@
   "name": "SessionSummary",
   "group": "WorkLifecycle",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Generates session summary on end",
   "schemaVersion": 1,
   "deps": {
     "core": [

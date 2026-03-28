@@ -1,6 +1,6 @@
 {
   "name": "SessionFraming",
-  "description": "",
+  "description": "Session initialization, context loading, and branch awareness",
   "hooks": [
     "BranchAwareness",
     "CheckVersion",

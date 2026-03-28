@@ -2,7 +2,7 @@
   "name": "LearningActioner",
   "group": "LearningFeedback",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Spawns agent to analyze session learnings",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -1,6 +1,6 @@
 {
   "name": "QuestionAnswered",
-  "description": "",
+  "description": "User question response tracking",
   "hooks": [
     "QuestionAnswered"
   ],

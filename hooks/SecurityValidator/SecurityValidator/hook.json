@@ -2,7 +2,7 @@
   "name": "SecurityValidator",
   "group": "SecurityValidator",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Blocks writes to protected files",
   "schemaVersion": 1,
   "deps": {
     "core": [

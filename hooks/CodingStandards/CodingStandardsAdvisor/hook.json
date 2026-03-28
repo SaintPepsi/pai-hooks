@@ -2,7 +2,7 @@
   "name": "CodingStandardsAdvisor",
   "group": "CodingStandards",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Suggests improvements post-Read",
   "schemaVersion": 1,
   "deps": {
     "core": [

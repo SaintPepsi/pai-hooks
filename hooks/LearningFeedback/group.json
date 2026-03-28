@@ -1,6 +1,6 @@
 {
   "name": "LearningFeedback",
-  "description": "",
+  "description": "Learning signal capture and relationship memory",
   "hooks": [
     "LearningActioner",
     "RatingCapture",

@@ -1,6 +1,6 @@
 {
   "name": "AlgorithmTracking",
-  "description": "",
+  "description": "PAI Algorithm phase detection and session naming",
   "hooks": [
     "AlgorithmTracker",
     "CheckAlgorithmVersion",

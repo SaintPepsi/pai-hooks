@@ -1,6 +1,6 @@
 {
   "name": "ObligationStateMachines",
-  "description": "",
+  "description": "Documentation, test, citation, and hook-doc obligations",
   "hooks": [
     "CitationEnforcement",
     "CitationTracker",

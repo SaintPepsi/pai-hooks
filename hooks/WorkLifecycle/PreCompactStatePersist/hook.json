@@ -2,7 +2,7 @@
   "name": "PreCompactStatePersist",
   "group": "WorkLifecycle",
   "event": "PreCompact",
-  "description": "",
+  "description": "Persists state before context compaction",
   "schemaVersion": 1,
   "deps": {
     "core": [

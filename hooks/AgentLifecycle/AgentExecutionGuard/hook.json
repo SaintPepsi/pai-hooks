@@ -2,7 +2,7 @@
   "name": "AgentExecutionGuard",
   "group": "AgentLifecycle",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Controls agent spawning permissions",
   "schemaVersion": 1,
   "deps": {
     "core": [

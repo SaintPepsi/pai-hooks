@@ -1,6 +1,6 @@
 {
   "name": "SecurityValidator",
-  "description": "",
+  "description": "Protected file write prevention",
   "hooks": [
     "SecurityValidator"
   ],

@@ -2,7 +2,7 @@
   "name": "SonnetDelegation",
   "group": "ArchitectureEscalation",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Routes sub-agent work to appropriate models",
   "schemaVersion": 1,
   "deps": {
     "core": [

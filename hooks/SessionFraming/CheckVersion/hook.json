@@ -2,7 +2,7 @@
   "name": "CheckVersion",
   "group": "SessionFraming",
   "event": "SessionStart",
-  "description": "",
+  "description": "Checks for Claude Code updates",
   "schemaVersion": 1,
   "deps": {
     "core": [

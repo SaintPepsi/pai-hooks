@@ -2,7 +2,7 @@
   "name": "CitationTracker",
   "group": "ObligationStateMachines",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Tracks citation sources from research tools",
   "schemaVersion": 1,
   "deps": {
     "core": [

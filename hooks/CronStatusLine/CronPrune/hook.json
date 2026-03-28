@@ -2,7 +2,7 @@
   "name": "CronPrune",
   "group": "CronStatusLine",
   "event": "SessionStart",
-  "description": "",
+  "description": "Removes expired cron jobs on session start",
   "schemaVersion": 1,
   "deps": {
     "core": [

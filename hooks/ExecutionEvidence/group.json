@@ -1,6 +1,6 @@
 {
   "name": "ExecutionEvidence",
-  "description": "",
+  "description": "Execution evidence verification from tool results",
   "hooks": [
     "ExecutionEvidenceVerifier"
   ],

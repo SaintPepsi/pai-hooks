@@ -2,7 +2,7 @@
   "name": "TypeStrictness",
   "group": "CodingStandards",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Hard-blocks any types in TypeScript",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -2,7 +2,7 @@
   "name": "ArticleWriter",
   "group": "WorkLifecycle",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Generates article drafts from session content",
   "schemaVersion": 1,
   "deps": {
     "core": [

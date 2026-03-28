@@ -2,7 +2,7 @@
   "name": "TestObligationEnforcer",
   "group": "ObligationStateMachines",
   "event": "Stop",
-  "description": "",
+  "description": "Enforces test obligations",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -2,7 +2,7 @@
   "name": "ModeAnalytics",
   "group": "IdentityBranding",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Tracks Algorithm/Native/Minimal mode usage",
   "schemaVersion": 1,
   "deps": {
     "core": [

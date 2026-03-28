@@ -2,7 +2,7 @@
   "name": "AutoWorkCreation",
   "group": "WorkLifecycle",
   "event": "UserPromptSubmit",
-  "description": "",
+  "description": "Creates MEMORY/WORK directories for new tasks",
   "schemaVersion": 1,
   "deps": {
     "core": [

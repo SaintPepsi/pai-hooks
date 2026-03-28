@@ -2,7 +2,7 @@
   "name": "SkillGuard",
   "group": "SkillGuard",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Validates Skill tool invocations",
   "schemaVersion": 1,
   "deps": {
     "core": [

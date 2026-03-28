@@ -2,7 +2,7 @@
   "name": "StopOrchestrator",
   "group": "StopOrchestrator",
   "event": "Stop",
-  "description": "",
+  "description": "Coordinates Stop event hooks",
   "schemaVersion": 1,
   "deps": {
     "core": [

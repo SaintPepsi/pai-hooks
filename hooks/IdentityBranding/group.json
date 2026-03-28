@@ -1,6 +1,6 @@
 {
   "name": "IdentityBranding",
-  "description": "",
+  "description": "Maple identity branding and usage analytics",
   "hooks": [
     "MapleBranding",
     "ModeAnalytics",

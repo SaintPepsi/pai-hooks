@@ -2,7 +2,7 @@
   "name": "CodingStandardsEnforcer",
   "group": "CodingStandards",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Enforces coding standards on Write/Edit",
   "schemaVersion": 1,
   "deps": {
     "core": [

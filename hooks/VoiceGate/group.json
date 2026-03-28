@@ -1,6 +1,6 @@
 {
   "name": "VoiceGate",
-  "description": "",
+  "description": "Voice notification routing control",
   "hooks": [
     "VoiceGate"
   ],

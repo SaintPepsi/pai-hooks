@@ -1,6 +1,6 @@
 {
   "name": "LastResponseCache",
-  "description": "",
+  "description": "Last response caching for reference",
   "hooks": [
     "LastResponseCache"
   ],

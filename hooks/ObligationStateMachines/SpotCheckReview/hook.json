@@ -2,7 +2,7 @@
   "name": "SpotCheckReview",
   "group": "ObligationStateMachines",
   "event": "Stop",
-  "description": "",
+  "description": "Performs spot checks on completed work",
   "schemaVersion": 1,
   "deps": {
     "core": [

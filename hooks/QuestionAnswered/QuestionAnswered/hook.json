@@ -2,7 +2,7 @@
   "name": "QuestionAnswered",
   "group": "QuestionAnswered",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Tracks AskUserQuestion responses",
   "schemaVersion": 1,
   "deps": {
     "core": [

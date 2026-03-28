@@ -2,7 +2,7 @@
   "name": "GitignoreRecommender",
   "group": "SessionFraming",
   "event": "SessionStart",
-  "description": "",
+  "description": "Suggests .gitignore improvements",
   "schemaVersion": 1,
   "deps": {
     "core": [

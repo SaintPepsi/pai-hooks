@@ -1,6 +1,6 @@
 {
   "name": "ArchitectureEscalation",
-  "description": "",
+  "description": "Failure escalation and model delegation",
   "hooks": [
     "ArchitectureEscalation",
     "SonnetDelegation"

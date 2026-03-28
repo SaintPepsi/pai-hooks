@@ -2,7 +2,7 @@
   "name": "DocObligationEnforcer",
   "group": "ObligationStateMachines",
   "event": "Stop",
-  "description": "",
+  "description": "Enforces documentation obligations",
   "schemaVersion": 1,
   "deps": {
     "core": [

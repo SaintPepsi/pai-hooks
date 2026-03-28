@@ -2,7 +2,7 @@
   "name": "TypeCheckVerifier",
   "group": "CodingStandards",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Runs TypeScript type checking on code changes",
   "schemaVersion": 1,
   "deps": {
     "core": [

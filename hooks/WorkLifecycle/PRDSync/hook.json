@@ -2,7 +2,7 @@
   "name": "PRDSync",
   "group": "WorkLifecycle",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Syncs PRD frontmatter and criteria to work.json for dashboard",
   "schemaVersion": 1,
   "deps": {
     "core": [

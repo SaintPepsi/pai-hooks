@@ -2,7 +2,7 @@
   "name": "StartupGreeting",
   "group": "SessionFraming",
   "event": "SessionStart",
-  "description": "",
+  "description": "Displays PAI banner and system status",
   "schemaVersion": 1,
   "deps": {
     "core": [

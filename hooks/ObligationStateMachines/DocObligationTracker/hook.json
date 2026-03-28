@@ -2,7 +2,7 @@
   "name": "DocObligationTracker",
   "group": "ObligationStateMachines",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Tracks doc changes alongside code",
   "schemaVersion": 1,
   "deps": {
     "core": [

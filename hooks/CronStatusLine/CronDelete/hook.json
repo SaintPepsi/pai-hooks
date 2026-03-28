@@ -2,7 +2,7 @@
   "name": "CronDelete",
   "group": "CronStatusLine",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Records cron job deletion",
   "schemaVersion": 1,
   "deps": {
     "core": [

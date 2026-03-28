@@ -2,7 +2,7 @@
   "name": "GitAutoSync",
   "group": "GitSafety",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Auto-commits ~/.claude on session end",
   "schemaVersion": 1,
   "deps": {
     "core": [

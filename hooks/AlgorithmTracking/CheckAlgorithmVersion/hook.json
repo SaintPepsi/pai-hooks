@@ -2,7 +2,7 @@
   "name": "CheckAlgorithmVersion",
   "group": "AlgorithmTracking",
   "event": "SessionStart",
-  "description": "",
+  "description": "Validates Algorithm version at session start",
   "schemaVersion": 1,
   "deps": {
     "core": [

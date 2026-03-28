@@ -1,6 +1,6 @@
 {
   "name": "SkillGuard",
-  "description": "",
+  "description": "Skill invocation validation",
   "hooks": [
     "SkillGuard"
   ],

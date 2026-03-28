@@ -2,7 +2,7 @@
   "name": "ProtectedBranchGuard",
   "group": "GitSafety",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Prevents writes to protected git branches",
   "schemaVersion": 1,
   "deps": {
     "core": [

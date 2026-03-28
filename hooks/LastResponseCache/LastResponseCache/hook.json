@@ -2,7 +2,7 @@
   "name": "LastResponseCache",
   "group": "LastResponseCache",
   "event": "Stop",
-  "description": "",
+  "description": "Caches last response for reference",
   "schemaVersion": 1,
   "deps": {
     "core": [

@@ -2,7 +2,7 @@
   "name": "CronCreate",
   "group": "CronStatusLine",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Records new cron job creation",
   "schemaVersion": 1,
   "deps": {
     "core": [

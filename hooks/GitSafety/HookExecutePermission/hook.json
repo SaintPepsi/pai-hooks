@@ -2,7 +2,7 @@
   "name": "HookExecutePermission",
   "group": "GitSafety",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Controls hook execution permissions on Write",
   "schemaVersion": 1,
   "deps": {
     "core": [

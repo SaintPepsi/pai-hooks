@@ -2,7 +2,7 @@
   "name": "ArchitectureEscalation",
   "group": "ArchitectureEscalation",
   "event": "PostToolUse",
-  "description": "",
+  "description": "Escalates after N failed fix attempts",
   "schemaVersion": 1,
   "deps": {
     "core": [

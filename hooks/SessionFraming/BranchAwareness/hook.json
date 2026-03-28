@@ -2,7 +2,7 @@
   "name": "BranchAwareness",
   "group": "SessionFraming",
   "event": "SessionStart",
-  "description": "",
+  "description": "Injects current git branch context",
   "schemaVersion": 1,
   "deps": {
     "core": [

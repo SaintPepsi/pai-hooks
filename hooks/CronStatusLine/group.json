@@ -1,6 +1,6 @@
 {
   "name": "CronStatusLine",
-  "description": "",
+  "description": "Cron job scheduling and status line management",
   "hooks": [
     "CronCreate",
     "CronDelete",

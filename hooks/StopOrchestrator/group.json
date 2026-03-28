@@ -1,6 +1,6 @@
 {
   "name": "StopOrchestrator",
-  "description": "",
+  "description": "Stop event coordination",
   "hooks": [
     "StopOrchestrator"
   ],

@@ -2,7 +2,7 @@
   "name": "CronSessionEnd",
   "group": "CronStatusLine",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Updates cron status at session end",
   "schemaVersion": 1,
   "deps": {
     "core": [

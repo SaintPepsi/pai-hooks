@@ -2,7 +2,7 @@
   "name": "SessionQualityReport",
   "group": "CodeQualityPipeline",
   "event": "SessionEnd",
-  "description": "",
+  "description": "Produces quality metrics per session",
   "schemaVersion": 1,
   "deps": {
     "core": [
