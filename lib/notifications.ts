@@ -10,10 +10,13 @@
  * - Expandable later if needed
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFile, fileExists, writeFile } from "@hooks/core/adapters/fs";
+import { getEnv } from "@hooks/core/adapters/process";
+import { tryCatch, type Result } from "@hooks/core/result";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { join } from 'path';
 import { homedir } from 'os';
-import { getIdentity } from './identity';
+import { getIdentity } from "@hooks/lib/identity";
 
 // ============================================================================
 // Types
@@ -55,6 +58,41 @@ export interface NotificationConfig {
 }
 
 // ============================================================================
+// Deps
+// ============================================================================
+
+export interface NotificationDeps {
+  readFile: (path: string) => Result<string, PaiError>;
+  fileExists: (path: string) => boolean;
+  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  parseJson: <T>(raw: string) => Result<T, PaiError>;
+  lookupEnv: (key: string) => string | undefined;
+  paiDir: string;
+  stderr: (msg: string) => void;
+}
+
+function resolvePaiDir(): string {
+  const envResult = getEnv('PAI_DIR');
+  return envResult.ok ? envResult.value : join(homedir(), '.claude');
+}
+
+function envLookup(key: string): string | undefined {
+  const result = getEnv(key);
+  return result.ok ? result.value : undefined;
+}
+
+export const defaultNotificationDeps: NotificationDeps = {
+  readFile,
+  fileExists,
+  writeFile,
+  parseJson: <T>(raw: string): Result<T, PaiError> =>
+    tryCatch(() => JSON.parse(raw) as T, (e) => jsonParseFailed(raw.slice(0, 80), e)),
+  lookupEnv: envLookup,
+  paiDir: resolvePaiDir(),
+  stderr: (msg: string) => process.stderr.write(msg + '\n'),
+};
+
+// ============================================================================
 // Configuration
 // ============================================================================
 
@@ -76,33 +114,45 @@ const DEFAULT_CONFIG: NotificationConfig = {
   }
 };
 
-function expandEnvVars(content: string): string {
-  return content.replace(/\$\{(\w+)\}/g, (_, key) => process.env[key] || '');
+function expandEnvVars(content: string, lookupEnv: (key: string) => string | undefined): string {
+  return content.replace(/\$\{(\w+)\}/g, (_, key: string) => lookupEnv(key) || '');
 }
 
-export function getNotificationConfig(): NotificationConfig {
-  try {
-    const paiDir = process.env.PAI_DIR || join(homedir(), '.claude');
-    const settingsPath = join(paiDir, 'settings.json');
+interface SettingsWithNotifications {
+  notifications?: {
+    ntfy?: Partial<NotificationConfig['ntfy']>;
+    thresholds?: Partial<NotificationConfig['thresholds']>;
+    routing?: Partial<NotificationConfig['routing']>;
+  };
+}
 
-    if (existsSync(settingsPath)) {
-      const rawContent = readFileSync(settingsPath, 'utf-8');
-      const expandedContent = expandEnvVars(rawContent);
-      const settings = JSON.parse(expandedContent);
-      if (settings.notifications) {
-        return {
-          ...DEFAULT_CONFIG,
-          ntfy: { ...DEFAULT_CONFIG.ntfy, ...settings.notifications?.ntfy },
-          thresholds: { ...DEFAULT_CONFIG.thresholds, ...settings.notifications?.thresholds },
-          routing: { ...DEFAULT_CONFIG.routing, ...settings.notifications?.routing }
-        };
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load notification config:', error);
+export function getNotificationConfig(deps: NotificationDeps = defaultNotificationDeps): NotificationConfig {
+  const settingsPath = join(deps.paiDir, 'settings.json');
+
+  if (!deps.fileExists(settingsPath)) return DEFAULT_CONFIG;
+
+  const result = deps.readFile(settingsPath);
+  if (!result.ok) {
+    deps.stderr(`Failed to load notification config: ${result.error.message}`);
+    return DEFAULT_CONFIG;
   }
 
-  return DEFAULT_CONFIG;
+  const expandedContent = expandEnvVars(result.value, deps.lookupEnv);
+  const parseResult = deps.parseJson<SettingsWithNotifications>(expandedContent);
+  if (!parseResult.ok) {
+    deps.stderr('Failed to parse notification config');
+    return DEFAULT_CONFIG;
+  }
+
+  const settings = parseResult.value;
+  if (!settings.notifications) return DEFAULT_CONFIG;
+
+  return {
+    ...DEFAULT_CONFIG,
+    ntfy: { ...DEFAULT_CONFIG.ntfy, ...settings.notifications.ntfy },
+    thresholds: { ...DEFAULT_CONFIG.thresholds, ...settings.notifications.thresholds },
+    routing: { ...DEFAULT_CONFIG.routing, ...settings.notifications.routing }
+  };
 }
 
 // ============================================================================
@@ -111,23 +161,22 @@ export function getNotificationConfig(): NotificationConfig {
 
 const SESSION_START_FILE = '/tmp/pai-session-start.txt';
 
-export function recordSessionStart(): void {
-  try { writeFileSync(SESSION_START_FILE, Date.now().toString()); } catch {}
+export function recordSessionStart(deps: NotificationDeps = defaultNotificationDeps): void {
+  deps.writeFile(SESSION_START_FILE, Date.now().toString());
 }
 
-export function getSessionDurationMinutes(): number {
-  try {
-    if (existsSync(SESSION_START_FILE)) {
-      const startTime = parseInt(readFileSync(SESSION_START_FILE, 'utf-8'));
-      return (Date.now() - startTime) / 1000 / 60;
-    }
-  } catch {}
-  return 0;
+export function getSessionDurationMinutes(deps: NotificationDeps = defaultNotificationDeps): number {
+  if (!deps.fileExists(SESSION_START_FILE)) return 0;
+  const result = deps.readFile(SESSION_START_FILE);
+  if (!result.ok) return 0;
+  const startTime = parseInt(result.value, 10);
+  if (isNaN(startTime)) return 0;
+  return (Date.now() - startTime) / 1000 / 60;
 }
 
-export function isLongRunningTask(): boolean {
-  const config = getNotificationConfig();
-  return getSessionDurationMinutes() >= config.thresholds.longTaskMinutes;
+export function isLongRunningTask(deps: NotificationDeps = defaultNotificationDeps): boolean {
+  const config = getNotificationConfig(deps);
+  return getSessionDurationMinutes(deps) >= config.thresholds.longTaskMinutes;
 }
 
 // ============================================================================
@@ -136,51 +185,52 @@ export function isLongRunningTask(): boolean {
 
 export async function sendPush(
   message: string,
-  options: NotificationOptions = {}
+  options: NotificationOptions = {},
+  deps: NotificationDeps = defaultNotificationDeps,
 ): Promise<boolean> {
-  const config = getNotificationConfig();
+  const config = getNotificationConfig(deps);
 
   if (!config.ntfy.enabled || !config.ntfy.topic) {
     return false;
   }
 
-  try {
-    const url = `https://${config.ntfy.server}/${config.ntfy.topic}`;
+  const url = `https://${config.ntfy.server}/${config.ntfy.topic}`;
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'text/plain',
+  const headers: Record<string, string> = {
+    'Content-Type': 'text/plain',
+  };
+
+  if (options.title) headers['Title'] = options.title;
+
+  if (options.priority) {
+    const priorityMap: Record<NotificationPriority, string> = {
+      'min': '1', 'low': '2', 'default': '3', 'high': '4', 'urgent': '5'
     };
+    headers['Priority'] = priorityMap[options.priority] || '3';
+  }
 
-    if (options.title) headers['Title'] = options.title;
+  if (options.tags?.length) headers['Tags'] = options.tags.join(',');
+  if (options.click) headers['Click'] = options.click;
 
-    if (options.priority) {
-      const priorityMap: Record<NotificationPriority, string> = {
-        'min': '1', 'low': '2', 'default': '3', 'high': '4', 'urgent': '5'
-      };
-      headers['Priority'] = priorityMap[options.priority] || '3';
-    }
+  if (options.actions?.length) {
+    headers['Actions'] = options.actions
+      .map(a => `${a.action}, ${a.label}, ${a.url}`)
+      .join('; ');
+  }
 
-    if (options.tags?.length) headers['Tags'] = options.tags.join(',');
-    if (options.click) headers['Click'] = options.click;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: message,
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => null);
 
-    if (options.actions?.length) {
-      headers['Actions'] = options.actions
-        .map(a => `${a.action}, ${a.label}, ${a.url}`)
-        .join('; ');
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: message,
-      signal: AbortSignal.timeout(5000),
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('ntfy send failed:', error);
+  if (!response) {
+    deps.stderr('ntfy send failed: fetch error');
     return false;
   }
+
+  return response.ok;
 }
 
 // ============================================================================
@@ -190,9 +240,10 @@ export async function sendPush(
 export async function notify(
   event: NotificationEvent,
   message: string,
-  options: NotificationOptions = {}
+  options: NotificationOptions = {},
+  deps: NotificationDeps = defaultNotificationDeps,
 ): Promise<void> {
-  const config = getNotificationConfig();
+  const config = getNotificationConfig(deps);
   const channels = config.routing[event] || [];
 
   for (const channel of channels) {
@@ -202,34 +253,35 @@ export async function notify(
         priority: options.priority || getDefaultPriority(event),
         tags: options.tags || getDefaultTags(event),
         ...options
-      }).catch(() => {});
+      }, deps).catch(() => {});
     }
   }
 }
 
-export async function notifyTaskComplete(message: string, options: NotificationOptions = {}): Promise<void> {
-  const event: NotificationEvent = isLongRunningTask() ? 'longTask' : 'taskComplete';
-  await notify(event, message, options);
+export async function notifyTaskComplete(message: string, options: NotificationOptions = {}, deps: NotificationDeps = defaultNotificationDeps): Promise<void> {
+  const event: NotificationEvent = isLongRunningTask(deps) ? 'longTask' : 'taskComplete';
+  await notify(event, message, options, deps);
 }
 
 export async function notifyBackgroundAgent(
   agentType: string,
   message: string,
-  options: NotificationOptions = {}
+  options: NotificationOptions = {},
+  deps: NotificationDeps = defaultNotificationDeps,
 ): Promise<void> {
   await notify('backgroundAgent', message, {
     title: `${agentType} Agent Complete`,
     tags: ['robot', 'white_check_mark'],
     ...options
-  });
+  }, deps);
 }
 
-export async function notifyError(message: string, options: NotificationOptions = {}): Promise<void> {
+export async function notifyError(message: string, options: NotificationOptions = {}, deps: NotificationDeps = defaultNotificationDeps): Promise<void> {
   await notify('error', message, {
     priority: 'high',
     tags: ['warning', 'x'],
     ...options
-  });
+  }, deps);
 }
 
 // ============================================================================

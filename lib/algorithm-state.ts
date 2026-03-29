@@ -18,8 +18,21 @@
  *     → Multi-pattern regex extraction + heuristic fallback for effort level
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import {
+  readFile,
+  fileExists,
+  writeFile,
+  ensureDir,
+  readJson,
+  readDir,
+  removeFile,
+  stat,
+} from "@hooks/core/adapters/fs";
+import { getEnv } from "@hooks/core/adapters/process";
+import type { Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 import { join } from 'path';
+import { homedir } from 'os';
 
 // ── Types ──
 
@@ -129,28 +142,69 @@ export interface AlgorithmState {
   mode?: 'loop' | 'interactive' | 'standard';
 }
 
+// ── Deps ──
+
+export interface AlgorithmStateDeps {
+  readFile: (path: string) => Result<string, PaiError>;
+  fileExists: (path: string) => boolean;
+  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  ensureDir: (path: string) => Result<void, PaiError>;
+  readJson: <T>(path: string) => Result<T, PaiError>;
+  readDir: (path: string) => Result<string[], PaiError>;
+  removeFile: (path: string) => Result<void, PaiError>;
+  stat: (path: string) => Result<{ mtimeMs: number; isDirectory(): boolean }, PaiError>;
+  stderr: (msg: string) => void;
+  baseDir: string;
+}
+
+function resolveBaseDir(): string {
+  const envResult = getEnv('PAI_DIR');
+  if (envResult.ok) return envResult.value;
+  const homeResult = getEnv('HOME');
+  if (homeResult.ok) return join(homeResult.value, '.claude');
+  return join(homedir(), '.claude');
+}
+
+export const defaultAlgorithmStateDeps: AlgorithmStateDeps = {
+  readFile,
+  fileExists,
+  writeFile,
+  ensureDir,
+  readJson,
+  readDir,
+  removeFile,
+  stat,
+  stderr: (msg: string) => process.stderr.write(msg + '\n'),
+  baseDir: resolveBaseDir(),
+};
+
 // ── Paths ──
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, '.claude');
-const ALGORITHMS_DIR = join(BASE_DIR, 'MEMORY', 'STATE', 'algorithms');
-const SESSION_NAMES_PATH = join(BASE_DIR, 'MEMORY', 'STATE', 'session-names.json');
+function algorithmsDir(deps: AlgorithmStateDeps): string {
+  return join(deps.baseDir, 'MEMORY', 'STATE', 'algorithms');
+}
 
-function ensureDir(): void {
-  if (!existsSync(ALGORITHMS_DIR)) mkdirSync(ALGORITHMS_DIR, { recursive: true });
+function sessionNamesPath(deps: AlgorithmStateDeps): string {
+  return join(deps.baseDir, 'MEMORY', 'STATE', 'session-names.json');
+}
+
+function ensureAlgorithmsDir(deps: AlgorithmStateDeps): void {
+  const dir = algorithmsDir(deps);
+  if (!deps.fileExists(dir)) deps.ensureDir(dir);
 }
 
 // ── Read / Write ──
 
-export function readState(sessionId: string): AlgorithmState | null {
-  try {
-    const file = join(ALGORITHMS_DIR, `${sessionId}.json`);
-    if (!existsSync(file)) return null;
-    const raw = readFileSync(file, 'utf-8').trim();
-    if (!raw || raw === '{}') return null;
-    return JSON.parse(raw) as AlgorithmState;
-  } catch {
-    return null;
-  }
+export function readState(sessionId: string, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): AlgorithmState | null {
+  const file = join(algorithmsDir(deps), `${sessionId}.json`);
+  if (!deps.fileExists(file)) return null;
+  const result = deps.readFile(file);
+  if (!result.ok) return null;
+  const raw = result.value.trim();
+  if (!raw || raw === '{}') return null;
+  const jsonResult = deps.readJson<AlgorithmState>(file);
+  if (!jsonResult.ok) return null;
+  return jsonResult.value;
 }
 
 const PLACEHOLDER_RE = /^(Starting\.{0,3}|Algorithm run|[0-9a-f]{8})$/i;
@@ -158,26 +212,25 @@ function isPlaceholderName(name: string): boolean {
   return PLACEHOLDER_RE.test(name);
 }
 
-export function writeState(state: AlgorithmState): void {
-  ensureDir();
+export function writeState(state: AlgorithmState, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+  ensureAlgorithmsDir(deps);
   // Keep effortLevel in sync with sla — UI reads effortLevel preferentially
   state.effortLevel = state.sla;
   // Re-check session-names.json for name updates (placeholder fix + rework rejuvenation)
-  const latestName = getSessionName(state.sessionId);
+  const latestName = getSessionName(state.sessionId, deps);
   if (!isPlaceholderName(latestName) && latestName !== state.taskDescription) {
     state.taskDescription = latestName;
   }
-  writeFileSync(join(ALGORITHMS_DIR, `${state.sessionId}.json`), JSON.stringify(state, null, 2));
+  deps.writeFile(join(algorithmsDir(deps), `${state.sessionId}.json`), JSON.stringify(state, null, 2));
 }
 
-function getSessionName(sessionId: string): string {
-  try {
-    if (existsSync(SESSION_NAMES_PATH)) {
-      const names = JSON.parse(readFileSync(SESSION_NAMES_PATH, 'utf-8'));
-      if (names[sessionId]) return names[sessionId];
-    }
-  } catch {}
-  return 'Algorithm run';
+function getSessionName(sessionId: string, deps: AlgorithmStateDeps): string {
+  const namesPath = sessionNamesPath(deps);
+  if (!deps.fileExists(namesPath)) return 'Algorithm run';
+  const result = deps.readJson<Record<string, string>>(namesPath);
+  if (!result.ok) return 'Algorithm run';
+  const name = result.value[sessionId];
+  return name || 'Algorithm run';
 }
 
 // ── Public API ──
@@ -185,16 +238,16 @@ function getSessionName(sessionId: string): string {
 /**
  * Called when a phase transition curl is detected (e.g., "Entering the Think phase").
  */
-export function phaseTransition(sessionId: string, phase: AlgorithmPhase): void {
+export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
   const now = Date.now();
-  let state = readState(sessionId);
+  let state = readState(sessionId, deps);
 
   if (!state) {
     // No state yet — create one (algorithm entry curl may have been missed)
     state = {
       active: true,
       sessionId,
-      taskDescription: getSessionName(sessionId),
+      taskDescription: getSessionName(sessionId, deps),
       currentPhase: phase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
@@ -204,7 +257,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase): void 
       capabilities: ['Task Tool'],
       phaseHistory: [{ phase, startedAt: now, criteriaCount: 0, agentCount: 0 }],
     };
-    writeState(state);
+    writeState(state, deps);
     return;
   }
 
@@ -246,7 +299,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase): void 
     delete state.completedAt;
     delete state.summary;
     delete state.qualityGate;
-    writeState(state);
+    writeState(state, deps);
     return;
   }
 
@@ -261,7 +314,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase): void 
     phase,
     startedAt: now,
     criteriaCount: state.criteria.length,
-    agentCount: state.agents.filter((a: any) => a.status === 'active').length,
+    agentCount: state.agents.filter((a) => a.status === 'active').length,
     ...(reworkIter > 0 && { isRework: true, reworkIteration: reworkIter }),
   });
 
@@ -275,7 +328,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase): void 
     state.completedAt = now;
   }
 
-  writeState(state);
+  writeState(state, deps);
 }
 
 /**
@@ -283,8 +336,8 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase): void 
  * Also handles session reactivation — ISC criteria arriving for a completed
  * session is a definitive signal of a new algorithm run.
  */
-export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion): void {
-  let state = readState(sessionId);
+export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+  let state = readState(sessionId, deps);
 
   // Create state if none exists — ISC criteria in a new session should not be dropped
   if (!state) {
@@ -292,7 +345,7 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion): v
     state = {
       active: true,
       sessionId,
-      taskDescription: getSessionName(sessionId),
+      taskDescription: getSessionName(sessionId, deps),
       currentPhase: 'OBSERVE' as AlgorithmPhase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
@@ -350,40 +403,40 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion): v
   if (state.criteria.some(c => c.id === criterion.id)) return;
 
   state.criteria.push(criterion);
-  writeState(state);
+  writeState(state, deps);
 }
 
 /**
  * Called when TaskUpdate changes a criterion's status.
  */
-export function criteriaUpdate(sessionId: string, taskId: string, status: AlgorithmCriterion['status']): void {
-  const state = readState(sessionId);
+export function criteriaUpdate(sessionId: string, taskId: string, status: AlgorithmCriterion['status'], deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+  const state = readState(sessionId, deps);
   if (!state) return;
 
   const criterion = state.criteria.find(c => c.taskId === taskId);
   if (!criterion) return;
 
   criterion.status = status;
-  writeState(state);
+  writeState(state, deps);
 }
 
 /**
  * Called when the Algorithm's OBSERVE phase selects an effort level.
  * Detected in real-time by AlgorithmTracker from response text.
  */
-export function effortLevelUpdate(sessionId: string, level: AlgorithmState['sla']): void {
-  const state = readState(sessionId);
+export function effortLevelUpdate(sessionId: string, level: AlgorithmState['sla'], deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+  const state = readState(sessionId, deps);
   if (!state) return;
 
   state.sla = level;
-  writeState(state);
+  writeState(state, deps);
 }
 
 /**
  * Called when a Task tool spawns an agent.
  */
-export function agentAdd(sessionId: string, agent: { name: string; agentType: string; task?: string; criteriaIds?: string[] }): void {
-  const state = readState(sessionId);
+export function agentAdd(sessionId: string, agent: { name: string; agentType: string; task?: string; criteriaIds?: string[] }, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+  const state = readState(sessionId, deps);
   if (!state) return;
 
   // Don't add duplicates
@@ -398,7 +451,7 @@ export function agentAdd(sessionId: string, agent: { name: string; agentType: st
   };
   if (agent.criteriaIds) entry.criteriaIds = agent.criteriaIds;
   state.agents.push(entry);
-  writeState(state);
+  writeState(state, deps);
 }
 
 /**
@@ -419,9 +472,10 @@ export function algorithmEnd(
     qualityGate?: AlgorithmState['qualityGate'];
     criteria?: AlgorithmCriterion[];
     isAlgorithmResponse: boolean;
-  }
+  },
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
 ): void {
-  let state = readState(sessionId);
+  let state = readState(sessionId, deps);
 
   // Non-algorithm response: deactivate if it was optimistically activated
   if (!enrichment.isAlgorithmResponse) {
@@ -431,7 +485,7 @@ export function algorithmEnd(
       state.active = false;
       state.currentPhase = 'COMPLETE';
       state.completedAt = Date.now();
-      writeState(state);
+      writeState(state, deps);
     }
     return;
   }
@@ -441,7 +495,7 @@ export function algorithmEnd(
     state = {
       active: true,
       sessionId,
-      taskDescription: enrichment.taskDescription || getSessionName(sessionId),
+      taskDescription: enrichment.taskDescription || getSessionName(sessionId, deps),
       currentPhase: 'OBSERVE',
       phaseStartedAt: Date.now(),
       algorithmStartedAt: Date.now(),
@@ -492,7 +546,7 @@ export function algorithmEnd(
     state.completedAt = state.completedAt || Date.now();
   }
 
-  writeState(state);
+  writeState(state, deps);
 }
 
 /**
@@ -518,94 +572,92 @@ const DEFAULT_STALE_MS = 15 * 60 * 1000; // 15 min for OBSERVE, LEARN, IDLE, etc
 
 const DELETE_AGE_MS = 24 * 60 * 60 * 1000; // 24hr: completed files older than this get deleted
 
-export function sweepStaleActive(currentSessionId: string): void {
-  try {
-    ensureDir();
-    const { readdirSync, statSync, unlinkSync } = require('fs') as typeof import('fs');
-    const now = Date.now();
-    const files = (readdirSync(ALGORITHMS_DIR) as string[]).filter(f => f.endsWith('.json'));
-    const liveSessionIds = new Set<string>();
+export function sweepStaleActive(currentSessionId: string, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+  ensureAlgorithmsDir(deps);
+  const now = Date.now();
+  const dirResult = deps.readDir(algorithmsDir(deps));
+  if (!dirResult.ok) return;
+  const files = dirResult.value.filter((f: string) => f.endsWith('.json'));
+  const liveSessionIds = new Set<string>();
 
-    for (const file of files) {
-      const sid = file.replace('.json', '');
-      if (sid === currentSessionId) continue; // Skip current session — handled by algorithmEnd
+  for (const file of files) {
+    const sid = file.replace('.json', '');
+    if (sid === currentSessionId) continue; // Skip current session — handled by algorithmEnd
 
-      try {
-        const filepath = join(ALGORITHMS_DIR, file);
-        const mtime = statSync(filepath).mtimeMs;
-        const age = now - mtime;
+    const filepath = join(algorithmsDir(deps), file);
+    const statResult = deps.stat(filepath);
+    if (!statResult.ok) continue;
+    const mtime = statResult.value.mtimeMs;
+    const age = now - mtime;
 
-        const state = readState(sid);
-        if (!state) continue;
+    const state = readState(sid, deps);
+    if (!state) continue;
 
-        // Delete completed files older than 24 hours — they clutter the directory
-        if (!state.active && age > DELETE_AGE_MS) {
-          try {
-            unlinkSync(filepath);
-            process.stderr.write(`[sweep] deleted ${sid} (completed, age ${Math.round(age / 3600000)}h)\n`);
-          } catch {}
-          continue;
-        }
-
-        liveSessionIds.add(sid);
-
-        // Quick skip: anything modified in last 15 min is never stale
-        if (age < DEFAULT_STALE_MS) continue;
-
-        if (!state.active) continue;
-
-        // Phase-aware threshold
-        const threshold = STALE_THRESHOLDS_MS[state.currentPhase] || DEFAULT_STALE_MS;
-        if (age < threshold) continue;
-
-        // Stale active session — mark completed
-        state.active = false;
-        state.currentPhase = 'COMPLETE';
-        state.completedAt = state.completedAt || now;
-        writeState(state);
-        process.stderr.write(`[sweep] deactivated ${sid} (phase was ${state.currentPhase}, age ${Math.round(age / 60000)}min)\n`);
-      } catch {}
+    // Delete completed files older than 24 hours — they clutter the directory
+    if (!state.active && age > DELETE_AGE_MS) {
+      deps.removeFile(filepath);
+      deps.stderr(`[sweep] deleted ${sid} (completed, age ${Math.round(age / 3600000)}h)`);
+      continue;
     }
 
-    // Add current session to live set
-    liveSessionIds.add(currentSessionId);
+    liveSessionIds.add(sid);
 
-    // Validate + sync session-names.json — repair if corrupted, prune orphans
-    try {
-      if (existsSync(SESSION_NAMES_PATH)) {
-        const raw = readFileSync(SESSION_NAMES_PATH, 'utf-8').trim();
-        const names = JSON.parse(raw) as Record<string, string>;
-        const keys = Object.keys(names);
-        let pruned = 0;
-        for (const key of keys) {
-          if (!liveSessionIds.has(key)) {
-            delete names[key];
-            pruned++;
-          }
-        }
-        if (pruned > 0) {
-          writeFileSync(SESSION_NAMES_PATH, JSON.stringify(names, null, 2));
-          process.stderr.write(`[sweep] pruned ${pruned} orphaned entries from session-names.json\n`);
-        }
-      }
-    } catch {
-      process.stderr.write(`[sweep] session-names.json corrupt — resetting to {}\n`);
-      writeFileSync(SESSION_NAMES_PATH, '{}');
+    // Quick skip: anything modified in last 15 min is never stale
+    if (age < DEFAULT_STALE_MS) continue;
+
+    if (!state.active) continue;
+
+    // Phase-aware threshold
+    const threshold = STALE_THRESHOLDS_MS[state.currentPhase] || DEFAULT_STALE_MS;
+    if (age < threshold) continue;
+
+    // Stale active session — mark completed
+    state.active = false;
+    state.currentPhase = 'COMPLETE';
+    state.completedAt = state.completedAt || now;
+    writeState(state, deps);
+    deps.stderr(`[sweep] deactivated ${sid} (phase was ${state.currentPhase}, age ${Math.round(age / 60000)}min)`);
+  }
+
+  // Add current session to live set
+  liveSessionIds.add(currentSessionId);
+
+  // Validate + sync session-names.json — repair if corrupted, prune orphans
+  const namesPath = sessionNamesPath(deps);
+  if (!deps.fileExists(namesPath)) return;
+
+  const namesResult = deps.readJson<Record<string, string>>(namesPath);
+  if (!namesResult.ok) {
+    deps.stderr('[sweep] session-names.json corrupt — resetting to {}');
+    deps.writeFile(namesPath, '{}');
+    return;
+  }
+
+  const names = namesResult.value;
+  const keys = Object.keys(names);
+  let pruned = 0;
+  for (const key of keys) {
+    if (!liveSessionIds.has(key)) {
+      delete names[key];
+      pruned++;
     }
-
-  } catch {}
+  }
+  if (pruned > 0) {
+    deps.writeFile(namesPath, JSON.stringify(names, null, 2));
+    deps.stderr(`[sweep] pruned ${pruned} orphaned entries from session-names.json`);
+  }
 }
 
 /**
  * Called by POST /api/algorithm/abandon
  */
-export function algorithmAbandon(sessionId: string): boolean {
-  const state = readState(sessionId);
+export function algorithmAbandon(sessionId: string, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): boolean {
+  const state = readState(sessionId, deps);
   if (!state) return false;
 
   state.abandoned = true;
   state.active = false;
   state.completedAt = state.completedAt || Date.now();
-  writeState(state);
+  writeState(state, deps);
   return true;
 }

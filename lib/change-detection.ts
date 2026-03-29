@@ -5,9 +5,12 @@
  * changes to determine if background integrity maintenance is needed.
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { join, relative, basename } from 'path';
-import { getPaiDir } from './paths';
+import { readFile, fileExists, readJson, writeFile } from "@hooks/core/adapters/fs";
+import { tryCatch } from "@hooks/core/result";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { join, relative, basename } from "path";
+import { getPaiDir } from "@hooks/lib/paths";
 
 // ============================================================================
 // Types
@@ -49,11 +52,31 @@ export interface IntegrityState {
 }
 
 // ============================================================================
-// Path Constants
+// Deps
 // ============================================================================
 
-const PAI_DIR = getPaiDir();
-const STATE_FILE = join(PAI_DIR, 'MEMORY', 'STATE', 'integrity-state.json');
+export interface ChangeDetectionDeps {
+  readFile: (path: string) => Result<string, PaiError>;
+  fileExists: (path: string) => boolean;
+  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  parseJsonLine: <T>(raw: string) => Result<T, PaiError>;
+  paiDir: string;
+}
+
+export const defaultChangeDetectionDeps: ChangeDetectionDeps = {
+  readFile,
+  fileExists,
+  readJson,
+  writeFile,
+  parseJsonLine: <T>(raw: string): Result<T, PaiError> =>
+    tryCatch(() => JSON.parse(raw) as T, (e) => jsonParseFailed(raw.slice(0, 80), e)),
+  paiDir: getPaiDir(),
+};
+
+// ============================================================================
+// Path Constants
+// ============================================================================
 
 // Paths that are excluded from integrity checks
 const EXCLUDED_PATHS = [
@@ -103,84 +126,98 @@ const STRUCTURAL_PATTERNS = [
 // Transcript Parsing
 // ============================================================================
 
+interface TranscriptEntry {
+  type?: string;
+  message?: {
+    content?: Array<{
+      type: string;
+      name?: string;
+      input?: {
+        file_path?: string;
+        edits?: Array<{ file_path?: string }>;
+      };
+    }>;
+  };
+}
+
 /**
  * Parse tool_use blocks from a transcript that modify files.
  * Extracts Write, Edit, and MultiEdit operations.
  */
-export function parseToolUseBlocks(transcriptPath: string): FileChange[] {
-  try {
-    if (!existsSync(transcriptPath)) {
-      console.error('[ChangeDetection] Transcript not found:', transcriptPath);
-      return [];
-    }
+export function parseToolUseBlocks(transcriptPath: string, deps: ChangeDetectionDeps = defaultChangeDetectionDeps): FileChange[] {
+  if (!deps.fileExists(transcriptPath)) {
+    console.error('[ChangeDetection] Transcript not found:', transcriptPath);
+    return [];
+  }
 
-    const content = readFileSync(transcriptPath, 'utf-8');
-    const lines = content.trim().split('\n');
-    const changes: FileChange[] = [];
-    const seenPaths = new Set<string>();
+  const result = deps.readFile(transcriptPath);
+  if (!result.ok) {
+    console.error('[ChangeDetection] Error reading transcript:', result.error);
+    return [];
+  }
 
-    for (const line of lines) {
-      if (!line.trim()) continue;
+  const content = result.value;
+  const lines = content.trim().split('\n');
+  const changes: FileChange[] = [];
+  const seenPaths = new Set<string>();
 
-      try {
-        const entry = JSON.parse(line);
+  for (const line of lines) {
+    if (!line.trim()) continue;
 
-        // Look for assistant messages with tool_use
-        if (entry.type === 'assistant' && entry.message?.content) {
-          const contentArray = Array.isArray(entry.message.content)
-            ? entry.message.content
-            : [];
+    const parseResult = deps.parseJsonLine<TranscriptEntry>(line);
+    if (!parseResult.ok) continue;
 
-          for (const block of contentArray) {
-            if (block.type !== 'tool_use') continue;
+    const entry = parseResult.value;
 
-            const toolName = block.name;
-            const input = block.input || {};
+    // Look for assistant messages with tool_use
+    if (entry.type === 'assistant' && entry.message?.content) {
+      const contentArray = Array.isArray(entry.message.content)
+        ? entry.message.content
+        : [];
 
-            // Handle Write, Edit, MultiEdit tools
-            if (toolName === 'Write' && input.file_path) {
-              const path = normalizeToRelativePath(input.file_path);
+      for (const block of contentArray) {
+        if (block.type !== 'tool_use') continue;
+
+        const toolName = block.name;
+        const input = block.input || {};
+
+        // Handle Write, Edit, MultiEdit tools
+        if (toolName === 'Write' && input.file_path) {
+          const path = normalizeToRelativePath(input.file_path, deps.paiDir);
+          if (!seenPaths.has(path)) {
+            seenPaths.add(path);
+            changes.push(createFileChange('Write', path, deps.paiDir));
+          }
+        } else if (toolName === 'Edit' && input.file_path) {
+          const path = normalizeToRelativePath(input.file_path, deps.paiDir);
+          if (!seenPaths.has(path)) {
+            seenPaths.add(path);
+            changes.push(createFileChange('Edit', path, deps.paiDir));
+          }
+        } else if (toolName === 'MultiEdit' && input.edits) {
+          for (const edit of input.edits) {
+            if (edit.file_path) {
+              const path = normalizeToRelativePath(edit.file_path, deps.paiDir);
               if (!seenPaths.has(path)) {
                 seenPaths.add(path);
-                changes.push(createFileChange('Write', path));
-              }
-            } else if (toolName === 'Edit' && input.file_path) {
-              const path = normalizeToRelativePath(input.file_path);
-              if (!seenPaths.has(path)) {
-                seenPaths.add(path);
-                changes.push(createFileChange('Edit', path));
-              }
-            } else if (toolName === 'MultiEdit' && input.edits) {
-              for (const edit of input.edits) {
-                if (edit.file_path) {
-                  const path = normalizeToRelativePath(edit.file_path);
-                  if (!seenPaths.has(path)) {
-                    seenPaths.add(path);
-                    changes.push(createFileChange('Edit', path));
-                  }
-                }
+                changes.push(createFileChange('Edit', path, deps.paiDir));
               }
             }
           }
         }
-      } catch {
-        // Skip invalid JSON lines
       }
     }
-
-    return changes;
-  } catch (error) {
-    console.error('[ChangeDetection] Error parsing transcript:', error);
-    return [];
   }
+
+  return changes;
 }
 
 /**
- * Normalize an absolute path to relative (to PAI_DIR).
+ * Normalize an absolute path to relative (to paiDir).
  */
-function normalizeToRelativePath(absolutePath: string): string {
-  if (absolutePath.startsWith(PAI_DIR)) {
-    return relative(PAI_DIR, absolutePath);
+function normalizeToRelativePath(absolutePath: string, paiDir: string): string {
+  if (absolutePath.startsWith(paiDir)) {
+    return relative(paiDir, absolutePath);
   }
   return absolutePath;
 }
@@ -188,11 +225,11 @@ function normalizeToRelativePath(absolutePath: string): string {
 /**
  * Create a FileChange object with categorization.
  */
-function createFileChange(tool: 'Write' | 'Edit', path: string): FileChange {
+function createFileChange(tool: 'Write' | 'Edit', path: string, paiDir: string): FileChange {
   return {
     tool,
     path,
-    category: categorizeChange(path),
+    category: categorizeChange(path, paiDir),
     isPhilosophical: isPhilosophicalPath(path),
     isStructural: isStructuralPath(path),
   };
@@ -205,7 +242,9 @@ function createFileChange(tool: 'Write' | 'Edit', path: string): FileChange {
 /**
  * Categorize a file path by its location in the PAI system.
  */
-export function categorizeChange(path: string): ChangeCategory | null {
+export function categorizeChange(path: string, paiDir?: string): ChangeCategory | null {
+  const resolvedPaiDir = paiDir || getPaiDir();
+
   // Check exclusions first
   for (const excluded of EXCLUDED_PATHS) {
     if (path.includes(excluded)) {
@@ -214,8 +253,8 @@ export function categorizeChange(path: string): ChangeCategory | null {
   }
 
   // Check if path is within PAI directory
-  const absolutePath = path.startsWith('/') ? path : join(PAI_DIR, path);
-  if (!absolutePath.startsWith(PAI_DIR)) {
+  const absolutePath = path.startsWith('/') ? path : join(resolvedPaiDir, path);
+  if (!absolutePath.startsWith(resolvedPaiDir)) {
     return null;
   }
 
@@ -343,21 +382,19 @@ const COOLDOWN_MINUTES = 2;
 /**
  * Read the current integrity state.
  */
-export function readIntegrityState(): IntegrityState | null {
-  try {
-    if (!existsSync(STATE_FILE)) return null;
-    const content = readFileSync(STATE_FILE, 'utf-8');
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
+export function readIntegrityState(deps: ChangeDetectionDeps = defaultChangeDetectionDeps): IntegrityState | null {
+  const stateFile = join(deps.paiDir, 'MEMORY', 'STATE', 'integrity-state.json');
+  if (!deps.fileExists(stateFile)) return null;
+  const result = deps.readJson<IntegrityState>(stateFile);
+  if (!result.ok) return null;
+  return result.value;
 }
 
 /**
  * Check if we're within the cooldown period.
  */
-export function isInCooldown(): boolean {
-  const state = readIntegrityState();
+export function isInCooldown(deps: ChangeDetectionDeps = defaultChangeDetectionDeps): boolean {
+  const state = readIntegrityState(deps);
   if (!state?.cooldown_until) return false;
 
   const cooldownUntil = new Date(state.cooldown_until);
@@ -386,8 +423,8 @@ export function hashChanges(changes: FileChange[]): string {
 /**
  * Check if changes are duplicates of the last run.
  */
-export function isDuplicateRun(changes: FileChange[]): boolean {
-  const state = readIntegrityState();
+export function isDuplicateRun(changes: FileChange[], deps: ChangeDetectionDeps = defaultChangeDetectionDeps): boolean {
+  const state = readIntegrityState(deps);
   if (!state?.last_changes_hash) return false;
 
   const currentHash = hashChanges(changes);
@@ -590,9 +627,9 @@ export function generateDescriptiveTitle(changes: FileChange[]): string {
   }
   // Fallback
   else {
-    const categories = new Set(changes.map(c => c.category).filter(Boolean));
-    if (categories.size === 1) {
-      const cat = [...categories][0];
+    const categoriesSet = new Set(changes.map(c => c.category).filter(Boolean));
+    if (categoriesSet.size === 1) {
+      const cat = [...categoriesSet][0];
       title = `${capitalize(cat || 'System')} Updates Applied`;
     } else {
       title = 'Multi-Area System Updates Applied';
