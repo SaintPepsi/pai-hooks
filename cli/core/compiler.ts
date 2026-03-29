@@ -128,14 +128,14 @@ export function compileHook(
  * --compiled-ts: bun <path> format, e.g. "bun ./.claude/hooks/Group/Hook.ts"
  */
 export function compiledCommandString(
-  relativePath: string,
+  hookPath: string,
   mode: OutputMode,
 ): string {
   if (mode === "compiled-ts") {
-    return `bun ${relativePath}`;
+    return `bun ${hookPath}`;
   }
-  // "compiled" and "source" both use direct path format
-  return relativePath;
+  // "compiled" mode uses direct path format (relies on shebang)
+  return hookPath;
 }
 
 // ─── Internal ───────────────────────────────────────────────────────────────

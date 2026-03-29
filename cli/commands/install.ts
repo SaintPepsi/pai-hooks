@@ -212,8 +212,8 @@ export function install(
       if (!compileResult.ok) return compileResult;
 
       const ext = outputMode === "compiled" ? ".js" : ".ts";
-      const relPath = `.claude/hooks/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
-      const cmdString = compiledCommandString(relPath, outputMode);
+      const hookPath = `"$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
+      const cmdString = compiledCommandString(hookPath, outputMode);
       // Make compiled output executable
       const compiledPath = `${outputDir}/${hookDef.manifest.name}${ext}`;
       deps.chmod(compiledPath, 0o755);
