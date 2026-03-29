@@ -17,6 +17,7 @@ import {
 
 const PAI_HOOKS_ROOT = "/Users/hogers/.claude/pai-hooks";
 const INDEX_PATH = `${PAI_HOOKS_ROOT}/.duplication-index.json`;
+const REAL_INDEX_PATH = `${PAI_HOOKS_ROOT}/.claude/.duplication-index.json`;
 
 // ─── Build Index ──────────────────────────────────────────────────────────────
 
@@ -140,11 +141,19 @@ describe("DuplicationCheckerContract", () => {
         "utf-8",
       ) as string;
 
+      // Mock now() to be within freshness window of the index
+      const indexContent = require("node:fs").readFileSync(REAL_INDEX_PATH, "utf-8") as string;
+      const indexBuiltAt = new Date(JSON.parse(indexContent).builtAt as string).getTime();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        now: () => indexBuiltAt + 10_000, // 10s after build = fresh
+      };
+
       const input = makeWriteInput(
         `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
+      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
       expect(output.type).toBe("block");
       if (output.type === "block") {
         expect(output.reason).toContain("Exact duplicate");
@@ -206,26 +215,36 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         "utf-8",
       ) as string;
 
+      const indexContent = require("node:fs").readFileSync(REAL_INDEX_PATH, "utf-8") as string;
+      const indexBuiltAt = new Date(JSON.parse(indexContent).builtAt as string).getTime();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        now: () => indexBuiltAt + 10_000,
+      };
+
       const input = makeWriteInput(
         `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
+      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      expect(output.type).toBe("block");
       if (output.type === "block") {
         expect(output.reason).toContain("duplicates");
         expect(output.reason).toContain("Reuse the existing function");
       }
     });
 
-    test("block reason includes stale warning when index is old", () => {
-      const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
+    test("does not block when index is stale even with 4/4 match", () => {
+      const indexContent = require("node:fs").readFileSync(REAL_INDEX_PATH, "utf-8") as string;
       const index = JSON.parse(indexContent) as { builtAt: string };
       const builtAtMs = new Date(index.builtAt).getTime();
       const SIX_MINUTES_MS = 6 * 60 * 1000;
 
+      const stderrMessages: string[] = [];
       const deps: DuplicationCheckerDeps = {
         ...mockDeps,
         now: () => builtAtMs + SIX_MINUTES_MS,
+        stderr: (msg) => stderrMessages.push(msg),
       };
 
       const realContent = require("node:fs").readFileSync(
@@ -238,10 +257,9 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("block");
-      if (output.type === "block") {
-        expect(output.reason).toContain("stale");
-      }
+      // Stale index = never block, only log
+      expect(output.type).toBe("continue");
+      expect(stderrMessages.some((m) => m.includes("stale index"))).toBe(true);
     });
     test("continues instead of blocking when blocking config is false", () => {
       const realContent = require("node:fs").readFileSync(

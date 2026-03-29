@@ -178,12 +178,13 @@ export const DuplicationCheckerContract: SyncHookContract<
         .filter(Boolean)
         .join("\n");
 
-      if (deps.blocking) {
+      if (deps.blocking && !isStale) {
         deps.stderr(`[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`);
         return ok({ type: "block", decision: "block", reason });
       }
 
-      deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`);
+      const skipReason = isStale ? "stale index" : "blocking disabled";
+      deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (${skipReason})`);
     }
 
     // 2-3 signals: log only, no additionalContext, no block
