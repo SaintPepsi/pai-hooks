@@ -2,6 +2,7 @@ node_modules/
 *.bun-build
 .DS_Store
 coverage/
+dist/
 MEMORY/
 
 .duplication-index.json
