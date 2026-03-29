@@ -1,2 +1,1 @@
-# Intentionally empty — export-hooks.ts removed (was wiping settings.hooks.json)
-# The import direction (post-merge) is the active workflow now.
+bunx biome check --staged --no-errors-on-unmatched
