@@ -16,6 +16,7 @@ import { ok, tryCatch, tryCatchAsync, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { fileExists, readFile, writeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { join } from "path";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 import { inference, type InferenceResult } from "@pai/Tools/Inference";
 import { getIdentity, getPrincipal, getPrincipalName } from "@hooks/lib/identity";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
@@ -225,6 +226,20 @@ function getLastAssistantContext(transcriptPath: string | undefined, deps: Ratin
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
+function defaultSpawnTrending(): void {
+  const baseDir = getPaiDir();
+  const script = join(baseDir, "tools", "TrendingAnalysis.ts");
+  if (fileExists(script)) {
+    Bun.spawn(["bun", script, "--force"], { stdout: "ignore", stderr: "ignore" });
+  }
+}
+
+function defaultReadAlgoVersion(): string {
+  const baseDir = getPaiDir();
+  const result = readFile(join(baseDir, "PAI", "Algorithm", "LATEST"));
+  return result.ok ? result.value.trim() : "v?.?.?";
+}
+
 const defaultDeps: RatingCaptureDeps = {
   inference,
   captureFailure,
@@ -239,20 +254,10 @@ const defaultDeps: RatingCaptureDeps = {
   writeFile,
   appendFile,
   ensureDir,
-  spawnTrending: () => {
-    const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-    const script = join(baseDir, "tools", "TrendingAnalysis.ts");
-    if (fileExists(script)) {
-      Bun.spawn(["bun", script, "--force"], { stdout: "ignore", stderr: "ignore" });
-    }
-  },
-  readAlgoVersion: () => {
-    const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-    const result = readFile(join(baseDir, "PAI", "Algorithm", "LATEST"));
-    return result.ok ? result.value.trim() : "v?.?.?";
-  },
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  spawnTrending: defaultSpawnTrending,
+  readAlgoVersion: defaultReadAlgoVersion,
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const RatingCapture: AsyncHookContract<

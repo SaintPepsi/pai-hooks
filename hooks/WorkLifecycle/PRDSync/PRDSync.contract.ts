@@ -21,6 +21,7 @@ import {
   readJson,
 } from "@hooks/core/adapters/fs";
 import { join } from "path";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -200,8 +201,8 @@ const defaultDeps: PRDSyncDeps = {
   writeFile,
   fileExists,
   readJson,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  stderr: defaultStderr,
+  baseDir: getPaiDir(),
 };
 
 export const PRDSync: SyncHookContract<

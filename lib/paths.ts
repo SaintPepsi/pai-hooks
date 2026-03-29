@@ -11,6 +11,7 @@
 
 import { homedir } from 'os';
 import { join } from 'path';
+import { getEnv } from '@hooks/core/adapters/process';
 
 /**
  * Expand shell variables in a path string
@@ -30,13 +31,20 @@ export function expandPath(path: string): string {
  * Priority: PAI_DIR env var (expanded) → ~/.claude
  */
 export function getPaiDir(): string {
-  const envPaiDir = process.env.PAI_DIR;
+  const envResult = getEnv('PAI_DIR');
 
-  if (envPaiDir) {
-    return expandPath(envPaiDir);
+  if (envResult.ok) {
+    return expandPath(envResult.value);
   }
 
   return join(homedir(), '.claude');
+}
+
+/**
+ * Factory function for defaultDeps.stderr — avoids inline process.stderr in every contract.
+ */
+export function defaultStderr(msg: string): void {
+  process.stderr.write(msg + "\n");
 }
 
 /**

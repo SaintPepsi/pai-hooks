@@ -15,6 +15,7 @@ import { fileExists, readFile, readJson, writeFile, removeFile } from "@hooks/co
 import { join } from "path";
 import { getISOTimestamp } from "@hooks/lib/time";
 import { setTabState, cleanupKittySession } from "@hooks/lib/tab-setter";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,8 +97,8 @@ const defaultDeps: SessionSummaryDeps = {
   getTimestamp: getISOTimestamp,
   setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
   cleanupKittySession: (id) => cleanupKittySession(id),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const SessionSummary: SyncHookContract<

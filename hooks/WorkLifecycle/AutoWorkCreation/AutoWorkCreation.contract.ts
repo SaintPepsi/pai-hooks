@@ -14,6 +14,7 @@ import { join } from "path";
 import { fileExists, readJson, writeFile, ensureDir, removeFile, symlink, lstat } from "@hooks/core/adapters/fs";
 import { getLocalComponents, getISOTimestamp } from "@hooks/lib/time";
 import { generatePRDTemplate, generatePRDFilename } from "@hooks/lib/prd-template";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -103,8 +104,8 @@ const defaultDeps: AutoWorkCreationDeps = {
   getLocalComponents,
   generatePRDTemplate,
   generatePRDFilename,
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const AutoWorkCreation: SyncHookContract<
