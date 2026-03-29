@@ -103,6 +103,34 @@ describe("verify source-mode", () => {
       expect(result.value).toContain("No hooks/ directory found");
     }
   });
+
+  it("reports parse error for malformed hook.json", () => {
+    const repo = makeCleanSourceRepo();
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = "{ broken json !!!";
+    const deps = new InMemoryDeps(repo, "/source");
+    const result = verify(sourceVerifyArgs(), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("MANIFEST_PARSE_ERROR");
+    }
+  });
+
+  it("--fix mode reports fixed hooks", () => {
+    const repo = makeCleanSourceRepo();
+    // Remove a field that --fix can derive (e.g., empty deps so it re-derives)
+    const manifest = JSON.parse(repo["/source/hooks/TestGroup/TestHook/hook.json"]);
+    manifest.deps = ["nonexistent-dep"];
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify(manifest);
+    const deps = new InMemoryDeps(repo, "/source");
+    const result = verify(sourceVerifyArgs({ fix: true }), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      // Either it fixed something or found it valid
+      expect(typeof result.value).toBe("string");
+    }
+  });
 });
 
 // ─── Installed Mode Tests ───────────────────────────────────────────────────

@@ -77,9 +77,7 @@ function getFilePath(input: ToolHookInput): string | null {
 }
 
 function getWriteContent(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  if (input.tool_name === "Write") return (input.tool_input.content as string) ?? null;
-  return null;
+  return (input.tool_input.content as string) ?? null;
 }
 
 function getEditParts(

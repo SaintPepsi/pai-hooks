@@ -86,7 +86,6 @@ function verifySource(
   }
 
   const diagnostics: VerifyDiagnostic[] = [];
-  const fixedHooks: string[] = [];
 
   // Scan group directories
   const groupDirs = deps.readDir(hooksDir);
@@ -109,25 +108,16 @@ function verifySource(
       const manifestPath = `${hookDir}/hook.json`;
       if (!deps.fileExists(manifestPath)) continue;
 
-      const result = validateHookManifest(hookName, hookDir, manifestPath, groupDir, deps, fix);
+      const result = validateHookManifest(hookName, hookDir, manifestPath, groupDir, deps);
 
       if (result.diagnostics.length > 0) {
         diagnostics.push(...result.diagnostics);
       }
-      if (result.fixed) {
-        fixedHooks.push(hookName);
-      }
     }
   }
 
-  if (diagnostics.length === 0 && fixedHooks.length === 0) {
+  if (diagnostics.length === 0) {
     return ok("All hook manifests are valid.");
-  }
-
-  if (fix && fixedHooks.length > 0) {
-    return ok(
-      `Fixed ${fixedHooks.length} hook manifest${fixedHooks.length === 1 ? "" : "s"}: ${fixedHooks.join(", ")}`,
-    );
   }
 
   // Report diagnostics
@@ -145,7 +135,6 @@ function verifySource(
 
 interface ManifestValidationResult {
   diagnostics: VerifyDiagnostic[];
-  fixed: boolean;
 }
 
 /**
@@ -159,13 +148,12 @@ function validateHookManifest(
   manifestPath: string,
   _groupDir: string,
   deps: CliDeps,
-  _fix: boolean,
 ): ManifestValidationResult {
   const diagnostics: VerifyDiagnostic[] = [];
 
   // Read manifest
   const manifestContent = deps.readFile(manifestPath);
-  if (!manifestContent.ok) return { diagnostics, fixed: false };
+  if (!manifestContent.ok) return { diagnostics };
 
   const parsed = tryCatch(
     () => JSON.parse(manifestContent.value) as Record<string, unknown>,
@@ -183,7 +171,7 @@ function validateHookManifest(
       code: "MANIFEST_PARSE_ERROR",
       message: "Failed to parse hook.json",
     });
-    return { diagnostics, fixed: false };
+    return { diagnostics };
   }
 
   // Verify contract file exists
@@ -196,7 +184,7 @@ function validateHookManifest(
     });
   }
 
-  return { diagnostics, fixed: false };
+  return { diagnostics };
 }
 
 // ─── Installed Mode ─────────────────────────────────────────────────────────
