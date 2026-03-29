@@ -67,6 +67,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/RebaseGuard/RebaseGuard.hook.ts"
           }
         ]
       },
