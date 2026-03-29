@@ -6,7 +6,7 @@ Command implementations for the `paih` CLI. Each file exports a single function 
 
 | Command | File | Purpose | Added in |
 |---------|------|---------|----------|
-| `install` | `install.ts` | Install hooks to target project (source, --compiled, --compiled-ts modes). Supports --preset flag. Compiles from source entry point for path alias resolution | #7, #9, #13, #14 |
+| `install` | `install.ts` | Install hooks to target project (source, --compiled, --compiled-ts modes). Supports --preset flag. Compiles from source entry point for path alias resolution. Uses `$CLAUDE_PROJECT_DIR` in command strings for worktree compatibility | #7, #9, #13, #14, #32 |
 | `uninstall` | `uninstall.ts` | Remove hooks with modification detection, shared.ts ref-counting | #10 |
 | `update` | `update.ts` | Re-install hooks whose source changed (hash-based detection) | #10 |
 | `verify` | `verify.ts` | Source-mode manifest validation + installed-mode drift detection | #10 |
