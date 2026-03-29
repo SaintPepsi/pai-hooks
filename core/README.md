@@ -24,15 +24,23 @@ All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
 ## Runner (`runner.ts`)
 
-`runHook(contract)` — full pipeline: stdin, parse, accepts, execute, format, exit.
+`runHook(contract)` — full pipeline: stdin, parse, dedup, accepts, execute, format, exit.
 `runHookWith(contract, input)` — pre-built input, skips stdin.
 
-Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`.
+Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`. Both include a dedup guard before `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels.
+
+`RunHookOptions` allows overriding stdout, stderr, exit, log, and `isDuplicate` for testing.
+
+## Dedup Guard (`dedup.ts`)
+
+Prevents duplicate hook firing when the same hook is registered at both global (`~/.claude/settings.json`) and project (`.claude/settings.json`) levels. Uses atomic file creation (`O_EXCL`) in `/tmp/pai-dedup/{sessionId}/` so concurrent processes race safely — first writer proceeds, second exits silently.
+
+Exports: `isDuplicate(hookName, sessionId, input, deps?)`, `stableHash(hookName, input)`, `DedupDeps` interface, `defaultDedupDeps`.
 
 ## Adapters (`adapters/`)
 
 Boundary layer wrapping Node builtins in `Result`:
-- `fs.ts` — readFile, writeFile, readJson, writeJson, fileExists, stat, etc.
+- `fs.ts` — readFile, writeFile, writeFileExclusive, readJson, writeJson, fileExists, stat, etc.
 - `process.ts` — exec, execSyncSafe, spawnBackground
 - `stdin.ts` — readStdin with timeout
 - `log.ts` — appendHookLog for structured hook logging
