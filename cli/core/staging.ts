@@ -110,7 +110,7 @@ export function stageHook(
     }
   }
 
-  const commandString = `bun .claude/hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
+  const commandString = `bun ${ctx.claudeDir}/hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
 
   return ok({ files, commandString });
 }
