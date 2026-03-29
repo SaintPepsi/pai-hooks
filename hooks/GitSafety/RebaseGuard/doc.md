@@ -1,6 +1,6 @@
 ## Overview
 
-Unconditionally blocks all git rebase operations. Rebase rewrites commit history, making branches incompatible with their remote and requiring force-push. Use `git merge` instead.
+Blocks git rebase operations with a retry-to-confirm pattern. First attempt blocks with guidance to use `git merge` instead. If the exact same command is retried in the same session, it is allowed through. Rebase rewrites commit history, making branches incompatible with their remote and requiring force-push.
 
 ## Event
 
@@ -13,25 +13,30 @@ PreToolUse (fires before Bash commands execute)
 ## What It Does
 
 1. Extracts the command string from Bash tool input
-2. Checks if the command is a rebase operation:
+2. Splits chained commands (&&, ||, ;, |) into segments and truncates at heredoc markers to avoid false positives on commit messages or heredoc bodies
+3. Checks each segment for rebase operations:
    - `git rebase` (direct rebase, including --onto, -i, --continue, --abort)
    - `git pull --rebase` or `git pull --rebase=interactive`
    - `git pull -r`
-3. If rebase detected: blocks with a message explaining why and recommending `git merge`
-4. If not rebase: continues without interference
+4. If rebase detected on first attempt: blocks with a message recommending `git merge` and records the command in session state
+5. If the same command is retried: allows through and clears the state (so a third attempt would block again)
+6. If not rebase: continues without interference
 
 ## Examples
 
-> **Blocked:** `git rebase main` — Direct rebase onto main branch
+> **Blocked (1st attempt):** `git rebase main` — Direct rebase, blocks with retry guidance
+> **Allowed (2nd attempt):** `git rebase main` — Same command retried, allowed through
 > **Blocked:** `git pull --rebase origin main` — Pull with rebase flag
 > **Blocked:** `git pull -r origin main` — Pull with short rebase flag
 > **Allowed:** `git pull origin main` — Normal pull (merge)
 > **Allowed:** `git pull --no-rebase origin main` — Explicit no-rebase pull
 > **Allowed:** `git merge origin/main` — Merge (the correct alternative)
+> **Allowed:** `git commit -m "block git rebase"` — Rebase in commit message, not a command
 
 ## Dependencies
 
 - `@hooks/core/contract` — SyncHookContract type
+- `@hooks/core/adapters/fs` — readFile, writeFile, ensureDir, removeFile for session state
 - `@hooks/core/result` — Result type and ok() constructor
 - `@hooks/core/types/hook-inputs` — ToolHookInput type
 - `@hooks/core/types/hook-outputs` — block() and continueOk() constructors
