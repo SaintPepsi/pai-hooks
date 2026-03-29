@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ErrorCode } from "../error";
 import {
@@ -11,6 +12,7 @@ import {
   readDir,
   readFile,
   readJson,
+  removeDir,
   removeFile,
   stat,
   symlink,
@@ -18,14 +20,14 @@ import {
   writeJson,
 } from "./fs";
 
-const TEST_DIR = "/tmp/pai-fs-adapter-test";
+const TEST_DIR = join(tmpdir(), `pai-fs-adapter-test-${process.pid}`);
 
 beforeEach(() => {
   mkdirSync(TEST_DIR, { recursive: true });
 });
 
 afterEach(() => {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  removeDir(TEST_DIR);
 });
 
 // ─── fileExists ──────────────────────────────────────────────────────────────

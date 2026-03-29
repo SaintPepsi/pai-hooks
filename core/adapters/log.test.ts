@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { removeDir } from "@hooks/core/adapters/fs";
 import { _resetDirCache, appendHookLog, type HookLogEntry } from "./log";
 
-const TEST_LOG_DIR = "/tmp/pai-log-test";
+const TEST_LOG_DIR = join(tmpdir(), `pai-log-test-${process.pid}`);
 
 function makeEntry(overrides: Partial<HookLogEntry> = {}): HookLogEntry {
   return {
@@ -18,11 +20,11 @@ function makeEntry(overrides: Partial<HookLogEntry> = {}): HookLogEntry {
 
 describe("appendHookLog", () => {
   beforeEach(() => {
-    rmSync(TEST_LOG_DIR, { recursive: true, force: true });
+    removeDir(TEST_LOG_DIR);
   });
 
   afterEach(() => {
-    rmSync(TEST_LOG_DIR, { recursive: true, force: true });
+    removeDir(TEST_LOG_DIR);
   });
 
   it("creates log dir and writes JSONL entry", () => {
@@ -95,6 +97,14 @@ describe("appendHookLog", () => {
 });
 
 describe("appendHookLog — cleanup", () => {
+  beforeEach(() => {
+    removeDir(TEST_LOG_DIR);
+  });
+
+  afterEach(() => {
+    removeDir(TEST_LOG_DIR);
+  });
+
   it("deletes files older than 7 days when cleanup triggers", () => {
     mkdirSync(TEST_LOG_DIR, { recursive: true });
     const oldDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -121,12 +131,12 @@ describe("appendHookLog — cleanup", () => {
 
 describe("_resetDirCache", () => {
   beforeEach(() => {
-    rmSync(TEST_LOG_DIR, { recursive: true, force: true });
+    removeDir(TEST_LOG_DIR);
     _resetDirCache();
   });
 
   afterEach(() => {
-    rmSync(TEST_LOG_DIR, { recursive: true, force: true });
+    removeDir(TEST_LOG_DIR);
     _resetDirCache();
   });
 
@@ -139,7 +149,7 @@ describe("_resetDirCache", () => {
     appendHookLog(makeEntry(), TEST_LOG_DIR);
     expect(existsSync(TEST_LOG_DIR)).toBe(true);
 
-    rmSync(TEST_LOG_DIR, { recursive: true, force: true });
+    removeDir(TEST_LOG_DIR);
     expect(existsSync(TEST_LOG_DIR)).toBe(false);
 
     _resetDirCache();

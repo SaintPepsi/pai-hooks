@@ -10,8 +10,13 @@
  */
 
 import { beforeAll, describe, expect, it } from "bun:test";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import {
+  fileExists,
+  readDir,
+  readFile,
+  stat as adapterStat,
+} from "@hooks/core/adapters/fs";
 import { install } from "@hooks/cli/commands/install";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
@@ -27,20 +32,29 @@ interface SourceTree {
 }
 
 function walkDir(dir: string, base: string, files: Record<string, string>): void {
-  if (!existsSync(dir)) return;
-  for (const entry of readdirSync(dir)) {
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
-    if (stat.isDirectory()) {
+  if (!fileExists(dir)) return;
+  const entries = readDir(dir, { withFileTypes: true });
+  if (!entries.ok) return;
+  for (const entry of entries.value) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
       // Skip node_modules, .git, docs, test-fixtures
-      if (["node_modules", ".git", "docs", "test-fixtures", ".claude"].includes(entry)) continue;
+      if (["node_modules", ".git", "docs", "test-fixtures", ".claude"].includes(entry.name))
+        continue;
       walkDir(fullPath, base, files);
-    } else if (stat.isFile()) {
+    } else if (entry.isFile()) {
       const rel = relative(base, fullPath);
       const virtualPath = `/source/${rel}`;
       // Only load files needed for install: .ts, .json, shared files
-      if (entry.endsWith(".ts") || entry.endsWith(".json") || entry === "shared.ts") {
-        files[virtualPath] = readFileSync(fullPath, "utf-8");
+      if (
+        entry.name.endsWith(".ts") ||
+        entry.name.endsWith(".json") ||
+        entry.name === "shared.ts"
+      ) {
+        const content = readFile(fullPath);
+        if (content.ok) {
+          files[virtualPath] = content.value;
+        }
       }
     }
   }
@@ -49,15 +63,18 @@ function walkDir(dir: string, base: string, files: Record<string, string>): void
 function loadSourceTree(): SourceTree {
   const files: Record<string, string> = {};
 
-  // Load hooks/, core/, lib/, cli/ directories
+  // Load hooks/, core/, lib/ directories
   walkDir(join(REPO_ROOT, "hooks"), REPO_ROOT, files);
   walkDir(join(REPO_ROOT, "core"), REPO_ROOT, files);
   walkDir(join(REPO_ROOT, "lib"), REPO_ROOT, files);
 
   // Load presets.json
   const presetsPath = join(REPO_ROOT, "presets.json");
-  if (existsSync(presetsPath)) {
-    files["/source/presets.json"] = readFileSync(presetsPath, "utf-8");
+  if (fileExists(presetsPath)) {
+    const content = readFile(presetsPath);
+    if (content.ok) {
+      files["/source/presets.json"] = content.value;
+    }
   }
 
   // Discover hook names from hook.json files
@@ -65,22 +82,28 @@ function loadSourceTree(): SourceTree {
   const groupNames = new Set<string>();
 
   const hooksDir = join(REPO_ROOT, "hooks");
-  for (const groupEntry of readdirSync(hooksDir)) {
-    const groupDir = join(hooksDir, groupEntry);
-    if (!statSync(groupDir).isDirectory()) continue;
+  const groupEntries = readDir(hooksDir, { withFileTypes: true });
+  if (!groupEntries.ok) return { files, hookNames: [], groupNames: [] };
+
+  for (const groupEntry of groupEntries.value) {
+    if (!groupEntry.isDirectory()) continue;
+    const groupDir = join(hooksDir, groupEntry.name);
 
     const groupJsonPath = join(groupDir, "group.json");
-    if (existsSync(groupJsonPath)) {
-      groupNames.add(groupEntry);
+    if (fileExists(groupJsonPath)) {
+      groupNames.add(groupEntry.name);
     }
 
-    for (const hookEntry of readdirSync(groupDir)) {
-      const hookDir = join(groupDir, hookEntry);
-      if (!statSync(hookDir).isDirectory()) continue;
+    const hookEntries = readDir(groupDir, { withFileTypes: true });
+    if (!hookEntries.ok) continue;
+
+    for (const hookEntry of hookEntries.value) {
+      if (!hookEntry.isDirectory()) continue;
+      const hookDir = join(groupDir, hookEntry.name);
 
       const hookJsonPath = join(hookDir, "hook.json");
-      if (existsSync(hookJsonPath)) {
-        hookNames.push(hookEntry);
+      if (fileExists(hookJsonPath)) {
+        hookNames.push(hookEntry.name);
       }
     }
   }

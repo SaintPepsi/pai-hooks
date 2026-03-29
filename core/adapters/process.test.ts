@@ -78,7 +78,9 @@ describe("execSyncSafe", () => {
   });
 
   it("returns error for failing command", () => {
-    const r = execSyncSafe("exit 1");
+    // Use sh -c to ensure exit runs in a subshell (bun 1.3+ on Linux
+    // may not throw from bare `exit 1` passed to execSync)
+    const r = execSyncSafe("sh -c 'exit 1'");
     expect(r.ok).toBe(false);
     expect(r.error!.code).toBe(ErrorCode.ProcessExecFailed);
   });

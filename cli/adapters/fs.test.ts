@@ -1,24 +1,24 @@
 /**
  * CLI filesystem adapter tests.
+ *
+ * Uses os.tmpdir() for CI portability — no dependency on repo-relative paths.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ensureDir, fileExists, readDir, readFile, stat, writeFile } from "@hooks/cli/adapters/fs";
-import {
-  ensureDir as coreEnsureDir,
-  writeFile as coreWriteFile,
-  removeDir,
-} from "@hooks/core/adapters/fs";
+import { removeDir } from "@hooks/core/adapters/fs";
 
-const TEST_DIR = join(import.meta.dir, "../../test-fixtures/cli-fs-test");
+const TEST_DIR = join(tmpdir(), `pai-cli-fs-test-${process.pid}`);
 
 describe("cli/adapters/fs", () => {
   beforeAll(() => {
-    coreEnsureDir(TEST_DIR);
-    coreWriteFile(join(TEST_DIR, "sample.txt"), "hello");
-    coreEnsureDir(join(TEST_DIR, "subdir"));
-    coreWriteFile(join(TEST_DIR, "subdir/nested.txt"), "nested");
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(join(TEST_DIR, "sample.txt"), "hello");
+    mkdirSync(join(TEST_DIR, "subdir"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "subdir/nested.txt"), "nested");
   });
 
   afterAll(() => {

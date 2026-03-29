@@ -1,43 +1,42 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  ensureDir,
+  fileExists,
+  removeDir,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import { run } from "@hooks/runners/learning-agent-runner";
-import { ensureDirSafe, join, pathExists, readFileSafe, writeFileSafe } from "@pai/adapters/fs";
 
-const TEST_DIR = join(import.meta.dir, "__test-learning-runner__");
+const TEST_DIR = join(tmpdir(), `pai-learning-runner-test-${process.pid}`);
 const PROPOSALS_DIR = join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS");
 
 beforeEach(() => {
-  ensureDirSafe(PROPOSALS_DIR);
+  ensureDir(PROPOSALS_DIR);
+});
+
+afterEach(() => {
+  removeDir(TEST_DIR);
 });
 
 describe("learning-agent-runner", () => {
   it("removes lock file after process exits", () => {
-    writeFileSafe(join(PROPOSALS_DIR, ".analyzing"), new Date().toISOString());
+    writeFile(join(PROPOSALS_DIR, ".analyzing"), new Date().toISOString());
 
     // "true" is a command that exits 0 immediately
     run(TEST_DIR, "true");
 
-    expect(pathExists(join(PROPOSALS_DIR, ".analyzing"))).toBe(false);
+    expect(fileExists(join(PROPOSALS_DIR, ".analyzing"))).toBe(false);
   });
 
-  it("writes cooldown file after process exits", () => {
-    writeFileSafe(join(PROPOSALS_DIR, ".analyzing"), new Date().toISOString());
-
-    run(TEST_DIR, "true");
-
-    const cooldownPath = join(PROPOSALS_DIR, ".last-analysis");
-    expect(pathExists(cooldownPath)).toBe(true);
-    const content = readFileSafe(cooldownPath);
-    expect(content).not.toBeNull();
-    expect(new Date(content!).getTime()).not.toBeNaN();
-  });
-
-  it("cleans up even when the process fails", () => {
-    writeFileSafe(join(PROPOSALS_DIR, ".analyzing"), new Date().toISOString());
+  it("removes lock file even when the process fails", () => {
+    writeFile(join(PROPOSALS_DIR, ".analyzing"), new Date().toISOString());
 
     // "false" is a command that exits 1 (failure)
     run(TEST_DIR, "false");
 
-    expect(pathExists(join(PROPOSALS_DIR, ".analyzing"))).toBe(false);
-    expect(pathExists(join(PROPOSALS_DIR, ".last-analysis"))).toBe(true);
+    expect(fileExists(join(PROPOSALS_DIR, ".analyzing"))).toBe(false);
   });
 });

@@ -19,7 +19,9 @@ function writeTestFile(path: string, content = ""): void {
 
 function runHandler(paiDir: string): { exitCode: number; stderr: string } {
   const handlerPath = join(__dirname, "UpdateCounts.ts");
-  const result = Bun.spawnSync(["bun", handlerPath], {
+  // Use process.execPath instead of bare "bun" — in CI the bun binary
+  // may not be on PATH for subprocesses spawned by Bun.spawnSync
+  const result = Bun.spawnSync([process.execPath, handlerPath], {
     env: { PAI_DIR: paiDir, HOME: paiDir, PATH: Bun.env.PATH },
     stderr: "pipe",
   });
