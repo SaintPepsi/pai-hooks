@@ -13,7 +13,6 @@
  * - max-turns caps agent cost
  */
 
-import { join } from "node:path";
 import {
   ensureDir,
   fileExists,
@@ -32,6 +31,7 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp } from "@hooks/lib/time";
+import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +70,7 @@ export function buildArticlePrompt(ctx: ArticlePromptContext, sessionId: string)
   const deps = ctx;
   const now = new Date();
   const dateStr = now.toISOString().split("T")[0];
-  const _monthDir = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthDir = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   return `You are ${deps.daName}, ${deps.principalName}'s AI collaborator. You are writing an article for your blog section ("${deps.daName}'s Corner") on their website.
 

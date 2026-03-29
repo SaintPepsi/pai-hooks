@@ -256,11 +256,11 @@ describe("sendPush", () => {
     expect(result).toBe(true);
     expect(capturedUrl).toBe("https://ntfy.example.com/test-topic");
     expect(capturedBody).toBe("hello world");
-    expect(capturedHeaders.Title).toBe("Test Title");
-    expect(capturedHeaders.Priority).toBe("4"); // high = 4
-    expect(capturedHeaders.Tags).toBe("fire,warning");
-    expect(capturedHeaders.Click).toBe("https://example.com");
-    expect(capturedHeaders.Actions).toContain("view, Open, https://example.com");
+    expect(capturedHeaders["Title"]).toBe("Test Title");
+    expect(capturedHeaders["Priority"]).toBe("4"); // high = 4
+    expect(capturedHeaders["Tags"]).toBe("fire,warning");
+    expect(capturedHeaders["Click"]).toBe("https://example.com");
+    expect(capturedHeaders["Actions"]).toContain("view, Open, https://example.com");
   });
 
   it("returns false on fetch failure", async () => {
@@ -307,7 +307,7 @@ describe("sendPush", () => {
       await sendPush("test", {
         priority: priority as "min" | "low" | "default" | "high" | "urgent",
       });
-      expect(capturedHeaders.Priority).toBe(expected);
+      expect(capturedHeaders["Priority"]).toBe(expected);
     }
   });
 });
@@ -404,7 +404,7 @@ describe("notifyBackgroundAgent", () => {
 
     await notifyBackgroundAgent("Review", "PR review complete");
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(capturedHeaders.Title).toBe("Review Agent Complete");
+    expect(capturedHeaders["Title"]).toBe("Review Agent Complete");
   });
 });
 
@@ -434,6 +434,6 @@ describe("notifyError", () => {
 
     await notifyError("something broke badly");
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(capturedHeaders.Priority).toBe("4"); // high = 4
+    expect(capturedHeaders["Priority"]).toBe("4"); // high = 4
   });
 });

@@ -10,13 +10,13 @@
  * - Expandable later if needed
  */
 
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { getEnv } from "@hooks/core/adapters/process";
 import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { type Result, tryCatch } from "@hooks/core/result";
 import { getIdentity } from "@hooks/lib/identity";
+import { homedir } from "os";
+import { join } from "path";
 
 // ============================================================================
 // Types
@@ -92,7 +92,7 @@ export const defaultNotificationDeps: NotificationDeps = {
     ),
   lookupEnv: envLookup,
   paiDir: resolvePaiDir(),
-  stderr: (msg: string) => process.stderr.write(`${msg}\n`),
+  stderr: (msg: string) => process.stderr.write(msg + "\n"),
 };
 
 // ============================================================================
@@ -177,7 +177,7 @@ export function getSessionDurationMinutes(
   const result = deps.readFile(SESSION_START_FILE);
   if (!result.ok) return 0;
   const startTime = parseInt(result.value, 10);
-  if (Number.isNaN(startTime)) return 0;
+  if (isNaN(startTime)) return 0;
   return (Date.now() - startTime) / 1000 / 60;
 }
 
@@ -207,7 +207,7 @@ export async function sendPush(
     "Content-Type": "text/plain",
   };
 
-  if (options.title) headers.Title = options.title;
+  if (options.title) headers["Title"] = options.title;
 
   if (options.priority) {
     const priorityMap: Record<NotificationPriority, string> = {
@@ -217,14 +217,14 @@ export async function sendPush(
       high: "4",
       urgent: "5",
     };
-    headers.Priority = priorityMap[options.priority] || "3";
+    headers["Priority"] = priorityMap[options.priority] || "3";
   }
 
-  if (options.tags?.length) headers.Tags = options.tags.join(",");
-  if (options.click) headers.Click = options.click;
+  if (options.tags?.length) headers["Tags"] = options.tags.join(",");
+  if (options.click) headers["Click"] = options.click;
 
   if (options.actions?.length) {
-    headers.Actions = options.actions.map((a) => `${a.action}, ${a.label}, ${a.url}`).join("; ");
+    headers["Actions"] = options.actions.map((a) => `${a.action}, ${a.label}, ${a.url}`).join("; ");
   }
 
   const response = await fetch(url, {

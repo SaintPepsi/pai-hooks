@@ -13,7 +13,8 @@ export type HookEventType =
   | "PreCompact"
   | "Stop"
   | "SubagentStart"
-  | "SubagentStop";
+  | "SubagentStop"
+  | "PermissionRequest";
 
 // ─── Base Input ──────────────────────────────────────────────────────────────
 
@@ -70,6 +71,20 @@ export interface SubagentStopInput extends HookInputBase {
   transcript_path?: string;
 }
 
+// ─── PermissionRequest Input ─────────────────────────────────────────────────
+
+export interface PermissionRequestInput extends HookInputBase {
+  tool_name: string;
+  tool_input: Record<string, unknown>;
+  permission_mode?: string;
+  permission_suggestions?: Array<{
+    type: string;
+    rules: Array<{ toolName: string; ruleContent: string }>;
+    behavior: string;
+    destination: string;
+  }>;
+}
+
 // ─── Union Type ──────────────────────────────────────────────────────────────
 
 export type HookInput =
@@ -80,4 +95,5 @@ export type HookInput =
   | PreCompactInput
   | StopInput
   | SubagentStartInput
-  | SubagentStopInput;
+  | SubagentStopInput
+  | PermissionRequestInput;

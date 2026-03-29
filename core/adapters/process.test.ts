@@ -1,6 +1,34 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { ErrorCode } from "../error";
-import { exec, execSyncSafe, getEnv, spawnSyncSafe } from "./process";
+import { exec, execSyncSafe, getEnv, shellForPlatform, spawnSyncSafe } from "./process";
+
+// ─── shellForPlatform ────────────────────────────────────────────────────────
+
+describe("shellForPlatform", () => {
+  it("returns sh -c for linux", () => {
+    const [shell, flag] = shellForPlatform("linux");
+    expect(shell).toBe("sh");
+    expect(flag).toBe("-c");
+  });
+
+  it("returns sh -c for darwin", () => {
+    const [shell, flag] = shellForPlatform("darwin");
+    expect(shell).toBe("sh");
+    expect(flag).toBe("-c");
+  });
+
+  it("returns cmd.exe /c for win32", () => {
+    const [shell, flag] = shellForPlatform("win32");
+    expect(shell).toBe("cmd.exe");
+    expect(flag).toBe("/c");
+  });
+
+  it("defaults to sh -c for unknown platforms", () => {
+    const [shell, flag] = shellForPlatform("freebsd");
+    expect(shell).toBe("sh");
+    expect(flag).toBe("-c");
+  });
+});
 
 // ─── exec ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +57,14 @@ describe("exec", () => {
     expect(r.ok).toBe(true);
     // /tmp may resolve to /private/tmp on macOS
     expect(r.value!.stdout.trim()).toMatch(/\/tmp$/);
+  });
+
+  it("uses platform parameter for shell selection", async () => {
+    // We can't truly test win32 on POSIX, but we verify the param is accepted
+    // and that the default (current platform) works
+    const r = await exec("echo platform-test", { platform: process.platform });
+    expect(r.ok).toBe(true);
+    expect(r.value!.stdout.trim()).toBe("platform-test");
   });
 });
 

@@ -5,12 +5,12 @@
  * changes to determine if background integrity maintenance is needed.
  */
 
-import { basename, join, relative } from "node:path";
 import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { tryCatch } from "@hooks/core/result";
 import { getPaiDir } from "@hooks/lib/paths";
+import { basename, join, relative } from "path";
 
 // ============================================================================
 // Types

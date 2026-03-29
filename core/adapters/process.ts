@@ -12,13 +12,23 @@ export interface ExecResult {
   exitCode: number;
 }
 
+/**
+ * Detect the correct shell and flag for the current platform.
+ * Returns `["cmd.exe", "/c"]` on Windows, `["sh", "-c"]` on POSIX.
+ */
+export function shellForPlatform(platform: string): [shell: string, flag: string] {
+  if (platform === "win32") return ["cmd.exe", "/c"];
+  return ["sh", "-c"];
+}
+
 export async function exec(
   cmd: string,
-  opts: { timeout?: number; cwd?: string } = {},
+  opts: { timeout?: number; cwd?: string; platform?: string } = {},
 ): Promise<Result<ExecResult, PaiError>> {
   return tryCatchAsync(
     async () => {
-      const proc = Bun.spawn(["sh", "-c", cmd], {
+      const [shell, flag] = shellForPlatform(opts.platform ?? process.platform);
+      const proc = Bun.spawn([shell, flag, cmd], {
         cwd: opts.cwd,
         stdout: "pipe",
         stderr: "pipe",

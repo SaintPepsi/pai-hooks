@@ -5,7 +5,6 @@
  * creates a learning file with metadata and ISC for future reference.
  */
 
-import { join } from "node:path";
 import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
@@ -15,6 +14,7 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp, getLocalDate } from "@hooks/lib/time";
+import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -216,11 +216,12 @@ export const WorkCompletionLearning: SyncHookContract<
       const iscData = iscResult.value;
       const criteria = iscData.current?.criteria;
       if (criteria && criteria.length > 0) {
-        idealContent = `**Criteria:**\n${criteria.map((c: string) => `- ${c}`).join("\n")}`;
+        idealContent = "**Criteria:**\n" + criteria.map((c: string) => `- ${c}`).join("\n");
       }
       const antiCriteria = iscData.current?.antiCriteria;
       if (antiCriteria && antiCriteria.length > 0) {
-        idealContent += `\n\n**Anti-Criteria:**\n${antiCriteria.map((c: string) => `- ${c}`).join("\n")}`;
+        idealContent +=
+          "\n\n**Anti-Criteria:**\n" + antiCriteria.map((c: string) => `- ${c}`).join("\n");
       }
       if (iscData.satisfaction) {
         const s = iscData.satisfaction;

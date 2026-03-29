@@ -18,8 +18,6 @@
  *     → Multi-pattern regex extraction + heuristic fallback for effort level
  */
 
-import { homedir } from "node:os";
-import { join } from "node:path";
 import {
   ensureDir,
   fileExists,
@@ -33,6 +31,8 @@ import {
 import { getEnv } from "@hooks/core/adapters/process";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
+import { homedir } from "os";
+import { join } from "path";
 
 // ── Types ──
 
@@ -199,7 +199,7 @@ export const defaultAlgorithmStateDeps: AlgorithmStateDeps = {
   readDir,
   removeFile,
   stat,
-  stderr: (msg: string) => process.stderr.write(`${msg}\n`),
+  stderr: (msg: string) => process.stderr.write(msg + "\n"),
   baseDir: resolveBaseDir(),
 };
 
@@ -557,7 +557,7 @@ export function algorithmEnd(
 
   // Non-algorithm response: deactivate if it was optimistically activated
   if (!enrichment.isAlgorithmResponse) {
-    if (state?.active && state.phaseHistory.length <= 1 && state.criteria.length === 0) {
+    if (state && state.active && state.phaseHistory.length <= 1 && state.criteria.length === 0) {
       // Session was activated by SessionReactivator but response wasn't algorithm format.
       // Deactivate to prevent stale active sessions.
       state.active = false;

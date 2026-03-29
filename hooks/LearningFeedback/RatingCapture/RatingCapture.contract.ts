@@ -9,9 +9,8 @@
  * Rating/sentiment writes happen as side effects via deps.
  */
 
-import { join } from "node:path";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
-import type { AsyncHookContract } from "@hooks/core/contract";
+import type { AsyncHookContract, HookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
@@ -22,6 +21,7 @@ import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp, getLocalComponents } from "@hooks/lib/time";
 import { captureFailure } from "@pai/Tools/FailureCapture";
 import { type InferenceResult, inference } from "@pai/Tools/Inference";
+import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -327,7 +327,7 @@ export const RatingCapture: AsyncHookContract<
               detailedContext: responseContext,
               sessionId,
             })
-            .catch((e: Error) => deps.stderr(`[RatingCapture] captureFailure error: ${e.message}`));
+            .catch((e: Error) => deps.stderr("[RatingCapture] captureFailure error: " + e.message));
         }
       }
 
@@ -402,7 +402,7 @@ export const RatingCapture: AsyncHookContract<
               detailedContext: sentiment.detailed_context || "",
               sessionId,
             })
-            .catch((e: Error) => deps.stderr(`[RatingCapture] captureFailure error: ${e.message}`));
+            .catch((e: Error) => deps.stderr("[RatingCapture] captureFailure error: " + e.message));
         }
       }
 
@@ -426,7 +426,7 @@ function writeRating(
   deps: RatingCaptureDeps,
 ): void {
   deps.ensureDir(signalsDir);
-  deps.appendFile(ratingsFile, `${JSON.stringify(entry)}\n`);
+  deps.appendFile(ratingsFile, JSON.stringify(entry) + "\n");
 }
 
 function captureLowRatingLearning(

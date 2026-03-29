@@ -9,7 +9,6 @@
  * Fails open: any read error yields continue with no context.
  */
 
-import { join } from "node:path";
 import { readDir, readFile, stat } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
@@ -17,6 +16,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -179,10 +179,10 @@ export const PreCompactStatePersist: SyncHookContract<
       return ok(CONTINUE_SILENT);
     }
 
-    const task = fm.task ?? "";
-    const phase = fm.phase ?? "";
-    const progress = fm.progress ?? "";
-    const slug = fm.slug ?? "";
+    const task = fm["task"] ?? "";
+    const phase = fm["phase"] ?? "";
+    const progress = fm["progress"] ?? "";
+    const slug = fm["slug"] ?? "";
 
     if (!task && !slug) {
       deps.stderr("[PreCompactStatePersist] Frontmatter missing task and slug — skipping");

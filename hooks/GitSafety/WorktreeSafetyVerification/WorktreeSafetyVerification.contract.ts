@@ -8,20 +8,19 @@
  * Always returns ContinueOutput — never blocks worktree creation.
  */
 
-import { dirname, join } from "node:path";
 import { appendFile, ensureDir, fileExists, writeFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
-import { processExecFailed } from "@hooks/core/error";
-import { ok, type Result, tryCatch } from "@hooks/core/result";
+import { err, map, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { dirname, join } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface WorktreeSafetyDeps {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => string;
+  execSync: (cmd: string, opts?: Record<string, unknown>) => Result<string, PaiError>;
   spawnSync: (
     cmd: string,
     args: string[],
@@ -72,16 +71,13 @@ export const TEST_CONFIGS: TestConfig[] = [
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Bridge throwing deps.execSync into Result. */
+/** Map deps.execSync Result, trimming the output string on success. */
 function tryExec(
   deps: WorktreeSafetyDeps,
   cmd: string,
   opts?: Record<string, unknown>,
 ): Result<string, PaiError> {
-  return tryCatch(
-    () => String(deps.execSync(cmd, opts)).trim(),
-    (e) => processExecFailed(cmd, e),
-  );
+  return map(deps.execSync(cmd, opts), (v) => v.trim());
 }
 
 // ─── Pure Logic Functions ────────────────────────────────────────────────────
@@ -155,7 +151,7 @@ export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps):
     );
     const gitignorePath = join(gitRoot, ".gitignore");
     let entry: string;
-    if (worktreePath.startsWith(`${gitRoot}/`)) {
+    if (worktreePath.startsWith(gitRoot + "/")) {
       entry = worktreePath.slice(gitRoot.length + 1);
     } else {
       entry = worktreePath;
@@ -229,15 +225,12 @@ export function runBaselineTests(worktreePath: string, deps: WorktreeSafetyDeps)
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: WorktreeSafetyDeps = {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => {
-    const r = execSyncSafe(cmd, {
+  execSync: (cmd: string, opts?: Record<string, unknown>) =>
+    execSyncSafe(cmd, {
       cwd: opts?.cwd as string,
       timeout: opts?.timeout as number,
       stdio: opts?.stdio as "pipe" | "ignore" | "inherit" | undefined,
-    });
-    if (!r.ok) throw r.error;
-    return r.value;
-  },
+    }),
   spawnSync: (cmd: string, args: string[], opts?: Record<string, unknown>) => {
     const r = execSyncSafe([cmd, ...args].join(" "), {
       cwd: opts?.cwd as string,
@@ -259,7 +252,7 @@ const defaultDeps: WorktreeSafetyDeps = {
   mkdirSync: (path: string) => {
     ensureDir(path);
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: (msg) => process.stderr.write(msg + "\n"),
   cwd: () => process.cwd(),
 };
 

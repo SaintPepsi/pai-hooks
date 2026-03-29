@@ -9,9 +9,9 @@
  *   const paiDir = getPaiDir(); // Always returns expanded absolute path
  */
 
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { getEnv } from "@hooks/core/adapters/process";
+import { homedir } from "os";
+import { join } from "path";
 
 /**
  * Expand shell variables in a path string
@@ -44,7 +44,7 @@ export function getPaiDir(): string {
  * Factory function for defaultDeps.stderr — avoids inline process.stderr in every contract.
  */
 export function defaultStderr(msg: string): void {
-  process.stderr.write(`${msg}\n`);
+  process.stderr.write(msg + "\n");
 }
 
 /**

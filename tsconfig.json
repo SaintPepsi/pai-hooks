@@ -8,11 +8,10 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "types": ["bun-types"],
-    "baseUrl": ".",
     "paths": {
       "@hooks/*": ["./*"],
-      "@pai/*": ["stubs/pai/*"],
-      "@tools/pattern-detector/*": ["hooks/DuplicationDetection/research/*"]
+      "@pai/*": ["./stubs/pai/*"],
+      "@tools/pattern-detector/*": ["./hooks/DuplicationDetection/research/*"]
     }
   },
   "include": ["**/*.ts"],

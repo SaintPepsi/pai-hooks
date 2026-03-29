@@ -3,6 +3,7 @@
 
 import type {
   ArrowFunctionExpression,
+  BindingIdentifier,
   BlockStatement,
   ExportDeclaration,
   FunctionDeclaration,
@@ -11,6 +12,7 @@ import type {
   Module,
   ModuleItem,
   Param,
+  Pattern,
   Statement,
   TsType,
   VariableDeclaration,
@@ -58,7 +60,7 @@ function makeLineMapper(source: string): (offset: number) => number {
   return (offset: number): number => {
     let lo = 0;
     let hi = lineStarts.length - 1;
-    while (lo < hi) {
+    for (let step = 0; step < 32 && lo < hi; step++) {
       const mid = (lo + hi + 1) >> 1;
       if (lineStarts[mid] <= offset) lo = mid;
       else hi = mid - 1;
@@ -76,13 +78,7 @@ const TYPE_PATTERN = /"type":"([^"]+)"/g;
 
 function collectNodeTypes(body: BlockStatement): string[] {
   const json = JSON.stringify(body);
-  const types: string[] = [];
-  let match: RegExpExecArray | null;
-  TYPE_PATTERN.lastIndex = 0;
-  while ((match = TYPE_PATTERN.exec(json)) !== null) {
-    types.push(match[1]);
-  }
-  return types;
+  return Array.from(json.matchAll(TYPE_PATTERN), (m) => m[1]);
 }
 
 // Structural keys preserved during normalization — everything else stripped
@@ -104,11 +100,15 @@ function typeToString(tsType: TsType | undefined | null): string | null {
   return tsType.type;
 }
 
+function isBindingIdentifier(pat: Pattern): pat is BindingIdentifier {
+  return pat.type === "Identifier" && "typeAnnotation" in pat;
+}
+
 function extractParams(params: Param[]): ParamInfo[] {
   return params.map((p, i) => ({
     index: i,
     typeAnnotation:
-      p.pat.type === "Identifier" && p.pat.typeAnnotation
+      isBindingIdentifier(p.pat) && p.pat.typeAnnotation
         ? typeToString(p.pat.typeAnnotation.typeAnnotation)
         : null,
   }));
@@ -157,10 +157,17 @@ function walkStatements(stmts: (ModuleItem | Statement)[], ctx: ExtractContext):
         const arrow = init as ArrowFunctionExpression | FunctionExpression;
         const body = arrow.body;
         if (body && body.type === "BlockStatement") {
+          // ArrowFunctionExpression has Pattern[], FunctionExpression has Param[]
+          // Normalize Pattern[] to Param[] by wrapping bare patterns
+          const params: Param[] = arrow.params.map((p) =>
+            "pat" in p
+              ? (p as Param)
+              : { type: "Parameter" as const, pat: p, span: arrow.span, decorators: [] },
+          );
           const fn = extractFromFunction(
             name,
             body as BlockStatement,
-            arrow.params,
+            params,
             arrow.returnType?.typeAnnotation,
             ctx,
             arrow.span,

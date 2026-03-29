@@ -518,6 +518,16 @@
           }
         ]
       }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/PermissionPromptLogger/PermissionPromptLogger.hook.ts"
+          }
+        ]
+      }
     ]
   }
 }

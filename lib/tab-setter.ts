@@ -8,7 +8,6 @@
  * All hooks call setTabState() instead of directly running kitten commands.
  */
 
-import { join } from "node:path";
 import {
   ensureDir,
   fileExists,
@@ -30,6 +29,7 @@ import {
   PHASE_TAB_CONFIG,
   TAB_COLORS,
 } from "@hooks/lib/tab-constants";
+import { join } from "path";
 
 // ── Deps ──
 
@@ -65,7 +65,7 @@ export const defaultTabSetterDeps: TabSetterDeps = {
   execSync: (cmd: string, opts?: { timeout?: number; stdio?: "pipe" | "inherit" | "ignore" }) =>
     execSyncSafe(cmd, { timeout: opts?.timeout, stdio: opts?.stdio }),
   getEnv: envLookup,
-  stderr: (msg: string) => process.stderr.write(`${msg}\n`),
+  stderr: (msg: string) => process.stderr.write(msg + "\n"),
 };
 
 // ── Path constants ──

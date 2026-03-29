@@ -1,11 +1,12 @@
-import { join } from "node:path";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError, Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { join } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ export const CanaryHook: SyncHookContract<SessionStartInput, ContinueOutput, Can
     const logFile = join(logDir, "canary-hook.log");
 
     deps.ensureDir(logDir);
-    deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+    deps.appendFile(logFile, new Date().toISOString() + "\n");
     deps.execSyncSafe(`code "${logFile}"`);
 
     return ok({ type: "continue" as const, continue: true as const });

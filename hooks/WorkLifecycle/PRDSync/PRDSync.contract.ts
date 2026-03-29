@@ -9,7 +9,6 @@
  * Always returns ContinueOutput — never blocks the tool result.
  */
 
-import { join } from "node:path";
 import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
@@ -17,6 +16,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -152,7 +152,7 @@ export function extractSessionDir(filePath: string): string | null {
 function syncSessionState(
   sessionId: string,
   sessionDir: string,
-  _prdPath: string,
+  prdPath: string,
   deps: PRDSyncDeps,
 ): void {
   const stateFilePath = join(deps.baseDir, "MEMORY", "STATE", `current-work-${sessionId}.json`);

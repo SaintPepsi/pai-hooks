@@ -48,7 +48,7 @@ function buildBodyFingerprint(nodeTypes: string[]): string {
   // Count occurrences of top-16 node types, clamp to 0-255, encode as hex
   const counts = new Uint8Array(16);
   for (const t of nodeTypes) {
-    const idx = NODE_TYPE_INDEX.get(t);
+    const idx = NODE_TYPE_INDEX.get(t as (typeof TOP_NODE_TYPES)[number]);
     if (idx !== undefined && counts[idx] < 255) counts[idx]++;
   }
   // Encode as 32-char hex string

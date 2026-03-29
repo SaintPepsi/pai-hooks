@@ -5,7 +5,6 @@
  * deleting current-work state, and resetting the Kitty tab.
  */
 
-import { join } from "node:path";
 import { fileExists, readFile, readJson, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
@@ -16,6 +15,7 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { cleanupKittySession, setTabState } from "@hooks/lib/tab-setter";
 import { getISOTimestamp } from "@hooks/lib/time";
+import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
