@@ -31,6 +31,7 @@ import { spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
 import { getISOTimestamp } from "@hooks/lib/time";
 import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -294,11 +295,11 @@ const defaultDeps: ArticleWriterDeps = {
   stat,
   spawnBackground,
   getISOTimestamp,
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
   websiteRepo: ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)?.repo || "",
   principalName: getPrincipalName(),
   daName: getDAName(),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const ArticleWriter: SyncHookContract<

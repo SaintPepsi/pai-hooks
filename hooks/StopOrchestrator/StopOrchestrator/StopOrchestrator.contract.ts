@@ -19,6 +19,7 @@ import { handleRebuildSkill } from "@hooks/handlers/RebuildSkill";
 import { handleAlgorithmEnrichment } from "@hooks/handlers/AlgorithmEnrichment";
 import { fileExists } from "@hooks/core/adapters/fs";
 import { join } from "path";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -50,10 +51,10 @@ const defaultDeps: StopOrchestratorDeps = {
   handleTabState,
   handleRebuildSkill,
   handleAlgorithmEnrichment,
-  isMainSession: (sessionId) => defaultIsMainSession(sessionId, process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
+  isMainSession: (sessionId) => defaultIsMainSession(sessionId, getPaiDir()),
   delay: (ms) => new Promise((r) => setTimeout(r, ms)),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const StopOrchestrator: AsyncHookContract<

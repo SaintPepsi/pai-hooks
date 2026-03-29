@@ -14,6 +14,7 @@ import { join } from "path";
 import { getISOTimestamp, getLocalDate } from "@hooks/lib/time";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
 import { fileExists, readFile, readJson, writeFile, ensureDir } from "@hooks/core/adapters/fs";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -140,8 +141,8 @@ const defaultDeps: WorkCompletionLearningDeps = {
   getTimestamp: getISOTimestamp,
   getLocalDate,
   getLearningCategory,
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const WorkCompletionLearning: SyncHookContract<

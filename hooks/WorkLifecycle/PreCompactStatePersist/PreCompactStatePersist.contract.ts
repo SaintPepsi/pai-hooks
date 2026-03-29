@@ -16,6 +16,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { readFile, readDir, stat } from "@hooks/core/adapters/fs";
 import { join } from "path";
+import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,8 +137,8 @@ const defaultDeps: PreCompactStatePersistDeps = {
   readDir,
   readFile,
   stat,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  stderr: defaultStderr,
+  baseDir: getPaiDir(),
 };
 
 const CONTINUE_SILENT: ContinueOutput = { type: "continue", continue: true };
