@@ -15,8 +15,8 @@
  * Pure functions — no I/O except CSS loading.
  */
 
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readFile } from "@hooks/core/adapters/fs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,7 +46,8 @@ let cachedCSS: string | null = null;
 
 function getCSS(): string {
   if (!cachedCSS) {
-    cachedCSS = readFileSync(join(import.meta.dir, "style.css"), "utf-8");
+    const result = readFile(join(import.meta.dir, "style.css"));
+    cachedCSS = result.ok ? result.value : "";
   }
   return cachedCSS;
 }
