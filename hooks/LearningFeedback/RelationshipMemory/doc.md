@@ -25,7 +25,7 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Reads and parses the transcript file (JSONL format) into typed entries
+1. Reads and parses the transcript file (JSONL format) into typed entries via `safeParseTranscriptLine` (exported for direct testing)
 2. Scans user messages for emotional patterns:
    - Frustration keywords (frustrat, annoy, bother, irritat)
    - Positive keywords (great, awesome, perfect, excellent, good job)
