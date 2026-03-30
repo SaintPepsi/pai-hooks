@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
@@ -129,11 +130,6 @@ function getNewContent(input: ToolHookInput): string | null {
   }
 
   return null;
-}
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input.file_path as string) ?? null;
 }
 
 // ─── Lazy Unknown Detection ─────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import { jsonParseFailed } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
+import { getCommand, getFilePath } from "@hooks/lib/tool-input";
 import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -83,10 +83,6 @@ export function pendingMatchesSource(pendingFile: string, sourceFile: string): b
   return pendingFile.endsWith(sourceFile) || pendingFile.endsWith(`/${sourceFile}`);
 }
 
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
-}
 
 export function pendingPath(stateDir: string, sessionId: string): string {
   return join(stateDir, `tests-pending-${sessionId}.json`);

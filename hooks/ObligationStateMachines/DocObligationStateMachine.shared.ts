@@ -15,6 +15,7 @@ import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
@@ -69,11 +70,6 @@ export function isRelatedDoc(docPath: string, codePath: string): boolean {
   const docDir = dirname(docPath);
   const codeDir = dirname(codePath);
   return codeDir.startsWith(docDir) || docDir.startsWith(codeDir);
-}
-
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 export function pendingPath(stateDir: string, sessionId: string): string {

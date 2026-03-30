@@ -2,11 +2,11 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
   defaultDeps,
-  getFilePath,
   getHookDirFromPath,
   isHookDocFile,
   isHookSourceFile,
