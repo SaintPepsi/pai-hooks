@@ -28,6 +28,10 @@
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/GitignoreRecommender/GitignoreRecommender.hook.ts",
             "once": true
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       },

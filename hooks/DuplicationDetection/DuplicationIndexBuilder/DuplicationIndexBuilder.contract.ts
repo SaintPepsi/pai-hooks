@@ -1,8 +1,10 @@
 /**
- * DuplicationIndexBuilder Contract — PostToolUse notification on Write/Edit to .ts files.
+ * DuplicationIndexBuilder Contract — builds the duplication index on PostToolUse
+ * (Write/Edit to .ts files) and SessionStart (eager pre-warming).
  *
  * Builds the duplication index (.duplication-index.json) on the first .ts file
- * write in a session. Subsequent writes skip if the index is fresh (<30 min).
+ * write in a session, or eagerly at session start. Subsequent triggers skip
+ * if the index is fresh (<30 min).
  * No additionalContext — this is a silent background operation.
  */
 
@@ -17,7 +19,7 @@ import {
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
@@ -34,6 +36,7 @@ export interface DuplicationIndexBuilderDeps {
   stderr: (msg: string) => void;
   now: () => number;
   findProjectRoot: (filePath: string) => string | null;
+  cwd: () => string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -102,19 +105,29 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
   stderr: (msg) => process.stderr.write(`${msg}\n`),
   now: () => Date.now(),
   findProjectRoot: defaultFindProjectRoot,
+  cwd: () => process.cwd(),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
+/** Type guard: true when input came from a tool event (has tool_name). */
+function isToolInput(input: HookInput): input is ToolHookInput {
+  return "tool_name" in input;
+}
+
 export const DuplicationIndexBuilderContract: SyncHookContract<
-  ToolHookInput,
+  HookInput,
   ContinueOutput,
   DuplicationIndexBuilderDeps
 > = {
   name: "DuplicationIndexBuilder",
   event: "PostToolUse",
 
-  accepts(input: ToolHookInput): boolean {
+  accepts(input: HookInput): boolean {
+    // SessionStart — always accept (eager pre-warming)
+    if (!isToolInput(input)) return true;
+
+    // PostToolUse — only Write/Edit on .ts files
     if (input.tool_name !== "Write" && input.tool_name !== "Edit") return false;
     const filePath = getFilePath(input);
     if (!filePath) return false;
@@ -124,13 +137,12 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
   },
 
   execute(
-    input: ToolHookInput,
+    input: HookInput,
     deps: DuplicationIndexBuilderDeps,
   ): Result<ContinueOutput, PaiError> {
-    const filePath = getFilePath(input)!;
-
-    // Find project root
-    const projectRoot = deps.findProjectRoot(filePath);
+    // SessionStart: use CWD. PostToolUse: use file path from tool input.
+    const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
+    const projectRoot = deps.findProjectRoot(anchor);
     if (!projectRoot) {
       deps.stderr("[DuplicationIndexBuilder] No project root found — skipping");
       return ok({ type: "continue", continue: true });

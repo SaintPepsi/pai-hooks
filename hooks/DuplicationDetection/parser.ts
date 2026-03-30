@@ -100,8 +100,15 @@ export interface ParserDeps {
   createHash: (content: string) => string;
 }
 
+interface AstParamPattern {
+  type: string;
+  typeAnnotation?: { typeAnnotation?: { type: string } };
+}
+
 interface AstParam {
-  pat: { type: string; typeAnnotation?: { typeAnnotation?: { type: string } } };
+  type?: string;
+  pat?: AstParamPattern;
+  typeAnnotation?: { typeAnnotation?: { type: string } };
 }
 
 interface AstReturnType {
@@ -173,11 +180,14 @@ export function extractFunctions(
       line: toLine(span.start),
       bodyHash: hash,
       paramSig: params
-        .map((p) =>
-          p.pat.type === "Identifier" && p.pat.typeAnnotation?.typeAnnotation?.type
-            ? p.pat.typeAnnotation.typeAnnotation.type
-            : "",
-        )
+        .map((p) => {
+          // FunctionDeclaration params: {type: "Parameter", pat: Pattern}
+          // ArrowFunctionExpression params: Pattern directly (no pat wrapper)
+          const pattern = p.pat ?? p;
+          return pattern.type === "Identifier" && pattern.typeAnnotation?.typeAnnotation?.type
+            ? pattern.typeAnnotation.typeAnnotation.type
+            : "";
+        })
         .join(","),
       returnType: retType?.typeAnnotation?.type ?? "",
       fingerprint: buildFingerprint(nodeTypes),

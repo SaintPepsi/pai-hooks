@@ -1,20 +1,26 @@
 # DuplicationIndexBuilder
 
-PostToolUse hook that builds the duplication index after any `.ts` file write.
+Builds the duplication index on SessionStart (eager pre-warming) and PostToolUse (after `.ts` file writes).
 
 ## What It Does
 
 Scans the project root for all `.ts` files, extracts function signatures using the parser
-([`parser.ts`](../parser.ts)), and writes `.duplication-index.json` to the project root.
+([`parser.ts`](../parser.ts)), and writes `.duplication-index.json` to the project's `.claude/` directory.
 The index contains body hashes, name groups, and signature groups used by DuplicationChecker
 ([`DuplicationChecker/DuplicationChecker.contract.ts`](../DuplicationChecker/DuplicationChecker.contract.ts))
 to identify duplicates.
 
 ## When It Fires
 
-- Event: `PostToolUse`
-- Tool filter: `Write` or `Edit` to any `.ts` file (`.d.ts` excluded)
+- Event: `SessionStart` — builds the index eagerly using CWD as the project anchor
+- Event: `PostToolUse` — rebuilds after `Write` or `Edit` to any `.ts` file (`.d.ts` excluded)
 - Skips rebuild if the existing index is less than 30 minutes old
+
+## Hook Shell Routing
+
+The hook shell (`DuplicationIndexBuilder.hook.ts`) reads stdin once and routes by event type:
+- **SessionStart** (no `tool_name` in input): uses `runHookWith` to bypass the runner's tool_name validation
+- **PostToolUse** (`tool_name` present): uses standard `runHook` with `stdinOverride`
 
 ## Silent Notification Hook
 
