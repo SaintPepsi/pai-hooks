@@ -22,6 +22,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 
@@ -73,7 +74,7 @@ Review for: bugs, security issues, missing error handling, code quality, and adh
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
 function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+  const paiDir = getPaiDir();
   return join(paiDir, "MEMORY", "STATE", "spot-check");
 }
 
@@ -126,7 +127,7 @@ export const SpotCheckReview: SyncHookContract<
 
   accepts(_input: StopInput): boolean {
     if (projectHasHook("SpotCheckReview")) return false;
-    const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+    const paiDir = getPaiDir();
     if (process.cwd() === paiDir) return false;
     return true;
   },

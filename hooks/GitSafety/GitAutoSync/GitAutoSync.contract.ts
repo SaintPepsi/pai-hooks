@@ -21,6 +21,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getLocalTimestamp } from "@hooks/lib/time";
 
@@ -226,7 +227,7 @@ const defaultDeps: GitAutoSyncDeps = {
   dateNow: () => Date.now(),
   getTimestamp: getLocalTimestamp,
   get claudeDir() {
-    return process.env.PAI_DIR ?? join(process.env.HOME!, ".claude");
+    return getPaiDir();
   },
   get backupDir() {
     return join(this.claudeDir, ".backup");

@@ -24,6 +24,7 @@ import type { PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
@@ -116,7 +117,7 @@ are already documented elsewhere or the obligation was a false positive).
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+  const paiDir = getPaiDir();
   return join(paiDir, "MEMORY", "STATE", "doc-obligation");
 }
 

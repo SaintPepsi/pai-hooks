@@ -14,6 +14,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ const defaultDeps: LastResponseCacheDeps = {
   readFile,
   writeFile,
   stderr: (msg) => process.stderr.write(`${msg}\n`),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
 };
 
 export const LastResponseCache: SyncHookContract<StopInput, SilentOutput, LastResponseCacheDeps> = {

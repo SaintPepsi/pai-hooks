@@ -17,6 +17,7 @@ import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profile
 import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
@@ -88,7 +89,7 @@ const defaultDeps: CodeQualityBaselineDeps = {
   scoreFile,
   formatAdvisory,
   getTimestamp: () => new Date().toISOString(),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 

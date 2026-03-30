@@ -24,6 +24,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
@@ -152,7 +153,7 @@ function getExportDefaultExclusions(
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+const baseDir = getPaiDir();
 
 const defaultDeps: CodingStandardsEnforcerDeps = {
   readFile: (path: string): string | null => {

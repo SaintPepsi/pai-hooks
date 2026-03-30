@@ -16,7 +16,7 @@ import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand, getFilePath } from "@hooks/lib/tool-input";
-import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -184,7 +184,7 @@ export const defaultTrackerExcludeDeps: TestTrackerExcludeDeps = {
 };
 
 export const defaultDeps: TestObligationDeps = {
-  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
+  stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
     const result = readJson<unknown>(path);

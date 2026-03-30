@@ -14,6 +14,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type {
   AlgorithmCriterion,
@@ -162,7 +163,7 @@ const defaultDeps: AlgorithmTrackerDeps = {
   fileExists,
   readJson,
   fetch: globalThis.fetch,
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
   voiceId: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
