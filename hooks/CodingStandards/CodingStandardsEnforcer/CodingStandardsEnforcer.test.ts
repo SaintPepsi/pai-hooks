@@ -6,7 +6,7 @@ import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs
 import {
   CodingStandardsEnforcer,
   type CodingStandardsEnforcerDeps,
-} from "./CodingStandardsEnforcer.contract";
+} from "@hooks/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -317,6 +317,52 @@ describe("CodingStandardsEnforcer", () => {
       expect(result.reason).toContain("proper types");
       expect(result.reason).not.toContain("adapters");
       expect(result.reason).not.toContain("try-catch");
+    });
+  });
+
+  describe("edge cases", () => {
+    it("continues for non-Write/non-Edit tools (null content)", () => {
+      const input: ToolHookInput = {
+        session_id: "test-sess",
+        tool_name: "Read",
+        tool_input: { file_path: "/src/utils.ts" },
+      };
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("continue");
+    });
+
+    it("continues for .svelte file without script block", () => {
+      const input = makeWriteInput("/src/NoScript.svelte", "<div>Just HTML</div>");
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("continue");
+    });
+
+    it("blocks violations in .svelte script block", () => {
+      const svelteContent = [
+        '<script lang="ts">',
+        "const x = data as any;",
+        "</script>",
+        "<div>hello</div>",
+      ].join("\n");
+      const input = makeWriteInput("/src/Component.svelte", svelteContent);
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("block");
+    });
+  });
+
+  describe("defaultDeps", () => {
+    it("defaultDeps.readFile returns null for missing file", () => {
+      const result = CodingStandardsEnforcer.defaultDeps.readFile("/tmp/pai-nonexistent-cse.ts");
+      expect(result).toBeNull();
+    });
+
+    it("defaultDeps.readSettings returns empty object for missing settings", () => {
+      const result = CodingStandardsEnforcer.defaultDeps.readSettings();
+      expect(typeof result).toBe("object");
+    });
+
+    it("defaultDeps.stderr writes without throwing", () => {
+      expect(() => CodingStandardsEnforcer.defaultDeps.stderr("test")).not.toThrow();
     });
   });
 });

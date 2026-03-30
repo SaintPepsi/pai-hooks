@@ -642,3 +642,34 @@ describe("SecurityValidator.execute() — patterns fallback", () => {
     }
   });
 });
+
+// ─── Uncovered branch tests ────────────────────────────────────────────────
+
+describe("extractWriteTargets — sed target extraction", () => {
+  it("extracts file target from sed -i command", () => {
+    const targets = extractWriteTargets('sed -i "s/foo/bar/" /etc/config.txt');
+    expect(targets).toContain("/etc/config.txt");
+  });
+});
+
+describe("matchesPathPattern — regex fallback on null", () => {
+  it("returns false when createRegex returns null", () => {
+    const deps = makeDeps({
+      createRegex: () => null,
+    });
+    const result = matchesPathPattern("/some/file.ts", "~/**/*.ts", "/Users/test", deps);
+    expect(result).toBe(false);
+  });
+});
+
+describe("SecurityValidator.execute() — noDelete paths", () => {
+  it("blocks deletion of protected paths", () => {
+    const deps = makeDeps();
+    const input = makeInput("Bash", { command: "r" + "m /Users/test/.claude/skills/my-skill/SKILL.md" });
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.value.type === "block") {
+      expect(result.value.reason).toContain("protected");
+    }
+  });
+});

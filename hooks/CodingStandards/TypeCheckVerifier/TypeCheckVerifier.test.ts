@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { TypeCheckVerifierDeps } from "./TypeCheckVerifier.contract";
+import type { TypeCheckVerifierDeps } from "@hooks/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract";
 import {
   _resetDebounceCache,
   discoverTypeCheck,
   parseTypeErrors,
   TypeCheckVerifier,
-} from "./TypeCheckVerifier.contract";
+} from "@hooks/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract";
 
 // ─── Discovery Tests ────────────────────────────────────────────────────────
 
@@ -260,5 +260,73 @@ describe("TypeCheckVerifier contract", () => {
     const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
+
+// ─── Additional coverage ────────────────────────────────────────────────────
+
+describe("discoverTypeCheck — standalone tsconfig", () => {
+  beforeEach(() => _resetDebounceCache());
+
+  test("discovers tsc --noEmit from standalone tsconfig.json", () => {
+    const deps = {
+      fileExists: (p: string) => p === "/project/tsconfig.json",
+      readFile: () => null,
+    };
+    const result = discoverTypeCheck("/project/src/file.ts", deps);
+    expect(result).not.toBeNull();
+    expect(result!.cmd).toBe("npx");
+    expect(result!.args).toContain("tsc");
+    expect(result!.cwd).toBe("/project");
+  });
+
+});
+
+describe("TypeCheckVerifier — debounce", () => {
+  beforeEach(() => _resetDebounceCache());
+
+  test("second execute for same file is debounced (continues immediately)", () => {
+    const deps: TypeCheckVerifierDeps = {
+      fileExists: (p: string) => p === "/project/tsconfig.json",
+      readFile: () => null,
+      execWithTimeout: () => ({ stdout: "", stderr: "", exitCode: 0, timedOut: false }),
+      signal: {
+        baseDir: "/tmp/test",
+        ensureDir: () => ({ ok: true, value: undefined }) as const,
+        appendFile: () => ({ ok: true, value: undefined }) as const,
+      },
+      stderr: () => {},
+    };
+    const input: ToolHookInput = {
+      session_id: "test-debounce",
+      tool_name: "Edit",
+      tool_input: { file_path: "/project/src/debounce-test.ts" },
+    };
+
+    // First call — runs check
+    const result1 = TypeCheckVerifier.execute(input, deps);
+    expect(result1.ok).toBe(true);
+
+    // Second call within debounce — skips check, returns continue
+    const result2 = TypeCheckVerifier.execute(input, deps);
+    expect(result2.ok).toBe(true);
+    if (result2.ok) expect(result2.value.type).toBe("continue");
+  });
+});
+
+describe("TypeCheckVerifier defaultDeps", () => {
+  test("defaultDeps.readFile returns null for missing file", () => {
+    expect(TypeCheckVerifier.defaultDeps.readFile("/tmp/pai-nonexistent-tcv.ts")).toBeNull();
+  });
+
+  test("defaultDeps.execWithTimeout returns exitCode 1 on failure", () => {
+    const result = TypeCheckVerifier.defaultDeps.execWithTimeout(
+      "false", [], "/tmp", 5000,
+    );
+    expect(result.exitCode).not.toBe(0);
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => TypeCheckVerifier.defaultDeps.stderr("test")).not.toThrow();
   });
 });

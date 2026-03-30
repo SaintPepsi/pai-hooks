@@ -104,17 +104,17 @@ export function parseExplicitRating(prompt: string): { rating: number; comment?:
 
 function buildAlgorithmReminder(version: string): string {
   return `<user-prompt-submit-hook>
-\u{1F6A8} ALGORITHM FORMAT REQUIRED - EVERY RESPONSE \u{1F6A8}
+🚨 ALGORITHM FORMAT REQUIRED - EVERY RESPONSE 🚨
 
 START WITH:
-\u{267B}\u{FE0F} Entering the PAI ALGORITHM\u{2026} (${version} | github.com/danielmiessler/TheAlgorithm) \u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}\u{2550}
+♻️ Entering the PAI ALGORITHM… (${version} | github.com/danielmiessler/TheAlgorithm) ═════════════
 
 EXECUTE VOICE CURLS at each phase (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN)
 
 USE TaskCreate for ISC criteria. USE TaskList to display them. NEVER manual tables.
 
 END WITH:
-\u{1F5E3}\u{FE0F} {DAIDENTITY.NAME}: [12-24 word spoken summary]
+🗣️ {DAIDENTITY.NAME}: [12-24 word spoken summary]
 
 For MINIMAL tasks (pure greetings, ratings): Use abbreviated format but STILL include header and voice line.
 </user-prompt-submit-hook>`;

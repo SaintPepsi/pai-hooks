@@ -4,7 +4,10 @@ import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profile
 import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
 import { err, ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { CodeQualityBaseline, type CodeQualityBaselineDeps } from "./CodeQualityBaseline.contract";
+import {
+  CodeQualityBaseline,
+  type CodeQualityBaselineDeps,
+} from "@hooks/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -268,6 +271,41 @@ describe("CodeQualityBaseline", () => {
     test("always returns ContinueOutput", () => {
       const deps = makeDeps({ readFile: () => ok(LONG_DIRTY) });
       const result = CodeQualityBaseline.execute(makeInput(), deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+        expect(result.value.continue).toBe(true);
+      }
+    });
+  });
+
+  describe("Svelte file handling", () => {
+    const svelteInput = makeInput({
+      tool_input: { file_path: "/src/Component.svelte" },
+    });
+
+    test("extracts and scores script block from .svelte file", () => {
+      const scriptLines: string[] = [];
+      for (let i = 0; i < 60; i++) {
+        scriptLines.push(`  function fn${i}() { return ${i}; }`);
+      }
+      const svelteContent = [
+        '<script lang="ts">',
+        ...scriptLines,
+        "</script>",
+        "<div>hello</div>",
+      ].join("\n");
+
+      const deps = makeDeps({ readFile: () => ok(svelteContent) });
+      const result = CodeQualityBaseline.execute(svelteInput, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.type).toBe("continue");
+    });
+
+    test("continues when .svelte file has no script block", () => {
+      const svelteNoScript = "<div>Just HTML</div>\n<style>p { color: red; }</style>";
+      const deps = makeDeps({ readFile: () => ok(svelteNoScript) });
+      const result = CodeQualityBaseline.execute(svelteInput, deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");

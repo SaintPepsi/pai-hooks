@@ -6,7 +6,8 @@
     "CodingStandardsAdvisor",
     "CodingStandardsEnforcer",
     "TypeCheckVerifier",
-    "TypeStrictness"
+    "TypeStrictness",
+    "WhileLoopGuard"
   ],
   "sharedFiles": []
 }

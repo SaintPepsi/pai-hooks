@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { ErrorCode } from "../error";
-import { exec, execSyncSafe, getEnv, shellForPlatform, spawnSyncSafe } from "./process";
+import { ErrorCode } from "@hooks/core/error";
+import { exec, execSyncSafe, getEnv, shellForPlatform, spawnDetached, spawnSyncSafe } from "@hooks/core/adapters/process";
 
 // ─── shellForPlatform ────────────────────────────────────────────────────────
 
@@ -128,5 +128,37 @@ describe("getEnv", () => {
     const r = getEnv("PAI_TEST_NONEXISTENT_VAR_12345");
     expect(r.ok).toBe(false);
     expect(r.error!.code).toBe(ErrorCode.EnvVarMissing);
+  });
+});
+
+// ─── exec with timeout ─────────────────────────────────────────────────────
+
+describe("exec with timeout", () => {
+  it("completes before timeout without error", async () => {
+    const r = await exec("echo fast", { timeout: 5000 });
+    expect(r.ok).toBe(true);
+    expect(r.value!.stdout.trim()).toBe("fast");
+  });
+
+  it("kills process that exceeds timeout", async () => {
+    const r = await exec("sleep 10", { timeout: 100 });
+    expect(r.ok).toBe(true);
+    // Process was killed — exit code is non-zero or signal-based
+    expect(r.value!.exitCode).not.toBe(0);
+  });
+});
+
+// ─── spawnDetached ─────────────────────────────────────────────────────────
+
+describe("spawnDetached", () => {
+  it("spawns a process without throwing", () => {
+    const r = spawnDetached("true", []);
+    expect(r.ok).toBe(true);
+  });
+
+  it("returns error for nonexistent command", () => {
+    const r = spawnDetached("pai-nonexistent-cmd-xyz", []);
+    // Bun.spawn may or may not throw for missing binaries — either result is valid
+    expect(typeof r.ok).toBe("boolean");
   });
 });

@@ -15,7 +15,7 @@ import {
   type CronPruneDeps,
   cronIntervalMs,
   DEFAULT_PRUNE_THRESHOLD_MS,
-} from "./CronPrune.contract";
+} from "@hooks/hooks/CronStatusLine/CronPrune/CronPrune.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -381,5 +381,35 @@ describe("cronIntervalMs", () => {
     expect(cronIntervalMs("bad")).toBe(DEFAULT_PRUNE_THRESHOLD_MS);
     expect(cronIntervalMs("")).toBe(DEFAULT_PRUNE_THRESHOLD_MS);
     expect(cronIntervalMs("* * * * *")).toBe(DEFAULT_PRUNE_THRESHOLD_MS); // every minute, but * doesn't match */N
+  });
+});
+
+// ─── Error and defaultDeps branches ─────────────────────────────────────────
+
+describe("CronPrune — readDir error path", () => {
+  it("returns silent when readDir fails", () => {
+    const deps = makeDeps({
+      readDir: () => err(new PaiError(ErrorCode.FileReadFailed, "permission denied")),
+    });
+    const result = CronPrune.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("silent");
+  });
+});
+
+describe("CronPrune defaultDeps", () => {
+  it("defaultDeps.readDir returns string[] for existing directory", () => {
+    const result = CronPrune.defaultDeps.readDir("/tmp");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(Array.isArray(result.value)).toBe(true);
+      for (const entry of result.value) {
+        expect(typeof entry).toBe("string");
+      }
+    }
+  });
+
+  it("defaultDeps.stderr writes without throwing", () => {
+    expect(() => CronPrune.defaultDeps.stderr("test")).not.toThrow();
   });
 });

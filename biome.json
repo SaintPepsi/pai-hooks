@@ -19,7 +19,8 @@
       "recommended": true,
       "style": {
         "noNonNullAssertion": "off",
-        "noDescendingSpecificity": "off"
+        "noDescendingSpecificity": "off",
+        "useUnicodeEscapes": "off"
       },
       "suspicious": {
         "noTemplateCurlyInString": "off",

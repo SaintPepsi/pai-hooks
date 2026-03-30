@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "RelationshipMemory.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -25,7 +30,7 @@ async function runHook(
 describe("RelationshipMemory hook shell", () => {
   it("exits 0 for Stop event with nonexistent transcript", async () => {
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("rm"),
       transcript_path: "/tmp/nonexistent",
     });
     expect(result.exitCode).toBe(0);
@@ -37,7 +42,7 @@ describe("RelationshipMemory hook shell", () => {
 
   it("exits 0 when transcript_path is missing (rejected by accepts)", async () => {
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("rm"),
     });
     expect(result.exitCode).toBe(0);
     // accepts() returns false when no transcript_path — safeExit produces no stdout for Stop events

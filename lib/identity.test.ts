@@ -75,6 +75,17 @@ describe("getIdentity", () => {
     expect(identity.fullName).toBe("Personal AI");
   });
 
+  it("returns defaults when settings file exists but cannot be parsed", () => {
+    const corruptDeps: IdentityDeps = {
+      settingsPath: "/tmp/corrupt-settings.json",
+      readJson: () => ({ ok: false as const, error: fileNotFound("/tmp/corrupt-settings.json") }),
+      fileExists: () => true,
+    };
+    const identity = getIdentity(corruptDeps);
+    expect(identity.name).toBe("PAI");
+    expect(identity.fullName).toBe("Personal AI");
+  });
+
   it("reads basic identity fields", () => {
     const deps = makeDeps({
       daidentity: {

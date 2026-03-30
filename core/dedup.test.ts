@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { isDuplicate, stableHash, type DedupDeps } from "./dedup";
-import type { ToolHookInput } from "./types/hook-inputs";
+import { defaultDedupDeps, isDuplicate, stableHash, type DedupDeps } from "@hooks/core/dedup";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -141,5 +141,30 @@ describe("isDuplicate", () => {
     const deps = mockDeps({ ensureDir: () => false });
     const result = isDuplicate("TestHook", "sess-1", makeToolInput("Bash"), deps);
     expect(result).toBe(false);
+  });
+});
+
+// ─── defaultDedupDeps ──────────────────────────────────────────────────────
+
+describe("defaultDedupDeps", () => {
+  it("ensureDir returns true for /tmp", () => {
+    const deps = defaultDedupDeps();
+    expect(deps.ensureDir("/tmp")).toBe(true);
+  });
+
+  it("tryClaimLock returns true for a new lock file", () => {
+    const deps = defaultDedupDeps();
+    const lockPath = `/tmp/pai-dedup-test-${Date.now()}-${Math.random().toString(36).slice(2)}.lock`;
+    expect(deps.tryClaimLock(lockPath)).toBe(true);
+    // Cleanup
+    require("fs").unlinkSync(lockPath);
+  });
+
+  it("tryClaimLock returns false for an existing lock file", () => {
+    const deps = defaultDedupDeps();
+    const lockPath = `/tmp/pai-dedup-test-dup-${Date.now()}.lock`;
+    deps.tryClaimLock(lockPath); // first claim
+    expect(deps.tryClaimLock(lockPath)).toBe(false); // duplicate
+    require("fs").unlinkSync(lockPath);
   });
 });

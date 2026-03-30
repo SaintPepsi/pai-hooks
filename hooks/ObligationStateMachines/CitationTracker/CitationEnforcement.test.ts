@@ -216,3 +216,36 @@ describe("CitationEnforcement", () => {
     expect(result.value.additionalContext).toBeDefined();
   });
 });
+
+// ─── Shared defaultDeps ─────────────────────────────────────────────────────
+
+import { defaultDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+
+describe("CitationEnforcement shared defaultDeps", () => {
+  it("writeFlag writes without throwing", () => {
+    const tmpPath = `/tmp/pai-test-cite-flag-${Date.now()}.txt`;
+    expect(() => defaultDeps.writeFlag(tmpPath)).not.toThrow();
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("readReminded returns empty array for missing file", () => {
+    expect(defaultDeps.readReminded("/tmp/pai-nonexistent-cite-12345.json")).toEqual([]);
+  });
+
+  it("readReminded parses valid JSON array", () => {
+    const tmpPath = `/tmp/pai-test-cite-rem-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
+    expect(defaultDeps.readReminded(tmpPath)).toEqual(["/src/a.ts"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("writeReminded writes without throwing", () => {
+    const tmpPath = `/tmp/pai-test-cite-wr-${Date.now()}.json`;
+    expect(() => defaultDeps.writeReminded(tmpPath, ["/src/b.ts"])).not.toThrow();
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("stderr writes without throwing", () => {
+    expect(() => defaultDeps.stderr("test")).not.toThrow();
+  });
+});

@@ -5,7 +5,10 @@ import { err, ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { DocObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.contract";
-import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
+import {
+  projectHasHook,
+  readDocExcludePatterns,
+} from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
   DocObligationTracker,
   type DocTrackerDeps,
@@ -763,5 +766,55 @@ describe("DocObligationTracker defaultDeps", () => {
   it("defaultDeps.stateDir is a string path", () => {
     expect(typeof DocObligationTracker.defaultDeps.stateDir).toBe("string");
     expect(DocObligationTracker.defaultDeps.stateDir).toContain("doc-obligation");
+  });
+
+  it("defaultDeps.readPending returns parsed array for valid JSON file", () => {
+    const tmpPath = `/tmp/pai-test-dosm-rp-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts", "/src/b.ts"]));
+    const result = DocObligationTracker.defaultDeps.readPending(tmpPath);
+    expect(result).toEqual(["/src/a.ts", "/src/b.ts"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+});
+
+// ─── readDocExcludePatterns ─────────────────────────────────────────────────
+
+describe("readDocExcludePatterns", () => {
+  it("returns empty array for nonexistent settings file", () => {
+    const result = readDocExcludePatterns("/tmp/nonexistent-settings-12345.json");
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array for malformed JSON", () => {
+    const tmpPath = `/tmp/pai-test-excl-bad-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, "{ broken json !!!");
+    const result = readDocExcludePatterns(tmpPath);
+    expect(result).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("returns empty array when hookConfig has no docObligation", () => {
+    const tmpPath = `/tmp/pai-test-excl-empty-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify({ hookConfig: {} }));
+    const result = readDocExcludePatterns(tmpPath);
+    expect(result).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("returns patterns when present in settings", () => {
+    const tmpPath = `/tmp/pai-test-excl-valid-${Date.now()}.json`;
+    require("fs").writeFileSync(
+      tmpPath,
+      JSON.stringify({
+        hookConfig: {
+          docObligation: {
+            excludePatterns: ["**/generated/**", "**/vendor/**"],
+          },
+        },
+      }),
+    );
+    const result = readDocExcludePatterns(tmpPath);
+    expect(result).toEqual(["**/generated/**", "**/vendor/**"]);
+    require("fs").unlinkSync(tmpPath);
   });
 });

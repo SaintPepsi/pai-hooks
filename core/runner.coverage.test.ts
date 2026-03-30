@@ -260,4 +260,73 @@ describe("runHookWith — output edge cases", () => {
     expect(io.stdoutLines.length).toBe(0);
     expect(io.exitCode).toBe(0);
   });
+
+  it("formats updatedInput output type", async () => {
+    const contract: HookContract<ToolHookInput, { type: "updatedInput"; updatedInput: Record<string, unknown> }, {}> = {
+      name: "TestUpdatedInput",
+      event: "PreToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "updatedInput" as const, updatedInput: { command: "ls -la" } }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, validToolInput, io);
+    expect(io.exitCode).toBe(0);
+    const parsed = JSON.parse(io.stdoutLines[0]);
+    expect(parsed.hookSpecificOutput.updatedInput.command).toBe("ls -la");
+  });
+
+  it("skips duplicate in runHookWith", async () => {
+    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+      name: "TestDedupWith",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "continue", continue: true as const }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    (io as RunHookOptions).isDuplicate = () => true;
+    await runHookWith(contract, validToolInput, io);
+    expect(io.exitCode).toBe(0);
+    expect(io.stdoutLines.length).toBe(0);
+  });
+});
+
+// ─── runHook — additional branches ──────────────────────────────────────────
+
+describe("runHook — stdin and dedup branches", () => {
+  it("handles stdin read error gracefully", async () => {
+    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+      name: "TestStdinErr",
+      event: "PreToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "continue", continue: true as const }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    // Provide invalid stdin that will fail parsing
+    (io as RunHookOptions).stdinOverride = undefined;
+    (io as RunHookOptions).stdinTimeout = 1; // 1ms timeout to force stdin error
+    await runHook(contract, io as RunHookOptions);
+    expect(io.exitCode).toBe(0);
+    // Should output continue:true from safeExit for tool events
+    expect(io.stdoutLines.some((s) => s.includes("continue"))).toBe(true);
+  });
+
+  it("skips duplicate in runHook", async () => {
+    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+      name: "TestDedupMain",
+      event: "PreToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "continue", continue: true as const }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    (io as RunHookOptions).isDuplicate = () => true;
+    (io as RunHookOptions).stdinOverride = validToolInputJson;
+    await runHook(contract, io as RunHookOptions);
+    expect(io.exitCode).toBe(0);
+    // Dedup skip for tool events emits continue:true via safeExit
+    expect(io.stdoutLines.some((s) => s.includes("continue"))).toBe(true);
+  });
 });

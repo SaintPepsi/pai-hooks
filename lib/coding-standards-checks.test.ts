@@ -5,9 +5,11 @@ import { describe, expect, it } from "bun:test";
 import {
   findAllViolations,
   findAsAnyCasts,
+  findDirectEnvAccess,
   findInlineImportTypes,
   findRelativeImports,
   findTryCatchFlowControl,
+  formatViolationSummary,
   isCommentLine,
   isExempted,
   stripStringLiterals,
@@ -260,5 +262,65 @@ describe("findAllViolations", () => {
     ].join("\n");
 
     expect(findAllViolations(content)).toHaveLength(0);
+  });
+});
+
+// ─── findDirectEnvAccess — defaultDeps exception ─────────────────────────────
+
+describe("findDirectEnvAccess", () => {
+  it("allows process.env in a const that feeds into defaultDeps", () => {
+    const content = [
+      "const baseDir = process.env.PAI_DIR || '~/.claude';",
+      "",
+      "const defaultDeps = { baseDir };",
+    ].join("\n");
+    const lines = content.split("\n");
+    const violations = findDirectEnvAccess(content, lines);
+    expect(violations).toHaveLength(0);
+  });
+
+  it("flags process.env in a const that does NOT feed into defaultDeps", () => {
+    const content = [
+      "const baseDir = process.env.PAI_DIR || '~/.claude';",
+      "",
+      "function doStuff() { return baseDir; }",
+    ].join("\n");
+    const lines = content.split("\n");
+    const violations = findDirectEnvAccess(content, lines);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].category).toBe("process-env");
+  });
+});
+
+// ─── formatViolationSummary ──────────────────────────────────────────────────
+
+describe("formatViolationSummary", () => {
+  it("includes inline-import-type in summary", () => {
+    const violations = [
+      { line: 5, content: "type Foo = import('./types').Bar;", category: "inline-import-type", message: "Use import type" },
+    ];
+    const summary = formatViolationSummary(violations, "test.ts");
+    expect(summary).toContain("1x inline import type");
+  });
+
+  it("includes all violation categories in summary", () => {
+    const violations = [
+      { line: 1, content: "import { readFileSync } from 'fs';", category: "raw-import", message: "m" },
+      { line: 2, content: "try {} catch (e) {}", category: "try-catch", message: "m" },
+      { line: 3, content: "const x = process.env.HOME;", category: "process-env", message: "m" },
+      { line: 4, content: "type Foo = import('./t').Bar;", category: "inline-import-type", message: "m" },
+      { line: 5, content: "const x = data as any;", category: "as-any", message: "m" },
+      { line: 6, content: "import { x } from '../utils';", category: "relative-import", message: "m" },
+      { line: 7, content: "export default function foo() {}", category: "export-default", message: "m" },
+    ];
+    const summary = formatViolationSummary(violations, "test.ts");
+    expect(summary).toContain("raw Node builtin");
+    expect(summary).toContain("try-catch flow control");
+    expect(summary).toContain("process.env access");
+    expect(summary).toContain("inline import type");
+    expect(summary).toContain("unsafe type cast");
+    expect(summary).toContain("relative import path");
+    expect(summary).toContain("default export");
+    expect(summary).toContain("7 violations");
   });
 });

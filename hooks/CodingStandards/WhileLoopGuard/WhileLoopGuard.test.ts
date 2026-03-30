@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { WhileLoopGuardDeps } from "./WhileLoopGuard.contract";
-import { WhileLoopGuard } from "./WhileLoopGuard.contract";
+import type { WhileLoopGuardDeps } from "@hooks/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.contract";
+import { WhileLoopGuard } from "@hooks/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -318,5 +318,38 @@ describe("WhileLoopGuard — edge cases", () => {
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("continue");
+  });
+
+  test("continues when tool_input is null on Write", () => {
+    const input: ToolHookInput = {
+      session_id: "test",
+      tool_name: "Write",
+      tool_input: null as unknown as Record<string, unknown>,
+    };
+    const result = WhileLoopGuard.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+  });
+
+  test("continues when tool_input is a string on Write", () => {
+    const input: ToolHookInput = {
+      session_id: "test",
+      tool_name: "Write",
+      tool_input: "not an object" as unknown as Record<string, unknown>,
+    };
+    const result = WhileLoopGuard.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
+
+describe("WhileLoopGuard defaultDeps", () => {
+  test("defaultDeps.readFile returns null for missing file", () => {
+    const result = WhileLoopGuard.defaultDeps.readFile("/tmp/pai-nonexistent-wlg-test.ts");
+    expect(result).toBeNull();
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => WhileLoopGuard.defaultDeps.stderr("test")).not.toThrow();
   });
 });

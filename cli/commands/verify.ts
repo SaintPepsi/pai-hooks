@@ -239,7 +239,13 @@ function verifyInstalled(args: ParsedArgs, deps: CliDeps): Result<string, PaihEr
       const expectedHash = hook.fileHashes[file];
       if (expectedHash) {
         const currentHash = computeFileHash(absPath, deps);
-        if (currentHash.ok && currentHash.value !== expectedHash) {
+        if (!currentHash.ok) {
+          diagnostics.push({
+            hookName: hook.name,
+            code: "FILE_UNREADABLE",
+            message: `Cannot read file for hash verification: ${file}`,
+          });
+        } else if (currentHash.value !== expectedHash) {
           diagnostics.push({
             hookName: hook.name,
             code: "FILE_MODIFIED",

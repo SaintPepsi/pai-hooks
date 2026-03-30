@@ -2,63 +2,16 @@
  * Tests for tab-setter.ts — Tab state management, Kitty integration, and session persistence.
  *
  * Mocking strategy:
- * - Mock 'fs' for all filesystem operations
- * - Mock 'child_process' for execSync (kitten @ commands)
- * - Mock './paths' for paiPath
- * - Environment control via mockEnv object injected through mock.module('process')
- *
- * Note: tab-setter.ts reads process.env directly (pre-dating the Deps pattern,
- * tracked in issue #29). We mock the process module to control env vars without
- * direct process.env mutation in the test file.
+ * - Use TabSetterDeps injection (NO mock.module — it leaks globally in bun test)
+ * - All exported functions accept a deps parameter
+ * - Mock deps provide test doubles for filesystem, exec, and env
  */
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { join } from "node:path";
-
-// ─── Environment mock ────────────────────────────────────────────────────────
-// Central env state that tab-setter will read via the mocked process module.
-
-const mockEnv: Record<string, string | undefined> = {};
-
-function _setMockEnv(overrides: Record<string, string | undefined>): void {
-  // Clear all keys first
-  for (const key of Object.keys(mockEnv)) {
-    delete mockEnv[key];
-  }
-  for (const [key, val] of Object.entries(overrides)) {
-    if (val !== undefined) mockEnv[key] = val;
-  }
-}
-
-// ─── Module-level mocks ─────────────────────────────────────────────────────
-
-const mockExistsSync = mock((_path: string) => false);
-const mockWriteFileSync = mock((_path: string, _data: string, _enc?: string) => {});
-const mockMkdirSync = mock((_path: string, _opts?: { recursive: boolean }) => undefined);
-const mockReaddirSync = mock((_path: string) => [] as string[]);
-const mockUnlinkSync = mock((_path: string) => {});
-const mockReadFileSync = mock((_path: string, _enc?: string) => "");
-
-mock.module("fs", () => ({
-  existsSync: mockExistsSync,
-  readFileSync: mockReadFileSync,
-  writeFileSync: mockWriteFileSync,
-  mkdirSync: mockMkdirSync,
-  readdirSync: mockReaddirSync,
-  unlinkSync: mockUnlinkSync,
-}));
-
-const mockExecSync = mock((_cmd: string, _opts?: Record<string, unknown>) => "");
-
-mock.module("child_process", () => ({
-  execSync: mockExecSync,
-}));
-
-// Mock paths to return predictable test directories
-mock.module("./paths", () => ({
-  paiPath: (...segments: string[]) => join("/tmp/test-pai", ...segments),
-}));
-
-// Import AFTER mocks
+import type { PaiError } from "@hooks/core/error";
+import { ok, err } from "@hooks/core/result";
+import type { Result } from "@hooks/core/result";
+import { fileReadFailed } from "@hooks/core/error";
+import type { TabSetterDeps } from "@hooks/lib/tab-setter";
 import {
   cleanupKittySession,
   getSessionOneWord,
@@ -69,20 +22,70 @@ import {
   stripPrefix,
 } from "@hooks/lib/tab-setter";
 
+// ─── Mock deps factory ─────────────────────────────────────────────────────
+
+const mockFileExists = mock((_path: string): boolean => false);
+const mockWriteFile = mock((_path: string, _content: string): Result<void, PaiError> => ok(undefined));
+const mockEnsureDir = mock((_path: string): Result<void, PaiError> => ok(undefined));
+const mockReadDir = mock((_path: string): Result<string[], PaiError> => ok([]));
+const mockRemoveFile = mock((_path: string): Result<void, PaiError> => ok(undefined));
+const mockReadFile = mock((_path: string): Result<string, PaiError> => ok(""));
+const mockReadJson = mock(<T>(_path: string): Result<T, PaiError> => err(fileReadFailed(_path, new Error("not set"))));
+const mockExecSync = mock((_cmd: string, _opts?: { timeout?: number; stdio?: "pipe" | "inherit" | "ignore" }): Result<string, PaiError> => ok(""));
+const mockGetEnv = mock((_name: string): string | undefined => undefined);
+const mockStderr = mock((_msg: string): void => {});
+
+function makeDeps(): TabSetterDeps {
+  return {
+    fileExists: mockFileExists,
+    writeFile: mockWriteFile,
+    ensureDir: mockEnsureDir,
+    readDir: mockReadDir,
+    removeFile: mockRemoveFile,
+    readFile: mockReadFile,
+    readJson: mockReadJson,
+    execSync: mockExecSync,
+    getEnv: mockGetEnv,
+    stderr: mockStderr,
+  };
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function resetAllMocks(): void {
-  mockExistsSync.mockReset();
-  mockWriteFileSync.mockReset();
-  mockMkdirSync.mockReset();
-  mockReaddirSync.mockReset();
-  mockUnlinkSync.mockReset();
-  mockReadFileSync.mockReset();
+  mockFileExists.mockReset();
+  mockWriteFile.mockReset();
+  mockEnsureDir.mockReset();
+  mockReadDir.mockReset();
+  mockRemoveFile.mockReset();
+  mockReadFile.mockReset();
+  mockReadJson.mockReset();
   mockExecSync.mockReset();
-  mockExistsSync.mockReturnValue(false);
-  mockReaddirSync.mockReturnValue([]);
-  mockReadFileSync.mockReturnValue("");
-  mockExecSync.mockReturnValue("");
+  mockGetEnv.mockReset();
+  mockStderr.mockReset();
+
+  // Defaults
+  mockFileExists.mockReturnValue(false);
+  mockWriteFile.mockReturnValue(ok(undefined));
+  mockEnsureDir.mockReturnValue(ok(undefined));
+  mockReadDir.mockReturnValue(ok([]));
+  mockRemoveFile.mockReturnValue(ok(undefined));
+  mockReadFile.mockReturnValue(ok(""));
+  mockReadJson.mockImplementation((_path: string) => err(fileReadFailed(_path, new Error("not set"))));
+  mockExecSync.mockReturnValue(ok(""));
+  mockGetEnv.mockReturnValue(undefined);
+  mockStderr.mockImplementation(() => {});
+}
+
+/**
+ * Helper: configure mocks so getKittyEnv resolves from session file.
+ * Sets fileExists to true and readJson to return kitty env with given socket + windowId.
+ */
+function setupKittySessionEnv(listenOn: string, windowId: string): void {
+  mockFileExists.mockReturnValue(true);
+  mockReadJson.mockImplementation((_path: string) =>
+    ok({ listenOn, windowId } as never),
+  );
 }
 
 // ─── stripPrefix (pure function — no I/O) ────────────────────────────────────
@@ -128,16 +131,18 @@ describe("persistKittySession", () => {
   beforeEach(resetAllMocks);
 
   it("creates directory if it does not exist", () => {
-    mockExistsSync.mockReturnValue(false);
-    persistKittySession("sess-123", "unix:/tmp/kitty", "42");
-    expect(mockMkdirSync).toHaveBeenCalled();
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    persistKittySession("sess-123", "unix:/tmp/kitty", "42", deps);
+    expect(mockEnsureDir).toHaveBeenCalled();
   });
 
   it("writes session file with listenOn and windowId", () => {
-    mockExistsSync.mockReturnValue(true); // Dir exists
-    persistKittySession("sess-abc", "unix:/tmp/kitty", "99");
-    expect(mockWriteFileSync).toHaveBeenCalled();
-    const [path, data] = mockWriteFileSync.mock.calls[0];
+    mockFileExists.mockReturnValue(true); // Dir exists
+    const deps = makeDeps();
+    persistKittySession("sess-abc", "unix:/tmp/kitty", "99", deps);
+    expect(mockWriteFile).toHaveBeenCalled();
+    const [path, data] = mockWriteFile.mock.calls[0];
     expect(path).toContain("sess-abc.json");
     const parsed = JSON.parse(data as string);
     expect(parsed.listenOn).toBe("unix:/tmp/kitty");
@@ -149,16 +154,18 @@ describe("cleanupKittySession", () => {
   beforeEach(resetAllMocks);
 
   it("removes session file when it exists", () => {
-    mockExistsSync.mockReturnValue(true);
-    cleanupKittySession("sess-123");
-    expect(mockUnlinkSync).toHaveBeenCalled();
-    expect(String(mockUnlinkSync.mock.calls[0][0])).toContain("sess-123.json");
+    mockFileExists.mockReturnValue(true);
+    const deps = makeDeps();
+    cleanupKittySession("sess-123", deps);
+    expect(mockRemoveFile).toHaveBeenCalled();
+    expect(String(mockRemoveFile.mock.calls[0][0])).toContain("sess-123.json");
   });
 
   it("does nothing when session file does not exist", () => {
-    mockExistsSync.mockReturnValue(false);
-    cleanupKittySession("sess-123");
-    expect(mockUnlinkSync).not.toHaveBeenCalled();
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    cleanupKittySession("sess-123", deps);
+    expect(mockRemoveFile).not.toHaveBeenCalled();
   });
 });
 
@@ -168,66 +175,75 @@ describe("getSessionOneWord", () => {
   beforeEach(resetAllMocks);
 
   it("returns null when session-names.json does not exist", () => {
-    mockExistsSync.mockReturnValue(false);
-    expect(getSessionOneWord("sess-1")).toBeNull();
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBeNull();
   });
 
   it("returns null when session ID not found in names file", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "other-sess": "Tab Title Upgrade" }));
-    expect(getSessionOneWord("sess-1")).toBeNull();
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "other-sess": "Tab Title Upgrade" } as never));
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBeNull();
   });
 
   it("extracts two meaningful words in uppercase", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "Tab Title Upgrade" }));
-    expect(getSessionOneWord("sess-1")).toBe("TAB TITLE");
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "Tab Title Upgrade" } as never));
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBe("TAB TITLE");
   });
 
   it("skips noise words", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "Fix Activity Dashboard" }));
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "Fix Activity Dashboard" } as never));
+    const deps = makeDeps();
     // "Fix" is noise, "Activity" and "Dashboard" are meaningful
-    expect(getSessionOneWord("sess-1")).toBe("ACTIVITY DASHBOARD");
+    expect(getSessionOneWord("sess-1", deps)).toBe("ACTIVITY DASHBOARD");
   });
 
   it("returns two meaningful words even when noise words are between them", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "Security for apps" }));
-    // "Security" and "apps" are both meaningful → first two meaningful words
-    expect(getSessionOneWord("sess-1")).toBe("SECURITY APPS");
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "Security for apps" } as never));
+    const deps = makeDeps();
+    // "Security" and "apps" are both meaningful
+    expect(getSessionOneWord("sess-1", deps)).toBe("SECURITY APPS");
   });
 
   it("returns single meaningful word with next word when only one meaningful", () => {
-    mockExistsSync.mockReturnValue(true);
-    // "Dashboard" is the only meaningful word; "for" and "the" are noise
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "Dashboard for the" }));
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "Dashboard for the" } as never));
+    const deps = makeDeps();
     // Only 1 meaningful word ("Dashboard"), next word is "for"
-    expect(getSessionOneWord("sess-1")).toBe("DASHBOARD FOR");
+    expect(getSessionOneWord("sess-1", deps)).toBe("DASHBOARD FOR");
   });
 
   it("returns first two words when all are noise", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "fix the old" }));
-    expect(getSessionOneWord("sess-1")).toBe("FIX THE");
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "fix the old" } as never));
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBe("FIX THE");
   });
 
   it("returns single uppercase word when only one meaningful word and no next word", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "Security" }));
-    expect(getSessionOneWord("sess-1")).toBe("SECURITY");
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "Security" } as never));
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBe("SECURITY");
   });
 
   it("returns null on malformed JSON", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue("{bad json");
-    expect(getSessionOneWord("sess-1")).toBeNull();
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation((_path: string) => err(fileReadFailed(_path, new Error("parse error"))));
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBeNull();
   });
 
   it("returns null for empty session name", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({ "sess-1": "   " }));
-    expect(getSessionOneWord("sess-1")).toBeNull();
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation(() => ok({ "sess-1": "   " } as never));
+    const deps = makeDeps();
+    expect(getSessionOneWord("sess-1", deps)).toBeNull();
   });
 });
 
@@ -240,16 +256,10 @@ describe("setTabState with session file fallback", () => {
   beforeEach(resetAllMocks);
 
   it("executes kitten commands when session file provides kitty env", () => {
-    // getKittyEnv reads session file when env vars are absent
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty-test",
-        windowId: "42",
-      }),
-    );
+    setupKittySessionEnv("unix:/tmp/kitty-test", "42");
+    const deps = makeDeps();
 
-    setTabState({ title: "Testing hooks", state: "working", sessionId: "sess-1" });
+    setTabState({ title: "Testing hooks", state: "working", sessionId: "sess-1" }, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const tabTitleCmd = commands.find((c) => c.includes("set-tab-title"));
@@ -260,15 +270,10 @@ describe("setTabState with session file fallback", () => {
   });
 
   it("uses --to flag with socket from session file", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/my-socket",
-        windowId: "42",
-      }),
-    );
+    setupKittySessionEnv("unix:/tmp/my-socket", "42");
+    const deps = makeDeps();
 
-    setTabState({ title: "Socket test", state: "working", sessionId: "sess-1" });
+    setTabState({ title: "Socket test", state: "working", sessionId: "sess-1" }, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     for (const cmd of commands) {
@@ -279,15 +284,10 @@ describe("setTabState with session file fallback", () => {
   });
 
   it("sets non-default colors for working state", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
-    );
+    setupKittySessionEnv("unix:/tmp/kitty", "42");
+    const deps = makeDeps();
 
-    setTabState({ title: "Working", state: "working", sessionId: "sess-1" });
+    setTabState({ title: "Working", state: "working", sessionId: "sess-1" }, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const colorCmd = commands.find((c) => c.includes("set-tab-color"));
@@ -298,15 +298,10 @@ describe("setTabState with session file fallback", () => {
   });
 
   it("resets all colors for idle state", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
-    );
+    setupKittySessionEnv("unix:/tmp/kitty", "42");
+    const deps = makeDeps();
 
-    setTabState({ title: "Idle", state: "idle", sessionId: "sess-1" });
+    setTabState({ title: "Idle", state: "idle", sessionId: "sess-1" }, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const colorCmd = commands.find((c) => c.includes("set-tab-color"));
@@ -315,21 +310,19 @@ describe("setTabState with session file fallback", () => {
   });
 
   it("persists state to per-window JSON file", () => {
-    mockExistsSync.mockImplementation((path: string) => {
+    mockFileExists.mockImplementation((path: string) => {
       // Session file exists, tab-titles dir does not
       return String(path).includes("kitty-sessions");
     });
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
+    mockReadJson.mockImplementation(() =>
+      ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never),
     );
+    const deps = makeDeps();
 
-    setTabState({ title: "Building auth", state: "working", sessionId: "sess-1" });
+    setTabState({ title: "Building auth", state: "working", sessionId: "sess-1" }, deps);
 
     // Find the write to the per-window state file (not the kitty-sessions file)
-    const stateWrite = mockWriteFileSync.mock.calls.find(
+    const stateWrite = mockWriteFile.mock.calls.find(
       (c) => String(c[0]).includes("42.json") && String(c[0]).includes("tab-titles"),
     );
     expect(stateWrite).toBeDefined();
@@ -339,38 +332,31 @@ describe("setTabState with session file fallback", () => {
   });
 
   it("removes state file on idle", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
-    );
+    setupKittySessionEnv("unix:/tmp/kitty", "42");
+    const deps = makeDeps();
 
-    setTabState({ title: "Done", state: "idle", sessionId: "sess-1" });
+    setTabState({ title: "Done", state: "idle", sessionId: "sess-1" }, deps);
 
-    const unlinkPaths = mockUnlinkSync.mock.calls.map((c) => String(c[0]));
+    const unlinkPaths = mockRemoveFile.mock.calls.map((c) => String(c[0]));
     const stateUnlink = unlinkPaths.find((p) => p.includes("42.json"));
     expect(stateUnlink).toBeDefined();
   });
 
   it("includes previousTitle in persisted state when provided", () => {
-    mockExistsSync.mockImplementation((path: string) => String(path).includes("kitty-sessions"));
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
+    mockFileExists.mockImplementation((path: string) => String(path).includes("kitty-sessions"));
+    mockReadJson.mockImplementation(() =>
+      ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never),
     );
+    const deps = makeDeps();
 
     setTabState({
       title: "New task",
       state: "thinking",
       previousTitle: "Old task",
       sessionId: "sess-1",
-    });
+    }, deps);
 
-    const stateWrite = mockWriteFileSync.mock.calls.find((c) => String(c[0]).includes("42.json"));
+    const stateWrite = mockWriteFile.mock.calls.find((c) => String(c[0]).includes("42.json"));
     expect(stateWrite).toBeDefined();
     const persisted = JSON.parse(stateWrite![1] as string);
     expect(persisted.previousTitle).toBe("Old task");
@@ -382,37 +368,37 @@ describe("setTabState without kitty env", () => {
 
   it("does nothing when no kitty env is available", () => {
     // No env vars, no session file, no default socket
-    mockExistsSync.mockReturnValue(false);
-    setTabState({ title: "Test", state: "working" });
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    setTabState({ title: "Test", state: "working" }, deps);
     expect(mockExecSync).not.toHaveBeenCalled();
   });
 });
 
 // ─── readTabState ────────────────────────────────────────────────────────────
-// Note: readTabState uses `require('fs').readFileSync` internally (line 222
-// of tab-setter.ts), which bypasses ESM mock.module. The getKittyEnv lookup
-// for the session file IS mockable, but the final state file read is not.
-// We test the null-path behavior (no windowId) and document the limitation.
 
 describe("readTabState", () => {
   beforeEach(resetAllMocks);
 
   it("returns null when no windowId is available", () => {
-    // No env vars, no session file → getKittyEnv returns null windowId
-    mockExistsSync.mockReturnValue(false);
-    expect(readTabState("sess-nonexistent")).toBeNull();
+    // No env vars, no session file
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    expect(readTabState("sess-nonexistent", deps)).toBeNull();
   });
 
   it("returns null when session file provides no windowId", () => {
-    mockExistsSync.mockReturnValue(true);
+    mockFileExists.mockReturnValue(true);
     // Session file exists but has no windowId
-    mockReadFileSync.mockReturnValue(JSON.stringify({ listenOn: "unix:/tmp/kitty" }));
-    expect(readTabState("sess-1")).toBeNull();
+    mockReadJson.mockImplementation(() => ok({ listenOn: "unix:/tmp/kitty" } as never));
+    const deps = makeDeps();
+    expect(readTabState("sess-1", deps)).toBeNull();
   });
 
   it("returns null without session ID and no env vars", () => {
-    mockExistsSync.mockReturnValue(false);
-    expect(readTabState()).toBeNull();
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    expect(readTabState(undefined, deps)).toBeNull();
   });
 });
 
@@ -422,36 +408,33 @@ describe("setPhaseTab", () => {
   beforeEach(resetAllMocks);
 
   it("does nothing for unknown phase", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
-    );
-    setPhaseTab("NONEXISTENT", "sess-1");
+    setupKittySessionEnv("unix:/tmp/kitty", "42");
+    const deps = makeDeps();
+    setPhaseTab("NONEXISTENT", "sess-1", undefined, deps);
     expect(mockExecSync).not.toHaveBeenCalled();
   });
 
   it("does nothing when no kitty env available", () => {
-    mockExistsSync.mockReturnValue(false);
-    setPhaseTab("BUILD", "sess-1");
+    mockFileExists.mockReturnValue(false);
+    const deps = makeDeps();
+    setPhaseTab("BUILD", "sess-1", undefined, deps);
     expect(mockExecSync).not.toHaveBeenCalled();
   });
 
   it("sets title with phase symbol and session word for active phases", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockImplementation((_path: string) => {
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation((_path: string) => {
       if (String(_path).includes("kitty-sessions")) {
-        return JSON.stringify({ listenOn: "unix:/tmp/kitty", windowId: "42" });
+        return ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never);
       }
       if (String(_path).includes("session-names")) {
-        return JSON.stringify({ "sess-1": "Auth Redesign" });
+        return ok({ "sess-1": "Auth Redesign" } as never);
       }
-      return "{}";
+      return ok({} as never);
     });
+    const deps = makeDeps();
 
-    setPhaseTab("BUILD", "sess-1");
+    setPhaseTab("BUILD", "sess-1", undefined, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const tabCmd = commands.find((c) => c.includes("set-tab-title"));
@@ -460,15 +443,16 @@ describe("setPhaseTab", () => {
   });
 
   it("uses COMPLETE title with summary when provided", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockImplementation((_path: string) => {
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation((_path: string) => {
       if (String(_path).includes("kitty-sessions")) {
-        return JSON.stringify({ listenOn: "unix:/tmp/kitty", windowId: "42" });
+        return ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never);
       }
-      return JSON.stringify({ "sess-1": "Auth Work" });
+      return ok({ "sess-1": "Auth Work" } as never);
     });
+    const deps = makeDeps();
 
-    setPhaseTab("COMPLETE", "sess-1", "Deployed auth module");
+    setPhaseTab("COMPLETE", "sess-1", "Deployed auth module", deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const tabCmd = commands.find((c) => c.includes("set-tab-title"));
@@ -476,15 +460,16 @@ describe("setPhaseTab", () => {
   });
 
   it("falls back to session word for COMPLETE without summary", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockImplementation((_path: string) => {
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation((_path: string) => {
       if (String(_path).includes("kitty-sessions")) {
-        return JSON.stringify({ listenOn: "unix:/tmp/kitty", windowId: "42" });
+        return ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never);
       }
-      return JSON.stringify({ "sess-1": "Auth Work" });
+      return ok({ "sess-1": "Auth Work" } as never);
     });
+    const deps = makeDeps();
 
-    setPhaseTab("COMPLETE", "sess-1");
+    setPhaseTab("COMPLETE", "sess-1", undefined, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const tabCmd = commands.find((c) => c.includes("set-tab-title"));
@@ -492,16 +477,17 @@ describe("setPhaseTab", () => {
   });
 
   it("falls back to WORKING when session name not found", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockImplementation((_path: string) => {
+    mockFileExists.mockReturnValue(true);
+    mockReadJson.mockImplementation((_path: string) => {
       if (String(_path).includes("kitty-sessions")) {
-        return JSON.stringify({ listenOn: "unix:/tmp/kitty", windowId: "42" });
+        return ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never);
       }
       // session-names.json has no entry for this session
-      return JSON.stringify({});
+      return ok({} as never);
     });
+    const deps = makeDeps();
 
-    setPhaseTab("OBSERVE", "sess-unknown");
+    setPhaseTab("OBSERVE", "sess-unknown", undefined, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const tabCmd = commands.find((c) => c.includes("set-tab-title"));
@@ -510,15 +496,10 @@ describe("setPhaseTab", () => {
   });
 
   it("resets colors for IDLE phase", () => {
-    mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
-    );
+    setupKittySessionEnv("unix:/tmp/kitty", "42");
+    const deps = makeDeps();
 
-    setPhaseTab("IDLE", "sess-1");
+    setPhaseTab("IDLE", "sess-1", undefined, deps);
 
     const commands = mockExecSync.mock.calls.map((c) => String(c[0]));
     const colorCmd = commands.find((c) => c.includes("set-tab-color"));
@@ -526,17 +507,15 @@ describe("setPhaseTab", () => {
   });
 
   it("persists phase to per-window state file", () => {
-    mockExistsSync.mockImplementation((_path: string) => String(_path).includes("kitty-sessions"));
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
+    mockFileExists.mockImplementation((_path: string) => String(_path).includes("kitty-sessions"));
+    mockReadJson.mockImplementation(() =>
+      ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never),
     );
+    const deps = makeDeps();
 
-    setPhaseTab("EXECUTE", "sess-1");
+    setPhaseTab("EXECUTE", "sess-1", undefined, deps);
 
-    const writeCall = mockWriteFileSync.mock.calls.find((c) => String(c[0]).includes("42.json"));
+    const writeCall = mockWriteFile.mock.calls.find((c) => String(c[0]).includes("42.json"));
     expect(writeCall).toBeDefined();
     const persisted = JSON.parse(writeCall![1] as string);
     expect(persisted.phase).toBe("EXECUTE");
@@ -544,17 +523,15 @@ describe("setPhaseTab", () => {
   });
 
   it("persists completed state for COMPLETE phase", () => {
-    mockExistsSync.mockImplementation((_path: string) => String(_path).includes("kitty-sessions"));
-    mockReadFileSync.mockReturnValue(
-      JSON.stringify({
-        listenOn: "unix:/tmp/kitty",
-        windowId: "42",
-      }),
+    mockFileExists.mockImplementation((_path: string) => String(_path).includes("kitty-sessions"));
+    mockReadJson.mockImplementation(() =>
+      ok({ listenOn: "unix:/tmp/kitty", windowId: "42" } as never),
     );
+    const deps = makeDeps();
 
-    setPhaseTab("COMPLETE", "sess-1");
+    setPhaseTab("COMPLETE", "sess-1", undefined, deps);
 
-    const writeCall = mockWriteFileSync.mock.calls.find((c) => String(c[0]).includes("42.json"));
+    const writeCall = mockWriteFile.mock.calls.find((c) => String(c[0]).includes("42.json"));
     expect(writeCall).toBeDefined();
     const persisted = JSON.parse(writeCall![1] as string);
     expect(persisted.state).toBe("completed");

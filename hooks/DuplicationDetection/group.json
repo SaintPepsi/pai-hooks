@@ -1,0 +1,13 @@
+{
+  "name": "DuplicationDetection",
+  "description": "Detect and prevent code duplication using SWC-based function analysis",
+  "hooks": [
+    "DuplicationChecker",
+    "DuplicationIndexBuilder"
+  ],
+  "sharedFiles": [
+    "parser.ts",
+    "shared.ts",
+    "index-builder-logic.ts"
+  ]
+}

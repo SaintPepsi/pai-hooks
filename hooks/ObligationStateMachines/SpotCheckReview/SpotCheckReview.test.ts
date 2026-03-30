@@ -416,4 +416,18 @@ describe("SpotCheckReview defaultDeps", () => {
       SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, { "test.ts": "abc" }),
     ).not.toThrow();
   });
+
+  it("defaultDeps.getFileHashes returns hashes for existing files", () => {
+    const tmpPath = `/tmp/pai-test-hash-${Date.now()}.ts`;
+    require("fs").writeFileSync(tmpPath, "test content");
+    const hashes = SpotCheckReview.defaultDeps.getFileHashes([tmpPath]);
+    expect(hashes.has(tmpPath)).toBe(true);
+    expect(hashes.get(tmpPath)!.length).toBeGreaterThan(0);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("defaultDeps.getFileHashes skips missing files", () => {
+    const hashes = SpotCheckReview.defaultDeps.getFileHashes(["/tmp/pai-nonexistent-xyz.ts"]);
+    expect(hashes.has("/tmp/pai-nonexistent-xyz.ts")).toBe(false);
+  });
 });

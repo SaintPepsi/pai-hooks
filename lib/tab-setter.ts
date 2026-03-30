@@ -321,7 +321,7 @@ export function readTabState(
 export function stripPrefix(title: string): string {
   return title
     .replace(
-      /^(?:\u{1F9E0}|\u{2699}\u{FE0F}|\u{2699}|\u{2713}|\u{2753}|\u{1F441}\u{FE0F}|\u{1F4CB}|\u{1F528}|\u{26A1}|\u{2705}|\u{1F4DA})\s*/u,
+      /^(?:🧠|⚙️|⚙|✓|❓|👁️|📋|🔨|⚡|✅|📚)\s*/u,
       "",
     )
     .trim();
@@ -408,10 +408,10 @@ export function setPhaseTab(
   // Build title based on phase
   let title: string;
   if (phase === "COMPLETE" && summary) {
-    title = `\u{2705} ${summary}`;
+    title = `✅ ${summary}`;
   } else if (phase === "COMPLETE") {
     // No summary extracted — use session name instead of generic "Done."
-    title = `\u{2705} ${oneWord}`;
+    title = `✅ ${oneWord}`;
   } else if (phase === "IDLE") {
     title = oneWord;
   } else {
