@@ -67,7 +67,7 @@ In `~/.claude/settings.json`:
       "blocking": true,
       "docFileName": "doc.md",
       "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"],
-      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$"]
+      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$", "shared\\.ts$", "README\\.md$"]
     }
   }
 }

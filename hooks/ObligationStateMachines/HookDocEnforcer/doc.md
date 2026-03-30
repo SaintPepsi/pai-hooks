@@ -107,7 +107,9 @@ Settings are read from `~/.claude/settings.json` under `hookConfig.hookDocEnforc
       "watchPatterns": [
         "\\.contract\\.ts$",
         "hook\\.json$",
-        "group\\.json$"
+        "group\\.json$",
+        "shared\\.ts$",
+        "README\\.md$"
       ]
     }
   }
@@ -120,4 +122,4 @@ Settings are read from `~/.claude/settings.json` under `hookConfig.hookDocEnforc
 | `blocking` | `true` | Whether to block (true) or just log (false) |
 | `docFileName` | `"doc.md"` | Name of the documentation file to look for |
 | `requiredSections` | 6 headings | Markdown headings that must appear in the doc |
-| `watchPatterns` | 3 patterns | Regex patterns for files that trigger the obligation |
+| `watchPatterns` | 5 patterns | Regex patterns for files that trigger the obligation |

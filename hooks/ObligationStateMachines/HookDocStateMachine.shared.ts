@@ -73,7 +73,13 @@ const DEFAULT_REQUIRED_SECTIONS = [
   "## Dependencies",
 ];
 
-const DEFAULT_WATCH_PATTERNS = [/\.contract\.ts$/, /hook\.json$/, /group\.json$/];
+const DEFAULT_WATCH_PATTERNS = [
+  /\.contract\.ts$/,
+  /hook\.json$/,
+  /group\.json$/,
+  /shared\.ts$/,
+  /README\.md$/,
+];
 
 function defaults(): HookDocEnforcerSettings {
   return {
