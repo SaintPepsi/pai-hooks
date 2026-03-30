@@ -6,6 +6,7 @@
 import { join } from "node:path";
 import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ function getStateDir(baseDir: string): string {
 }
 
 export const defaultDeps: CitationEnforcementDeps = {
-  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
+  stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
   writeFlag: (path: string) => {
     writeFile(path, new Date().toISOString());

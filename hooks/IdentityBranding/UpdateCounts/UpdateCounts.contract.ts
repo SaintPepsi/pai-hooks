@@ -12,6 +12,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ export interface UpdateCountsDeps {
 
 const defaultDeps: UpdateCountsDeps = {
   spawnBackground,
-  hooksDir: join(process.env.PAI_DIR || join(process.env.HOME!, ".claude"), "pai-hooks"),
+  hooksDir: join(getPaiDir(), "pai-hooks"),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 

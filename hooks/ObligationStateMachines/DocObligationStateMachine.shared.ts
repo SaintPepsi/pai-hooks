@@ -16,7 +16,7 @@ import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
 
@@ -179,7 +179,7 @@ export const defaultDocTrackerExcludeDeps: DocTrackerExcludeDeps = {
 };
 
 export const defaultDeps: DocObligationDeps = {
-  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
+  stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
     const result = readFile(path);

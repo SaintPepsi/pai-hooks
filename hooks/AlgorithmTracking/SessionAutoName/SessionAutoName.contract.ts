@@ -13,6 +13,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { inference } from "@pai/Tools/Inference";
 
@@ -339,7 +340,7 @@ const defaultDeps: SessionAutoNameDeps = {
   getCustomTitle: defaultGetCustomTitle,
   spawnSync: (cmd, opts) =>
     Bun.spawnSync(cmd, { stdout: "pipe", stderr: "pipe", timeout: opts?.timeout }),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
