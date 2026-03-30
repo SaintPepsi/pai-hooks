@@ -91,6 +91,24 @@ export function getCurrentBranch(): string | null {
   return branch.length > 0 ? branch : null;
 }
 
+// ─── Artifact Location ─────────────────────────────────────────────────────
+
+const ARTIFACTS_BASE = "/tmp/pai/duplication";
+
+/** Deterministic hash of a project root path for cache namespacing. */
+export function projectHash(root: string): string {
+  let h = 0;
+  for (let i = 0; i < root.length; i++) {
+    h = ((h << 5) - h + root.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(16).padStart(8, "0");
+}
+
+/** Returns the artifacts directory for a given project root: /tmp/pai/duplication/{hash}/ */
+export function getArtifactsDir(projectRoot: string): string {
+  return `${ARTIFACTS_BASE}/${projectHash(projectRoot)}`;
+}
+
 // ─── Index Loading ──────────────────────────────────────────────────────────
 
 let cachedIndex: DuplicationIndex | null = null;
@@ -121,10 +139,14 @@ export function clearIndexCache(): void {
 
 export function findIndexPath(filePath: string, deps: SharedDeps): string | null {
   const { dirname, join } = require("node:path");
+  // Look in /tmp/pai/duplication/{hash}/ for each ancestor that could be a project root
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
-    const candidate = join(dir, ".claude", ".duplication-index.json") as string;
+    const candidate = `${getArtifactsDir(dir)}/index.json`;
     if (deps.exists(candidate)) return candidate;
+    // Also check legacy location for backwards compatibility
+    const legacy = join(dir, ".claude", ".duplication-index.json") as string;
+    if (deps.exists(legacy)) return legacy;
     const parent = dirname(dir) as string;
     if (parent === dir) break;
     dir = parent;

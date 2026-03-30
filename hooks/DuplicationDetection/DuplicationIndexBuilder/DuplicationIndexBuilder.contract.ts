@@ -24,7 +24,7 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
-import { getFilePath } from "@hooks/hooks/DuplicationDetection/shared";
+import { getArtifactsDir, getFilePath } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,8 +41,7 @@ export interface DuplicationIndexBuilderDeps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const INDEX_DIR = ".claude";
-const INDEX_FILENAME = ".duplication-index.json";
+const INDEX_FILENAME = "index.json";
 const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -148,7 +147,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const indexDir = deps.indexBuilderDeps.join(projectRoot, INDEX_DIR);
+    const indexDir = getArtifactsDir(projectRoot);
     const indexPath = deps.indexBuilderDeps.join(indexDir, INDEX_FILENAME);
 
     // Skip if index is fresh

@@ -180,7 +180,7 @@ describe("DuplicationIndexBuilderContract", () => {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
             const joined = require("node:path").join(...parts) as string;
-            if (joined.endsWith(".duplication-index.json")) return tempPath;
+            if (joined.endsWith("index.json")) return tempPath;
             return joined;
           },
         },
@@ -257,7 +257,7 @@ describe("DuplicationIndexBuilderContract", () => {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
             const joined = require("node:path").join(...parts) as string;
-            if (joined.endsWith(".duplication-index.json")) return tempPath;
+            if (joined.endsWith("index.json")) return tempPath;
             return joined;
           },
         },
@@ -384,7 +384,7 @@ describe("DuplicationIndexBuilderContract", () => {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
             const joined = require("node:path").join(...parts) as string;
-            if (joined.endsWith(".duplication-index.json")) return tempPath;
+            if (joined.endsWith("index.json")) return tempPath;
             return joined;
           },
         },
@@ -420,7 +420,7 @@ describe("DuplicationIndexBuilderContract", () => {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
             const joined = require("node:path").join(...parts) as string;
-            if (joined.endsWith(".duplication-index.json")) return tempPath;
+            if (joined.endsWith("index.json")) return tempPath;
             return joined;
           },
         },

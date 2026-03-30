@@ -45,8 +45,7 @@
       "!test-fixtures",
       "!docs",
       "!scripts/docs",
-      "!coverage",
-      "!.duplication-index.json"
+      "!coverage"
     ]
   }
 }

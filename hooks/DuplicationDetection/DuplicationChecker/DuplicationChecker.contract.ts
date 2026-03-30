@@ -31,6 +31,7 @@ import {
   checkFunctions,
   findIndexPath,
   formatFindings,
+  getArtifactsDir,
   getCurrentBranch,
   getFilePath,
   getWriteContent,
@@ -139,10 +140,10 @@ export const DuplicationCheckerContract: SyncHookContract<
 
     const matches = checkFunctions(functions, index, relPath);
 
-    // Log all checks (findings or clean) to .claude/.duplication-checker.log
-    const logDir = indexPath.replace(/\/\.duplication-index\.json$/, "");
+    // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/checker.jsonl
+    const logDir = getArtifactsDir(index.root);
     deps.ensureDir(logDir);
-    const logPath = `${logDir}/.duplication-checker.log`;
+    const logPath = `${logDir}/checker.jsonl`;
     const logEntry = {
       ts: new Date(deps.now()).toISOString(),
       branch: getCurrentBranch() ?? "unknown",
