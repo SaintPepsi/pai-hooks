@@ -282,6 +282,87 @@ describe("LoadContext — context files loading", () => {
   });
 });
 
+// ─── Coding standards loading ─────────────────────────────────────────────────
+
+describe("LoadContext — coding standards", () => {
+  it("includes coding standards in output when files exist", async () => {
+    const deps = makeDeps({
+      fileExists: (path: string) => {
+        if (path.includes("settings.json")) return true;
+        if (path.includes("SKILL.md") && !path.includes("CODINGSTANDARDS")) return true;
+        if (path.includes("CODINGSTANDARDS")) return true;
+        if (path.includes("general.md")) return true;
+        if (path.includes("hooks.md")) return true;
+        return false;
+      },
+      readFile: (path: string) => {
+        if (path.includes("SKILL.md")) return ok("# Skill");
+        if (path.includes("general.md")) return ok("# General Standards");
+        if (path.includes("hooks.md")) return ok("# Hooks Standards");
+        if (path.includes("skills.md")) return ok("# Skills Standards");
+        return makeFileReadError();
+      },
+      readJson: <T = unknown>(_path: string) =>
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
+    });
+    const result = await LoadContext.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    if (result.value.type !== "context") return;
+    expect(result.value.content).toContain("Coding Standards");
+  });
+
+  it("loads general.md and hooks.md but not missing skills.md", async () => {
+    const loadedFiles: string[] = [];
+    const deps = makeDeps({
+      fileExists: (path: string) => {
+        if (path.includes("settings.json")) return true;
+        if (path.includes("SKILL.md") && !path.includes("CODINGSTANDARDS")) return true;
+        if (path.includes("CODINGSTANDARDS") && !path.includes(".md")) return true;
+        if (path.includes("general.md")) return true;
+        if (path.includes("hooks.md")) return true;
+        if (path.includes("skills.md")) return false;
+        return false;
+      },
+      readFile: (path: string) => {
+        loadedFiles.push(path);
+        if (path.includes("SKILL.md")) return ok("# Skill");
+        if (path.includes("general.md")) return ok("# General");
+        if (path.includes("hooks.md")) return ok("# Hooks");
+        return makeFileReadError();
+      },
+      readJson: <T = unknown>(_path: string) =>
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
+    });
+    await LoadContext.execute(makeInput(), deps);
+    expect(loadedFiles.some((f) => f.includes("general.md"))).toBe(true);
+    expect(loadedFiles.some((f) => f.includes("hooks.md"))).toBe(true);
+    expect(loadedFiles.some((f) => f.includes("skills.md"))).toBe(false);
+  });
+
+  it("omits coding standards section when CODINGSTANDARDS dir is missing", async () => {
+    const deps = makeDeps({
+      fileExists: (path: string) => {
+        if (path.includes("settings.json")) return true;
+        if (path.includes("SKILL.md") && !path.includes("CODINGSTANDARDS")) return true;
+        if (path.includes("CODINGSTANDARDS")) return false;
+        return false;
+      },
+      readFile: (path: string) => {
+        if (path.includes("SKILL.md")) return ok("# Skill content");
+        return makeFileReadError();
+      },
+      readJson: <T = unknown>(_path: string) =>
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
+    });
+    const result = await LoadContext.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    if (result.value.type !== "context") return;
+    expect(result.value.content).not.toContain("Coding Standards");
+  });
+});
+
 // ─── Skill rebuild ────────────────────────────────────────────────────────────
 
 describe("LoadContext — needsSkillRebuild", () => {
