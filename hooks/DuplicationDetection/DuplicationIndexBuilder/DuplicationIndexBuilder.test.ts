@@ -9,8 +9,9 @@ import {
 } from "@hooks/core/adapters/fs";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { makeEditInput, makeSessionStartInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-helpers";
 import {
   DuplicationIndexBuilderContract,
   type DuplicationIndexBuilderDeps,
@@ -25,34 +26,6 @@ import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared"
 const PAI_HOOKS_ROOT = resolve(import.meta.dir, "../../../..");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function indexBuilderToolInput(toolName: string, filePath: string): ToolHookInput {
-  return {
-    session_id: "test-sess",
-    tool_name: toolName,
-    tool_input: { file_path: filePath },
-  };
-}
-
-function indexBuilderWriteInput(filePath: string): ToolHookInput {
-  return {
-    session_id: "test-sess",
-    tool_name: "Write",
-    tool_input: { file_path: filePath, content: "" },
-  };
-}
-
-function indexBuilderEditInput(filePath: string): ToolHookInput {
-  return {
-    session_id: "test-sess",
-    tool_name: "Edit",
-    tool_input: { file_path: filePath, old_string: "a", new_string: "b" },
-  };
-}
-
-function indexBuilderSessionStartInput(): SessionStartInput {
-  return { session_id: "test-sess" };
-}
 
 function unwrap(result: Result<ContinueOutput, PaiError>): ContinueOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
@@ -117,32 +90,32 @@ describe("DuplicationIndexBuilderContract", () => {
 
   describe("accepts()", () => {
     test("returns false for non-Write/Edit tools", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderToolInput("Read", "/src/app.ts"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderToolInput("Bash", "/src/app.ts"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderToolInput("Glob", "/src/app.ts"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Read", "/src/app.ts"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Bash", "/src/app.ts"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Glob", "/src/app.ts"))).toBe(false);
     });
 
     test("returns false for non-.ts files", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderWriteInput("/src/app.js"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderWriteInput("/src/style.css"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderWriteInput("/src/README.md"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/app.js", ""))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/style.css", ""))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/README.md", ""))).toBe(false);
     });
 
     test("returns true for Write to .ts file", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderWriteInput("/src/app.ts"))).toBe(true);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/app.ts", ""))).toBe(true);
     });
 
     test("returns true for Edit to .ts file", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderEditInput("/src/app.ts"))).toBe(true);
+      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/src/app.ts"))).toBe(true);
     });
 
     test("returns true for SessionStart input", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderSessionStartInput())).toBe(true);
+      expect(DuplicationIndexBuilderContract.accepts(makeSessionStartInput())).toBe(true);
     });
 
     test("returns false for .d.ts files", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderWriteInput("/src/types.d.ts"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderEditInput("/src/global.d.ts"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/types.d.ts", ""))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/src/global.d.ts"))).toBe(false);
     });
 
     test("returns false when file_path is missing from tool_input", () => {
@@ -155,9 +128,9 @@ describe("DuplicationIndexBuilderContract", () => {
     });
 
     test("returns false for Edit to non-.ts file", () => {
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderEditInput("/src/style.css"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderEditInput("/src/app.js"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(indexBuilderEditInput("/README.md"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/src/style.css"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/src/app.js"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/README.md"))).toBe(false);
     });
   });
 
@@ -187,7 +160,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -197,7 +170,7 @@ describe("DuplicationIndexBuilderContract", () => {
     test("does surgical update when index already exists", () => {
       // First build — full
       const deps = makeMockDeps();
-      const input1 = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/shared.ts`);
+      const input1 = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/shared.ts`, "");
       unwrap(DuplicationIndexBuilderContract.execute(input1, deps));
 
       // Second build — surgical (existing index readable via deps.readFile)
@@ -209,7 +182,7 @@ describe("DuplicationIndexBuilderContract", () => {
       });
       // Re-use the written files from first build
       Object.assign(deps2, { readFile: deps.readFile });
-      const input2 = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/shared.ts`);
+      const input2 = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/shared.ts`, "");
       unwrap(DuplicationIndexBuilderContract.execute(input2, deps2));
 
       expect(stderrMessages.some((m) => m.includes("updated index"))).toBe(true);
@@ -220,7 +193,7 @@ describe("DuplicationIndexBuilderContract", () => {
         stat: (): null => null,
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -237,7 +210,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -266,7 +239,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(capturedContent.length).toBeGreaterThan(0);
@@ -302,7 +275,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderWriteInput("/tmp/empty-project/src/app.ts");
+      const input = makeWriteInput("/tmp/empty-project/src/app.ts", "");
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -323,7 +296,7 @@ describe("DuplicationIndexBuilderContract", () => {
         findProjectRoot: (): string => PAI_HOOKS_ROOT,
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -342,7 +315,7 @@ describe("DuplicationIndexBuilderContract", () => {
         findProjectRoot: (): string => PAI_HOOKS_ROOT,
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       const successMsg = stderrMessages.find((m) => m.includes("built index:"));
@@ -364,7 +337,7 @@ describe("DuplicationIndexBuilderContract", () => {
         findProjectRoot: (): string => PAI_HOOKS_ROOT,
       });
 
-      const input = indexBuilderEditInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeEditInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -393,7 +366,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
       unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       const index = JSON.parse(capturedContent) as DuplicationIndex;
@@ -429,7 +402,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderSessionStartInput();
+      const input = makeSessionStartInput();
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
@@ -444,7 +417,7 @@ describe("DuplicationIndexBuilderContract", () => {
         cwd: (): string => PAI_HOOKS_ROOT,
       });
 
-      const input = indexBuilderSessionStartInput();
+      const input = makeSessionStartInput();
       unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       // SessionStart has no specific file, so it always does a full build
@@ -462,7 +435,7 @@ describe("DuplicationIndexBuilderContract", () => {
         },
       });
 
-      const input = indexBuilderSessionStartInput();
+      const input = makeSessionStartInput();
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
