@@ -47,13 +47,12 @@ It does **not** fire when:
 1. Extracts the file path from the tool input (via shared `getFilePath`)
 2. Searches for `index.json` in `/tmp/pai/duplication/{hash}/{branch}/` (with legacy fallback to project `.claude/`)
 3. Loads and parses the index
-4. Checks the index age against the staleness threshold (300s)
-5. For Write operations, uses the content directly; for Edit operations, simulates the edit via shared `simulateEdit`
-6. Extracts function signatures from the content using SWC parser
-7. Compares extracted functions against the index using `checkFunctions`
-8. Logs all checks to `checker.jsonl` with branch metadata
-9. At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets
-10. At 2-3/4 signals: logs finding, returns continue
+4. For Write operations, uses the content directly; for Edit operations, simulates the edit via shared `simulateEdit`
+5. Extracts function signatures from the content using SWC parser
+6. Compares extracted functions against the index using `checkFunctions`
+7. Logs all checks to `checker.jsonl` with branch metadata
+8. At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets
+9. At 2-3/4 signals: logs finding, returns continue
 
 ```typescript
 // Tiered response logic
@@ -88,7 +87,7 @@ return ok({ type: "continue", continue: true });
 | `fs` | adapter | `readFile`, `fileExists`, `readJson`, `appendFile`, `ensureDir` |
 | `lib/paths` | lib | `getSettingsPath` for reading hookConfig |
 | `lib/tool-input` | lib | `getFilePath`, `getWriteContent` for extracting tool input fields |
-| `DuplicationDetection/shared` | shared | `simulateEdit`, `loadIndex`, `findIndexPath`, `checkFunctions`, `formatFindings`, `getArtifactsDir`, `getCurrentBranch(cwd?)`, `BLOCK_THRESHOLD`, `STALENESS_SECONDS` |
+| `DuplicationDetection/shared` | shared | `simulateEdit`, `loadIndex`, `findIndexPath`, `checkFunctions`, `getArtifactsDir`, `getCurrentBranch(cwd?)`, `BLOCK_THRESHOLD` |
 | `DuplicationDetection/parser` | shared | `extractFunctions` for SWC-based function extraction |
 | `lib/narrative-reader` | lib | `pickNarrative` for severity-tiered block message openers |
 | `DuplicationChecker.narrative.jsonl` | data | 9 agent narratives (3 per severity tier) with DRY/WET theming |
