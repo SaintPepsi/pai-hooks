@@ -18,7 +18,7 @@ import {
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
@@ -164,8 +164,12 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
     const changedFile = isToolInput(input) ? getFilePath(input) : null;
     const existingJson = deps.readFile(indexPath);
 
-    if (existingJson && changedFile) {
-      const existing = JSON.parse(existingJson) as ReturnType<typeof buildIndex>;
+    const parseResult = existingJson
+      ? tryCatch(() => JSON.parse(existingJson) as ReturnType<typeof buildIndex>, () => null)
+      : null;
+    const existing = parseResult?.ok ? parseResult.value : null;
+
+    if (existing && changedFile) {
       const content = deps.indexBuilderDeps.readFile(changedFile);
       if (content) {
         index = updateIndexForFile(existing, changedFile, content, deps.indexBuilderDeps);
@@ -174,7 +178,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
         index = updateIndexForFile(existing, changedFile, "", deps.indexBuilderDeps);
       }
     } else {
-      // No existing index or SessionStart — full rebuild
+      // No existing index, parse failed, or SessionStart — full rebuild
       index = buildIndex(projectRoot, deps.indexBuilderDeps);
     }
 

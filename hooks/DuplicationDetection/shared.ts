@@ -8,6 +8,7 @@
  */
 
 import { execSyncSafe } from "@hooks/core/adapters/process";
+import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ExtractedFunction } from "@hooks/hooks/DuplicationDetection/parser";
 
@@ -126,7 +127,9 @@ export function loadIndex(indexPath: string, deps: SharedDeps): DuplicationIndex
   if (cachedIndex && cachedIndexPath === indexPath) return cachedIndex;
   const content = deps.readFile(indexPath);
   if (!content) return null;
-  const parsed = JSON.parse(content) as DuplicationIndex;
+  const parseResult = tryCatch(() => JSON.parse(content) as DuplicationIndex, () => null);
+  if (!parseResult.ok) return null;
+  const parsed = parseResult.value;
   if (!parsed.version || !parsed.entries) return null;
 
   // Branch isolation is now handled by directory structure (/tmp/pai/duplication/{hash}/{branch}/)
