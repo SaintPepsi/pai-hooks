@@ -277,13 +277,22 @@ function loadPatterns(deps: SecurityValidatorDeps): PatternsConfig {
     : deps.fileExists(systemPath)
       ? systemPath
       : null;
-  if (!patternsPath) return EMPTY_PATTERNS;
+  if (!patternsPath) {
+    deps.stderr("[SecurityValidator] WARNING: No security patterns file found — all validation bypassed");
+    return EMPTY_PATTERNS;
+  }
 
   const result = deps.readFile(patternsPath);
-  if (!result.ok) return EMPTY_PATTERNS;
+  if (!result.ok) {
+    deps.stderr(`[SecurityValidator] WARNING: Failed to read ${patternsPath} — all validation bypassed`);
+    return EMPTY_PATTERNS;
+  }
 
   const parsed = deps.safeParseYaml(result.value);
-  if (!parsed) return EMPTY_PATTERNS;
+  if (!parsed) {
+    deps.stderr(`[SecurityValidator] WARNING: Failed to parse ${patternsPath} — all validation bypassed`);
+    return EMPTY_PATTERNS;
+  }
   return parsed as PatternsConfig;
 }
 
