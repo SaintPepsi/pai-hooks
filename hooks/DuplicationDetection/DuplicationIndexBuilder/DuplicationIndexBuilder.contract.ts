@@ -4,7 +4,7 @@
  *
  * Builds the duplication index (.duplication-index.json) on the first .ts file
  * write in a session, or eagerly at session start. Subsequent triggers skip
- * if the index is fresh (<30 min).
+ * On PostToolUse, does a surgical update of the changed file only.
  * No additionalContext — this is a silent background operation.
  */
 

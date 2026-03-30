@@ -31,12 +31,10 @@ import {
   BLOCK_THRESHOLD,
   checkFunctions,
   findIndexPath,
-  formatFindings,
   getArtifactsDir,
   getCurrentBranch,
   loadIndex,
   simulateEdit,
-  STALENESS_SECONDS,
 } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -116,9 +114,6 @@ export const DuplicationCheckerContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const indexAge = (deps.now() - new Date(index.builtAt).getTime()) / 1000;
-    const isStale = indexAge > STALENESS_SECONDS;
-
     // Get content: Write has it directly, Edit needs simulation
     let content: string | null = null;
     if (input.tool_name === "Write") {
@@ -176,18 +171,14 @@ export const DuplicationCheckerContract: SyncHookContract<
         ),
         "",
         "Reuse the existing function instead of duplicating it.",
-        isStale ? "(Note: duplication index is stale — rebuild with DuplicationIndexBuilder)" : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
+      ].join("\n");
 
-      if (deps.blocking && !isStale) {
+      if (deps.blocking) {
         deps.stderr(`[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`);
         return ok({ type: "block", decision: "block", reason });
       }
 
-      const skipReason = isStale ? "stale index" : "blocking disabled";
-      deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (${skipReason})`);
+      deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`);
     }
 
     // 2-3 signals: log only, no additionalContext, no block

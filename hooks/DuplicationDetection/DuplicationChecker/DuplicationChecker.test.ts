@@ -205,17 +205,15 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       }
     });
 
-    test("does not block when index is stale even with 4/4 match", () => {
+    test("blocks regardless of index age (no staleness bypass)", () => {
       const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
       const index = JSON.parse(indexContent) as { builtAt: string };
       const builtAtMs = new Date(index.builtAt).getTime();
       const SIX_MINUTES_MS = 6 * 60 * 1000;
 
-      const stderrMessages: string[] = [];
       const deps: DuplicationCheckerDeps = {
         ...mockDeps,
         now: () => builtAtMs + SIX_MINUTES_MS,
-        stderr: (msg) => stderrMessages.push(msg),
       };
 
       const realContent = require("node:fs").readFileSync(
@@ -228,9 +226,8 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      // Stale index = never block, only log
-      expect(output.type).toBe("continue");
-      expect(stderrMessages.some((m) => m.includes("stale index"))).toBe(true);
+      // Staleness no longer bypasses blocking — always blocks with blocking=true
+      expect(output.type).toBe("block");
     });
     test("continues instead of blocking when blocking config is false", () => {
       const realContent = require("node:fs").readFileSync(
