@@ -16,7 +16,8 @@ import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand, getFilePath } from "@hooks/lib/tool-input";
-import { defaultStderr, getPaiDir, getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,26 +145,10 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
 
 // ─── Exclude Pattern Helpers ──────────────────────────────────────────────────
 
-interface TestObligationSettingsJson {
-  hookConfig?: {
-    testObligation?: {
-      excludePatterns?: string[];
-    };
-  };
-}
-
 /** Read excludePatterns from settings.json hookConfig.testObligation.excludePatterns. */
 export function readTestExcludePatterns(settingsPath?: string): string[] {
-  const path = settingsPath ?? getSettingsPath();
-  const result = readFile(path);
-  if (!result.ok) return [];
-  const parsed = tryCatch(
-    () => JSON.parse(result.value) as TestObligationSettingsJson,
-    (cause) => jsonParseFailed(result.value.slice(0, 100), cause),
-  );
-  if (!parsed.ok) return [];
-  const patterns = parsed.value?.hookConfig?.testObligation?.excludePatterns;
-  return Array.isArray(patterns) ? patterns : [];
+  const cfg = readHookConfig<{ excludePatterns?: string[] }>("testObligation", undefined, settingsPath);
+  return Array.isArray(cfg?.excludePatterns) ? cfg.excludePatterns : [];
 }
 
 /** Returns true if filePath matches any of the given glob patterns. */

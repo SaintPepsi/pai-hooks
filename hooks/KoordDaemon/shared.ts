@@ -12,9 +12,10 @@
  */
 
 import { readFile } from "@hooks/core/adapters/fs";
-import { jsonParseFailed } from "@hooks/core/error";
-import { tryCatch } from "@hooks/core/result";
-import { getSettingsPath } from "@hooks/lib/paths";
+import { } from "@hooks/core/error";
+import { } from "@hooks/core/result";
+import { } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,20 +53,10 @@ const AGENT_NAME_TEXT_PATTERN = /agent[_-]?name["\s:=]+["']?([a-zA-Z0-9_-]+)/i;
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts:95-110
  */
 export function readKoordConfig(
-  readFileFn: (path: string) => string | null,
+  readFileFn?: (path: string) => string | null,
   settingsPath?: string,
 ): KoordDaemonConfig {
-  const path = settingsPath ?? getSettingsPath();
-  const raw = readFileFn(path);
-  if (!raw) return { url: null, prepromptPath: null };
-
-  const parseResult = tryCatch(
-    () => JSON.parse(raw) as SettingsJson,
-    (cause) => jsonParseFailed(raw.slice(0, 100), cause),
-  );
-  if (!parseResult.ok) return { url: null, prepromptPath: null };
-
-  const cfg = parseResult.value.hookConfig?.koordDaemon;
+  const cfg = readHookConfig<{ url?: string; prepromptPath?: string }>("koordDaemon", readFileFn ?? undefined, settingsPath);
   return {
     url: typeof cfg?.url === "string" ? cfg.url : null,
     prepromptPath: typeof cfg?.prepromptPath === "string" ? cfg.prepromptPath : null,
