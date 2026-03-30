@@ -8,6 +8,7 @@
  */
 
 import { join } from "node:path";
+import { tryCatch } from "@hooks/core/result";
 import {
   fileExists as adapterFileExists,
   readFile as adapterReadFile,
@@ -41,11 +42,13 @@ function parseEntries(content: string): NarrativeEntry[] {
   return content
     .split("\n")
     .filter((line) => line.trim().length > 0)
-    .map((line) => {
-      const parsed = JSON.parse(line);
-      return { message: String(parsed.message), score: Number(parsed.score) };
-    })
-    .filter((e) => e.message && [1, 2, 3].includes(e.score));
+    .flatMap((line) => {
+      const result = tryCatch(() => JSON.parse(line) as Record<string, unknown>, () => null);
+      if (!result.ok) return [];
+      const parsed = result.value;
+      const entry = { message: String(parsed.message), score: Number(parsed.score) };
+      return entry.message && [1, 2, 3].includes(entry.score) ? [entry] : [];
+    });
 }
 
 function pickRandom<T>(items: T[]): T {
