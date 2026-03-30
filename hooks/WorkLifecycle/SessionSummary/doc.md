@@ -2,9 +2,9 @@
 
 ## Overview
 
-SessionSummary finalizes a session by marking the WORK/ directory as COMPLETED, deleting the current-work state file, and resetting the Kitty terminal tab styling. It is the cleanup counterpart to AutoWorkCreation, ensuring that session state does not persist beyond the session's lifetime.
+SessionSummary finalizes a session by marking the WORK/ directory as COMPLETED, deleting the current-work state file, and resetting the terminal tab styling. It is the cleanup counterpart to AutoWorkCreation, ensuring that session state does not persist beyond the session's lifetime.
 
-The hook updates META.yaml to set `status: "COMPLETED"` and `completed_at` with the current timestamp, removes the session-scoped state file, resets the Kitty tab title to idle, and cleans up any Kitty session tracking files.
+The hook updates META.yaml to set `status: "COMPLETED"` and `completed_at` with the current timestamp, removes the session-scoped state file, and resets the tab title to idle.
 
 ## Event
 
@@ -27,8 +27,7 @@ It does **not** fire when:
 2. Reads the state file to get the session directory path
 3. Updates META.yaml in the work directory: replaces `status: "ACTIVE"` with `"COMPLETED"` and sets `completed_at` to the current timestamp
 4. Deletes the session state file (`current-work-{session_id}.json`)
-5. Resets the Kitty terminal tab to idle state (title cleared, state set to "idle")
-6. Cleans up Kitty session tracking files for the session ID
+5. Resets the terminal tab to idle state (title cleared, state set to "idle")
 
 ```typescript
 // Mark work complete, clear state, reset terminal
@@ -43,11 +42,11 @@ deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });
 
 ### Example 1: Normal session cleanup
 
-> You end a session that created work under `MEMORY/WORK/20260328-143025_refactor-auth/`. SessionSummary updates META.yaml to show `status: "COMPLETED"` and `completed_at: "2026-03-28T15:45:00Z"`, deletes `current-work-{session_id}.json`, resets the Kitty tab to idle, and cleans up session tracking.
+> You end a session that created work under `MEMORY/WORK/20260328-143025_refactor-auth/`. SessionSummary updates META.yaml to show `status: "COMPLETED"` and `completed_at: "2026-03-28T15:45:00Z"`, deletes `current-work-{session_id}.json`, and resets the terminal tab to idle.
 
 ### Example 2: No active work
 
-> You end a session where no work directories were created (e.g., a brief question-only session). SessionSummary finds no state file and logs "No current work to complete", then still resets the Kitty tab state.
+> You end a session where no work directories were created (e.g., a brief question-only session). SessionSummary finds no state file and logs "No current work to complete", then still resets the terminal tab state.
 
 ## Dependencies
 
@@ -55,6 +54,6 @@ deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });
 | --- | --- | --- |
 | `core/adapters/fs` | adapter | File read/write/remove for state and META.yaml |
 | `lib/time` | lib | ISO timestamp for completion time |
-| `lib/tab-setter` | lib | Kitty terminal tab state and session cleanup |
+| `lib/tab-setter` | lib | Terminal tab state reset |
 | `core/error` | core | Error wrapping for tryCatch operations |
 | `core/result` | core | Result type and tryCatch utility |

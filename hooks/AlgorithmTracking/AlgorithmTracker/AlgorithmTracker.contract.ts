@@ -31,7 +31,6 @@ import {
   readState,
   writeState,
 } from "@hooks/lib/algorithm-state";
-import { setPhaseTab } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +42,6 @@ export interface AlgorithmTrackerDeps {
   criteriaUpdate: typeof criteriaUpdate;
   agentAdd: typeof agentAdd;
   effortLevelUpdate: typeof effortLevelUpdate;
-  setPhaseTab: typeof setPhaseTab;
   fileExists: (path: string) => boolean;
   readJson: <T = unknown>(path: string) => Result<T, PaiError>;
   fetch: typeof globalThis.fetch;
@@ -160,7 +158,6 @@ const defaultDeps: AlgorithmTrackerDeps = {
   criteriaUpdate,
   agentAdd,
   effortLevelUpdate,
-  setPhaseTab,
   fileExists,
   readJson,
   fetch: globalThis.fetch,
@@ -226,7 +223,6 @@ export const AlgorithmTracker: SyncHookContract<
           deps.stderr(`[AlgorithmTracker] REWORK detected — iteration ${reworkNum}`);
         }
 
-        deps.setPhaseTab(phase, session_id);
         deps.stderr(`[AlgorithmTracker] phase: ${phase}`);
       }
     }

@@ -1,17 +1,13 @@
 /**
- * TabState.ts - Terminal Tab State Manager
+ * TabState.ts - Response completion title extraction.
  *
- * PURPOSE:
- * Updates Kitty terminal tab title and color on response completion.
- * Converts the working title to past tense as primary strategy,
- * falls back to voice line extraction, then generic fallback.
- *
- * Pure handler: receives pre-parsed transcript data, updates Kitty tab.
+ * Previously updated Kitty terminal tab title on response completion.
+ * Kitty dependency removed (#56) — title extraction logic retained
+ * for potential future use, but no tab commands are issued.
  */
 
 import { getDAName } from "@hooks/lib/identity";
 import { gerundToPastTense, isValidCompletionTitle } from "@hooks/lib/output-validators";
-import { readTabState, setPhaseTab, setTabState, stripPrefix } from "@hooks/lib/tab-setter";
 import type { ParsedTranscript } from "@pai/Tools/TranscriptParser";
 
 /**
@@ -41,7 +37,6 @@ function extractTabTitle(voiceLine: string): string | null {
   // If first sentence is just 1 word (e.g., "Fixed"), grab more content
   const firstWords = firstSentence.split(/\s+/);
   if (firstWords.length === 1 && sentences.length > 1) {
-    // Combine with words from next sentence to make a proper title
     const nextWords = sentences[1].split(/\s+/).slice(0, 3);
     firstSentence = `${firstWords[0]} ${nextWords.join(" ")}`;
   }
@@ -73,7 +68,6 @@ function extractFromResponseContent(responseText: string): string | null {
   if (taskMatch?.[1]) {
     const taskDesc = taskMatch[1].trim();
     const words = taskDesc.split(/\s+/);
-    // Convert imperative to past tense for first word
     if (words.length >= 2) {
       const firstLower = words[0].toLowerCase();
       const pastMap: Record<string, string> = {
@@ -151,66 +145,23 @@ function extractFromResponseContent(responseText: string): string | null {
 
 /**
  * Handle tab state update with pre-parsed transcript data.
+ * No-op since kitty tab management was removed (#56).
  */
 export async function handleTabState(parsed: ParsedTranscript, sessionId?: string): Promise<void> {
-  // Don't overwrite question state — question hook owns that
   if (parsed.responseState === "awaitingInput") return;
 
-  // PRIMARY: Convert working title to past tense
+  // Title extraction retained for logging/debugging purposes
   let shortTitle: string | null = null;
-  const currentState = readTabState(sessionId);
-  if (currentState) {
-    let rawTitle = stripPrefix(currentState.title);
-    // Strip session prefix (e.g., "KITTY TAB | Removing redundancy." → "Removing redundancy.")
-    const pipeIdx = rawTitle.indexOf(" | ");
-    if (pipeIdx !== -1) {
-      rawTitle = rawTitle.slice(pipeIdx + 3);
-    }
-    if (
-      rawTitle &&
-      rawTitle !== "Done." &&
-      rawTitle !== "Processing." &&
-      rawTitle !== "Processing request." &&
-      !rawTitle.endsWith("ready\u2026")
-    ) {
-      const words = rawTitle.replace(/\.$/, "").split(/\s+/);
-      if (words.length >= 2 && words[0].toLowerCase().endsWith("ing")) {
-        words[0] = gerundToPastTense(words[0]);
-      }
-      const candidate = `${words.join(" ")}.`;
-      if (isValidCompletionTitle(candidate)) {
-        shortTitle = candidate;
-      }
-    }
-  }
 
-  // FALLBACK 1: Extract from voice line
   if (!shortTitle) {
     shortTitle = extractTabTitle(parsed.plainCompletion);
   }
 
-  // FALLBACK 2: Extract from response content (TASK, SUMMARY sections)
   if (!shortTitle) {
     shortTitle = extractFromResponseContent(parsed.currentResponseText);
-    if (shortTitle) {
-      console.error(`[TabState] Extracted title from response content: "${shortTitle}"`);
-    }
   }
 
-  // FALLBACK 3: Pass null — let setPhaseTab use session name
-  // "Task complete." is meaningless; the session name at least identifies the work
-  if (!shortTitle) {
-    console.error(`[TabState] All extraction strategies failed, deferring to session name`);
-  }
-
-  if (sessionId) {
-    // Completion with session prefix: "NAME | summary"
-    setPhaseTab("COMPLETE", sessionId, shortTitle?.replace(/\.$/, "") || undefined);
-    console.error(`[TabState] Completion: "${shortTitle || "(session name fallback)"}"`);
-  } else {
-    // No session ID fallback: "✅ summary"
-    const tabTitle = `✅ ${shortTitle || "Done."}`;
-    console.error(`[TabState] ${parsed.responseState}: "${tabTitle}"`);
-    setTabState({ title: tabTitle, state: "completed", sessionId: undefined });
-  }
+  console.error(
+    `[TabState] session=${sessionId ?? "none"} title="${shortTitle || "(none)"}" (tab commands removed)`,
+  );
 }

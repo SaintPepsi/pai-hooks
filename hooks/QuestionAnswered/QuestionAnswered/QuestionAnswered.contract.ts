@@ -1,8 +1,8 @@
 /**
- * QuestionAnswered Contract — Reset tab after question answered.
+ * QuestionAnswered Contract — No-op after kitty tab removal.
  *
- * Restores terminal tab from question state (teal) back to working
- * state (orange) after the user answers an AskUserQuestion.
+ * Previously restored terminal tab color after AskUserQuestion.
+ * Tab manipulation removed with kitty dependency (#56).
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
@@ -11,19 +11,12 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import { readTabState, setTabState, stripPrefix } from "@hooks/lib/tab-setter";
 
 export interface QuestionAnsweredDeps {
-  setTabState: typeof setTabState;
-  readTabState: typeof readTabState;
-  stripPrefix: typeof stripPrefix;
   stderr: (msg: string) => void;
 }
 
 const defaultDeps: QuestionAnsweredDeps = {
-  setTabState,
-  readTabState,
-  stripPrefix,
   stderr: defaultStderr,
 };
 
@@ -36,25 +29,7 @@ export const QuestionAnswered: SyncHookContract<ToolHookInput, SilentOutput, Que
       return true; // Matcher in settings.json handles AskUserQuestion filtering
     },
 
-    execute(input: ToolHookInput, deps: QuestionAnsweredDeps): Result<SilentOutput, PaiError> {
-      const currentState = deps.readTabState(input.session_id);
-      let restoredTitle = "Processing answer.";
-
-      if (currentState?.previousTitle) {
-        const rawTitle = deps.stripPrefix(currentState.previousTitle);
-        if (rawTitle) {
-          restoredTitle = rawTitle;
-        }
-      }
-
-      deps.setTabState({
-        title: `\u2699\uFE0F${restoredTitle}`,
-        state: "working",
-        sessionId: input.session_id,
-      });
-
-      deps.stderr("[QuestionAnswered] Tab reset to working state (orange on inactive only)");
-
+    execute(_input: ToolHookInput, _deps: QuestionAnsweredDeps): Result<SilentOutput, PaiError> {
       return ok({ type: "silent" });
     },
 

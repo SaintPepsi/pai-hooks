@@ -12,11 +12,11 @@ function makeInput(overrides: Partial<SessionStartInput> = {}): SessionStartInpu
   return { session_id: "test-session-123", ...overrides };
 }
 
-function makeReadError(msg = "not found"): Result<never, PaiError> {
+function makeFileReadError(msg = "not found"): Result<never, PaiError> {
   return err(new PaiError(ErrorCode.FileNotFound, msg));
 }
 
-function makeDirError(msg = "dir not found"): Result<never, PaiError> {
+function makeFileDirError(msg = "dir not found"): Result<never, PaiError> {
   return err(new PaiError(ErrorCode.FileReadFailed, msg));
 }
 
@@ -50,8 +50,6 @@ function makeDeps(overrides: Partial<LoadContextDeps> = {}): LoadContextDeps {
       ok([]) as Result<{ name: string; isDirectory(): boolean }[], PaiError>,
     stat: (_path: string) => ok({ mtimeMs: 1000 }),
     execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => ok("rebuilt"),
-    setTabState: (_opts) => ok(undefined),
-    readTabState: (_sessionId: string) => ok(null),
     getDAName: () => "Maple",
     recordSessionStart: () => {},
     getCurrentDate: async () => "2026-03-30 12:00:00 UTC",
@@ -119,78 +117,6 @@ describe("LoadContext — subagent path", () => {
   });
 });
 
-// ─── Tab state preservation ───────────────────────────────────────────────────
-
-describe("LoadContext — tab state", () => {
-  it("sets tab state to idle when readTabState returns null", async () => {
-    const setTabStateCalls: Array<{ title: string; state: string; sessionId: string }> = [];
-    const deps = makeDeps({
-      readTabState: (_id: string) => ok(null),
-      setTabState: (opts) => {
-        setTabStateCalls.push(opts);
-        return ok(undefined);
-      },
-    });
-    await LoadContext.execute(makeInput(), deps);
-    expect(setTabStateCalls.length).toBeGreaterThan(0);
-    expect(setTabStateCalls[0].state).toBe("idle");
-  });
-
-  it("does not call setTabState when tab is in working state", async () => {
-    const setTabStateCalls: Array<{ title: string; state: string; sessionId: string }> = [];
-    const deps = makeDeps({
-      readTabState: (_id: string) => ok({ state: "working" }),
-      setTabState: (opts) => {
-        setTabStateCalls.push(opts);
-        return ok(undefined);
-      },
-    });
-    await LoadContext.execute(makeInput(), deps);
-    expect(setTabStateCalls).toHaveLength(0);
-  });
-
-  it("does not call setTabState when tab is in thinking state", async () => {
-    const setTabStateCalls: Array<{ title: string; state: string; sessionId: string }> = [];
-    const deps = makeDeps({
-      readTabState: (_id: string) => ok({ state: "thinking" }),
-      setTabState: (opts) => {
-        setTabStateCalls.push(opts);
-        return ok(undefined);
-      },
-    });
-    await LoadContext.execute(makeInput(), deps);
-    expect(setTabStateCalls).toHaveLength(0);
-  });
-
-  it("calls setTabState with idle when tab is in an unknown state", async () => {
-    const setTabStateCalls: Array<{ title: string; state: string; sessionId: string }> = [];
-    const deps = makeDeps({
-      readTabState: (_id: string) => ok({ state: "idle" }),
-      setTabState: (opts) => {
-        setTabStateCalls.push(opts);
-        return ok(undefined);
-      },
-    });
-    await LoadContext.execute(makeInput(), deps);
-    expect(setTabStateCalls.length).toBeGreaterThan(0);
-    expect(setTabStateCalls[0].state).toBe("idle");
-  });
-
-  it("sets tab title to DA name", async () => {
-    const setTabStateCalls: Array<{ title: string; state: string; sessionId: string }> = [];
-    const deps = makeDeps({
-      readTabState: (_id: string) => ok(null),
-      getDAName: () => "Maple",
-      setTabState: (opts) => {
-        setTabStateCalls.push(opts);
-        return ok(undefined);
-      },
-    });
-    await LoadContext.execute(makeInput(), deps);
-    expect(setTabStateCalls[0].title).toContain("Maple");
-  });
-});
-
 // ─── Settings loading ─────────────────────────────────────────────────────────
 
 describe("LoadContext — settings loading", () => {
@@ -255,7 +181,7 @@ describe("LoadContext — settings loading", () => {
         err(new PaiError(ErrorCode.JsonParseFailed, "parse error")) as Result<T, PaiError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# SKILL content");
-        return makeReadError();
+        return makeFileReadError();
       },
       stderr: (msg: string) => {
         stderrMessages.push(msg);
@@ -282,7 +208,7 @@ describe("LoadContext — context files loading", () => {
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# My Skill Content");
-        return makeReadError();
+        return makeFileReadError();
       },
     });
     const result = await LoadContext.execute(makeInput(), deps);
@@ -306,7 +232,7 @@ describe("LoadContext — context files loading", () => {
         ok({ contextFiles: ["file-a.md", "file-b.md"] }) as Result<T, PaiError>,
       readFile: (path: string) => {
         if (path.includes("file-a.md")) return ok("Content A");
-        return makeReadError();
+        return makeFileReadError();
       },
       stderr: (msg: string) => {
         stderrMessages.push(msg);
@@ -329,7 +255,7 @@ describe("LoadContext — context files loading", () => {
       readFile: (path: string) => {
         if (path.includes("file-a.md")) return ok("Content A");
         if (path.includes("file-b.md")) return ok("Content B");
-        return makeReadError();
+        return makeFileReadError();
       },
     });
     const result = await LoadContext.execute(makeInput(), deps);
@@ -372,7 +298,7 @@ describe("LoadContext — coding standards", () => {
         if (path.includes("general.md")) return ok("# General Standards");
         if (path.includes("hooks.md")) return ok("# Hooks Standards");
         if (path.includes("skills.md")) return ok("# Skills Standards");
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -401,7 +327,7 @@ describe("LoadContext — coding standards", () => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         if (path.includes("general.md")) return ok("# General");
         if (path.includes("hooks.md")) return ok("# Hooks");
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -422,7 +348,7 @@ describe("LoadContext — coding standards", () => {
       },
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -484,7 +410,7 @@ describe("LoadContext — needsSkillRebuild", () => {
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
-        return makeReadError();
+        return makeFileReadError();
       },
       execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => {
         rebuiltCalled = true;
@@ -521,7 +447,7 @@ describe("LoadContext — needsSkillRebuild", () => {
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
-        return makeReadError();
+        return makeFileReadError();
       },
       execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => {
         rebuiltCalled = true;
@@ -597,7 +523,7 @@ Below threshold.
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         if (path.includes("OPINIONS.md")) return ok(opinionsContent);
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -630,7 +556,7 @@ Just below threshold.
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         if (path.includes("OPINIONS.md")) return ok(opinionsContent);
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -660,7 +586,7 @@ Very confident.
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         if (path.includes("OPINIONS.md")) return ok(opinionsContent);
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -716,7 +642,7 @@ describe("LoadContext — work sessions", () => {
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         if (path.includes("META.yaml")) return ok(metaContent);
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
@@ -740,7 +666,7 @@ describe("LoadContext — work sessions", () => {
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
-        return makeReadError();
+        return makeFileReadError();
       },
     });
     const result = await LoadContext.execute(makeInput(), deps);
@@ -782,7 +708,7 @@ describe("LoadContext — work sessions", () => {
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         if (path.includes("META.yaml")) return ok(metaContent);
-        return makeReadError();
+        return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
         ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,

@@ -4,7 +4,7 @@
 
 StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to four handlers in parallel: VoiceNotification, TabState, RebuildSkill, and AlgorithmEnrichment.
 
-Voice notifications are only enabled for main terminal sessions (identified via Kitty session tracking files), preventing subagent sessions from triggering speech output.
+Voice notifications are only enabled for main terminal sessions, preventing subagent sessions from triggering speech output.
 
 ## Event
 
@@ -24,7 +24,7 @@ It does **not** fire when:
 
 1. Waits 150ms for the transcript file to be fully written
 2. Parses the transcript using `TranscriptParser` to extract completion text
-3. Determines if this is a main session by checking for a Kitty session file (`MEMORY/STATE/kitty-sessions/{session_id}.json`)
+3. Determines if this is a main session (always true after kitty removal in #56)
 4. Runs handlers in parallel via `Promise.allSettled`:
    - **VoiceNotification** (main sessions only): Speaks the completion summary via TTS
    - **TabState**: Updates the Kitty terminal tab with session state
@@ -52,7 +52,7 @@ await Promise.allSettled(handlers);
 
 ### Example 2: Subagent session (no voice)
 
-> A spawned subagent (e.g., from ArticleWriter) completes a response. StopOrchestrator parses the transcript but finds no Kitty session file for the subagent's session ID. It runs TabState, RebuildSkill, and AlgorithmEnrichment but skips VoiceNotification.
+> A spawned subagent (e.g., from ArticleWriter) completes a response. StopOrchestrator parses the transcript. Since `isMainSession` always returns true now, voice is enabled for all sessions — but subagents are filtered upstream before this hook runs.
 
 ## Dependencies
 
@@ -63,4 +63,4 @@ await Promise.allSettled(handlers);
 | `handlers/TabState` | handler | Updates Kitty terminal tab styling |
 | `handlers/RebuildSkill` | handler | Checks and rebuilds stale skills |
 | `handlers/AlgorithmEnrichment` | handler | Enriches algorithm state from responses |
-| `core/adapters/fs` | adapter | Checks Kitty session file existence |
+| `handlers/TabState` | handler | Updates terminal tab title (logging only after kitty removal) |

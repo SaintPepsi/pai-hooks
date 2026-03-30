@@ -11,15 +11,13 @@ import { fileExists, readDir, readFile, readJson, stat } from "@hooks/core/adapt
 import { exec, execSyncSafe } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
-import { unknownError } from "@hooks/core/error";
-import { ok, type Result, tryCatch } from "@hooks/core/result";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
-import { readTabState, setTabState } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,12 +54,6 @@ export interface LoadContextDeps {
     cmd: string,
     opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined },
   ) => Result<string, PaiError>;
-  setTabState: (opts: {
-    title: string;
-    state: string;
-    sessionId: string;
-  }) => Result<void, PaiError>;
-  readTabState: (sessionId: string) => Result<{ state: string } | null, PaiError>;
   getDAName: typeof getDAName;
   recordSessionStart: typeof recordSessionStart;
   getCurrentDate: () => Promise<string>;
@@ -423,16 +415,6 @@ const defaultDeps: LoadContextDeps = {
     >,
   stat,
   execSyncSafe,
-  setTabState: (opts) =>
-    tryCatch(
-      () => setTabState(opts as Parameters<typeof setTabState>[0]),
-      (e) => unknownError(e),
-    ),
-  readTabState: (id) =>
-    tryCatch(
-      () => readTabState(id),
-      (e) => unknownError(e),
-    ),
   getDAName,
   recordSessionStart,
   getCurrentDate: async () => {
@@ -466,22 +448,6 @@ export const LoadContext: AsyncHookContract<
     if (deps.isSubagent()) {
       deps.stderr("Subagent session - skipping PAI context loading");
       return ok({ type: "silent" });
-    }
-
-    // Reset tab title (preserve working state through compaction)
-    const tabResult = deps.readTabState(input.session_id);
-    if (
-      tabResult.ok &&
-      tabResult.value &&
-      (tabResult.value.state === "working" || tabResult.value.state === "thinking")
-    ) {
-      deps.stderr(`Tab in ${tabResult.value.state} state - preserving title through compaction`);
-    } else {
-      deps.setTabState({
-        title: `${deps.getDAName()} ready…`,
-        state: "idle",
-        sessionId: input.session_id,
-      });
     }
 
     deps.recordSessionStart();

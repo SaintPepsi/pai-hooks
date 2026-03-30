@@ -4,7 +4,7 @@
 
 AlgorithmTracker is a **sync PostToolUse** hook that consolidates four algorithm state tracking responsibilities into a single hook. It monitors Bash commands for voice notification curls that signal phase transitions, TaskCreate events for ISC criteria creation, TaskUpdate events for criteria status changes, and Task tool events for agent spawns. All state is persisted via the `algorithm-state` library.
 
-The hook also handles rework detection (re-entering OBSERVE from a completed state), effort level inference based on criteria count, and terminal tab labeling for active phases.
+The hook also handles rework detection (re-entering OBSERVE from a completed state) and effort level inference based on criteria count.
 
 ## Event
 
@@ -27,7 +27,7 @@ It does **not** fire when:
 
 ## What It Does
 
-1. **Phase tracking (Bash):** Detects voice curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, updates the terminal tab, and handles rework detection
+1. **Phase tracking (Bash):** Detects voice curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, and handles rework detection
 2. **Criteria tracking (TaskCreate):** Parses ISC criterion patterns from task subjects and results. Adds criteria to state with type (criterion vs anti-criterion), status, and phase context. Infers effort level from criteria count (12+ = Extended, 20+ = Advanced, 40+ = Deep)
 3. **Criteria updates (TaskUpdate):** Maps task status changes (pending, in_progress, completed, deleted) to criterion status updates
 4. **Agent tracking (Task):** Records spawned agents with name, type, and task description
@@ -38,7 +38,6 @@ const { phase, isAlgorithmEntry } = detectPhaseFromBash(tool_input.command);
 if (phase) {
   ensureSessionActive(session_id, deps);
   deps.phaseTransition(session_id, phase);
-  deps.setPhaseTab(phase, session_id);
 }
 
 // Criteria from TaskCreate
@@ -57,7 +56,7 @@ if (criterion) {
 
 ### Example 1: Phase transition detected
 
-> Claude executes a Bash curl to `localhost:8888/notify` with `"message": "Entering the Build phase"`. AlgorithmTracker detects the BUILD phase, transitions the algorithm state, updates the terminal tab title to show "BUILD", and logs the transition.
+> Claude executes a Bash curl to `localhost:8888/notify` with `"message": "Entering the Build phase"`. AlgorithmTracker detects the BUILD phase, transitions the algorithm state, and logs the transition.
 
 ### Example 2: ISC criteria created
 
@@ -73,5 +72,4 @@ if (criterion) {
 | --- | --- | --- |
 | `result` | core | `ok()` for Result wrapping |
 | `algorithm-state` | lib | `readState`, `writeState`, `phaseTransition`, `criteriaAdd`, `criteriaUpdate`, `agentAdd`, `effortLevelUpdate` |
-| `tab-setter` | lib | `setPhaseTab` for terminal tab labeling |
 | `fs` | adapter | `fileExists`, `readJson` for state and session name access |

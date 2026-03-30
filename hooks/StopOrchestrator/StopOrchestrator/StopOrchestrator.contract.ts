@@ -7,8 +7,6 @@
  * Voice only fires for main terminal sessions (not subagents).
  */
 
-import { join } from "node:path";
-import { fileExists } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -35,14 +33,6 @@ export interface StopOrchestratorDeps {
   stderr: (msg: string) => void;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function defaultIsMainSession(sessionId: string, baseDir: string): boolean {
-  const kittySessionsDir = join(baseDir, "MEMORY", "STATE", "kitty-sessions");
-  if (!fileExists(kittySessionsDir)) return true;
-  return fileExists(join(kittySessionsDir, `${sessionId}.json`));
-}
-
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: StopOrchestratorDeps = {
@@ -51,7 +41,7 @@ const defaultDeps: StopOrchestratorDeps = {
   handleTabState,
   handleRebuildSkill,
   handleAlgorithmEnrichment,
-  isMainSession: (sessionId) => defaultIsMainSession(sessionId, getPaiDir()),
+  isMainSession: () => true,
   delay: (ms) => new Promise((r) => setTimeout(r, ms)),
   baseDir: getPaiDir(),
   stderr: defaultStderr,

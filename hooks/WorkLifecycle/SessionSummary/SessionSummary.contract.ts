@@ -2,7 +2,7 @@
  * SessionSummary Contract — Mark work complete and clear state at session end.
  *
  * Finalizes a session by marking the WORK/ directory as COMPLETED,
- * deleting current-work state, and resetting the Kitty tab.
+ * deleting current-work state, and resetting the terminal tab.
  */
 
 import { join } from "node:path";
@@ -14,7 +14,7 @@ import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import { cleanupKittySession, setTabState } from "@hooks/lib/tab-setter";
+import { setTabState } from "@hooks/lib/tab-setter";
 import { getISOTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -27,7 +27,6 @@ export interface SessionSummaryDeps {
   unlinkSync: (path: string) => void;
   getTimestamp: () => string;
   setTabState: (opts: { title: string; state: string; sessionId: string }) => void;
-  cleanupKittySession: (sessionId: string) => void;
   baseDir: string;
   stderr: (msg: string) => void;
 }
@@ -97,7 +96,6 @@ const defaultDeps: SessionSummaryDeps = {
   },
   getTimestamp: getISOTimestamp,
   setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
-  cleanupKittySession: (id) => cleanupKittySession(id),
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };
@@ -121,13 +119,6 @@ export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, Ses
       deps.stderr("[SessionSummary] Tab reset to default styling");
     } else {
       deps.stderr("[SessionSummary] Tab reset failed (non-critical)");
-    }
-
-    if (input.session_id) {
-      tryCatch(
-        () => deps.cleanupKittySession(input.session_id),
-        (e) => unknownError(e),
-      );
     }
 
     return ok({ type: "silent" });

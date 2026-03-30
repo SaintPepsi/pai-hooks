@@ -10,7 +10,6 @@ let lastWrittenPath: string = "";
 let lastWrittenContent: string = "";
 let deletedPaths: string[] = [];
 let setTabStateCalls: Array<{ title: string; state: string; sessionId?: string }> = [];
-let cleanupKittySessionCalls: string[] = [];
 
 const MOCK_TIMESTAMP = "2026-02-27T10:00:00Z";
 
@@ -31,7 +30,6 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
   lastWrittenContent = "";
   deletedPaths = [];
   setTabStateCalls = [];
-  cleanupKittySessionCalls = [];
 
   return {
     ...SessionSummary.defaultDeps,
@@ -56,9 +54,6 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
     getTimestamp: () => MOCK_TIMESTAMP,
     setTabState: (opts: { title: string; state: string; sessionId?: string }) => {
       setTabStateCalls.push(opts);
-    },
-    cleanupKittySession: (sessionId: string) => {
-      cleanupKittySessionCalls.push(sessionId);
     },
     baseDir: "/tmp/test",
     stderr: () => {},
@@ -233,24 +228,10 @@ describe("SessionSummary", () => {
       expect(setTabStateCalls[0].sessionId).toBe("test-session-123");
     });
 
-    test("calls cleanupKittySession with session_id", () => {
-      const deps = makeDeps();
-      SessionSummary.execute(makeInput(), deps);
-      expect(cleanupKittySessionCalls).toContain("test-session-123");
-    });
-
-    test("skips cleanupKittySession when session_id is empty", () => {
-      const deps = makeDeps({
-        fileExists: () => false,
-      });
-      SessionSummary.execute(makeInput({ session_id: "" }), deps);
-      expect(cleanupKittySessionCalls).toHaveLength(0);
-    });
-
     test("does not throw if setTabState throws", () => {
       const deps = makeDeps({
         setTabState: () => {
-          throw new Error("kitty not running");
+          throw new Error("tab reset failed");
         },
       });
       expect(() => SessionSummary.execute(makeInput(), deps)).not.toThrow();
@@ -259,7 +240,7 @@ describe("SessionSummary", () => {
     test("still returns ok if tab reset throws", () => {
       const deps = makeDeps({
         setTabState: () => {
-          throw new Error("kitty not running");
+          throw new Error("tab reset failed");
         },
       });
       const result = SessionSummary.execute(makeInput(), deps);
