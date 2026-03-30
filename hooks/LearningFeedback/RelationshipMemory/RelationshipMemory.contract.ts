@@ -51,7 +51,7 @@ function extractText(entry: TranscriptEntry): string {
   return "";
 }
 
-function safeParseTranscriptLine(line: string): TranscriptEntry | null {
+export function safeParseTranscriptLine(line: string): TranscriptEntry | null {
   if (!line.trim()) return null;
   const firstBrace = line.indexOf("{");
   if (firstBrace === -1) return null;
