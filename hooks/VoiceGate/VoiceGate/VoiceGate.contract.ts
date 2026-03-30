@@ -6,6 +6,7 @@
  */
 
 import { fileExists } from "@hooks/core/adapters/fs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -19,7 +20,7 @@ export interface VoiceGateDeps {
 
 const defaultDeps: VoiceGateDeps = {
   existsSync: fileExists,
-  getIsSubagent: () => process.env.CLAUDE_CODE_AGENT_SUBAGENT === "true",
+  getIsSubagent: () => isSubagent((k) => process.env[k]),
 };
 
 export const VoiceGate: SyncHookContract<

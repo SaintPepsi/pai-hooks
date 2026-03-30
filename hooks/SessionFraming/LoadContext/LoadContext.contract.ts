@@ -14,6 +14,7 @@ import type { PaiError } from "@hooks/core/error";
 import { unknownError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
@@ -439,12 +440,7 @@ const defaultDeps: LoadContextDeps = {
     });
     return r.ok ? r.value.stdout.trim() : new Date().toISOString();
   },
-  isSubagent: () => {
-    const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return (
-      claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined
-    );
-  },
+  isSubagent: () => isSubagent((k) => process.env[k]),
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };

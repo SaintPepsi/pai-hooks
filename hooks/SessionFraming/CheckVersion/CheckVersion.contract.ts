@@ -10,6 +10,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -42,10 +43,7 @@ async function defaultGetLatestVersion(): Promise<Result<string, PaiError>> {
 const defaultDeps: CheckVersionDeps = {
   getCurrentVersion: defaultGetCurrentVersion,
   getLatestVersion: defaultGetLatestVersion,
-  isSubagent: () => {
-    const projectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return projectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined;
-  },
+  isSubagent: () => isSubagent((k) => process.env[k]),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 

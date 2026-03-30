@@ -11,6 +11,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import { ErrorCode, PaiError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -79,18 +80,13 @@ function defaultWriteStateFile(homeDir: string, data: Record<string, unknown>): 
   writeFile(join(stateDir, "algorithm-update.json"), JSON.stringify(data));
 }
 
-function defaultIsSubagent(envGet: (key: string) => string | undefined): boolean {
-  const claudeProjectDir = envGet("CLAUDE_PROJECT_DIR") || "";
-  return claudeProjectDir.includes("/.claude/Agents/") || envGet("CLAUDE_AGENT_TYPE") !== undefined;
-}
-
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: CheckAlgorithmVersionDeps = {
   getLocalVersion: () => defaultGetLocalVersion(process.env.HOME!),
   getUpstreamVersion: defaultGetUpstreamVersion,
   writeStateFile: (data) => defaultWriteStateFile(process.env.HOME!, data),
-  isSubagent: () => defaultIsSubagent((key) => process.env[key]),
+  isSubagent: () => isSubagent((k) => process.env[k]),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
   homeDir: process.env.HOME!,
 };

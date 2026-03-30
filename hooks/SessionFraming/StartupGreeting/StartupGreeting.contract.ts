@@ -12,6 +12,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { persistKittySession } from "@hooks/lib/tab-setter";
 
@@ -54,12 +55,7 @@ const defaultDeps: StartupGreetingDeps = {
     return result.value.stdout || null;
   },
   persistKittySession,
-  isSubagent: () => {
-    const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return (
-      claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined
-    );
-  },
+  isSubagent: () => isSubagent((k) => process.env[k]),
   getEnv: (key) => process.env[key],
   fileExists,
   ensureDir,

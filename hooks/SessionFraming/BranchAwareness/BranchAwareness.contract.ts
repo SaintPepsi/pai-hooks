@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,12 +32,7 @@ const defaultDeps: BranchAwarenessDeps = {
     if (!result.ok) return null;
     return result.value.trim() || null;
   },
-  isSubagent: () => {
-    const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return (
-      claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined
-    );
-  },
+  isSubagent: () => isSubagent((k) => process.env[k]),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
