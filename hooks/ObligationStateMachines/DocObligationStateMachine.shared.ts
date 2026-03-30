@@ -15,6 +15,7 @@ import { type PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 import { getFilePath } from "@hooks/lib/tool-input";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { readHookConfig } from "@hooks/lib/hook-config";
@@ -36,17 +37,8 @@ export function projectHasHook(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface DocObligationDeps {
-  stateDir: string;
-  fileExists: (path: string) => boolean;
-  readPending: (path: string) => string[];
-  writePending: (path: string, files: string[]) => void;
-  removeFlag: (path: string) => void;
-  readBlockCount: (path: string) => number;
-  writeBlockCount: (path: string, count: number) => void;
-  writeReview: (path: string, content: string) => void;
-  stderr: (msg: string) => void;
-}
+// DocObligationDeps is ObligationDeps from lib/obligation-machine.ts
+export type DocObligationDeps = ObligationDeps;
 
 /** Narrow extension used only by DocObligationTracker (not the enforcer). */
 export interface DocTrackerExcludeDeps {
