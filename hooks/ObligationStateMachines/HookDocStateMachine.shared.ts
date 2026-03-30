@@ -18,6 +18,7 @@ import { readFile } from "@hooks/core/adapters/fs";
 import { jsonParseFailed } from "@hooks/core/error";
 import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import type { ObligationConfig, ObligationDeps } from "@hooks/lib/obligation-machine";
 import {
   createDefaultDeps,
@@ -144,12 +145,6 @@ export function isHookDocFile(filePath: string, docFileName: string): boolean {
 /** Extract the parent directory from a file path. */
 export function getHookDirFromPath(filePath: string): string {
   return dirname(filePath);
-}
-
-/** Extract file_path from a tool hook input. */
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 // ─── Section Validation ───────────────────────────────────────────────────────

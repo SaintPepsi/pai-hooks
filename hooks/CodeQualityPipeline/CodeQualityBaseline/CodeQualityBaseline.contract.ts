@@ -17,6 +17,7 @@ import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profile
 import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
@@ -52,13 +53,6 @@ export interface CodeQualityBaselineDeps {
 
 const MIN_LINES = 50;
 const LOW_SCORE_THRESHOLD = 6.0;
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input === "object" && input.tool_input !== null) {
-    return (input.tool_input.file_path as string) ?? null;
-  }
-  return null;
-}
 
 function isTestFile(filePath: string): boolean {
   const name = filePath.split("/").pop() ?? "";

@@ -23,6 +23,7 @@ import {
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import {
   defaultSignalLoggerDeps,
   logSignal,
@@ -70,13 +71,6 @@ export interface CodeQualityGuardDeps {
 }
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input === "object" && input.tool_input !== null) {
-    return (input.tool_input.file_path as string) ?? null;
-  }
-  return null;
-}
 
 const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
 const TEST_SUPPRESSED_CHECKS = new Set(["type-import-ratio", "options-object-width"]);

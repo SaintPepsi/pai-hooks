@@ -6,6 +6,7 @@
 import { join } from "node:path";
 import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,11 +28,6 @@ export function isResearchSkill(input: ToolHookInput): boolean {
   const toolInput = input.tool_input;
   if (typeof toolInput !== "object" || toolInput === null) return false;
   return (toolInput as Record<string, unknown>).skill === "Research";
-}
-
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 export function flagPath(stateDir: string): string {

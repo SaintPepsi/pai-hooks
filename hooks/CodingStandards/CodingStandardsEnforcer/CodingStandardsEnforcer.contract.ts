@@ -24,6 +24,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   findAllViolations,
@@ -61,11 +62,6 @@ export interface CodingStandardsEnforcerDeps {
 }
 
 // ─── Pure Functions ──────────────────────────────────────────────────────────
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input.file_path as string) ?? null;
-}
 
 /** For Write: returns the full file content. For Edit: returns null (handled separately). */
 function getWriteContent(input: ToolHookInput): string | null {
