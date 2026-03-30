@@ -83,6 +83,105 @@ function parseJson(raw: string): Result<HookInput, PaiError> {
   );
 }
 
+// ─── Pipeline Context ───────────────────────────────────────────────────────
+
+interface PipelineIO {
+  write: (msg: string) => void;
+  writeErr: (msg: string) => void;
+  exit: (code: number) => void;
+  checkDuplicate: (hookName: string, sessionId: string, input: HookInput) => boolean;
+  log: (entry: HookLogEntry) => void;
+  startTime: number;
+}
+
+function createPipelineIO(options: RunHookOptions): PipelineIO {
+  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
+  return {
+    write: options.stdout ?? ((msg: string) => process.stdout.write(msg)),
+    writeErr,
+    exit: options.exit ?? ((code: number) => process.exit(code)),
+    checkDuplicate: options.isDuplicate ?? isDuplicate,
+    log:
+      options.appendLog ??
+      ((entry: HookLogEntry) => {
+        appendHookLog(entry, undefined, undefined, writeErr);
+      }),
+    startTime: performance.now(),
+  };
+}
+
+function makeEmitLog(
+  io: PipelineIO,
+  contract: { name: string; event: string },
+  sessionId: string | undefined,
+): (status: HookLogEntry["status"], outputType?: string, error?: string) => void {
+  return (status, outputType?, error?) => {
+    io.log({
+      ts: new Date().toISOString(),
+      hook: contract.name,
+      event: contract.event,
+      status,
+      duration_ms: Math.round(performance.now() - io.startTime),
+      session_id: sessionId,
+      ...(error ? { error } : {}),
+      ...(outputType ? { output_type: outputType } : {}),
+    });
+  };
+}
+
+// ─── Shared Execute Pipeline ────────────────────────────────────────────────
+
+/**
+ * The shared post-parse pipeline: accepts → dedup → execute → format → output.
+ *
+ * Both runHook and runHookWith call this after obtaining a parsed input.
+ * Returns true if the pipeline completed normally, false if it exited early.
+ */
+async function executePipeline<I extends HookInput, O extends HookOutput, D>(
+  contract: HookContract<I, O, D>,
+  input: I,
+  io: PipelineIO,
+  safeExit: () => void,
+  opts?: { handleSecurityBlock?: boolean },
+): Promise<void> {
+  const sessionId = (input as HookInputBase).session_id;
+  const emitLog = makeEmitLog(io, contract, sessionId);
+
+  if (!contract.accepts(input)) {
+    emitLog("skipped");
+    safeExit();
+    return;
+  }
+
+  if (sessionId && io.checkDuplicate(contract.name, sessionId, input)) {
+    emitLog("skipped");
+    safeExit();
+    return;
+  }
+
+  const result = await Promise.resolve(contract.execute(input, contract.defaultDeps));
+
+  if (!result.ok) {
+    io.writeErr(`[${contract.name}] error: ${result.error.message}`);
+    emitLog("error", undefined, result.error.message);
+
+    if (opts?.handleSecurityBlock && result.error.code === ErrorCode.SecurityBlock) {
+      io.exit(2);
+      return;
+    }
+
+    safeExit();
+    return;
+  }
+
+  const formatted = formatOutput(result.value, contract.event);
+  if (formatted !== null) {
+    io.write(formatted);
+  }
+  emitLog("ok", result.value.type);
+  io.exit(0);
+}
+
 // ─── The Runner ──────────────────────────────────────────────────────────────
 
 export interface RunHookOptions {
@@ -114,71 +213,12 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
   input: I,
   options: Omit<RunHookOptions, "stdinOverride" | "stdinTimeout"> = {},
 ): Promise<void> {
-  const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
-  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
-  const exit = options.exit ?? ((code: number) => process.exit(code));
-  const checkDuplicate = options.isDuplicate ?? isDuplicate;
-  const log =
-    options.appendLog ??
-    ((entry: HookLogEntry) => {
-      appendHookLog(entry, undefined, undefined, writeErr);
-    });
-  const startTime = performance.now();
-  let sessionId: string | undefined;
+  const io = createPipelineIO(options);
+  const safeExit = () => io.exit(0);
 
-  const safeExit = () => {
-    exit(0);
-  };
-
-  const emitLog = (status: HookLogEntry["status"], outputType?: string, error?: string) => {
-    log({
-      ts: new Date().toISOString(),
-      hook: contract.name,
-      event: contract.event,
-      status,
-      duration_ms: Math.round(performance.now() - startTime),
-      session_id: sessionId,
-      ...(error ? { error } : {}),
-      ...(outputType ? { output_type: outputType } : {}),
-    });
-  };
-
-  const runPipeline = async (): Promise<void> => {
-    sessionId = (input as HookInputBase).session_id;
-
-    if (!contract.accepts(input)) {
-      emitLog("skipped");
-      safeExit();
-      return;
-    }
-
-    // Dedup guard — skip if same hook already fired for this input (after accepts)
-    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
-      emitLog("skipped");
-      safeExit();
-      return;
-    }
-
-    const result = await Promise.resolve(contract.execute(input, contract.defaultDeps));
-
-    if (!result.ok) {
-      writeErr(`[${contract.name}] error: ${result.error.message}`);
-      emitLog("error", undefined, result.error.message);
-      safeExit();
-      return;
-    }
-
-    const formatted = formatOutput(result.value, contract.event);
-    if (formatted !== null) {
-      write(formatted);
-    }
-    emitLog("ok", result.value.type);
-    exit(0);
-  };
-
-  await runPipeline().catch((e) => {
-    writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
-    emitLog("error", undefined, e instanceof Error ? e.message : String(e));
+  await executePipeline(contract, input, io, safeExit).catch((e) => {
+    io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
+    makeEmitLog(io, contract, undefined)("error", undefined, e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }
@@ -193,42 +233,18 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   contract: HookContract<I, O, D>,
   options: RunHookOptions = {},
 ): Promise<void> {
-  const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
-  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
-  const exit = options.exit ?? ((code: number) => process.exit(code));
-  const checkDuplicate = options.isDuplicate ?? isDuplicate;
+  const io = createPipelineIO(options);
   const timeoutMs = options.stdinTimeout ?? 200;
-  const log =
-    options.appendLog ??
-    ((entry: HookLogEntry) => {
-      appendHookLog(entry, undefined, undefined, writeErr);
-    });
-  const startTime = performance.now();
-  let sessionId: string | undefined;
-
   const isToolEvent = contract.event === "PreToolUse" || contract.event === "PostToolUse";
 
   const safeExit = () => {
     if (isToolEvent) {
-      write(JSON.stringify({ continue: true }));
+      io.write(JSON.stringify({ continue: true }));
     }
-    exit(0);
+    io.exit(0);
   };
 
-  const emitLog = (status: HookLogEntry["status"], outputType?: string, error?: string) => {
-    log({
-      ts: new Date().toISOString(),
-      hook: contract.name,
-      event: contract.event,
-      status,
-      duration_ms: Math.round(performance.now() - startTime),
-      session_id: sessionId,
-      ...(error ? { error } : {}),
-      ...(outputType ? { output_type: outputType } : {}),
-    });
-  };
-
-  const runPipeline = async (): Promise<void> => {
+  const runStdinPipeline = async (): Promise<void> => {
     // Step 1: Read stdin
     let rawResult: Result<string, PaiError>;
     if (options.stdinOverride !== undefined) {
@@ -238,8 +254,8 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     }
 
     if (!rawResult.ok) {
-      writeErr(`[${contract.name}] stdin: ${rawResult.error.message}`);
-      emitLog("error", undefined, rawResult.error.message);
+      io.writeErr(`[${contract.name}] stdin: ${rawResult.error.message}`);
+      makeEmitLog(io, contract, undefined)("error", undefined, rawResult.error.message);
       safeExit();
       return;
     }
@@ -247,69 +263,32 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     // Step 2: Parse JSON
     const inputResult = parseJson(rawResult.value);
     if (!inputResult.ok) {
-      writeErr(`[${contract.name}] parse: ${inputResult.error.message}`);
-      emitLog("error", undefined, inputResult.error.message);
+      io.writeErr(`[${contract.name}] parse: ${inputResult.error.message}`);
+      makeEmitLog(io, contract, undefined)("error", undefined, inputResult.error.message);
       safeExit();
       return;
     }
 
     const input = inputResult.value as I;
-    sessionId = (input as HookInputBase).session_id;
 
     // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
     if (isToolEvent && !("tool_name" in inputResult.value)) {
-      writeErr(
+      io.writeErr(
         `[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`,
       );
-      emitLog("error", undefined, "input missing tool_name");
+      makeEmitLog(io, contract, (input as HookInputBase).session_id)("error", undefined, "input missing tool_name");
       safeExit();
       return;
     }
 
-    // Step 3: accepts() gate — ISP
-    if (!contract.accepts(input)) {
-      emitLog("skipped");
-      safeExit();
-      return;
-    }
-
-    // Step 3.5: Dedup guard — skip if same hook already fired for this input (after accepts)
-    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
-      emitLog("skipped");
-      safeExit();
-      return;
-    }
-
-    // Step 4: execute() — SRP core with DIP deps
-    const result = await Promise.resolve(contract.execute(input, contract.defaultDeps));
-
-    if (!result.ok) {
-      writeErr(`[${contract.name}] error: ${result.error.message}`);
-      emitLog("error", undefined, result.error.message);
-
-      // Security blocks exit with code 2 — fail closed, not fail open
-      if (result.error.code === ErrorCode.SecurityBlock) {
-        exit(2);
-        return;
-      }
-
-      safeExit();
-      return;
-    }
-
-    // Step 5: Format output — pass event name for hookSpecificOutput wrapping
-    const formatted = formatOutput(result.value, contract.event);
-    if (formatted !== null) {
-      write(formatted);
-    }
-    emitLog("ok", result.value.type);
-    exit(0);
+    // Steps 3-5: Shared pipeline
+    await executePipeline(contract, input, io, safeExit, { handleSecurityBlock: true });
   };
 
-  await runPipeline().catch((e) => {
+  await runStdinPipeline().catch((e) => {
     // Top-level safety net — should never reach here if contracts use Result
-    writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
-    emitLog("error", undefined, e instanceof Error ? e.message : String(e));
+    io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
+    makeEmitLog(io, contract, undefined)("error", undefined, e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }
