@@ -154,5 +154,6 @@ export function updateIndexForFile(
   }
 
   const branch = getCurrentBranch(root);
-  return buildResult(root, keptEntries, existingIndex.fileCount, branch);
+  const actualFileCount = new Set(keptEntries.map((e) => e.f)).size;
+  return buildResult(root, keptEntries, actualFileCount, branch);
 }
