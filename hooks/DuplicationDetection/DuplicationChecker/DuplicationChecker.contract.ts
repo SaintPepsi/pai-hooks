@@ -158,8 +158,10 @@ export const DuplicationCheckerContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    // Check if any match has all 4 dimensions (hash+name+sig+body) → block
-    const blockMatches = matches.filter((m) => m.signals.length >= BLOCK_THRESHOLD);
+    // Block on exact body hash match (identical code) OR all 4 signal dimensions
+    const blockMatches = matches.filter(
+      (m) => m.signals.includes("hash") || m.signals.length >= BLOCK_THRESHOLD,
+    );
 
     if (blockMatches.length > 0) {
       const opener = pickNarrative("DuplicationChecker", blockMatches.length, import.meta.dir);
