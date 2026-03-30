@@ -117,6 +117,8 @@ export function getArtifactsDir(projectRoot: string, branch?: string | null): st
 
 // ─── Index Loading ──────────────────────────────────────────────────────────
 
+// Module-level cache: safe because each hook invocation runs in a separate process.
+// If hooks ever run in-process (e.g. test harness), this cache would serve stale data.
 let cachedIndex: DuplicationIndex | null = null;
 let cachedIndexPath: string | null = null;
 
