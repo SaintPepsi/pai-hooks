@@ -4,10 +4,11 @@
 
 DuplicationChecker is a **PreToolUse** hook with tiered response that fires before writing or editing TypeScript files. It compares functions in the new code against a pre-built duplication index (created by DuplicationIndexBuilder) using 4 signal dimensions: body hash, name frequency, type signature, and fingerprint similarity.
 
-Response tiers based on signal count:
-- **1/4 signals**: Ignore (no log, no action)
-- **2/4 or 3/4 signals**: Log to `checker.jsonl` only (no block, no advisory)
+Response tiers:
+- **Body hash match**: Block the operation — identical code regardless of function name (configurable)
 - **4/4 signals**: Block the operation (configurable)
+- **2/4 or 3/4 signals** (no hash match): Log to `checker.jsonl` only (no block, no advisory)
+- **1/4 signals**: Ignore (no log, no action)
 
 Blocking can be disabled via `settings.json`:
 ```json
