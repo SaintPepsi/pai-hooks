@@ -15,6 +15,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
@@ -233,13 +234,13 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
 
     if (!deps.fileExists(filePath)) {
       deps.stderr(`[PRDSync] PRD file not found on disk: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const readResult = deps.readFile(filePath);
     if (!readResult.ok) {
       deps.stderr(`[PRDSync] Failed to read PRD: ${readResult.error.message}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const content = readResult.value;
@@ -247,13 +248,13 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
 
     if (!fm) {
       deps.stderr(`[PRDSync] No frontmatter found in: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const slug = fm.slug;
     if (!slug) {
       deps.stderr(`[PRDSync] Frontmatter missing slug, skipping: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const { total, done } = parseCriteriaCounts(content);
@@ -286,7 +287,7 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
       syncSessionState(input.session_id, sessionDir, filePath, deps);
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

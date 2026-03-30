@@ -23,6 +23,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
@@ -105,13 +106,13 @@ export const DuplicationCheckerContract: SyncHookContract<
     const indexPath = findIndexPath(filePath, deps);
     if (!indexPath) {
       deps.stderr("[DuplicationChecker] No index found — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const index = loadIndex(indexPath, deps);
     if (!index) {
       deps.stderr("[DuplicationChecker] Failed to load index — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Get content: Write has it directly, Edit needs simulation
@@ -123,10 +124,10 @@ export const DuplicationCheckerContract: SyncHookContract<
       if (currentContent) content = simulateEdit(currentContent, input);
     }
 
-    if (!content) return ok({ type: "continue", continue: true });
+    if (!content) return ok(continueOk());
 
     const functions = extractFunctions(content, filePath.endsWith(".tsx"));
-    if (functions.length === 0) return ok({ type: "continue", continue: true });
+    if (functions.length === 0) return ok(continueOk());
 
     const relPath = filePath.startsWith(index.root)
       ? filePath.slice(index.root.length + 1)
@@ -155,7 +156,7 @@ export const DuplicationCheckerContract: SyncHookContract<
 
     if (matches.length === 0) {
       deps.stderr(`[DuplicationChecker] ${filePath}: clean`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Block on exact body hash match (identical code) OR all 4 signal dimensions
@@ -185,7 +186,7 @@ export const DuplicationCheckerContract: SyncHookContract<
 
     // 2-3 signals: log only, no additionalContext, no block
     deps.stderr(`[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`);
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

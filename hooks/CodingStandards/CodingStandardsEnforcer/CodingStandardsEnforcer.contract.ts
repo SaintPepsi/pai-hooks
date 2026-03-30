@@ -25,6 +25,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   findAllViolations,
@@ -203,7 +204,7 @@ export const CodingStandardsEnforcer: SyncHookContract<
       // Edit is partial — read the current file, apply the edit, check the result
       const editParts = getEditParts(input);
       if (!editParts) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
 
       const currentFile = deps.readFile(filePath);
@@ -217,14 +218,14 @@ export const CodingStandardsEnforcer: SyncHookContract<
     }
 
     if (!contentToCheck) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // For Svelte files, only check the <script lang="ts"> block
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(contentToCheck);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       contentToCheck = scriptContent;
     }
@@ -234,7 +235,7 @@ export const CodingStandardsEnforcer: SyncHookContract<
 
     if (violations.length === 0) {
       deps.stderr(`[CodingStandardsEnforcer] ${filePath}: clean`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Log violations for pattern analysis

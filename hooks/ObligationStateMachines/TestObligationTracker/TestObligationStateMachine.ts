@@ -25,6 +25,7 @@ import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand, getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
@@ -260,13 +261,13 @@ export const TestObligationTracker: SyncHookContract<
           }
         }
       }
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Edit/Write: add file to pending list
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const pending = deps.readPending(flagFile);
@@ -276,7 +277,7 @@ export const TestObligationTracker: SyncHookContract<
     deps.writePending(flagFile, pending);
     deps.stderr(`[TestObligationTracker] Code modified: ${filePath} — tests pending`);
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

@@ -22,6 +22,7 @@ import {
 } from "@hooks/core/quality-scorer";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { getFilePath } from "@hooks/lib/tool-input";
 import {
@@ -140,12 +141,12 @@ export const CodeQualityGuard: SyncHookContract<
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) {
       deps.stderr(`[CodeQualityGuard] Could not read ${filePath}, skipping`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const profile = deps.getLanguageProfile(filePath);
     if (!profile) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // For Svelte files, only score the <script lang="ts"> block
@@ -153,7 +154,7 @@ export const CodeQualityGuard: SyncHookContract<
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(contentToScore);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       contentToScore = scriptContent;
     }
@@ -187,7 +188,7 @@ export const CodeQualityGuard: SyncHookContract<
         score: result.score,
         deduplicated: true,
       });
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
     reportedViolations.set(filePath, hash);
 
@@ -225,18 +226,14 @@ export const CodeQualityGuard: SyncHookContract<
     });
 
     if (!hasAdvisory) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const parts: string[] = [];
     if (deltaMessage) parts.push(deltaMessage);
     if (advisory) parts.push(advisory);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: parts.join("\n"),
-    });
+    return ok(continueOk(parts.join("\n")));
   },
 
   defaultDeps,

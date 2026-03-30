@@ -15,6 +15,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   buildReminder,
@@ -57,11 +58,11 @@ export const ExecutionEvidenceVerifier: SyncHookContract<
     const classification = classifyCommand(command);
 
     if (!classification.isStateChanging) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     if (hasSubstantiveOutput(input.tool_response)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const reminder = buildReminder(command, classification);
@@ -69,11 +70,7 @@ export const ExecutionEvidenceVerifier: SyncHookContract<
       `[ExecutionEvidenceVerifier] Injecting evidence reminder for: ${command.slice(0, 60)}`,
     );
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: reminder,
-    });
+    return ok(continueOk(reminder));
   },
 
   defaultDeps,

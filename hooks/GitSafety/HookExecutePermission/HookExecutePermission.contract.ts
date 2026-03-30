@@ -11,6 +11,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 export interface HookExecutePermissionDeps {
@@ -51,7 +52,7 @@ export const HookExecutePermission: SyncHookContract<
       deps.stderr(`[HookExecutePermission] Set +x on ${filePath}`);
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

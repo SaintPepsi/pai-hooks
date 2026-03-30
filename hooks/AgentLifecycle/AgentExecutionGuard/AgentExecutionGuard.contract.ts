@@ -8,6 +8,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContextOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -50,27 +51,27 @@ export const AgentExecutionGuard: SyncHookContract<
     // Already using background — correct usage
     if (toolInput.run_in_background === true) {
       deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" already running in background`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Fast-tier agents don't need background
     if (FAST_AGENT_TYPES.includes(agentType)) {
       deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" is fast-tier agent type (${agentType})`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Haiku model indicates fast-tier
     const model = (toolInput.model as string) || "";
     if (FAST_MODELS.includes(model)) {
       deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" uses fast model (${model})`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Check for FAST timing in prompt scope
     const prompt = (toolInput.prompt as string) || "";
     if (/##\s*Scope[\s\S]*?Timing:\s*FAST/i.test(prompt)) {
       deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" has FAST timing in prompt scope`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // VIOLATION: Non-fast agent without run_in_background

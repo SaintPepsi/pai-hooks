@@ -17,6 +17,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
@@ -95,7 +96,7 @@ export const CitationTracker: SyncHookContract<
     const flag = flagPath(deps.stateDir);
     deps.writeFlag(flag);
     deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,
@@ -130,28 +131,24 @@ export const CitationEnforcement: SyncHookContract<
   execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, PaiError> {
     const flag = flagPath(deps.stateDir);
     if (!deps.fileExists(flag)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const reminded = deps.readReminded(remindedPath(deps.stateDir));
     if (reminded.includes(filePath)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     reminded.push(filePath);
     deps.writeReminded(remindedPath(deps.stateDir), reminded);
     deps.stderr(`[CitationEnforcement] Injecting citation reminder for ${filePath}`);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: buildCitationReminder(),
-    });
+    return ok(continueOk(buildCitationReminder()));
   },
 
   defaultDeps,

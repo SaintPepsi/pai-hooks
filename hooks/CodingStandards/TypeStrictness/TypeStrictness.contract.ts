@@ -14,6 +14,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
@@ -273,14 +274,14 @@ export const TypeStrictness: SyncHookContract<
     let content = getNewContent(input);
 
     if (!content) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // For Svelte files, only scan the <script lang="ts"> block
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(content);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       content = scriptContent;
     }
@@ -324,15 +325,11 @@ export const TypeStrictness: SyncHookContract<
           lazy_unknown_count: unknownWarnings.length,
         });
 
-        return ok({
-          type: "continue",
-          continue: true,
-          additionalContext: advisory,
-        });
+        return ok(continueOk(advisory));
       }
 
       deps.stderr(`[TypeStrictness] ${filePath}: clean`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const message = formatBlockMessage(violations, filePath);

@@ -15,6 +15,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
@@ -194,7 +195,7 @@ export const PreCompactStatePersist: SyncHookContract<
 
     deps.stderr(`[PreCompactStatePersist] Injecting PRD context: slug=${slug} phase=${phase}`);
 
-    return ok({ type: "continue", continue: true, additionalContext: summary });
+    return ok(continueOk(summary));
   },
 
   defaultDeps,

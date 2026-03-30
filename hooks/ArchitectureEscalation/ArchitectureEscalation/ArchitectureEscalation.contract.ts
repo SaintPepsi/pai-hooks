@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 type FsReadJson = <T = unknown>(path: string) => Result<T, PaiError>;
@@ -139,10 +140,10 @@ export const ArchitectureEscalation: SyncHookContract<
 
     // Only track in_progress transitions
     if (typeof taskId !== "string" || taskId.trim() === "") {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
     if (status !== "in_progress") {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const criterionId = taskId.trim();
@@ -169,7 +170,7 @@ export const ArchitectureEscalation: SyncHookContract<
       deps.stderr(
         `[ArchEscalation] 🚨 STOP escalation for ${criterionId} (${failedAttempts} failures)`,
       );
-      return ok({ type: "continue", continue: true, additionalContext: message });
+      return ok(continueOk(message));
     }
 
     if (failedAttempts >= WARN_THRESHOLD) {
@@ -177,10 +178,10 @@ export const ArchitectureEscalation: SyncHookContract<
       deps.stderr(
         `[ArchEscalation] ⚠️  Warning escalation for ${criterionId} (${failedAttempts} failures)`,
       );
-      return ok({ type: "continue", continue: true, additionalContext: message });
+      return ok(continueOk(message));
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

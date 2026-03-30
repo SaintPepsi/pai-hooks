@@ -21,6 +21,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -139,7 +140,7 @@ export const WhileLoopGuard: SyncHookContract<
     } else if (input.tool_name === "Edit") {
       const editParts = getEditParts(input);
       if (!editParts) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
 
       const currentFile = deps.readFile(filePath);
@@ -156,7 +157,7 @@ export const WhileLoopGuard: SyncHookContract<
     }
 
     if (!contentToCheck) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const stripped = stripCommentsAndStrings(contentToCheck, filePath);
@@ -187,7 +188,7 @@ export const WhileLoopGuard: SyncHookContract<
       });
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

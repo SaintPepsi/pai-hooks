@@ -13,6 +13,7 @@ import type { PaiError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -84,28 +85,24 @@ export const GitignoreRecommender: SyncHookContract<
 
     // Skip for PAI root — it manages its own settings
     if (projectDir === deps.paiRoot) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Check .claude/settings.json
     const settingsPath = join(projectDir, ".claude", "settings.json");
     if (fileHasRespectGitignore(settingsPath, deps)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Check .claude/settings.local.json
     const localSettingsPath = join(projectDir, ".claude", "settings.local.json");
     if (fileHasRespectGitignore(localSettingsPath, deps)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Neither file has it — inject recommendation
     deps.stderr("[GitignoreRecommender] respectGitignore not set — injecting recommendation");
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: RECOMMENDATION_CONTEXT,
-    });
+    return ok(continueOk(RECOMMENDATION_CONTEXT));
   },
 
   defaultDeps,

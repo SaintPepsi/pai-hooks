@@ -19,6 +19,7 @@ import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { getSettingsPath } from "@hooks/lib/paths";
 
@@ -140,13 +141,13 @@ export const ProtectedBranchGuard: SyncHookContract<
 
     // Only check git mutation commands (commit, push, merge)
     if (!isGitMutation(command)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Exempt configured directories (builtins + settings.json)
     const extraDirs = deps.getExemptDirs();
     if (isExemptDir(deps.getCwd(), extraDirs)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Check current branch
@@ -155,7 +156,7 @@ export const ProtectedBranchGuard: SyncHookContract<
     // Fail open if branch cannot be determined
     if (!branch) {
       deps.stderr("[ProtectedBranchGuard] Could not determine branch — allowing");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Block if on a protected branch
@@ -183,7 +184,7 @@ export const ProtectedBranchGuard: SyncHookContract<
       });
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

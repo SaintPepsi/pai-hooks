@@ -11,6 +11,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 export interface VoiceGateDeps {
@@ -41,7 +42,7 @@ export const VoiceGate: SyncHookContract<
     deps: VoiceGateDeps,
   ): Result<ContinueOutput | BlockOutput, PaiError> {
     if (!deps.getIsSubagent()) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     return ok({
