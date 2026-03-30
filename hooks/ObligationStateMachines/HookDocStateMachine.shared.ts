@@ -26,6 +26,7 @@ import {
   pendingPath as genericPendingPath,
 } from "@hooks/lib/obligation-machine";
 import { getSettingsPath } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Re-export generic deps type for contracts ───────────────────────────────
 
@@ -51,17 +52,6 @@ export interface HookDocEnforcerSettings {
   watchPatterns: RegExp[];
 }
 
-interface SettingsJson {
-  hookConfig?: {
-    hookDocEnforcer?: {
-      enabled?: boolean;
-      blocking?: boolean;
-      requiredSections?: string[];
-      docFileName?: string;
-      watchPatterns?: string[];
-    };
-  };
-}
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -98,24 +88,8 @@ export function readHookDocSettings(
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
 ): HookDocEnforcerSettings {
-  const path = settingsPath ?? getSettingsPath();
-  const reader =
-    readFileFn ??
-    ((p: string) => {
-      const r = readFile(p);
-      return r.ok ? r.value : null;
-    });
-  const raw = reader(path);
-  if (!raw) return defaults();
-
-  const parseResult = tryCatch(
-    () => JSON.parse(raw) as SettingsJson,
-    (cause) => jsonParseFailed(raw.slice(0, 100), cause),
-  );
-  if (!parseResult.ok) return defaults();
-
-  const cfg = parseResult.value?.hookConfig?.hookDocEnforcer;
-  if (!cfg || typeof cfg !== "object") return defaults();
+  const cfg = readHookConfig<Record<string, unknown>>("hookDocEnforcer", readFileFn ?? undefined, settingsPath);
+  if (!cfg) return defaults();
 
   return {
     enabled: cfg.enabled !== false,

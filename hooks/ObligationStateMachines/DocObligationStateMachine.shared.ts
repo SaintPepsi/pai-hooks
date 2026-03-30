@@ -11,12 +11,13 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { type PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
-import { tryCatch, type Result } from "@hooks/core/result";
+import { type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { defaultStderr, getPaiDir, getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
 
@@ -141,26 +142,10 @@ export function buildDocSuggestions(pending: string[], deps: DocObligationDeps):
 
 // ─── Exclude Pattern Helpers ──────────────────────────────────────────────────
 
-interface DocObligationSettingsJson {
-  hookConfig?: {
-    docObligation?: {
-      excludePatterns?: string[];
-    };
-  };
-}
-
 /** Read excludePatterns from settings.json hookConfig.docObligation.excludePatterns. */
 export function readDocExcludePatterns(settingsPath?: string): string[] {
-  const path = settingsPath ?? getSettingsPath();
-  const result = readFile(path);
-  if (!result.ok) return [];
-  const parsed = tryCatch(
-    () => JSON.parse(result.value) as DocObligationSettingsJson,
-    (cause) => jsonParseFailed(result.value.slice(0, 100), cause),
-  );
-  if (!parsed.ok) return [];
-  const patterns = parsed.value?.hookConfig?.docObligation?.excludePatterns;
-  return Array.isArray(patterns) ? patterns : [];
+  const cfg = readHookConfig<{ excludePatterns?: string[] }>("docObligation", undefined, settingsPath);
+  return Array.isArray(cfg?.excludePatterns) ? cfg.excludePatterns : [];
 }
 
 /** Returns true if filePath matches any of the given glob patterns. */

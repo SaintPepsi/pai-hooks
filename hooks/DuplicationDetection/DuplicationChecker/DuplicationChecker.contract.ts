@@ -18,7 +18,8 @@ import {
   fileExists,
   readJson,
 } from "@hooks/core/adapters/fs";
-import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -54,14 +55,8 @@ export interface DuplicationCheckerDeps {
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 function readBlockingConfig(): boolean {
-  const settingsResult = readJson(getSettingsPath());
-  if (!settingsResult.ok) return true;
-  const settings = settingsResult.value as Record<string, unknown>;
-  const hookConfig = settings.hookConfig as Record<string, unknown> | undefined;
-  if (!hookConfig) return true;
-  const dcConfig = hookConfig.duplicationChecker as Record<string, unknown> | undefined;
-  if (!dcConfig) return true;
-  return dcConfig.blocking !== false;
+  const cfg = readHookConfig<{ blocking?: boolean }>("duplicationChecker");
+  return cfg?.blocking !== false;
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
