@@ -55,18 +55,7 @@ export interface SharedDeps {
 }
 
 // ─── Tool Input Helpers ────────────────────────────────────────────────────
-
-/** Extract file_path from tool_input. Shared across Checker and Builder. */
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
-}
-
-/** Extract content from Write tool_input. */
-export function getWriteContent(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).content as string) ?? null;
-}
+// Moved to lib/tool-input.ts — import directly from there.
 
 /** Apply an Edit operation to existing file content. */
 export function simulateEdit(currentContent: string, input: ToolHookInput): string {
@@ -84,8 +73,8 @@ export function simulateEdit(currentContent: string, input: ToolHookInput): stri
  * or git is unavailable. Shared across the hook group so both the
  * builder and checker use the same branch resolution.
  */
-export function getCurrentBranch(): string | null {
-  const result = execSyncSafe("git rev-parse --abbrev-ref HEAD");
+export function getCurrentBranch(cwd?: string): string | null {
+  const result = execSyncSafe("git rev-parse --abbrev-ref HEAD", { cwd });
   if (!result.ok) return null;
   const branch = result.value.trim();
   return branch.length > 0 ? branch : null;
@@ -152,14 +141,15 @@ export function clearIndexCache(): void {
 
 export function findIndexPath(filePath: string, deps: SharedDeps): string | null {
   const { dirname } = require("node:path");
-  const branch = getCurrentBranch() ?? "default";
+  const startDir = dirname(filePath) as string;
+  const branch = getCurrentBranch(startDir) ?? "default";
 
   // Check the path itself first (handles directory inputs from SessionStart)
   const selfCandidate = `${getArtifactsDir(filePath, branch)}/index.json`;
   if (deps.exists(selfCandidate)) return selfCandidate;
 
   // Walk up from dirname
-  let dir = dirname(filePath) as string;
+  let dir = startDir;
   for (let i = 0; i < 10; i++) {
     const candidate = `${getArtifactsDir(dir, branch)}/index.json`;
     if (deps.exists(candidate)) return candidate;

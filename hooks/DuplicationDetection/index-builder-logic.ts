@@ -96,14 +96,23 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     }
   }
 
-  const branch = getCurrentBranch();
+  const branch = getCurrentBranch(root);
 
+  return buildResult(root, entries, files.length, branch);
+}
+
+function buildResult(
+  root: string,
+  entries: IndexEntry[],
+  fileCount: number,
+  branch: string | null,
+): DuplicationIndex {
   return {
     version: 1,
     root,
     branch: branch ?? undefined,
     builtAt: new Date().toISOString(),
-    fileCount: files.length,
+    fileCount,
     functionCount: entries.length,
     entries,
     hashGroups: groupByField(entries, (e) => e.h).filter(([_, idxs]) => idxs.length >= 2),
@@ -112,4 +121,38 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
       ([_, idxs]) => idxs.length >= 3,
     ),
   };
+}
+
+/** Surgical update: re-index a single file within an existing index. */
+export function updateIndexForFile(
+  existingIndex: DuplicationIndex,
+  filePath: string,
+  content: string,
+  deps: IndexBuilderDeps,
+): DuplicationIndex {
+  const root = existingIndex.root;
+  const relPath = filePath.startsWith(root) ? filePath.slice(root.length + 1) : filePath;
+
+  // Remove old entries for this file
+  const keptEntries = existingIndex.entries.filter((e) => e.f !== relPath);
+
+  // Extract new functions from the updated content
+  const isTsx = filePath.endsWith(".tsx");
+  const functions = extractFunctions(content, isTsx, deps.parserDeps);
+
+  for (const fn of functions) {
+    keptEntries.push({
+      f: relPath,
+      n: fn.name,
+      l: fn.line,
+      h: fn.bodyHash,
+      p: fn.paramSig,
+      r: fn.returnType,
+      fp: fn.fingerprint,
+      s: 0,
+    });
+  }
+
+  const branch = getCurrentBranch(root);
+  return buildResult(root, keptEntries, existingIndex.fileCount, branch);
 }

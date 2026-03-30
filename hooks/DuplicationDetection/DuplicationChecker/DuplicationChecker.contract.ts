@@ -26,6 +26,7 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { getFilePath, getWriteContent } from "@hooks/lib/tool-input";
 import {
   BLOCK_THRESHOLD,
   checkFunctions,
@@ -33,8 +34,6 @@ import {
   formatFindings,
   getArtifactsDir,
   getCurrentBranch,
-  getFilePath,
-  getWriteContent,
   loadIndex,
   simulateEdit,
   STALENESS_SECONDS,
@@ -141,7 +140,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     const matches = checkFunctions(functions, index, relPath);
 
     // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/{branch}/checker.jsonl
-    const branch = getCurrentBranch() ?? "default";
+    const branch = getCurrentBranch(index.root) ?? "default";
     const logDir = getArtifactsDir(index.root, branch);
     deps.ensureDir(logDir);
     const logPath = `${logDir}/checker.jsonl`;

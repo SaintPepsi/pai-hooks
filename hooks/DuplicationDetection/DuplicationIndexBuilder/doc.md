@@ -4,7 +4,7 @@
 
 DuplicationIndexBuilder builds a duplication detection index (`index.json`) in `/tmp/pai/duplication/{project-hash}/{branch}/`. It fires on **SessionStart** (eager pre-warming) and **PostToolUse** (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.
 
-The index is built lazily: it skips rebuilds if the existing index is less than 30 minutes old. On SessionStart, it uses CWD as the project anchor. On PostToolUse, it uses the written file's path. This is a silent background operation that never injects additional context into the conversation.
+On PostToolUse, the builder does a **surgical update**: it loads the existing index, re-indexes only the changed file, recomputes duplicate groups, and writes back. On SessionStart (or when no index exists), it does a full rebuild. This is a silent background operation that never injects additional context into the conversation.
 
 ## Event
 
@@ -16,42 +16,40 @@ The index is built lazily: it skips rebuilds if the existing index is less than 
 On **SessionStart**:
 - Every session start (no tool filter)
 - The project root can be determined from CWD (contains a project marker like `.git`, `package.json`, `composer.json`, etc.)
-- The existing index is missing or older than 30 minutes
 
 On **PostToolUse**:
 - A Write or Edit tool has just completed on a `.ts` file (not `.d.ts`)
 - The project root can be determined (contains a project marker like `.git`, `package.json`, `composer.json`, etc.)
-- The existing index is missing or older than 30 minutes
 
 It does **not** fire when:
 
 - PostToolUse: The tool is not Write or Edit
 - PostToolUse: The target file is not a `.ts` file (or is a `.d.ts` definition file)
 - No project root can be found (walks up to 10 directories)
-- A fresh index already exists (modified less than 30 minutes ago)
 
 ## What It Does
 
 1. Determines the anchor path: CWD on SessionStart, file path on PostToolUse
 2. Walks up the directory tree to find the project root (checks for project markers: `.git`, `package.json`, `composer.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`)
-3. Checks if `/tmp/pai/duplication/{hash}/{branch}/index.json` exists and is fresh (< 30 minutes old)
-4. If the index is stale or missing, calls `buildIndex()` to scan all project TypeScript files
-5. Extracts function signatures from every `.ts` file using the SWC parser
-6. Writes the resulting index as JSON to `/tmp/pai/duplication/{hash}/{branch}/index.json`
-7. Logs build statistics (function count, file count, size, and build time) to stderr
+3. Checks if an existing index exists at `/tmp/pai/duplication/{hash}/{branch}/index.json`
+4. If index exists and triggered by PostToolUse: **surgical update** — re-indexes only the changed file via `updateIndexForFile()`
+5. If no index exists or triggered by SessionStart: **full rebuild** — scans all `.ts` files via `buildIndex()`
+6. Recomputes duplicate group lookups (hash, name, signature)
+7. Writes the resulting index as JSON to `/tmp/pai/duplication/{hash}/{branch}/index.json`
+8. Logs build/update statistics (function count, file count, size, and build time) to stderr
 
 ```typescript
-// Core index build flow — anchor differs by event type
+// Core flow — surgical update on PostToolUse, full rebuild on SessionStart
 const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
 const projectRoot = deps.findProjectRoot(anchor);
-const branch = getCurrentBranch() ?? null;
+const branch = getCurrentBranch(projectRoot) ?? null;
 const indexDir = getArtifactsDir(projectRoot, branch);
-const indexPath = deps.indexBuilderDeps.join(indexDir, "index.json");
 
-if (isIndexFresh(indexPath, deps)) return ok({ type: "continue", continue: true });
-
-const index = buildIndex(projectRoot, deps.indexBuilderDeps);
-deps.writeFile(indexPath, JSON.stringify(index));
+if (existingIndex && changedFile) {
+  index = updateIndexForFile(existing, changedFile, content, deps.indexBuilderDeps);
+} else {
+  index = buildIndex(projectRoot, deps.indexBuilderDeps);
+}
 ```
 
 The hook shell routes by event type: SessionStart uses `runHookWith` (bypasses tool_name validation in the runner), PostToolUse uses standard `runHook` with `stdinOverride`.
@@ -64,11 +62,11 @@ The hook shell routes by event type: SessionStart uses `runHookWith` (bypasses t
 
 ### Example 2: First TypeScript write in session (no SessionStart)
 
-> The model edits `src/utils.ts`. No `index.json` exists yet. DuplicationIndexBuilder scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms. Subsequent writes within 30 minutes skip the rebuild.
+> The model edits `src/utils.ts`. No `index.json` exists yet. DuplicationIndexBuilder does a full rebuild, scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms.
 
-### Example 3: Index is still fresh
+### Example 3: Surgical update on subsequent writes
 
-> The model writes to `src/api.ts` five minutes after the last index build. DuplicationIndexBuilder checks the index mtime, finds it is only 5 minutes old (under the 30-minute threshold), and skips the rebuild entirely.
+> The model writes to `src/api.ts` after the index already exists. DuplicationIndexBuilder loads the existing index, re-indexes only `src/api.ts`, recomputes duplicate groups, and writes the updated index in ~5ms.
 
 ## Dependencies
 
@@ -76,5 +74,6 @@ The hook shell routes by event type: SessionStart uses `runHookWith` (bypasses t
 | --- | --- | --- |
 | `result` | core | `ok()` for Result-based returns |
 | `fs` | adapter | `readFile`, `writeFile`, `fileExists`, `stat`, `readDir`, `ensureDir` for file operations |
-| `DuplicationDetection/index-builder-logic` | shared | `buildIndex` function and `IndexBuilderDeps` type |
+| `lib/tool-input` | lib | `getFilePath` for extracting tool input fields |
+| `DuplicationDetection/index-builder-logic` | shared | `buildIndex`, `updateIndexForFile` functions and `IndexBuilderDeps` type |
 | `DuplicationDetection/parser` | shared | `defaultParserDeps` for SWC-based function extraction |

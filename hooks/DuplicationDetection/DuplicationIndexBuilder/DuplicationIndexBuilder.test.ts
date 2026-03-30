@@ -98,6 +98,7 @@ function makeMockDeps(
       writtenFiles.set(path, content);
       return true;
     },
+    readFile: (path: string): string | null => writtenFiles.get(path) ?? null,
     exists: (path: string): boolean => writtenFiles.has(path),
     stat: (path: string): { mtimeMs: number } | null =>
       writtenFiles.has(path) ? { mtimeMs: Date.now() } : null,
@@ -193,23 +194,25 @@ describe("DuplicationIndexBuilderContract", () => {
       expect(writtenFiles.has(tempPath)).toBe(true);
     });
 
-    test("skips rebuild when index is fresh", () => {
-      const writeCallCount = { count: 0 };
+    test("does surgical update when index already exists", () => {
+      // First build — full
+      const deps = makeMockDeps();
+      const input1 = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/shared.ts`);
+      unwrap(DuplicationIndexBuilderContract.execute(input1, deps));
 
-      const deps = makeMockDeps({
-        writeFile: (): boolean => {
-          writeCallCount.count++;
-          return true;
-        },
-        exists: (): boolean => true,
-        stat: (): { mtimeMs: number } => ({ mtimeMs: Date.now() - 60_000 }), // 1 min ago — fresh
-        now: (): number => Date.now(),
+      // Second build — surgical (existing index readable via deps.readFile)
+      const stderrMessages: string[] = [];
+      const deps2 = makeMockDeps({
+        ...deps,
+        stderr: (msg: string): void => { stderrMessages.push(msg); },
+        readFile: deps.readFile,
       });
+      // Re-use the written files from first build
+      Object.assign(deps2, { readFile: deps.readFile });
+      const input2 = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/shared.ts`);
+      unwrap(DuplicationIndexBuilderContract.execute(input2, deps2));
 
-      const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
-      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
-
-      expect(writeCallCount.count).toBe(0);
+      expect(stderrMessages.some((m) => m.includes("updated index"))).toBe(true);
     });
 
     test("returns continue with no additionalContext (notification hook)", () => {
@@ -342,7 +345,7 @@ describe("DuplicationIndexBuilderContract", () => {
       const input = indexBuilderWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
       unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
-      const successMsg = stderrMessages.find((m) => m.includes("Built index:"));
+      const successMsg = stderrMessages.find((m) => m.includes("built index:"));
       expect(successMsg).toBeDefined();
       expect(successMsg).toContain("functions from");
       expect(successMsg).toContain("files");
@@ -365,7 +368,7 @@ describe("DuplicationIndexBuilderContract", () => {
       const output = unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
       expect(output.continue).toBe(true);
-      expect(stderrMessages.some((m) => m.includes("Built index:"))).toBe(true);
+      expect(stderrMessages.some((m) => m.includes("built index:"))).toBe(true);
     });
 
     test("built index has >0 functions and >0 files", () => {
@@ -433,45 +436,19 @@ describe("DuplicationIndexBuilderContract", () => {
       expect(writtenFiles.has(tempPath)).toBe(true);
     });
 
-    test("skips when index is fresh on SessionStart", () => {
-      const writeCallCount = { count: 0 };
+    test("always does full rebuild on SessionStart (no surgical update)", () => {
+      const stderrMessages: string[] = [];
 
       const deps = makeMockDeps({
-        writeFile: (): boolean => {
-          writeCallCount.count++;
-          return true;
-        },
-        exists: (): boolean => true,
-        stat: (): { mtimeMs: number } => ({ mtimeMs: Date.now() - 60_000 }),
-        now: (): number => Date.now(),
+        stderr: (msg: string): void => { stderrMessages.push(msg); },
         cwd: (): string => PAI_HOOKS_ROOT,
       });
 
       const input = indexBuilderSessionStartInput();
       unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
-      expect(writeCallCount.count).toBe(0);
-    });
-
-    test("rebuilds index when stale (>30min old)", () => {
-      const FRESHNESS_MS = 30 * 60 * 1000;
-      const writeCallCount = { count: 0 };
-
-      const deps = makeMockDeps({
-        writeFile: (): boolean => {
-          writeCallCount.count++;
-          return true;
-        },
-        exists: (): boolean => true,
-        stat: (): { mtimeMs: number } => ({ mtimeMs: Date.now() - FRESHNESS_MS - 1000 }), // 31 min ago — stale
-        now: (): number => Date.now(),
-        cwd: (): string => PAI_HOOKS_ROOT,
-      });
-
-      const input = indexBuilderSessionStartInput();
-      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
-
-      expect(writeCallCount.count).toBe(1);
+      // SessionStart has no specific file, so it always does a full build
+      expect(stderrMessages.some((m) => m.includes("built index"))).toBe(true);
     });
 
     test("handles missing project root on SessionStart", () => {

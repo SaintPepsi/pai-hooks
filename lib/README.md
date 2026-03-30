@@ -18,6 +18,8 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | `algorithm-state.ts` | PRD/algorithm state management (active work, stale sweep). Uses `AlgorithmStateDeps` for testability. |
 | `change-detection.ts` | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability. |
 | `paths.ts` | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`. |
+| `tool-input.ts` | Canonical `getFilePath` and `getWriteContent` extractors for `ToolHookInput.tool_input` fields |
+| `test-helpers.ts` | Shared test factories (`makeWriteInput`, `makeEditInput`, `makeToolInput`) for hook test files |
 | `learning-utils.ts` | Learning/feedback utilities for LearningFeedback hooks |
 | `output-validators.ts` | Output format validation for multiple hook groups |
 

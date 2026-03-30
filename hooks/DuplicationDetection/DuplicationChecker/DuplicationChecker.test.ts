@@ -1,4 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { ensureDir, writeFile } from "@hooks/core/adapters/fs";
+import { makeWriteInput, makeEditInput, makeToolInput } from "@hooks/lib/test-helpers";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
@@ -7,37 +9,30 @@ import {
   DuplicationCheckerContract,
   type DuplicationCheckerDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract";
+import { DuplicationIndexBuilderContract } from "@hooks/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract";
+import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import {
   checkFunctions,
   clearIndexCache,
   type DuplicationIndex,
+  getArtifactsDir,
+  getCurrentBranch,
 } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const PAI_HOOKS_ROOT = "/Users/hogers/.claude/pai-hooks";
-const INDEX_PATH = `${PAI_HOOKS_ROOT}/.duplication-index.json`;
-const REAL_INDEX_PATH = `${PAI_HOOKS_ROOT}/.claude/.duplication-index.json`;
+const PAI_HOOKS_ROOT = "/Users/ian.hogers/.claude/pai-hooks";
+const BRANCH = getCurrentBranch(PAI_HOOKS_ROOT) ?? "default";
+const INDEX_DIR = getArtifactsDir(PAI_HOOKS_ROOT, BRANCH);
+const INDEX_PATH = `${INDEX_DIR}/index.json`;
 
 // ─── Build Index ──────────────────────────────────────────────────────────────
 
 beforeAll(() => {
-  const result = Bun.spawnSync(
-    [
-      "bun",
-      "/Users/hogers/.claude/Tools/pattern-detector/variants/index-builder.ts",
-      "build",
-      PAI_HOOKS_ROOT,
-      "--output",
-      INDEX_PATH,
-    ],
-    { cwd: PAI_HOOKS_ROOT },
-  );
-  if (result.exitCode !== 0) {
-    throw new Error(
-      `Index build failed (exit ${result.exitCode}): ${new TextDecoder().decode(result.stderr)}`,
-    );
-  }
+  const { indexBuilderDeps } = DuplicationIndexBuilderContract.defaultDeps;
+  const index = buildIndex(PAI_HOOKS_ROOT, indexBuilderDeps);
+  ensureDir(INDEX_DIR);
+  writeFile(INDEX_PATH, JSON.stringify(index));
 });
 
 beforeEach(() => {
@@ -56,30 +51,6 @@ const mockDeps: DuplicationCheckerDeps = {
   blocking: true,
 };
 
-function makeWriteInput(filePath: string, content: string): ToolHookInput {
-  return {
-    session_id: "test-sess",
-    tool_name: "Write",
-    tool_input: { file_path: filePath, content },
-  };
-}
-
-function makeEditInput(filePath: string, oldString = "a", newString = "b"): ToolHookInput {
-  return {
-    session_id: "test-sess",
-    tool_name: "Edit",
-    tool_input: { file_path: filePath, old_string: oldString, new_string: newString },
-  };
-}
-
-function makeInput(toolName: string, filePath: string): ToolHookInput {
-  return {
-    session_id: "test-sess",
-    tool_name: toolName,
-    tool_input: { file_path: filePath },
-  };
-}
-
 function unwrap(result: Result<ContinueOutput | BlockOutput, PaiError>): ContinueOutput | BlockOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
@@ -92,8 +63,8 @@ describe("DuplicationCheckerContract", () => {
 
   describe("accepts()", () => {
     test("returns false for non-Write/Edit tools", () => {
-      expect(DuplicationCheckerContract.accepts(makeInput("Read", "/src/app.ts"))).toBe(false);
-      expect(DuplicationCheckerContract.accepts(makeInput("Bash", "/src/app.ts"))).toBe(false);
+      expect(DuplicationCheckerContract.accepts(makeToolInput("Read", "/src/app.ts"))).toBe(false);
+      expect(DuplicationCheckerContract.accepts(makeToolInput("Bash", "/src/app.ts"))).toBe(false);
     });
 
     test("returns false for non-.ts files", () => {
@@ -142,7 +113,7 @@ describe("DuplicationCheckerContract", () => {
       ) as string;
 
       // Mock now() to be within freshness window of the index
-      const indexContent = require("node:fs").readFileSync(REAL_INDEX_PATH, "utf-8") as string;
+      const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
       const indexBuiltAt = new Date(JSON.parse(indexContent).builtAt as string).getTime();
       const deps: DuplicationCheckerDeps = {
         ...mockDeps,
@@ -150,7 +121,7 @@ describe("DuplicationCheckerContract", () => {
       };
 
       const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
@@ -178,7 +149,7 @@ export function makeDeps(x: string): Record<string, unknown> {
       };
 
       const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         partialMatchContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
@@ -202,7 +173,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       };
 
       const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         uniqueContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
@@ -215,7 +186,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         "utf-8",
       ) as string;
 
-      const indexContent = require("node:fs").readFileSync(REAL_INDEX_PATH, "utf-8") as string;
+      const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
       const indexBuiltAt = new Date(JSON.parse(indexContent).builtAt as string).getTime();
       const deps: DuplicationCheckerDeps = {
         ...mockDeps,
@@ -223,7 +194,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       };
 
       const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
@@ -235,7 +206,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
     });
 
     test("does not block when index is stale even with 4/4 match", () => {
-      const indexContent = require("node:fs").readFileSync(REAL_INDEX_PATH, "utf-8") as string;
+      const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
       const index = JSON.parse(indexContent) as { builtAt: string };
       const builtAtMs = new Date(index.builtAt).getTime();
       const SIX_MINUTES_MS = 6 * 60 * 1000;
@@ -253,7 +224,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       ) as string;
 
       const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
@@ -273,7 +244,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       };
 
       const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));

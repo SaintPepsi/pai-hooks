@@ -22,15 +22,17 @@ import { ok, type Result } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
+import { buildIndex, updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
-import { getArtifactsDir, getCurrentBranch, getFilePath, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { getArtifactsDir, getCurrentBranch, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface DuplicationIndexBuilderDeps {
   indexBuilderDeps: IndexBuilderDeps;
   writeFile: (path: string, content: string) => boolean;
+  readFile: (path: string) => string | null;
   exists: (path: string) => boolean;
   stat: (path: string) => { mtimeMs: number } | null;
   stderr: (msg: string) => void;
@@ -42,7 +44,6 @@ export interface DuplicationIndexBuilderDeps {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const INDEX_FILENAME = "index.json";
-const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -67,12 +68,6 @@ function defaultFindProjectRoot(filePath: string): string | null {
   return null;
 }
 
-function isIndexFresh(indexPath: string, deps: DuplicationIndexBuilderDeps): boolean {
-  if (!deps.exists(indexPath)) return false;
-  const s = deps.stat(indexPath);
-  if (!s) return false;
-  return deps.now() - s.mtimeMs < FRESHNESS_MS;
-}
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
@@ -102,6 +97,10 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
   writeFile: (path: string, content: string): boolean => {
     const result = adapterWriteFile(path, content);
     return result.ok;
+  },
+  readFile: (path: string): string | null => {
+    const result = adapterReadFile(path);
+    return result.ok ? result.value : null;
   },
   exists: (path: string): boolean => fileExists(path),
   stat: (path: string): { mtimeMs: number } | null => {
@@ -154,35 +153,48 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const branch = getCurrentBranch() ?? null;
+    const branch = getCurrentBranch(projectRoot) ?? null;
     const indexDir = getArtifactsDir(projectRoot, branch);
     const indexPath = deps.indexBuilderDeps.join(indexDir, INDEX_FILENAME);
 
-    // Skip if index is fresh
-    if (isIndexFresh(indexPath, deps)) {
-      deps.stderr("[DuplicationIndexBuilder] Index is fresh — skipping rebuild");
-      return ok({ type: "continue", continue: true });
+    const start = performance.now();
+    let index: ReturnType<typeof buildIndex>;
+
+    // Surgical update: if index exists and we have a specific file, update just that file
+    const changedFile = isToolInput(input) ? getFilePath(input) : null;
+    const existingJson = deps.readFile(indexPath);
+
+    if (existingJson && changedFile) {
+      const existing = JSON.parse(existingJson) as ReturnType<typeof buildIndex>;
+      const content = deps.indexBuilderDeps.readFile(changedFile);
+      if (content) {
+        index = updateIndexForFile(existing, changedFile, content, deps.indexBuilderDeps);
+      } else {
+        // File was deleted — remove its entries by passing empty content
+        index = updateIndexForFile(existing, changedFile, "", deps.indexBuilderDeps);
+      }
+    } else {
+      // No existing index or SessionStart — full rebuild
+      index = buildIndex(projectRoot, deps.indexBuilderDeps);
     }
 
-    // Build the index
-    const start = performance.now();
-    const index = buildIndex(projectRoot, deps.indexBuilderDeps);
     const buildMs = performance.now() - start;
 
-    if (index.functionCount === 0) {
+    if (index.functionCount === 0 && !existingJson) {
       deps.stderr("[DuplicationIndexBuilder] No functions found — skipping");
       return ok({ type: "continue", continue: true });
     }
 
-    // Ensure .claude/ directory exists and write the index
+    // Write the index
     ensureDir(indexDir);
     const json = JSON.stringify(index);
     const written = deps.writeFile(indexPath, json);
 
     if (written) {
+      const mode = existingJson && changedFile ? "updated" : "built";
       const sizeKB = (json.length / 1024).toFixed(1);
       deps.stderr(
-        `[DuplicationIndexBuilder] Built index: ${index.functionCount} functions from ${index.fileCount} files (${sizeKB}KB) in ${buildMs.toFixed(0)}ms`,
+        `[DuplicationIndexBuilder] ${mode} index: ${index.functionCount} functions from ${index.fileCount} files (${sizeKB}KB) in ${buildMs.toFixed(0)}ms`,
       );
     } else {
       deps.stderr("[DuplicationIndexBuilder] Failed to write index — continuing without");
