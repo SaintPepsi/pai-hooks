@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import {
   block,
   type BlockOutput,
@@ -48,11 +49,6 @@ const BLOCK_MESSAGE = [
 ].join("\n");
 
 // ─── Pure Functions ─────────────────────────────────────────────────────────
-
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
 
 function isIssueCreate(command: string): boolean {
   return ISSUE_CREATE_PATTERN.test(command);

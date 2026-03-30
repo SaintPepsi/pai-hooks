@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import {
   type BlockOutput,
   block,
@@ -35,11 +36,6 @@ export interface ApprovalGateDeps extends SharedDeps {}
 const APPROVE_PATTERN = /\bgh\s+pr\s+review\b.*--approve/;
 
 // ─── Pure Functions ──────────────────────────────────────────────────────────
-
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
 
 function formatCiBlockMessage(
   prNumber: number,

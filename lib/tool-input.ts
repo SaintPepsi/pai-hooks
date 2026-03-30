@@ -14,6 +14,12 @@ export function getFilePath(input: ToolHookInput): string | null {
   return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
+/** Extract command from Bash tool_input. */
+export function getCommand(input: ToolHookInput): string {
+  if (typeof input.tool_input === "string") return input.tool_input;
+  return ((input.tool_input as Record<string, unknown>)?.command as string) || "";
+}
+
 /** Extract content from Write tool_input. */
 export function getWriteContent(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;

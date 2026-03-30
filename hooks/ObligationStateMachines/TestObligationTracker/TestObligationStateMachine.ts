@@ -24,6 +24,7 @@ import type { PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
@@ -95,11 +96,6 @@ function pendingMatchesSource(pendingFile: string, sourceFile: string): boolean 
 function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
   return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
-}
-
-function getCommand(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).command as string) ?? null;
 }
 
 function pendingPath(stateDir: string, sessionId: string): string {

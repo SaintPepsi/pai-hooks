@@ -2,12 +2,12 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   defaultDeps,
   defaultTrackerExcludeDeps,
   extractTestedSourceFiles,
-  getCommand,
   getFilePath,
   isNonTestCodeFile,
   isTestCommand,

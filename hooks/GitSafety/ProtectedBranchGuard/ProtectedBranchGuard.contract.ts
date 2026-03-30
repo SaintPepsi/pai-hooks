@@ -18,6 +18,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { getSettingsPath } from "@hooks/lib/paths";
 
@@ -53,12 +54,6 @@ const BUILTIN_EXEMPT_PATTERNS: RegExp[] = [/\/\.claude(?:\/|$)/];
 const GIT_MUTATION_PATTERN = /\bgit\s+(commit|push|merge)\b/;
 
 // ─── Pure Functions ─────────────────────────────────────────────────────────
-
-/** Extract the command string from tool input. */
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
 
 /** Check if command contains a git mutation (commit/push/merge). */
 function isGitMutation(command: string): boolean {

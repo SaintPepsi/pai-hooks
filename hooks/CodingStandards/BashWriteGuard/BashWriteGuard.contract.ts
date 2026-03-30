@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
@@ -25,12 +26,6 @@ export interface BashWriteGuardDeps {
 // ─── Pure Functions ──────────────────────────────────────────────────────────
 
 const TS_FILE_PATTERN = /\.tsx?\b/;
-
-/** Extract the command string from tool input. */
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
 
 /** Check if command contains a write pattern targeting a .ts/.tsx file. */
 function detectsWriteToTypeScript(command: string): boolean {
