@@ -4,7 +4,7 @@
  * Contracts import from './core' only. This is the single entry point.
  */
 
-export { type FetchResult, safeFetch } from "./adapters/fetch";
+export { type FetchResult, safeFetch } from "@hooks/core/adapters/fetch";
 export {
   appendFile,
   ensureDir,
@@ -13,12 +13,12 @@ export {
   readJson,
   writeFile,
   writeJson,
-} from "./adapters/fs";
-export { type ExecResult, exec, getEnv, spawnDetached } from "./adapters/process";
+} from "@hooks/core/adapters/fs";
+export { type ExecResult, exec, getEnv, spawnDetached } from "@hooks/core/adapters/process";
 // Adapters
-export { readStdin } from "./adapters/stdin";
+export { readStdin } from "@hooks/core/adapters/stdin";
 // Contract interface
-export type { HookContract } from "./contract";
+export type { HookContract } from "@hooks/core/contract";
 // Error types
 export {
   cancelled,
@@ -41,7 +41,7 @@ export {
   stdinReadFailed,
   stdinTimeout,
   unknownError,
-} from "./error";
+} from "@hooks/core/error";
 // Result type
 export {
   andThen,
@@ -58,9 +58,9 @@ export {
   tryCatch,
   tryCatchAsync,
   unwrapOr,
-} from "./result";
+} from "@hooks/core/result";
 // Runner
-export { type RunHookOptions, runHook } from "./runner";
+export { type RunHookOptions, runHook } from "@hooks/core/runner";
 // Input types
 export type {
   HookEventType,
@@ -71,7 +71,7 @@ export type {
   StopInput,
   ToolHookInput,
   UserPromptSubmitInput,
-} from "./types/hook-inputs";
+} from "@hooks/core/types/hook-inputs";
 // Output types
 export {
   type AskOutput,
@@ -85,4 +85,4 @@ export {
   type HookOutput,
   type SilentOutput,
   silent,
-} from "./types/hook-outputs";
+} from "@hooks/core/types/hook-outputs";

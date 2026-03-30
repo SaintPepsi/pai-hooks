@@ -3,8 +3,8 @@
  */
 
 import { execSync, spawnSync } from "node:child_process";
-import { envVarMissing, type PaiError, processExecFailed, processSpawnFailed } from "../error";
-import { err, ok, type Result, tryCatch, tryCatchAsync } from "../result";
+import { envVarMissing, type PaiError, processExecFailed, processSpawnFailed } from "@hooks/core/error";
+import { err, ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 
 export interface ExecResult {
   stdout: string;

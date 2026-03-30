@@ -2,8 +2,8 @@
  * Fetch Adapter — HTTP requests wrapped in Result with timeout via AbortController.
  */
 
-import { fetchFailed, fetchTimeout, type PaiError } from "../error";
-import { err, ok, type Result } from "../result";
+import { fetchFailed, fetchTimeout, type PaiError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
 
 export interface FetchResult {
   status: number;

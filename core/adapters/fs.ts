@@ -27,8 +27,8 @@ import {
   fileReadFailed,
   fileWriteFailed,
   type PaiError,
-} from "../error";
-import { type Result, tryCatch } from "../result";
+} from "@hooks/core/error";
+import { type Result, tryCatch } from "@hooks/core/result";
 
 export function fileExists(path: string): boolean {
   return existsSync(path);
