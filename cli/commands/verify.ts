@@ -4,7 +4,7 @@
  * Source mode (default): Run in source repo, validate manifests match imports.
  *   - Globs all hook.json under hooks/
  *   - Compares declared deps vs actual imports (reuses validator logic from cli/core/validator.ts)
- *   - --fix rewrites hook.json to match actual imports
+ *   - --fix accepted but is a no-op (auto-rewrite not yet implemented)
  *
  * Installed mode (--installed): Run in target project, check files match lockfile.
  *   - Reads lockfile, checks all files exist + match fileHashes (cli/core/lockfile.ts)
@@ -71,6 +71,9 @@ export function verify(
 
 /**
  * Source-mode verify: validate hook.json manifests match actual imports.
+ *
+ * Note: --fix is accepted but is a no-op. Auto-rewrite of hook.json is not yet
+ * implemented. The flag only suppresses the diagnostic hint below.
  */
 function verifySource(
   _args: ParsedArgs,
@@ -126,7 +129,7 @@ function verifySource(
     lines.push(`  [${d.code}] ${d.hookName}: ${d.message}`);
   }
   if (!fix) {
-    lines.push("Run with --fix to auto-correct derivable fields.");
+    lines.push("Note: --fix is accepted but not yet implemented for source mode.");
   }
   return ok(lines.join("\n"));
 }

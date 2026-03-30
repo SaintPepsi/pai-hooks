@@ -50,7 +50,7 @@ Flags:
   --json        Output as JSON
   --groups      Show group summary (catalog)
   --presets     Show preset summary (catalog)
-  --fix         Auto-fix derivable manifest fields (verify)
+  --fix         Accepted by verify (source mode) but currently a no-op
   --installed   Verify installed hooks (verify)
 `;
 
