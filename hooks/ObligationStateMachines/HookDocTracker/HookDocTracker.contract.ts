@@ -3,6 +3,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
@@ -34,7 +35,7 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
 
   execute(input: ToolHookInput, deps: ObligationDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input);
-    if (!filePath) return ok({ type: "continue", continue: true });
+    if (!filePath) return ok(continueOk());
 
     const settings = readHookDocSettings();
     const flagFile = pendingPath(deps.stateDir, input.session_id);
@@ -53,13 +54,13 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
             : `[HookDocTracker] Cleared documented hook, ${remaining} still pending`,
         );
       }
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Hook source file modified → add to pending
     addPending(deps, flagFile, filePath);
     deps.stderr(`[HookDocTracker] Hook source modified: ${filePath} — docs pending`);
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

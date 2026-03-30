@@ -27,6 +27,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Artifact Allowlist ─────────────────────────────────────────────────────
@@ -243,7 +244,7 @@ export const DestructiveDeleteGuard: SyncHookContract<
     // Bash: detect destructive delete patterns, BLOCK
     if (input.tool_name === "Bash") {
       const command = getCommand(input);
-      if (!command) return ok({ type: "continue", continue: true });
+      if (!command) return ok(continueOk());
 
       if (detectsDestructiveDelete(command)) {
         // Artifact directories get a softer "ask" instead of hard block
@@ -276,32 +277,32 @@ export const DestructiveDeleteGuard: SyncHookContract<
         });
       }
 
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Edit/Write: skip markdown files — documentation mentioning delete patterns is normal
     if (isDocumentationFile(input)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Edit/Write: skip Dockerfiles — rm -rf in containers is image cleanup (apt lists, caches), not host deletion
     if (isDockerfile(input)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Edit/Write: skip the fs adapter — it is the safe wrapper, raw rmSync belongs there
     if (isFsAdapter(input)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Edit/Write: skip this guard's own test file — test strings legitimately contain destructive patterns
     if (isOwnTestFile(input)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Edit/Write: detect destructive delete patterns in code, BLOCK with guidance
     const content = getContentToCheck(input);
-    if (!content) return ok({ type: "continue", continue: true });
+    if (!content) return ok(continueOk());
 
     if (detectsDestructiveDeleteInCode(content)) {
       const reason = [
@@ -326,7 +327,7 @@ export const DestructiveDeleteGuard: SyncHookContract<
       });
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

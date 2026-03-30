@@ -14,6 +14,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import { type PaiError, securityBlock as securityBlockError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import { getPaiDir } from "@hooks/lib/paths";
 import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
@@ -424,7 +425,7 @@ export const SecurityValidator: SyncHookContract<
           ? input.tool_input
           : (input.tool_input?.command as string) || "";
 
-      if (!rawCommand) return ok({ type: "continue", continue: true });
+      if (!rawCommand) return ok(continueOk());
 
       const command = stripEnvVarPrefix(rawCommand);
       const result = validateBashCommand(command, patterns, deps);
@@ -519,7 +520,7 @@ export const SecurityValidator: SyncHookContract<
         }
       }
 
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // File path validation (Edit, MultiEdit, Write, Read)
@@ -528,7 +529,7 @@ export const SecurityValidator: SyncHookContract<
         ? input.tool_input
         : (input.tool_input?.file_path as string) || "";
 
-    if (!filePath) return ok({ type: "continue", continue: true });
+    if (!filePath) return ok(continueOk());
 
     const action: PathAction = tool_name === "Read" ? "read" : "write";
     const result = validatePath(filePath, action, patterns, home, deps);
@@ -575,7 +576,7 @@ export const SecurityValidator: SyncHookContract<
       );
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

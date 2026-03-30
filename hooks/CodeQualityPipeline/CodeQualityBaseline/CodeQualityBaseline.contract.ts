@@ -19,6 +19,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
@@ -117,7 +118,7 @@ export const CodeQualityBaseline: SyncHookContract<
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) {
       deps.stderr(`[CodeQualityBaseline] Could not read ${filePath}, skipping`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     let content = contentResult.value;
@@ -126,19 +127,19 @@ export const CodeQualityBaseline: SyncHookContract<
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(content);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       content = scriptContent;
     }
 
     // Skip small files
     if (countLines(content) < MIN_LINES) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const profile = deps.getLanguageProfile(filePath);
     if (!profile) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Score the file
@@ -169,15 +170,11 @@ export const CodeQualityBaseline: SyncHookContract<
     if (result.score < LOW_SCORE_THRESHOLD) {
       const advisory = deps.formatAdvisory(result, filePath);
       if (advisory) {
-        return ok({
-          type: "continue",
-          continue: true,
-          additionalContext: `Note: Pre-existing quality concerns detected.\n${advisory}`,
-        });
+        return ok(continueOk(`Note: Pre-existing quality concerns detected.\n${advisory}`));
       }
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

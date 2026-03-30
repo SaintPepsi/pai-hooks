@@ -3,6 +3,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand, getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   defaultDeps,
@@ -67,18 +68,18 @@ export const TestObligationTracker: SyncHookContract<
           }
         }
       }
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const excludePatterns = deps.getExcludePatterns();
     if (excludePatterns.length > 0 && matchesExcludePattern(filePath, excludePatterns)) {
       deps.stderr(`[TestObligationTracker] Excluded: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const pending = deps.readPending(flagFile);
@@ -88,7 +89,7 @@ export const TestObligationTracker: SyncHookContract<
     deps.writePending(flagFile, pending);
     deps.stderr(`[TestObligationTracker] Code modified: ${filePath} — tests pending`);
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps: { ...defaultDeps, ...defaultTrackerExcludeDeps },

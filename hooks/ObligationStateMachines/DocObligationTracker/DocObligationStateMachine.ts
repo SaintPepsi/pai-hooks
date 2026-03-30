@@ -26,6 +26,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
@@ -173,7 +174,7 @@ export const DocObligationTracker: SyncHookContract<
   execute(input: ToolHookInput, deps: DocObligationDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const flagFile = pendingPath(deps.stateDir, input.session_id);
@@ -181,7 +182,7 @@ export const DocObligationTracker: SyncHookContract<
     // .md file edit: clear related pending code files
     if (isDocFile(filePath)) {
       if (!deps.fileExists(flagFile)) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
 
       const pending = deps.readPending(flagFile);
@@ -197,7 +198,7 @@ export const DocObligationTracker: SyncHookContract<
         );
       }
 
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Code file edit: add to pending list
@@ -208,7 +209,7 @@ export const DocObligationTracker: SyncHookContract<
     deps.writePending(flagFile, pending);
     deps.stderr(`[DocObligationTracker] Code modified: ${filePath} — docs pending`);
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

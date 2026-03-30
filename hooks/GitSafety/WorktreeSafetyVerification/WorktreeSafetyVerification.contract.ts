@@ -15,6 +15,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { map, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -275,14 +276,14 @@ export const WorktreeSafetyVerification: SyncHookContract<
       deps.stderr(
         "[WorktreeSafety] \u26a0\ufe0f  Could not determine worktree path from EnterWorktree response \u2014 skipping safety checks",
       );
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     if (!deps.existsSync(worktreePath)) {
       deps.stderr(
         `[WorktreeSafety] \u26a0\ufe0f  Worktree path does not exist: ${worktreePath} \u2014 skipping safety checks`,
       );
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     deps.stderr(
@@ -293,7 +294,7 @@ export const WorktreeSafetyVerification: SyncHookContract<
     installDependencies(worktreePath, deps);
     runBaselineTests(worktreePath, deps);
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

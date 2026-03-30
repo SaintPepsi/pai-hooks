@@ -20,6 +20,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex, updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
@@ -150,7 +151,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
     const projectRoot = deps.findProjectRoot(anchor);
     if (!projectRoot) {
       deps.stderr("[DuplicationIndexBuilder] No project root found — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const branch = getCurrentBranch(projectRoot) ?? null;
@@ -186,7 +187,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
 
     if (index.functionCount === 0 && !existingJson) {
       deps.stderr("[DuplicationIndexBuilder] No functions found — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Write the index
@@ -204,7 +205,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       deps.stderr("[DuplicationIndexBuilder] Failed to write index — continuing without");
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

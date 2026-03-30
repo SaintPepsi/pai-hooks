@@ -17,6 +17,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   defaultSignalLoggerDeps,
@@ -288,7 +289,7 @@ export const TypeCheckVerifier: SyncHookContract<
     const typeCheck = discoverTypeCheck(filePath, deps);
     if (!typeCheck) {
       deps.stderr(`[TypeCheckVerifier] ${filePath}: no type checker found, skipping`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     deps.stderr(
@@ -311,7 +312,7 @@ export const TypeCheckVerifier: SyncHookContract<
         file: filePath,
         outcome: "timeout",
       });
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Parse output for errors in the edited file
@@ -330,17 +331,13 @@ export const TypeCheckVerifier: SyncHookContract<
 
     if (errors.length === 0) {
       deps.stderr(`[TypeCheckVerifier] ${filePath}: no type errors`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     deps.stderr(`[TypeCheckVerifier] ${filePath}: ${errors.length} type error(s)`);
     const advisory = formatAdvisory(errors, filePath);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: advisory,
-    });
+    return ok(continueOk(advisory));
   },
 
   defaultDeps,

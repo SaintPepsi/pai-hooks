@@ -22,6 +22,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   findAllViolations,
@@ -80,14 +81,14 @@ export const CodingStandardsAdvisor: SyncHookContract<
     let content = deps.readFile(filePath);
     if (!content) {
       // File doesn't exist or can't be read — fail open, no advisory
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // For Svelte files, only check the <script lang="ts"> block
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(content);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       content = scriptContent;
     }
@@ -96,17 +97,13 @@ export const CodingStandardsAdvisor: SyncHookContract<
 
     if (violations.length === 0) {
       deps.stderr(`[CodingStandardsAdvisor] ${filePath}: clean`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const advisory = formatViolationSummary(violations, filePath);
     deps.stderr(`[CodingStandardsAdvisor] ${filePath}: ${violations.length} violations found`);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: advisory,
-    });
+    return ok(continueOk(advisory));
   },
 
   defaultDeps,

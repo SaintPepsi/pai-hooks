@@ -14,6 +14,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import { getPaiDir } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type {
@@ -183,7 +184,7 @@ export const AlgorithmTracker: SyncHookContract<
   execute(input: ToolHookInput, deps: AlgorithmTrackerDeps): Result<ContinueOutput, PaiError> {
     const { tool_name, tool_input, session_id } = input;
     const tool_result = (input as unknown as Record<string, unknown>).tool_result;
-    if (!session_id) return ok({ type: "continue", continue: true });
+    if (!session_id) return ok(continueOk());
 
     // 1. Bash → Phase detection from voice curls
     if (tool_name === "Bash" && tool_input?.command) {
@@ -300,7 +301,7 @@ export const AlgorithmTracker: SyncHookContract<
       deps.stderr(`[AlgorithmTracker] agent spawned: ${agentName} (${agentType})`);
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,
