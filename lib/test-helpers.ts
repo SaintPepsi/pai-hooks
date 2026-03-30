@@ -5,7 +5,7 @@
  * across 40+ test files.
  */
 
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 /** Create a Write tool input for testing. */
 export function makeWriteInput(filePath: string, content: string): ToolHookInput {
@@ -36,4 +36,9 @@ export function makeToolInput(toolName: string, filePath: string): ToolHookInput
     tool_name: toolName,
     tool_input: { file_path: filePath },
   };
+}
+
+/** Create a SessionStart input for testing. */
+export function makeSessionStartInput(sessionId = "test-sess"): SessionStartInput {
+  return { session_id: sessionId };
 }
