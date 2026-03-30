@@ -19,7 +19,7 @@
 
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
@@ -46,24 +46,23 @@ const defaultDeps: MessageQueueServerDeps = {
   getEnv: (name) => process.env[name],
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   spawnDetached: (cmd, args) => {
-    try {
-      const child = Bun.spawn([cmd, ...args], {
-        stdout: "ignore",
-        stderr: "pipe",
-        stdin: "ignore",
-      });
-      child.unref();
-      return { ok: true };
-    } catch {
-      return { ok: false };
-    }
+    const result = tryCatch(
+      () => {
+        const child = Bun.spawn([cmd, ...args], {
+          stdout: "ignore",
+          stderr: "pipe",
+          stdin: "ignore",
+        });
+        child.unref();
+        return true;
+      },
+      () => null,
+    );
+    return { ok: result.ok };
   },
   fileExists: (path) => {
-    try {
-      return Bun.file(path).size > 0;
-    } catch {
-      return false;
-    }
+    const result = tryCatch(() => Bun.file(path).size > 0, () => null);
+    return result.ok ? result.value : false;
   },
   stderr: defaultStderr,
   getScriptPath: () => {

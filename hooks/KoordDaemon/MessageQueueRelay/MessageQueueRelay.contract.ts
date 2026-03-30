@@ -18,7 +18,7 @@
 
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
@@ -52,15 +52,13 @@ function extractSessionFromCommand(command: string): string | null {
 
 /** Parse message JSON from watcher stdout, with fallback to raw text. */
 function parseWatcherOutput(raw: string): { from?: string; body: string; [key: string]: unknown } {
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      ...parsed,
-      body: typeof parsed.body === "string" ? parsed.body : raw,
-    };
-  } catch {
-    return { body: raw.trim() };
-  }
+  const result = tryCatch(() => JSON.parse(raw) as Record<string, unknown>, () => null);
+  if (!result.ok) return { body: raw.trim() };
+  const parsed = result.value;
+  return {
+    ...parsed,
+    body: typeof parsed.body === "string" ? parsed.body : raw,
+  };
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
