@@ -12,7 +12,9 @@ See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for
 
 ### DuplicationChecker (PreToolUse)
 
-Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. Tiered response: 2-3/4 signal matches are logged silently, 4/4 matches block the operation (configurable via `hookConfig.duplicationChecker.blocking`).
+Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. Tiered response: 2-3/4 signal matches are logged silently, 4/4 matches or hash matches block the operation (configurable via `hookConfig.duplicationChecker.blocking`).
+
+**Derivation detection**: when body hash matches but type signatures differ, the checker emits an advisory warning ("possible derivation issue") instead of blocking. This identifies functions with identical implementations but different type contracts — a different class than duplication.
 
 Every check (clean or with findings) is logged to `/tmp/pai/duplication/{hash}/{branch}/checker.jsonl` as JSONL for later inspection.
 
@@ -51,7 +53,8 @@ For monorepos without a root `package.json`, the first PostToolUse event on a su
 DuplicationDetection/
 ├── README.md                          — this file
 ├── shared.ts                          — index types, loading, cache, check logic, formatting, PROJECT_MARKERS, getArtifactsDir, getCurrentBranch
-├── parser.ts                          — TypeScript function extraction
+├── parser.ts                          — TypeScript function extraction (serializeType for actual type names)
+├── parser.test.ts                     — Parser tests including serializeType coverage
 ├── index-builder-logic.ts             — file scanning and index construction
 ├── DuplicationIndexBuilder/
 │   ├── README.md
