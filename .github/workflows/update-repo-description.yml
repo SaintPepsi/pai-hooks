@@ -1,0 +1,30 @@
+name: Update Repo Description
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hooks/**/hook.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update-description:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Count hooks
+        id: count
+        run: |
+          COUNT=$(find hooks -name "hook.json" | wc -l | tr -d ' ')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Update repo description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh repo edit --description "A portable collection of ${{ steps.count.outputs.count }} Claude Code hooks extracted from PAI. Install with a single command."
