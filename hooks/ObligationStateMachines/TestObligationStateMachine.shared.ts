@@ -15,23 +15,15 @@ import { jsonParseFailed } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 import { getCommand, getFilePath } from "@hooks/lib/tool-input";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface TestObligationDeps {
-  stateDir: string;
-  fileExists: (path: string) => boolean;
-  readPending: (path: string) => string[];
-  writePending: (path: string, files: string[]) => void;
-  removeFlag: (path: string) => void;
-  readBlockCount: (path: string) => number;
-  writeBlockCount: (path: string, count: number) => void;
-  writeReview: (path: string, content: string) => void;
-  stderr: (msg: string) => void;
-}
+// TestObligationDeps is ObligationDeps from lib/obligation-machine.ts
+export type TestObligationDeps = ObligationDeps;
 
 /** Narrow extension used only by TestObligationTracker (not the enforcer). */
 export interface TestTrackerExcludeDeps {
