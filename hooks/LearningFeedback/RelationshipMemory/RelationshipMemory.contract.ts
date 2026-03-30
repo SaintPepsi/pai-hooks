@@ -13,7 +13,7 @@ import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getLocalComponents } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ const defaultDeps: RelationshipMemoryDeps = {
   readTranscript: defaultReadTranscript,
   analyzeForRelationship: defaultAnalyzeForRelationship,
   writeNotes: defaultWriteNotes,
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const RelationshipMemory: SyncHookContract<StopInput, SilentOutput, RelationshipMemoryDeps> =

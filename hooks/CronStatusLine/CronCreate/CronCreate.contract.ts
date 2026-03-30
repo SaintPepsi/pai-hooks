@@ -22,6 +22,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
   appendCronLog,
   type CronEntry,
@@ -79,7 +80,7 @@ const defaultDeps: CronCreateDeps = {
   readDir,
   removeFile,
   appendFile,
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   getEnv: (key) => process.env[key],
   now: () => Date.now(),
 };

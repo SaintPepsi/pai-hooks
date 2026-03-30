@@ -24,7 +24,7 @@ import type { PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -149,7 +149,7 @@ const defaultDeps: DocObligationDeps = {
   writeReview: (path: string, content: string) => {
     writeFile(path, content);
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract 1: DocObligationTracker ────────────────────────────────────────

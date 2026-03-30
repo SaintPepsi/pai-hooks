@@ -18,7 +18,7 @@ import {
   fileExists,
   readJson,
 } from "@hooks/core/adapters/fs";
-import { getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -78,7 +78,7 @@ const defaultDeps: DuplicationCheckerDeps = {
   ensureDir: (path: string): void => {
     adapterEnsureDir(path);
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   now: () => Date.now(),
   blocking: readBlockingConfig(),
 };

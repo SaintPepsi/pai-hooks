@@ -24,6 +24,7 @@ import { jsonParseFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type {
   CronFileDeps,
   CronPathDeps,
@@ -155,7 +156,7 @@ const defaultDeps: CronPruneDeps = {
   },
   removeFile,
   appendFile,
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   now: () => Date.now(),
   stat: fsStat,
 };

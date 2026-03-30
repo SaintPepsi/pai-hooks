@@ -23,6 +23,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { defaultReadFileOrNull, readKoordConfig } from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ const defaultDeps: SessionIdRegisterDeps = {
   getEnv: (name) => process.env[name],
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

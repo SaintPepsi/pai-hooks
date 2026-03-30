@@ -26,6 +26,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import {
   defaultReadFileOrNull,
@@ -53,7 +54,7 @@ const defaultDeps: AgentSpawnTrackerDeps = {
   getEnv: (name) => process.env[name],
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

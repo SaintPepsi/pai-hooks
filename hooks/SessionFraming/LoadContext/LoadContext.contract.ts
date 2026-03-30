@@ -14,7 +14,7 @@ import type { PaiError } from "@hooks/core/error";
 import { unknownError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName } from "@hooks/lib/identity";
@@ -443,7 +443,7 @@ const defaultDeps: LoadContextDeps = {
   },
   isSubagent: () => isSubagent((k) => process.env[k]),
   baseDir: getPaiDir(),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const LoadContext: AsyncHookContract<

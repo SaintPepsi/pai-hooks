@@ -13,6 +13,7 @@ import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { isSubagent } from "@hooks/lib/environment";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ const defaultDeps: CheckAlgorithmVersionDeps = {
   getUpstreamVersion: defaultGetUpstreamVersion,
   writeStateFile: (data) => defaultWriteStateFile(process.env.HOME!, data),
   isSubagent: () => isSubagent((k) => process.env[k]),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   homeDir: process.env.HOME!,
 };
 

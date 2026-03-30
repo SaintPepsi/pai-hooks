@@ -9,6 +9,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { ContextOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -25,7 +26,7 @@ const FAST_MODELS = ["haiku"];
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: AgentExecutionGuardDeps = {
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const AgentExecutionGuard: SyncHookContract<

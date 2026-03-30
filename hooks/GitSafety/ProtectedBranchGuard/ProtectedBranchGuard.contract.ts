@@ -21,7 +21,7 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { getSettingsPath } from "@hooks/lib/paths";
+import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -116,7 +116,7 @@ const defaultDeps: ProtectedBranchGuardDeps = {
       const r = readFile(p);
       return r.ok ? r.value : null;
     }),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────

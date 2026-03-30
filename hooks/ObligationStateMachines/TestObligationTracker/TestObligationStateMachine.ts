@@ -24,6 +24,7 @@ import type { PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { getPaiDir } from "@hooks/lib/paths";
 import { getCommand, getFilePath } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -161,7 +162,7 @@ function getStateDir(): string {
   return join(paiDir, "MEMORY", "STATE", "test-obligation");
 }
 
-const stderr = (msg: string) => process.stderr.write(`${msg}\n`);
+
 
 const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(),
@@ -170,7 +171,7 @@ const defaultDeps: TestObligationDeps = {
     const result = readJson<unknown>(path);
     if (!result.ok) {
       if (fsFileExists(path)) {
-        stderr(`[TestObligationTracker] corrupt state file, resetting: ${path}`);
+        defaultStderr(`[TestObligationTracker] corrupt state file, resetting: ${path}`);
       }
       return [];
     }
@@ -179,13 +180,13 @@ const defaultDeps: TestObligationDeps = {
   writePending: (path: string, files: string[]) => {
     const result = writeFile(path, JSON.stringify(files));
     if (!result.ok) {
-      stderr(`[TestObligationTracker] write failed: ${result.error.message}`);
+      defaultStderr(`[TestObligationTracker] write failed: ${result.error.message}`);
     }
   },
   removeFlag: (path: string) => {
     const result = removeFile(path);
     if (!result.ok) {
-      stderr(`[TestObligationTracker] remove failed: ${result.error.message}`);
+      defaultStderr(`[TestObligationTracker] remove failed: ${result.error.message}`);
     }
   },
   readBlockCount: (path: string) => {
@@ -197,16 +198,16 @@ const defaultDeps: TestObligationDeps = {
   writeBlockCount: (path: string, count: number) => {
     const result = writeFile(path, String(count));
     if (!result.ok) {
-      stderr(`[TestObligationTracker] write block count failed: ${result.error.message}`);
+      defaultStderr(`[TestObligationTracker] write block count failed: ${result.error.message}`);
     }
   },
   writeReview: (path: string, content: string) => {
     const result = writeFile(path, content);
     if (!result.ok) {
-      stderr(`[TestObligationTracker] write review failed: ${result.error.message}`);
+      defaultStderr(`[TestObligationTracker] write review failed: ${result.error.message}`);
     }
   },
-  stderr,
+  stderr: defaultStderr,
 };
 
 // ─── Contract 1: TestObligationTracker ───────────────────────────────────────

@@ -12,6 +12,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 export interface HookExecutePermissionDeps {
@@ -25,7 +26,7 @@ function isHookFile(filePath: string): boolean {
 
 const defaultDeps: HookExecutePermissionDeps = {
   execSync: (cmd) => execSyncSafe(cmd, { timeout: 5000 }),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const HookExecutePermission: SyncHookContract<

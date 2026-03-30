@@ -15,7 +15,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type {
   AlgorithmCriterion,
@@ -166,7 +166,7 @@ const defaultDeps: AlgorithmTrackerDeps = {
   fetch: globalThis.fetch,
   baseDir: getPaiDir(),
   voiceId: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const AlgorithmTracker: SyncHookContract<

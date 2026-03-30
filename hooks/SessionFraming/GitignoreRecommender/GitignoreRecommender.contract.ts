@@ -14,6 +14,7 @@ import { fileReadFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ const defaultDeps: GitignoreRecommenderDeps = {
   readFile,
   cwd: () => process.cwd(),
   paiRoot: join(process.env.HOME ?? "/", ".claude"),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Pure Logic ───────────────────────────────────────────────────────────────

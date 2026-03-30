@@ -16,7 +16,7 @@ import {
 import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { tryCatch } from "@hooks/core/result";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ export const defaultDeps: AgentLifecycleDeps = {
   readDir: (path) => readDir(path) as Result<string[], PaiError>,
   removeFile,
   getAgentsDir: () => join(getPaiDir(), "MEMORY", "STATE", "agents"),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   now: () => new Date(),
 };
 

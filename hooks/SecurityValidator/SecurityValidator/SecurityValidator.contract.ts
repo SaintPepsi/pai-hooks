@@ -15,7 +15,7 @@ import { type PaiError, securityBlock as securityBlockError } from "@hooks/core/
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
@@ -404,7 +404,7 @@ const defaultDeps: SecurityValidatorDeps = {
   createRegex,
   homedir: () => process.env.HOME || "/",
   baseDir: getPaiDir(),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const SecurityValidator: SyncHookContract<

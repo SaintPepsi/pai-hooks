@@ -21,6 +21,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex, updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
@@ -108,7 +109,7 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
     const result = adapterStat(path);
     return result.ok ? { mtimeMs: result.value.mtimeMs } : null;
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   now: () => Date.now(),
   findProjectRoot: defaultFindProjectRoot,
   cwd: () => process.cwd(),

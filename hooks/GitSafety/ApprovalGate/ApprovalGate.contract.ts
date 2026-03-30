@@ -20,6 +20,7 @@ import {
   type ContinueOutput,
   continueOk,
 } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
   checkCiStatus,
   extractPrNumber,
@@ -69,7 +70,7 @@ function formatVerificationReminder(prNumber: number): string {
 
 const defaultDeps: ApprovalGateDeps = {
   exec: (cmd: string) => execSyncSafe(cmd, { timeout: 15_000 }),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

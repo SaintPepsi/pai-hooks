@@ -16,6 +16,7 @@ import type { PaiError } from "@hooks/core/error";
 import { map, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -253,7 +254,7 @@ const defaultDeps: WorktreeSafetyDeps = {
   mkdirSync: (path: string) => {
     ensureDir(path);
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   cwd: () => process.cwd(),
 };
 

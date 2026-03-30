@@ -12,6 +12,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { isSubagent } from "@hooks/lib/environment";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ const defaultDeps: CheckVersionDeps = {
   getCurrentVersion: defaultGetCurrentVersion,
   getLatestVersion: defaultGetLatestVersion,
   isSubagent: () => isSubagent((k) => process.env[k]),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, CheckVersionDeps> = {

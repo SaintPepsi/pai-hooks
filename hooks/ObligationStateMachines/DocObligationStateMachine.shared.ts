@@ -205,5 +205,5 @@ export const defaultDeps: DocObligationDeps = {
   writeReview: (path: string, content: string) => {
     writeFile(path, content);
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };

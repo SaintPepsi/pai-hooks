@@ -15,6 +15,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
@@ -248,7 +249,7 @@ function formatBlockMessage(violations: AnyViolation[], filePath: string): strin
 
 const defaultDeps: TypeStrictnessDeps = {
   signal: defaultSignalLoggerDeps,
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const TypeStrictness: SyncHookContract<

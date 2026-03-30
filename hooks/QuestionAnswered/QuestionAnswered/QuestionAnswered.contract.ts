@@ -10,6 +10,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { readTabState, setTabState, stripPrefix } from "@hooks/lib/tab-setter";
 
 export interface QuestionAnsweredDeps {
@@ -23,7 +24,7 @@ const defaultDeps: QuestionAnsweredDeps = {
   setTabState,
   readTabState,
   stripPrefix,
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const QuestionAnswered: SyncHookContract<ToolHookInput, SilentOutput, QuestionAnsweredDeps> =

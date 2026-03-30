@@ -28,6 +28,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Artifact Allowlist ─────────────────────────────────────────────────────
@@ -222,7 +223,7 @@ function isArtifactDirCleanup(command: string): boolean {
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: DestructiveDeleteGuardDeps = {
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const DestructiveDeleteGuard: SyncHookContract<

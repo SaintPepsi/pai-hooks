@@ -22,6 +22,7 @@ import {
   type ContinueOutput,
   continueOk,
 } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ function formatBlockMessage(command: string): string {
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
 const defaultDeps: RebaseGuardDeps = {
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────

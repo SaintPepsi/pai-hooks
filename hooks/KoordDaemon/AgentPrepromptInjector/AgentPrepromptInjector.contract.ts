@@ -26,6 +26,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, UpdatedInputOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { continueOk, updatedInput } from "@hooks/core/types/hook-outputs";
 import {
   defaultReadFileOrNull,
@@ -56,7 +57,7 @@ const defaultDeps: AgentPrepromptInjectorDeps = {
   readFile,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   getCwd: () => process.cwd(),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

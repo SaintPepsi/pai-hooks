@@ -20,6 +20,7 @@ import {
   type ContinueOutput,
   continueOk,
 } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
   checkCiStatus,
   checkReviewStatus,
@@ -74,7 +75,7 @@ function formatReviewBlockMessage(
 
 const defaultDeps: MergeGateDeps = {
   exec: (cmd: string) => execSyncSafe(cmd, { timeout: 15_000 }),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

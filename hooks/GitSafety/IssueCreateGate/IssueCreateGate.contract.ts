@@ -20,6 +20,7 @@ import {
   type ContinueOutput,
   continueOk,
 } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ function isIssueCreate(command: string): boolean {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: IssueCreateGateDeps = {
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

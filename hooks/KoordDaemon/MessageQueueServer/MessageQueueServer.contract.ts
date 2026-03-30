@@ -22,6 +22,7 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
   defaultReadFileOrNull,
   getQueueDir,
@@ -64,7 +65,7 @@ const defaultDeps: MessageQueueServerDeps = {
       return false;
     }
   },
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   getScriptPath: () => {
     // Resolve relative to this file's location → ../../scripts/mq-server.ts
     const hookDir = import.meta.dir;

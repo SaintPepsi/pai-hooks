@@ -30,6 +30,7 @@ import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { silent } from "@hooks/core/types/hook-outputs";
 import type { CronFileDeps, CronPathDeps } from "@hooks/hooks/CronStatusLine/shared";
 import { appendCronLog, readCronFile, writeCronFile } from "@hooks/hooks/CronStatusLine/shared";
@@ -50,7 +51,7 @@ const defaultDeps: CronFireDeps = {
   readDir,
   removeFile,
   appendFile,
-  stderr: (msg: string) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
   getEnv: (key: string) => process.env[key],
   now: () => Date.now(),
 };

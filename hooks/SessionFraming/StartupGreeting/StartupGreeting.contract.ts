@@ -12,7 +12,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { persistKittySession } from "@hooks/lib/tab-setter";
@@ -62,7 +62,7 @@ const defaultDeps: StartupGreetingDeps = {
   ensureDir,
   writeFile,
   paiDir: getPaiDir(),
-  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stderr: defaultStderr,
 };
 
 export const StartupGreeting: SyncHookContract<
