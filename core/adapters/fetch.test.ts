@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { ErrorCode } from "../error";
-import { safeFetch } from "./fetch";
+import { ErrorCode } from "@hooks/core/error";
+import { safeFetch } from "@hooks/core/adapters/fetch";
 
 // ─── safeFetch ───────────────────────────────────────────────────────────────
 
@@ -10,6 +10,13 @@ describe("safeFetch", () => {
     expect(r.ok).toBe(false);
     // Could be either timeout or connection refused depending on system
     expect([ErrorCode.FetchFailed, ErrorCode.FetchTimeout]).toContain(r.error!.code);
+  });
+
+  it("returns FETCH_FAILED for non-abort errors (e.g., connection refused)", async () => {
+    // Port 1 on localhost triggers immediate connection refused — not a timeout
+    const r = await safeFetch("http://127.0.0.1:1", { timeout: 10000 });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe(ErrorCode.FetchFailed);
   });
 
   it("returns result with status for successful fetch", async () => {

@@ -8,7 +8,7 @@ import {
   _resetViolationCache,
   CodeQualityGuard,
   type CodeQualityGuardDeps,
-} from "./CodeQualityGuard.contract";
+} from "@hooks/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -293,6 +293,53 @@ describe("CodeQualityGuard", () => {
       expect(result.ok).toBe(true);
       if (result.ok && result.value.additionalContext) {
         expect(result.value.additionalContext).toBeDefined();
+      }
+    });
+  });
+
+  describe("Svelte file handling", () => {
+    test("continues when .svelte file has no script block", () => {
+      const deps = makeDeps({ readFile: () => ok("<div>Just HTML</div>") });
+      const input = makeInput({
+        tool_input: { file_path: "/src/Component.svelte" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.type).toBe("continue");
+    });
+
+    test("scores script block from .svelte file", () => {
+      const svelteContent = [
+        '<script lang="ts">',
+        ...Array.from({ length: 16 }, (_, i) => `function fn${i}() { return ${i}; }`),
+        "</script>",
+      ].join("\n");
+      const deps = makeDeps({ readFile: () => ok(svelteContent) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/Component.svelte" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe("violation dedup", () => {
+    test("suppresses duplicate violation report for same file", () => {
+      _resetViolationCache();
+      const deps = makeDeps({ readFile: () => ok(BLOATED_TS) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/bloated-dedup.ts" },
+      });
+
+      // First call — reports violations
+      const result1 = CodeQualityGuard.execute(input, deps);
+      expect(result1.ok).toBe(true);
+
+      // Second call same file, same violations — should be deduplicated (no advisory)
+      const result2 = CodeQualityGuard.execute(input, deps);
+      expect(result2.ok).toBe(true);
+      if (result2.ok) {
+        expect(result2.value.type).toBe("continue");
       }
     });
   });

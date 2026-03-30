@@ -10,6 +10,7 @@ import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-in
 import type { SessionIdRegisterDeps } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
 import { SessionIdRegister } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
 import {
+  defaultReadFileOrNull,
   extractAgentName,
   extractTask,
   extractThreadId,
@@ -136,6 +137,21 @@ describe("KoordDaemon shared", () => {
 
     test("returns null when not found", () => {
       expect(extractTask({})).toBeNull();
+    });
+  });
+
+  describe("defaultReadFileOrNull", () => {
+    test("returns file content for an existing file", () => {
+      const tmpPath = `/tmp/pai-test-readornull-${Date.now()}.txt`;
+      require("fs").writeFileSync(tmpPath, "hello");
+      const result = defaultReadFileOrNull(tmpPath);
+      expect(result).toBe("hello");
+      require("fs").unlinkSync(tmpPath);
+    });
+
+    test("returns null for a missing file", () => {
+      const result = defaultReadFileOrNull("/tmp/pai-nonexistent-file-xyz.json");
+      expect(result).toBeNull();
     });
   });
 });

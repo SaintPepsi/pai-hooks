@@ -6,7 +6,7 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   CodingStandardsAdvisor,
   type CodingStandardsAdvisorDeps,
-} from "./CodingStandardsAdvisor.contract";
+} from "@hooks/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -178,6 +178,36 @@ describe("CodingStandardsAdvisor", () => {
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/bad.ts"), deps));
       expect(result.additionalContext).toContain("3 violations");
+    });
+  });
+
+  describe("Svelte file handling", () => {
+    it("continues when .svelte file has no script block", () => {
+      const deps = makeDeps({ readFile: () => "<div>Just HTML</div>" });
+      const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/Comp.svelte"), deps));
+      expect(result.type).toBe("continue");
+      expect(result.additionalContext).toBeUndefined();
+    });
+
+    it("checks violations in .svelte script block", () => {
+      const svelteContent = [
+        '<script lang="ts">',
+        "const x = data as any;",
+        "</script>",
+      ].join("\n");
+      const deps = makeDeps({ readFile: () => svelteContent });
+      const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/Comp.svelte"), deps));
+      expect(result.additionalContext).toBeDefined();
+    });
+  });
+
+  describe("defaultDeps", () => {
+    it("defaultDeps.readFile returns null for missing file", () => {
+      expect(CodingStandardsAdvisor.defaultDeps.readFile("/tmp/pai-nonexistent-csa.ts")).toBeNull();
+    });
+
+    it("defaultDeps.stderr writes without throwing", () => {
+      expect(() => CodingStandardsAdvisor.defaultDeps.stderr("test")).not.toThrow();
     });
   });
 });

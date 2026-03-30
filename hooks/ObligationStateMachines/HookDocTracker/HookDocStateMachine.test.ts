@@ -468,3 +468,12 @@ describe("HookDocTracker defaultDeps", () => {
     expect(() => HookDocTracker.defaultDeps.stderr("test")).not.toThrow();
   });
 });
+
+// ─── HookDocEnforcer.accepts ────────────────────────────────────────────────
+
+describe("HookDocEnforcer.accepts", () => {
+  it("returns a boolean for any StopInput", () => {
+    const result = HookDocEnforcer.accepts(makeStopInput());
+    expect(typeof result).toBe("boolean");
+  });
+});

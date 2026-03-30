@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "QuestionAnswered.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -28,7 +33,7 @@ describe("QuestionAnswered hook shell", () => {
       tool_name: "AskUserQuestion",
       tool_input: { question: "What do you think?" },
       tool_result: "User answered: yes",
-      session_id: "test-question-answered",
+      session_id: uniqueSessionId("test-qa"),
     });
     expect(exitCode).toBe(0);
     // QuestionAnswered returns silent type which produces no stdout
@@ -45,7 +50,7 @@ describe("QuestionAnswered hook shell", () => {
       tool_name: "AskUserQuestion",
       tool_input: { question: "Another question" },
       tool_result: "User answered: no",
-      session_id: "test-question-answered-2",
+      session_id: uniqueSessionId("test-qa"),
     });
     expect(exitCode).toBe(0);
     expect(stdout === "" || stdout === "{}").toBe(true);

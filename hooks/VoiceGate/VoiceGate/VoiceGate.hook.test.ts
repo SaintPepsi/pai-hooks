@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "VoiceGate.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -29,7 +34,7 @@ describe("VoiceGate hook shell", () => {
       tool_input: {
         command: 'curl -s http://localhost:8888/notify -d \'{"message": "hello"}\'',
       },
-      session_id: "test-voice-gate",
+      session_id: uniqueSessionId("vg"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);
@@ -42,7 +47,7 @@ describe("VoiceGate hook shell", () => {
     const { stdout, exitCode } = await runHook({
       tool_name: "Bash",
       tool_input: { command: "echo hello world" },
-      session_id: "test-voice-gate",
+      session_id: uniqueSessionId("vg"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);

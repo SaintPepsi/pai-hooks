@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "SkillGuard.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -27,7 +32,7 @@ describe("SkillGuard hook shell", () => {
     const { stdout, exitCode } = await runHook({
       tool_name: "Skill",
       tool_input: { skill: "keybindings-help" },
-      session_id: "test-skill-guard",
+      session_id: uniqueSessionId("test-sg"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);
@@ -41,7 +46,7 @@ describe("SkillGuard hook shell", () => {
     const { stdout, exitCode } = await runHook({
       tool_name: "Skill",
       tool_input: { skill: "commit" },
-      session_id: "test-skill-guard",
+      session_id: uniqueSessionId("test-sg"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);

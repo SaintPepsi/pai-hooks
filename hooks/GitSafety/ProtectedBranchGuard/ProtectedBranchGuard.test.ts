@@ -6,7 +6,7 @@ import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs
 import {
   ProtectedBranchGuard,
   type ProtectedBranchGuardDeps,
-} from "./ProtectedBranchGuard.contract";
+} from "@hooks/hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract";
 
 function makeDeps(overrides: Partial<ProtectedBranchGuardDeps> = {}): ProtectedBranchGuardDeps {
   return {
@@ -364,5 +364,10 @@ describe("ProtectedBranchGuard defaultDeps", () => {
 
   it("defaultDeps.stderr writes without throwing", () => {
     expect(() => ProtectedBranchGuard.defaultDeps.stderr("test")).not.toThrow();
+  });
+
+  it("defaultDeps.getExemptDirs returns an array", () => {
+    const result = ProtectedBranchGuard.defaultDeps.getExemptDirs();
+    expect(Array.isArray(result)).toBe(true);
   });
 });

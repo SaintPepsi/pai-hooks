@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "SecurityValidator.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -27,7 +32,7 @@ describe("SecurityValidator hook shell", () => {
     const { stdout, exitCode } = await runHook({
       tool_name: "Bash",
       tool_input: { command: "echo hello" },
-      session_id: "test-security",
+      session_id: uniqueSessionId("sv"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);
@@ -39,7 +44,7 @@ describe("SecurityValidator hook shell", () => {
     const { stdout, exitCode } = await runHook({
       tool_name: "Read",
       tool_input: { file_path: "/tmp/test-file.txt" },
-      session_id: "test-security",
+      session_id: uniqueSessionId("sv"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);
@@ -50,7 +55,7 @@ describe("SecurityValidator hook shell", () => {
     const { stdout, exitCode } = await runHook({
       tool_name: "Grep",
       tool_input: { pattern: "test" },
-      session_id: "test-security",
+      session_id: uniqueSessionId("sv"),
     });
     expect(exitCode).toBe(0);
     const result = JSON.parse(stdout);

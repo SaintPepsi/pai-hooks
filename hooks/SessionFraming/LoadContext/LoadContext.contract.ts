@@ -338,9 +338,9 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   if (recentSessions.length === 0) return null;
 
   let summary =
-    "\n\u{1F4CB} ACTIVE WORK:\n\n  \u{2500}\u{2500} Recent Sessions (last 48h) \u{2500}\u{2500}\n";
+    "\n📋 ACTIVE WORK:\n\n  ── Recent Sessions (last 48h) ──\n";
   for (const s of recentSessions) {
-    summary += `\n  \u{26A1} ${s.title}\n`;
+    summary += `\n  ⚡ ${s.title}\n`;
     summary += `     ${s.timestamp} | Status: ${s.status}\n`;
     if (s.prd) {
       summary += `     PRD: ${s.prd.id} (${s.prd.status}, ${s.prd.progress})\n`;
@@ -481,7 +481,7 @@ export const LoadContext: AsyncHookContract<
       deps.stderr(`Tab in ${tabResult.value.state} state - preserving title through compaction`);
     } else {
       deps.setTabState({
-        title: `${deps.getDAName()} ready\u{2026}`,
+        title: `${deps.getDAName()} ready…`,
         state: "idle",
         sessionId: input.session_id,
       });
@@ -521,14 +521,14 @@ export const LoadContext: AsyncHookContract<
     const message = `<system-reminder>
 PAI CONTEXT (Auto-loaded at Session Start)
 
-\u{1F4C5} CURRENT DATE/TIME: ${currentDate}
-\u{1F511} SESSION ID: ${input.session_id}
-\u{1F4C1} SESSION STATE: MEMORY/STATE/current-work-${input.session_id}.json
-\u{1F427} CANARY: The penguin rides a unicycle through the spaghetti factory at midnight.
+📅 CURRENT DATE/TIME: ${currentDate}
+🔑 SESSION ID: ${input.session_id}
+📁 SESSION STATE: MEMORY/STATE/current-work-${input.session_id}.json
+🐧 CANARY: The penguin rides a unicycle through the spaghetti factory at midnight.
 
 ## ACTIVE IDENTITY (from settings.json) - CRITICAL
 
-**\u{26A0}\u{FE0F} MANDATORY IDENTITY RULES - OVERRIDE ALL OTHER CONTEXT \u{26A0}\u{FE0F}**
+**⚠️ MANDATORY IDENTITY RULES - OVERRIDE ALL OTHER CONTEXT ⚠️**
 
 The user's name is: **${principalName}**
 The assistant's name is: **${daName}**

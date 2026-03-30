@@ -15,7 +15,7 @@ import {
 } from "@hooks/core/adapters/fs";
 import { ErrorCode, PaiError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
-import { type ValidationReport, type ValidatorDeps, validate } from "./validator";
+import { type ValidationReport, type ValidatorDeps, validate } from "@hooks/cli/core/validator";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -93,6 +93,28 @@ describe("validate", () => {
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error.code).toBe(ErrorCode.JsonParseFailed);
+      }
+    });
+
+    it("reports CONTRACT_MISSING when contract file does not exist", () => {
+      const deps = makeDeps({
+        fileExists: (path: string) => !path.endsWith(".contract.ts"),
+        readJson: () => ok({
+          name: "TestHook",
+          group: "TestGroup",
+          event: "PreToolUse",
+          description: "test",
+          schemaVersion: 1,
+          deps: [],
+        }),
+        readFile: () => ok('import { ok } from "@hooks/core/result";'),
+      });
+
+      const result = validate("/fake/TestHook.contract.ts", "/fake/hook.json", deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.valid).toBe(false);
+        expect(result.value.diagnostics.some((d) => d.code === "CONTRACT_MISSING")).toBe(true);
       }
     });
 

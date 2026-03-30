@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "RatingCapture.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -29,7 +34,7 @@ describe("RatingCapture hook shell", () => {
     // containing the algorithm format reminder (raw string, not JSON).
     // See: contracts/RatingCapture.ts accepts(), parseExplicitRating(), execute()
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("test-rc"),
       prompt: "7",
     });
     expect(result.exitCode).toBe(0);
@@ -43,7 +48,7 @@ describe("RatingCapture hook shell", () => {
     // Short prompts (< MIN_PROMPT_LENGTH of 3) skip sentiment analysis
     // but still return the algorithm reminder.
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("test-rc"),
       prompt: "ok",
     });
     expect(result.exitCode).toBe(0);
@@ -55,7 +60,7 @@ describe("RatingCapture hook shell", () => {
     // Empty prompt still passes accepts() (returns true unconditionally).
     // execute() treats empty prompt as length 0 (< MIN_PROMPT_LENGTH), skips sentiment.
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("test-rc"),
       prompt: "",
     });
     expect(result.exitCode).toBe(0);

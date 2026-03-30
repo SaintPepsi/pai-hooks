@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { processExecFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { CheckVersion, type CheckVersionDeps } from "./CheckVersion.contract";
+import {
+  CheckVersion,
+  type CheckVersionDeps,
+} from "@hooks/hooks/SessionFraming/CheckVersion/CheckVersion.contract";
 
 const baseInput: SessionStartInput = {
   session_id: "test-session-123",
@@ -108,5 +111,28 @@ describe("CheckVersion", () => {
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
     expect(messages.length).toBe(0);
+  });
+});
+
+// ─── defaultDeps ────────────────────────────────────────────────────────────
+
+describe("CheckVersion defaultDeps", () => {
+  test("getCurrentVersion returns a Result", async () => {
+    const result = await CheckVersion.defaultDeps.getCurrentVersion();
+    // May succeed or fail depending on whether claude CLI is installed
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("getLatestVersion returns a Result", async () => {
+    const result = await CheckVersion.defaultDeps.getLatestVersion();
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("isSubagent returns a boolean", () => {
+    expect(typeof CheckVersion.defaultDeps.isSubagent()).toBe("boolean");
+  });
+
+  test("stderr writes without throwing", () => {
+    expect(() => CheckVersion.defaultDeps.stderr("test")).not.toThrow();
   });
 });

@@ -5,6 +5,7 @@ import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { TestObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
 import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+import { readTestExcludePatterns } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import {
   TestObligationTracker,
   type TestTrackerDeps,
@@ -934,5 +935,80 @@ describe("TestObligationTracker defaultDeps", () => {
   it("defaultDeps.stateDir is a string path", () => {
     expect(typeof TestObligationTracker.defaultDeps.stateDir).toBe("string");
     expect(TestObligationTracker.defaultDeps.stateDir).toContain("test-obligation");
+  });
+
+  it("defaultDeps.readPending handles corrupt state file", () => {
+    const tmpPath = `/tmp/pai-test-tosm-corrupt-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, "{ broken json !!!");
+    const result = TestObligationTracker.defaultDeps.readPending(tmpPath);
+    expect(result).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("defaultDeps.readPending returns parsed array for valid file", () => {
+    const tmpPath = `/tmp/pai-test-tosm-rp-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
+    const result = TestObligationTracker.defaultDeps.readPending(tmpPath);
+    expect(result).toEqual(["/src/a.ts"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("defaultDeps.readBlockCount parses numeric content", () => {
+    const tmpPath = `/tmp/pai-test-tosm-bc-${Date.now()}.txt`;
+    require("fs").writeFileSync(tmpPath, "42");
+    const result = TestObligationTracker.defaultDeps.readBlockCount(tmpPath);
+    expect(result).toBe(42);
+    require("fs").unlinkSync(tmpPath);
+  });
+});
+
+// ─── readTestExcludePatterns ────────────────────────────────────────────────
+
+describe("readTestExcludePatterns", () => {
+  it("returns empty array for nonexistent settings", () => {
+    expect(readTestExcludePatterns("/tmp/nonexistent-tosm-12345.json")).toEqual([]);
+  });
+
+  it("returns empty array for malformed JSON", () => {
+    const tmpPath = `/tmp/pai-test-tosm-excl-bad-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, "{ broken !!!");
+    expect(readTestExcludePatterns(tmpPath)).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("returns patterns when present", () => {
+    const tmpPath = `/tmp/pai-test-tosm-excl-${Date.now()}.json`;
+    require("fs").writeFileSync(
+      tmpPath,
+      JSON.stringify({
+        hookConfig: { testObligation: { excludePatterns: ["**/vendor/**"] } },
+      }),
+    );
+    expect(readTestExcludePatterns(tmpPath)).toEqual(["**/vendor/**"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("returns empty array when no testObligation config", () => {
+    const tmpPath = `/tmp/pai-test-tosm-excl-none-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify({ hookConfig: {} }));
+    expect(readTestExcludePatterns(tmpPath)).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+});
+
+// ─── defaultDeps write-failure branches ─────────────────────────────────────
+
+describe("TestObligationTracker defaultDeps — write failures", () => {
+  it("defaultDeps.writePending does not throw on write failure", () => {
+    // /proc is read-only on all platforms, triggering the error branch
+    expect(() =>
+      TestObligationTracker.defaultDeps.writePending("/proc/pai-test-write-fail.json", ["/a.ts"]),
+    ).not.toThrow();
+  });
+
+  it("defaultDeps.writeBlockCount does not throw on write failure", () => {
+    expect(() =>
+      TestObligationTracker.defaultDeps.writeBlockCount("/proc/pai-test-bc-fail.txt", 1),
+    ).not.toThrow();
   });
 });

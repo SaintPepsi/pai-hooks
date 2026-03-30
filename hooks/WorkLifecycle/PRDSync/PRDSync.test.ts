@@ -2,13 +2,15 @@ import { describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
-import type { PRDSyncDeps } from "./PRDSync.contract";
+import { fileReadFailed } from "@hooks/core/error";
+import { err } from "@hooks/core/result";
+import type { PRDSyncDeps } from "@hooks/hooks/WorkLifecycle/PRDSync/PRDSync.contract";
 import {
   extractSessionDir,
   PRDSync,
   parseCriteriaCounts,
   parseFrontmatter,
-} from "./PRDSync.contract";
+} from "@hooks/hooks/WorkLifecycle/PRDSync/PRDSync.contract";
 
 // ─── extractSessionDir ─────────────────────────────────────────────────────
 
@@ -256,5 +258,172 @@ describe("parseCriteriaCounts", () => {
     const counts = parseCriteriaCounts(content);
     expect(counts.total).toBe(3);
     expect(counts.done).toBe(2);
+  });
+});
+
+// ─── PRDSync.accepts ────────────────────────────────────────────────────────
+
+describe("PRDSync.accepts", () => {
+  test("accepts Write to a PRD.md in MEMORY/WORK/", () => {
+    expect(PRDSync.accepts({
+      session_id: "s", tool_name: "Write",
+      tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md", content: "" },
+    })).toBe(true);
+  });
+
+  test("accepts Edit to a PRD.md in MEMORY/WORK/", () => {
+    expect(PRDSync.accepts({
+      session_id: "s", tool_name: "Edit",
+      tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md", old_string: "", new_string: "" },
+    })).toBe(true);
+  });
+
+  test("rejects non-Write/Edit tools", () => {
+    expect(PRDSync.accepts({
+      session_id: "s", tool_name: "Read",
+      tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md" },
+    })).toBe(false);
+  });
+
+  test("rejects files not in MEMORY/WORK/", () => {
+    expect(PRDSync.accepts({
+      session_id: "s", tool_name: "Write",
+      tool_input: { file_path: "/tmp/other/PRD.md", content: "" },
+    })).toBe(false);
+  });
+});
+
+// ─── PRDSync.execute — error branches ───────────────────────────────────────
+
+describe("PRDSync.execute — error branches", () => {
+  const PRD_PATH = "/tmp/test/MEMORY/WORK/20260315-slug/PRD.md";
+
+  function makeExecInput(filePath = PRD_PATH) {
+    return {
+      session_id: "test-sess",
+      tool_name: "Write" as const,
+      tool_input: { file_path: filePath, content: "ignored" },
+    };
+  }
+
+  const VALID_PRD = `---
+task: Test
+slug: test-slug
+phase: observe
+progress: 0/2
+mode: algorithm
+started: 2026-01-01
+updated: 2026-01-01
+---
+
+## Criteria
+
+- [ ] ISC-1: First
+`;
+
+  function makeSyncDeps(overrides: Partial<PRDSyncDeps> = {}): PRDSyncDeps {
+    return {
+      readFile: () => ok(VALID_PRD),
+      writeFile: () => ok(undefined),
+      fileExists: () => true,
+      readJson: (() => ok({})) as PRDSyncDeps["readJson"],
+      stderr: () => {},
+      baseDir: "/tmp/test",
+      ...overrides,
+    };
+  }
+
+  test("continues when PRD file not found on disk", () => {
+    const stderrMsgs: string[] = [];
+    const deps = makeSyncDeps({
+      fileExists: () => false,
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+    expect(stderrMsgs.some((m) => m.includes("not found on disk"))).toBe(true);
+  });
+
+  test("continues when readFile fails", () => {
+    const stderrMsgs: string[] = [];
+    const deps = makeSyncDeps({
+      readFile: () => err(fileReadFailed("/prd", new Error("io err"))),
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(stderrMsgs.some((m) => m.includes("Failed to read PRD"))).toBe(true);
+  });
+
+  test("continues when frontmatter is missing", () => {
+    const stderrMsgs: string[] = [];
+    const deps = makeSyncDeps({
+      readFile: () => ok("Just plain text, no frontmatter"),
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(stderrMsgs.some((m) => m.includes("No frontmatter"))).toBe(true);
+  });
+
+  test("continues when slug is missing from frontmatter", () => {
+    const stderrMsgs: string[] = [];
+    const noSlugPrd = `---
+task: Test
+phase: observe
+---
+`;
+    const deps = makeSyncDeps({
+      readFile: () => ok(noSlugPrd),
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(stderrMsgs.some((m) => m.includes("missing slug"))).toBe(true);
+  });
+
+  test("handles session state readJson failure gracefully", () => {
+    const stderrMsgs: string[] = [];
+    const deps = makeSyncDeps({
+      readJson: ((path: string) => {
+        if (path.includes("current-work-")) return err(fileReadFailed(path, new Error("corrupt")));
+        return ok({});
+      }) as PRDSyncDeps["readJson"],
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(stderrMsgs.some((m) => m.includes("Failed to read session state"))).toBe(true);
+  });
+
+  test("handles session state writeFile failure gracefully", () => {
+    const stderrMsgs: string[] = [];
+    const deps = makeSyncDeps({
+      readJson: (() => ok({ session_id: "s" })) as PRDSyncDeps["readJson"],
+      writeFile: (path: string) => {
+        // Fail on session state write, succeed on work.json
+        if (path.includes("current-work-")) return err(fileReadFailed(path, new Error("disk full")));
+        return ok(undefined);
+      },
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(stderrMsgs.some((m) => m.includes("Failed to write session state"))).toBe(true);
+  });
+
+  test("handles work.json readJson failure (starts fresh)", () => {
+    const stderrMsgs: string[] = [];
+    const deps = makeSyncDeps({
+      readJson: ((path: string) => {
+        if (path.includes("work.json")) return err(fileReadFailed(path, new Error("corrupt")));
+        return ok({});
+      }) as PRDSyncDeps["readJson"],
+      stderr: (m) => stderrMsgs.push(m),
+    });
+    const result = PRDSync.execute(makeExecInput(), deps);
+    expect(result.ok).toBe(true);
+    expect(stderrMsgs.some((m) => m.includes("starting fresh"))).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { DestructiveDeleteGuardDeps } from "./DestructiveDeleteGuard.contract";
-import { DestructiveDeleteGuard } from "./DestructiveDeleteGuard.contract";
+import type { DestructiveDeleteGuardDeps } from "@hooks/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.contract";
+import { DestructiveDeleteGuard } from "@hooks/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -646,6 +646,28 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
   test("allows shutil import without rmtree", () => {
     const code = "import shutil\nshutil.copy2(src, dst)";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows edits to core/adapters/fs.ts even with destructive patterns", () => {
+    const code = 'rmSync(path, { recursive: true, force: true });';
+    const result = DestructiveDeleteGuard.execute(
+      editInput(code, "/project/core/adapters/fs.ts"),
+      mockDeps,
+    );
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("returns empty content for non-Edit/non-Write tools in content check path", () => {
+    // Bash tool with a Bash command that contains rm -rf but NOT as a bash command pattern
+    // This exercises getContentToCheck returning "" for Bash (line 187)
+    // The Bash tool goes through the bash command path, not the content check path
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Read",
+      tool_input: { file_path: "/some/file.ts" },
+    };
+    const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok && result.value.type).toBe("continue");
   });
 });

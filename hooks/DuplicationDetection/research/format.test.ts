@@ -206,3 +206,18 @@ describe("formatSummary", () => {
     expect(result).toContain("100ms");
   });
 });
+
+// ─── Research Adapters ──────────────────────────────────────────────────────
+
+describe("existsSafe", () => {
+  // Importing dynamically to avoid polluting the main import block
+  const { existsSafe } = require("@hooks/hooks/DuplicationDetection/research/adapters");
+
+  test("returns true for existing path", () => {
+    expect(existsSafe("/tmp")).toBe(true);
+  });
+
+  test("returns false for missing path", () => {
+    expect(existsSafe("/tmp/pai-nonexistent-xyz-check")).toBe(false);
+  });
+});

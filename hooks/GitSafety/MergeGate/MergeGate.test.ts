@@ -265,6 +265,21 @@ describe("MergeGate", () => {
     expect(result.value.type).toBe("continue");
   });
 
+  it("allows merge with warning when PR number cannot be determined", () => {
+    const stderrMessages: string[] = [];
+    const deps: MergeGateDeps = {
+      exec: () => err(processExecFailed("gh pr view", new Error("not a git repo"))),
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
+    };
+    const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps) as GateResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
+  });
+
   // ── Logs to stderr ──
 
   it("logs block reason to stderr", () => {

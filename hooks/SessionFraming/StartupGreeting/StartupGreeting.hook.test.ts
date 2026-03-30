@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "StartupGreeting.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -25,7 +30,7 @@ async function runHook(
 describe("StartupGreeting hook shell", () => {
   it("exits 0 for SessionStart event", async () => {
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("sg"),
     });
     expect(result.exitCode).toBe(0);
     // SessionStart outputs either context (raw string) or silent (no stdout)
@@ -34,7 +39,7 @@ describe("StartupGreeting hook shell", () => {
 
   it("produces parseable or empty output", async () => {
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("sg"),
     });
     expect(result.exitCode).toBe(0);
     // StartupGreeting returns either context (banner text) or silent (empty)

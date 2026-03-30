@@ -7,7 +7,7 @@ import {
   stripCommentsAndStrings,
   TypeStrictness,
   type TypeStrictnessDeps,
-} from "./TypeStrictness.contract";
+} from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -452,5 +452,62 @@ describe("findLazyUnknownUsage", () => {
     const code = 'const msg = "type unknown is not allowed";';
     const warnings = findLazyUnknownUsage(code);
     expect(warnings.length).toBe(0);
+  });
+});
+
+// ─── getToolContent edge cases ──────────────────────────────────────────────
+
+describe("TypeStrictness.execute — tool content extraction", () => {
+  it("extracts content from Edit tool new_string", () => {
+    const input = makeInput({
+      tool_name: "Edit",
+      tool_input: {
+        file_path: "/project/src/utils.ts",
+        new_string: `const x${COLON_ANY};`,
+      },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("block");
+  });
+
+  it("continues for non-Write/non-Edit tools", () => {
+    const input = makeInput({
+      tool_name: "Read",
+      tool_input: { file_path: "/project/src/utils.ts" },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
+
+// ─── Svelte file handling ───────────────────────────────────────────────────
+
+describe("TypeStrictness.execute — Svelte files", () => {
+  it("scans script block from .svelte file", () => {
+    const svelteContent = [
+      '<script lang="ts">',
+      `const x${COLON_ANY} = "hello";`,
+      "</script>",
+      "<div>hello</div>",
+    ].join("\n");
+    const input = makeInput({
+      tool_name: "Write",
+      tool_input: { file_path: "/project/src/Component.svelte", content: svelteContent },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("block");
+  });
+
+  it("continues when .svelte file has no script block", () => {
+    const input = makeInput({
+      tool_name: "Write",
+      tool_input: { file_path: "/project/src/NoScript.svelte", content: "<div>Just HTML</div>" },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
   });
 });

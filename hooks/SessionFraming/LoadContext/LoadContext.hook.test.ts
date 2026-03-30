@@ -3,6 +3,11 @@ import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "LoadContext.hook.ts");
 
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
 async function runHook(
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -29,7 +34,7 @@ describe("LoadContext hook shell", () => {
     // or SilentOutput if no context files found or if running as subagent.
     // See: contracts/LoadContext.ts accepts() and execute()
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("lc"),
     });
     expect(result.exitCode).toBe(0);
     // Output is either context string (contains system-reminder) or empty (silent/subagent)

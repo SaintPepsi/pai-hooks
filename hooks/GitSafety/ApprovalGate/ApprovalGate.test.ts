@@ -218,6 +218,24 @@ describe("ApprovalGate", () => {
     ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(stderrMessages.some((m) => m.includes("ApprovalGate"))).toBe(true);
   });
+
+  it("allows approval with warning when PR number cannot be determined", () => {
+    const stderrMessages: string[] = [];
+    const deps: ApprovalGateDeps = {
+      exec: () => err(processExecFailed("gh pr view", new Error("not a git repo"))),
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
+    };
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review --approve"),
+      deps,
+    ) as GateResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
+  });
 });
 
 describe("ApprovalGate defaultDeps", () => {

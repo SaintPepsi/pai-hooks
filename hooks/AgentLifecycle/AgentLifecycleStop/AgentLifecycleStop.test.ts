@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { fileNotFound, fileWriteFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SubagentStopInput } from "@hooks/core/types/hook-inputs";
-import type { AgentFileData, AgentLifecycleDeps } from "../shared";
-import { AgentLifecycleStop } from "./AgentLifecycleStop.contract";
+import type { AgentFileData, AgentLifecycleDeps } from "@hooks/hooks/AgentLifecycle/shared";
+import { AgentLifecycleStop } from "@hooks/hooks/AgentLifecycle/AgentLifecycleStop/AgentLifecycleStop.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -399,6 +399,20 @@ describe("AgentLifecycleStop", () => {
       const result = AgentLifecycleStop.execute(stopInput, deps);
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.type).toBe("silent");
+    });
+
+    test("returns silent when ensureDir fails", () => {
+      const stderrMessages: string[] = [];
+      const deps = makeDeps({
+        ensureDir: () => err(fileWriteFailed(AGENTS_DIR, new Error("permission denied"))),
+        stderr: (msg) => {
+          stderrMessages.push(msg);
+        },
+      });
+      const result = AgentLifecycleStop.execute(stopInput, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.type).toBe("silent");
+      expect(stderrMessages.some((m) => m.includes("failed to ensure agents dir"))).toBe(true);
     });
   });
 });

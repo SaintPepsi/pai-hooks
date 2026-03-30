@@ -461,5 +461,68 @@ function bar() {}
       const interfaceCheck = result.checkResults.find((c) => c.check === "interface-members");
       expect(interfaceCheck).toBeUndefined();
     });
+
+    test("detects excessive interface members", () => {
+      const wideInterface = `
+interface BigDeps {
+  a: string;
+  b: string;
+  c: string;
+  d: string;
+  e: string;
+  f: string;
+  g: string;
+  h: string;
+  i: string;
+}
+`;
+      const result = scoreFile(wideInterface, tsProfile, "src/wide.ts");
+      const violation = result.violations.find((v) => v.check === "interface-members");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/wide.ts");
+      expect(advisory).toContain("Interface has");
+    });
+
+    test("detects throw statements in non-adapter files", () => {
+      const throwHeavy = `
+import { ok } from "./result";
+function validate(x: string) {
+  if (!x) throw new Error("empty");
+  if (x.length > 100) throw new Error("too long");
+}
+`;
+      const result = scoreFile(throwHeavy, tsProfile, "src/validator.ts");
+      const violation = result.violations.find((v) => v.check === "throw-count");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/validator.ts");
+      expect(advisory).toContain("throw statements");
+    });
+
+    test("detects excessive null returns", () => {
+      const nullReturns = `
+function findA(): string | null { return null; }
+function findB(): string | null { return null; }
+function findC(): string | null { return null; }
+`;
+      const result = scoreFile(nullReturns, tsProfile, "src/finders.ts");
+      const violation = result.violations.find((v) => v.check === "null-return-count");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/finders.ts");
+      expect(advisory).toContain("null/undefined returns");
+    });
+
+    test("detects mixed error strategies", () => {
+      const mixed = `
+import type { Result } from "./result";
+import { ok, err } from "./result";
+function safe(): Result<string, Error> { return ok("ok"); }
+function unsafe() { try { doStuff(); } catch (e) { throw e; } }
+`;
+      const result = scoreFile(mixed, tsProfile, "src/mixed.ts");
+      const violation = result.violations.find((v) => v.check === "mixed-error-strategy");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/mixed.ts");
+      expect(advisory).toContain("mixes Result");
+    });
   });
 });

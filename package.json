@@ -10,6 +10,7 @@
     "test:coverage": "bun test --coverage",
     "docs:render": "bun run scripts/docs/render.ts",
     "docs:check": "bun run scripts/docs/check.ts",
+    "docs:gate": "bun run scripts/docs/pre-commit-gate.ts",
     "prepare": "husky"
   },
   "devDependencies": {
