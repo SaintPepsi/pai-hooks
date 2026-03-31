@@ -10,89 +10,88 @@ All Claude Code hooks for [@SaintPepsi](https://github.com/SaintPepsi)'s PAI set
 
 Hooks that implement or support the PAI Algorithm workflow.
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| `AlgorithmTracker` | PostToolUse | Detects Algorithm phase transitions from tool calls |
-| `PRDSync` | PostToolUse | Syncs PRD frontmatter and criteria to work.json for dashboard |
-| `AutoWorkCreation` | UserPromptSubmit | Creates MEMORY/WORK directories for new tasks |
-| `LoadContext` | SessionStart | Loads PAI context files at session start |
-| `StartupGreeting` | SessionStart | Displays PAI banner and system status |
-| `CheckVersion` | SessionStart | Checks for Claude Code updates |
-| `CheckAlgorithmVersion` | SessionStart | Validates Algorithm version at session start |
-| `SkillGuard` | PreToolUse | Validates Skill tool invocations |
-| `VoiceGate` | PreToolUse | Controls voice notification routing |
+| Hook                    | Event            | Description                                                   |
+| ----------------------- | ---------------- | ------------------------------------------------------------- |
+| `AlgorithmTracker`      | PostToolUse      | Detects Algorithm phase transitions from tool calls           |
+| `PRDSync`               | PostToolUse      | Syncs PRD frontmatter and criteria to work.json for dashboard |
+| `AutoWorkCreation`      | UserPromptSubmit | Creates MEMORY/WORK directories for new tasks                 |
+| `LoadContext`           | SessionStart     | Loads PAI context files at session start                      |
+| `StartupGreeting`       | SessionStart     | Displays PAI banner and system status                         |
+| `CheckVersion`          | SessionStart     | Checks for Claude Code updates                                |
+| `CheckAlgorithmVersion` | SessionStart     | Validates Algorithm version at session start                  |
+| `SkillGuard`            | PreToolUse       | Validates Skill tool invocations                              |
+| `VoiceGate`             | PreToolUse       | Controls voice notification routing                           |
 
 ### Session Management
 
 Hooks that manage session lifecycle, learning, and state persistence.
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| `SessionSummary` | SessionEnd | Generates session summary on end |
-| `SessionAutoName` | UserPromptSubmit | Auto-names sessions from first prompt |
-| `SessionQualityReport` | SessionEnd | Produces quality metrics per session |
-| `RatingCapture` | UserPromptSubmit | Captures user ratings (1-10) for learning signals |
-| `RelationshipMemory` | SessionEnd | Persists relationship context to memory |
-| `WorkCompletionLearning` | SessionEnd | Extracts learning signals from completed work |
-| `LearningActioner` | SessionEnd | Spawns agent to analyze session learnings |
-| `ModeAnalytics` | SessionEnd | Tracks Algorithm/Native/Minimal mode usage |
-| `ArticleWriter` | SessionEnd | Generates article drafts from session content |
-| `UpdateCounts` | SessionEnd | Updates hook/file/signal counters for dashboard |
-| `QuestionAnswered` | PostToolUse | Tracks AskUserQuestion responses |
-| `PreCompactStatePersist` | PreCompact | Persists state before context compaction |
-| `LastResponseCache` | Stop | Caches last response for reference |
-| `StopOrchestrator` | Stop | Coordinates Stop event hooks |
+| Hook                     | Event            | Description                                       |
+| ------------------------ | ---------------- | ------------------------------------------------- |
+| `SessionSummary`         | SessionEnd       | Generates session summary on end                  |
+| `SessionQualityReport`   | SessionEnd       | Produces quality metrics per session              |
+| `RatingCapture`          | UserPromptSubmit | Captures user ratings (1-10) for learning signals |
+| `RelationshipMemory`     | SessionEnd       | Persists relationship context to memory           |
+| `WorkCompletionLearning` | SessionEnd       | Extracts learning signals from completed work     |
+| `LearningActioner`       | SessionEnd       | Spawns agent to analyze session learnings         |
+| `ModeAnalytics`          | SessionEnd       | Tracks Algorithm/Native/Minimal mode usage        |
+| `ArticleWriter`          | SessionEnd       | Generates article drafts from session content     |
+| `UpdateCounts`           | SessionEnd       | Updates hook/file/signal counters for dashboard   |
+| `QuestionAnswered`       | PostToolUse      | Tracks AskUserQuestion responses                  |
+| `PreCompactStatePersist` | PreCompact       | Persists state before context compaction          |
+| `LastResponseCache`      | Stop             | Caches last response for reference                |
+| `StopOrchestrator`       | Stop             | Coordinates Stop event hooks                      |
 
 ### Security & Safety
 
 Hooks that protect against destructive or unauthorized actions.
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| `SecurityValidator` | PreToolUse | Blocks writes to protected files (settings.json, etc.) |
-| `DestructiveDeleteGuard` | PreToolUse | Confirms before recursive deletes or mass file removal |
-| `BashWriteGuard` | PreToolUse | Prevents bypassing Edit/Write via Bash sed/echo |
-| `AgentExecutionGuard` | PreToolUse | Controls agent spawning permissions |
-| `WorktreeSafetyVerification` | PostToolUse | Prevents cross-worktree contamination |
-| `HookExecutePermission` | PostToolUse | Controls hook execution permissions on Write |
+| Hook                         | Event       | Description                                            |
+| ---------------------------- | ----------- | ------------------------------------------------------ |
+| `SecurityValidator`          | PreToolUse  | Blocks writes to protected files (settings.json, etc.) |
+| `DestructiveDeleteGuard`     | PreToolUse  | Confirms before recursive deletes or mass file removal |
+| `BashWriteGuard`             | PreToolUse  | Prevents bypassing Edit/Write via Bash sed/echo        |
+| `AgentExecutionGuard`        | PreToolUse  | Controls agent spawning permissions                    |
+| `WorktreeSafetyVerification` | PostToolUse | Prevents cross-worktree contamination                  |
+| `HookExecutePermission`      | PostToolUse | Controls hook execution permissions on Write           |
 
 ### Code Quality
 
 Hooks that enforce coding standards and track quality metrics.
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| `TypeStrictness` | PreToolUse | Hard-blocks `any` types in TypeScript |
-| `CodingStandardsEnforcer` | PreToolUse | Enforces coding standards on Write/Edit |
-| `CodingStandardsAdvisor` | PostToolUse | Suggests improvements post-Read |
-| `CodeQualityGuard` | PostToolUse | Blocks low-quality code patterns |
-| `CodeQualityBaseline` | PostToolUse | Tracks quality scores over time |
-| `MapleBranding` | PreToolUse | Enforces Maple identity in external comms |
-| `GitignoreRecommender` | SessionStart | Suggests .gitignore improvements |
+| Hook                      | Event        | Description                               |
+| ------------------------- | ------------ | ----------------------------------------- |
+| `TypeStrictness`          | PreToolUse   | Hard-blocks `any` types in TypeScript     |
+| `CodingStandardsEnforcer` | PreToolUse   | Enforces coding standards on Write/Edit   |
+| `CodingStandardsAdvisor`  | PostToolUse  | Suggests improvements post-Read           |
+| `CodeQualityGuard`        | PostToolUse  | Blocks low-quality code patterns          |
+| `CodeQualityBaseline`     | PostToolUse  | Tracks quality scores over time           |
+| `MapleBranding`           | PreToolUse   | Enforces Maple identity in external comms |
+| `GitignoreRecommender`    | SessionStart | Suggests .gitignore improvements          |
 
 ### Workflow & Obligations
 
 Hooks that enforce development workflow practices.
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| `BranchAwareness` | SessionStart | Injects current git branch context |
-| `GitAutoSync` | SessionEnd | Auto-commits ~/.claude on session end |
-| `DocObligationTracker` | PostToolUse | Tracks doc changes alongside code |
-| `DocObligationEnforcer` | Stop | Enforces documentation obligations |
-| `TestObligationTracker` | PostToolUse | Tracks test changes alongside code |
-| `TestObligationEnforcer` | Stop | Enforces test obligations |
-| `ArchitectureEscalation` | PostToolUse | Escalates after N failed fix attempts |
-| `SonnetDelegation` | PostToolUse | Routes sub-agent work to appropriate models |
+| Hook                     | Event        | Description                                 |
+| ------------------------ | ------------ | ------------------------------------------- |
+| `BranchAwareness`        | SessionStart | Injects current git branch context          |
+| `GitAutoSync`            | SessionEnd   | Auto-commits ~/.claude on session end       |
+| `DocObligationTracker`   | PostToolUse  | Tracks doc changes alongside code           |
+| `DocObligationEnforcer`  | Stop         | Enforces documentation obligations          |
+| `TestObligationTracker`  | PostToolUse  | Tracks test changes alongside code          |
+| `TestObligationEnforcer` | Stop         | Enforces test obligations                   |
+| `ArchitectureEscalation` | PostToolUse  | Escalates after N failed fix attempts       |
+| `SonnetDelegation`       | PostToolUse  | Routes sub-agent work to appropriate models |
 
 ### Citations
 
 Hooks that track and enforce source attribution.
 
-| Hook | Event | Description |
-|------|-------|-------------|
-| `CitationTracker` | PostToolUse | Tracks citation sources from research tools |
-| `CitationEnforcement` | PostToolUse | Enforces citations in written content |
+| Hook                  | Event       | Description                                 |
+| --------------------- | ----------- | ------------------------------------------- |
+| `CitationTracker`     | PostToolUse | Tracks citation sources from research tools |
+| `CitationEnforcement` | PostToolUse | Enforces citations in written content       |
 
 ## Quick start
 
@@ -167,28 +166,35 @@ Create `hooks/{Group}/{Hook}/doc.md` with these sections:
 
 ```markdown
 ## Overview
+
 One-paragraph summary of what this hook does.
 
 ## Event
+
 Which event triggers it and why.
 
 ## When It Fires
+
 - Condition A
 - Condition B
 
 ## What It Does
+
 1. Step one
 2. Step two
 
 ## Examples
+
 ### Example 1: Happy path
+
 > User does X
 > Hook responds with Y
 
 ## Dependencies
-| Dep | Type | Purpose |
-| --- | --- | --- |
-| fs | adapter | File I/O |
+
+| Dep | Type    | Purpose  |
+| --- | ------- | -------- |
+| fs  | adapter | File I/O |
 ```
 
 Bullet lists render as reason boxes, numbered lists as flow steps, code blocks as macOS-style code windows, blockquotes as conversation panels, and tables as styled data tables.
@@ -208,7 +214,14 @@ The **HookDocEnforcer** hook automatically blocks session end if you modify hook
     "hookDocEnforcer": {
       "enabled": true,
       "blocking": true,
-      "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"]
+      "requiredSections": [
+        "## Overview",
+        "## Event",
+        "## When It Fires",
+        "## What It Does",
+        "## Examples",
+        "## Dependencies"
+      ]
     }
   }
 }

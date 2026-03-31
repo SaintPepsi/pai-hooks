@@ -62,7 +62,6 @@ All 48 hooks are consolidated here. Settings.json references them via `${SAINTPE
 | RatingCapture | RatingCapture | UserPromptSubmit |
 | RelationshipMemory | RelationshipMemory | SessionEnd |
 | SecurityValidator | SecurityValidator | PreToolUse |
-| SessionAutoName | SessionAutoName | UserPromptSubmit |
 | SessionQualityReport | SessionQualityReport | SessionEnd |
 | SessionSummary | SessionSummary | SessionEnd |
 | SkillGuard | SkillGuard | PreToolUse |

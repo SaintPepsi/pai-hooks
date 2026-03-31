@@ -1,6 +1,6 @@
 {
   "name": "AlgorithmTracking",
-  "description": "PAI Algorithm phase detection and session naming",
-  "hooks": ["AlgorithmTracker", "CheckAlgorithmVersion", "SessionAutoName"],
+  "description": "PAI Algorithm phase detection",
+  "hooks": ["AlgorithmTracker", "CheckAlgorithmVersion"],
   "sharedFiles": []
 }

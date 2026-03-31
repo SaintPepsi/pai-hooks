@@ -470,15 +470,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/RatingCapture/RatingCapture.hook.ts"
-          },
-          {
-            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/AutoWorkCreation/AutoWorkCreation.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/SessionAutoName/SessionAutoName.hook.ts"
           }
         ]
       },

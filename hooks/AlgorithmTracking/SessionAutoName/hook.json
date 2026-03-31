@@ -1,9 +1,0 @@
-{
-  "name": "SessionAutoName",
-  "group": "AlgorithmTracking",
-  "event": "UserPromptSubmit",
-  "description": "Auto-names sessions from first prompt",
-  "schemaVersion": 1,
-  "tags": [],
-  "presets": []
-}

@@ -327,64 +327,6 @@ export function stripPrefix(title: string): string {
     .trim();
 }
 
-// Noise words to skip when extracting the session label
-const SESSION_NOISE = new Set([
-  "the",
-  "a",
-  "an",
-  "and",
-  "or",
-  "for",
-  "to",
-  "in",
-  "on",
-  "of",
-  "with",
-  "my",
-  "our",
-  "new",
-  "old",
-  "fix",
-  "add",
-  "update",
-  "set",
-  "get",
-]);
-
-/**
- * Extract two representative words from a session name.
- * "Tab Title Upgrade" -> "TAB TITLE", "Security Redesign" -> "SECURITY REDESIGN"
- * "Fix Activity Dashboard" -> "ACTIVITY DASHBOARD"
- * Returns uppercase. Falls back to first two words if all are noise.
- */
-export function getSessionOneWord(
-  sessionId: string,
-  deps: TabSetterDeps = defaultTabSetterDeps,
-): string | null {
-  const namesPath = paiPath("MEMORY", "STATE", "session-names.json");
-  if (!deps.fileExists(namesPath)) return null;
-  const result = deps.readJson<Record<string, string>>(namesPath);
-  if (!result.ok) return null;
-  const fullName = result.value[sessionId];
-  if (!fullName) return null;
-
-  const words = fullName.split(/\s+/).filter((w: string) => w.length > 0);
-  if (words.length === 0) return null;
-
-  // Collect up to 2 non-noise words
-  const meaningful = words.filter((w: string) => !SESSION_NOISE.has(w.toLowerCase()));
-  if (meaningful.length >= 2) {
-    return `${meaningful[0]} ${meaningful[1]}`.toUpperCase();
-  } else if (meaningful.length === 1) {
-    // One meaningful word — grab the next word (even if noise) for context
-    const idx = words.indexOf(meaningful[0]);
-    const next = words[idx + 1];
-    if (next) return `${meaningful[0]} ${next}`.toUpperCase();
-    return meaningful[0].toUpperCase();
-  }
-  // All noise — take first two
-  return words.slice(0, 2).join(" ").toUpperCase();
-}
 
 /**
  * Set tab title and color for an Algorithm phase.
@@ -402,7 +344,7 @@ export function setPhaseTab(
   const config = PHASE_TAB_CONFIG[phase];
   if (!config) return;
 
-  const oneWord = getSessionOneWord(sessionId, deps) || "WORKING";
+  const oneWord = "WORKING";
   const kittyEnv = getKittyEnv(deps, sessionId);
 
   // Build title based on phase

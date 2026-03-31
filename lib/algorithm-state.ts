@@ -209,10 +209,6 @@ function algorithmsDir(deps: AlgorithmStateDeps): string {
   return join(deps.baseDir, "MEMORY", "STATE", "algorithms");
 }
 
-function sessionNamesPath(deps: AlgorithmStateDeps): string {
-  return join(deps.baseDir, "MEMORY", "STATE", "session-names.json");
-}
-
 function ensureAlgorithmsDir(deps: AlgorithmStateDeps): void {
   const dir = algorithmsDir(deps);
   if (!deps.fileExists(dir)) deps.ensureDir(dir);
@@ -235,11 +231,6 @@ export function readState(
   return jsonResult.value;
 }
 
-const PLACEHOLDER_RE = /^(Starting\.{0,3}|Algorithm run|[0-9a-f]{8})$/i;
-function isPlaceholderName(name: string): boolean {
-  return PLACEHOLDER_RE.test(name);
-}
-
 export function writeState(
   state: AlgorithmState,
   deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
@@ -247,24 +238,10 @@ export function writeState(
   ensureAlgorithmsDir(deps);
   // Keep effortLevel in sync with sla — UI reads effortLevel preferentially
   state.effortLevel = state.sla;
-  // Re-check session-names.json for name updates (placeholder fix + rework rejuvenation)
-  const latestName = getSessionName(state.sessionId, deps);
-  if (!isPlaceholderName(latestName) && latestName !== state.taskDescription) {
-    state.taskDescription = latestName;
-  }
   deps.writeFile(
     join(algorithmsDir(deps), `${state.sessionId}.json`),
     JSON.stringify(state, null, 2),
   );
-}
-
-function getSessionName(sessionId: string, deps: AlgorithmStateDeps): string {
-  const namesPath = sessionNamesPath(deps);
-  if (!deps.fileExists(namesPath)) return "Algorithm run";
-  const result = deps.readJson<Record<string, string>>(namesPath);
-  if (!result.ok) return "Algorithm run";
-  const name = result.value[sessionId];
-  return name || "Algorithm run";
 }
 
 // ── Public API ──
@@ -285,7 +262,7 @@ export function phaseTransition(
     state = {
       active: true,
       sessionId,
-      taskDescription: getSessionName(sessionId, deps),
+      taskDescription: "Algorithm run",
       currentPhase: phase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
@@ -399,7 +376,7 @@ export function criteriaAdd(
     state = {
       active: true,
       sessionId,
-      taskDescription: getSessionName(sessionId, deps),
+      taskDescription: "Algorithm run",
       currentPhase: "OBSERVE" as AlgorithmPhase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
@@ -573,7 +550,7 @@ export function algorithmEnd(
     state = {
       active: true,
       sessionId,
-      taskDescription: enrichment.taskDescription || getSessionName(sessionId, deps),
+      taskDescription: enrichment.taskDescription || "Algorithm run",
       currentPhase: "OBSERVE",
       phaseStartedAt: Date.now(),
       algorithmStartedAt: Date.now(),
@@ -702,33 +679,6 @@ export function sweepStaleActive(
     );
   }
 
-  // Add current session to live set
-  liveSessionIds.add(currentSessionId);
-
-  // Validate + sync session-names.json — repair if corrupted, prune orphans
-  const namesPath = sessionNamesPath(deps);
-  if (!deps.fileExists(namesPath)) return;
-
-  const namesResult = deps.readJson<Record<string, string>>(namesPath);
-  if (!namesResult.ok) {
-    deps.stderr("[sweep] session-names.json corrupt — resetting to {}");
-    deps.writeFile(namesPath, "{}");
-    return;
-  }
-
-  const names = namesResult.value;
-  const keys = Object.keys(names);
-  let pruned = 0;
-  for (const key of keys) {
-    if (!liveSessionIds.has(key)) {
-      delete names[key];
-      pruned++;
-    }
-  }
-  if (pruned > 0) {
-    deps.writeFile(namesPath, JSON.stringify(names, null, 2));
-    deps.stderr(`[sweep] pruned ${pruned} orphaned entries from session-names.json`);
-  }
 }
 
 /**

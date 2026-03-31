@@ -3,14 +3,14 @@
  *
  * Kitty-specific functions (setTabState, setPhaseTab, persistKittySession,
  * cleanupKittySession, readTabState) are no-ops since kitty removal (#56).
- * Only stripPrefix and getSessionOneWord retain real logic.
+ * Only stripPrefix retains real logic.
  */
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import { ok, err } from "@hooks/core/result";
 import { fileReadFailed } from "@hooks/core/error";
 import type { TabSetterDeps } from "@hooks/lib/tab-setter";
-import { getSessionOneWord, stripPrefix } from "@hooks/lib/tab-setter";
+import { stripPrefix } from "@hooks/lib/tab-setter";
 
 // ─── Mock deps factory ─────────────────────────────────────────────────────
 
@@ -105,79 +105,3 @@ describe("stripPrefix", () => {
   });
 });
 
-// ─── getSessionOneWord (reads fs, not env) ───────────────────────────────────
-
-describe("getSessionOneWord", () => {
-  beforeEach(resetAllMocks);
-
-  it("returns null when session-names.json does not exist", () => {
-    mockFileExists.mockReturnValue(false);
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBeNull();
-  });
-
-  it("returns null when session ID not found in names file", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "other-sess": "Tab Title Upgrade" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBeNull();
-  });
-
-  it("extracts two meaningful words in uppercase", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "Tab Title Upgrade" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBe("TAB TITLE");
-  });
-
-  it("skips noise words", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "Fix Activity Dashboard" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBe("ACTIVITY DASHBOARD");
-  });
-
-  it("returns two meaningful words even when noise words are between them", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "Security for apps" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBe("SECURITY APPS");
-  });
-
-  it("returns single meaningful word with next word when only one meaningful", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "Dashboard for the" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBe("DASHBOARD FOR");
-  });
-
-  it("returns first two words when all are noise", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "fix the old" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBe("FIX THE");
-  });
-
-  it("returns single uppercase word when only one meaningful word and no next word", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "Security" } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBe("SECURITY");
-  });
-
-  it("returns null on malformed JSON", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation((_path: string) =>
-      err(fileReadFailed(_path, new Error("parse error"))),
-    );
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBeNull();
-  });
-
-  it("returns null for empty session name", () => {
-    mockFileExists.mockReturnValue(true);
-    mockReadJson.mockImplementation(() => ok({ "sess-1": "   " } as never));
-    const deps = makeDeps();
-    expect(getSessionOneWord("sess-1", deps)).toBeNull();
-  });
-});
