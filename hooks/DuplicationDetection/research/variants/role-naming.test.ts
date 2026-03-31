@@ -2,9 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/role-naming.ts`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/role-naming.ts";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 async function runCLI(
   args: string[],
@@ -18,8 +17,8 @@ async function runCLI(
   const stdoutFile = Bun.file(stdoutPath);
   const stderrFile = Bun.file(stderrPath);
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: stdoutFile,
     stderr: stderrFile,
   });

@@ -42,3 +42,33 @@ export function makeToolInput(toolName: string, filePath: string): ToolHookInput
 export function makeSessionStartInput(sessionId = "test-sess"): SessionStartInput {
   return { session_id: sessionId };
 }
+
+// ─── Hook Shell Runner ───────────────────────────────────────────────────────
+
+let _hookRunId = 0;
+
+/** Generate a unique session ID for hook shell tests. */
+export function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++_hookRunId}`;
+}
+
+/** Spawn a hook script with JSON stdin and capture stdout/stderr/exitCode. */
+export async function runHookScript(
+  hookPath: string,
+  input: Record<string, unknown>,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", hookPath], {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const writer = proc.stdin!;
+  writer.write(JSON.stringify(input));
+  writer.end();
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  const exitCode = await proc.exited;
+  return { stdout: stdout.trim(), stderr, exitCode };
+}

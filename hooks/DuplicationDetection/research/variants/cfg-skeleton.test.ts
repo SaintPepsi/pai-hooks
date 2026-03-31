@@ -4,11 +4,10 @@ import type { ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/cfg-skeleton.ts`;
-const DETECTORS_DIR = `${REPO_ROOT}/Tools/pattern-detector/detectors`;
-const PATTERN_DETECTOR_DIR = `${REPO_ROOT}/Tools/pattern-detector`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/cfg-skeleton.ts";
+const DETECTORS_DIR = import.meta.dir + "/../detectors";
+const PATTERN_DETECTOR_DIR = import.meta.dir + "/..";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 async function runCLI(
   args: string[],
@@ -22,8 +21,8 @@ async function runCLI(
   const stdoutFile = Bun.file(stdoutPath);
   const stderrFile = Bun.file(stderrPath);
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: stdoutFile,
     stderr: stderrFile,
   });

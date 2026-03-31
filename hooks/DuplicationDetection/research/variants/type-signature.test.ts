@@ -2,9 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/type-signature.ts`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/type-signature.ts";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 async function runCLI(
   args: string[],
@@ -15,8 +14,8 @@ async function runCLI(
   const stdoutPath = `/tmp/type-sig-test-${id}.txt`;
   const stderrPath = `/tmp/type-sig-test-stderr-${id}.txt`;
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: Bun.file(stdoutPath),
     stderr: Bun.file(stderrPath),
   });

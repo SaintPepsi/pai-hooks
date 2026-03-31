@@ -13,6 +13,7 @@ import {
   isCommentLine,
   isExempted,
   stripStringLiterals,
+  type Violation,
 } from "./coding-standards-checks";
 
 // ─── Helper Tests ───────────────────────────────────────────────────────────
@@ -296,7 +297,7 @@ describe("findDirectEnvAccess", () => {
 
 describe("formatViolationSummary", () => {
   it("includes inline-import-type in summary", () => {
-    const violations = [
+    const violations: Violation[] = [
       { line: 5, content: "type Foo = import('./types').Bar;", category: "inline-import-type", message: "Use import type" },
     ];
     const summary = formatViolationSummary(violations, "test.ts");
@@ -304,7 +305,7 @@ describe("formatViolationSummary", () => {
   });
 
   it("includes all violation categories in summary", () => {
-    const violations = [
+    const violations: Violation[] = [
       { line: 1, content: "import { readFileSync } from 'fs';", category: "raw-import", message: "m" },
       { line: 2, content: "try {} catch (e) {}", category: "try-catch", message: "m" },
       { line: 3, content: "const x = process.env.HOME;", category: "process-env", message: "m" },

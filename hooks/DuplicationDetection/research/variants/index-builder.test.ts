@@ -2,9 +2,8 @@ import { beforeAll, describe, expect, test } from "bun:test";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/index-builder.ts`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/index-builder.ts";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 const UNIQUE_ID = Math.random().toString(36).slice(2);
 const SHARED_INDEX_PATH = `/tmp/test-dup-index-${UNIQUE_ID}.json`;
@@ -20,8 +19,8 @@ async function runCLI(
   const stdoutPath = `/tmp/index-builder-test-${id}-stdout.txt`;
   const stderrPath = `/tmp/index-builder-test-${id}-stderr.txt`;
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: Bun.file(stdoutPath),
     stderr: Bun.file(stderrPath),
   });
@@ -223,9 +222,9 @@ describe("check command: duplication detection", () => {
     expect(exitCode).toBe(0);
   });
 
-  test("stdout contains getFilePath as a duplication signal", async () => {
+  test("stdout contains getWriteContent as a duplication signal", async () => {
     const { stdout } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
-    expect(stdout).toContain("getFilePath");
+    expect(stdout).toContain("getWriteContent");
   });
 
   test("stdout contains signal indicator bars (● and ○)", async () => {

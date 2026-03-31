@@ -105,10 +105,11 @@ describe("DuplicationCheckerContract", () => {
     });
 
     test("blocks when writing content with 4/4 signal match (exact duplicate)", () => {
-      // CodingStandardsAdvisor.contract.ts contains getFilePath — a function
-      // duplicated across multiple contracts with all 4 signals matching.
+      // cli/commands/install.test.ts contains makeSourceRepo — a function whose
+      // body hash matches across lifecycle.integration.test.ts, update.test.ts,
+      // and compiled-install.test.ts → hash signal → block.
       const realContent = require("node:fs").readFileSync(
-        `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
       ) as string;
 
@@ -182,7 +183,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
 
     test("block reason lists duplicate targets", () => {
       const realContent = require("node:fs").readFileSync(
-        `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
       ) as string;
 
@@ -207,7 +208,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
 
     test("blocks regardless of index age (no staleness bypass)", () => {
       const realContent = require("node:fs").readFileSync(
-        `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
       ) as string;
 
@@ -220,7 +221,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
     });
     test("continues instead of blocking when blocking config is false", () => {
       const realContent = require("node:fs").readFileSync(
-        `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
       ) as string;
 

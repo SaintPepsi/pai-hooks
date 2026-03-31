@@ -105,6 +105,8 @@ describe("validate", () => {
           event: "PreToolUse",
           description: "test",
           schemaVersion: 1,
+          tags: [],
+          presets: [],
           deps: [],
         }),
         readFile: () => ok('import { ok } from "@hooks/core/result";'),
