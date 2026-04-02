@@ -20,6 +20,7 @@ Contracts use narrowed types from `core/contract.ts`:
 - No raw Node builtins — use adapters from `core/adapters/` (`node:path` is exempt — pure functions, no I/O)
 - No try-catch in business logic — use `Result<T, E>` pipelines
 - No direct `process.env` outside `defaultDeps`
+- No direct `settings.json` reads for hook-specific config — use `readHookConfig()` from `lib/hook-config.ts` (reads `hookConfig.{hookName}` section)
 - Use `@hooks/*` path aliases, not relative imports
 - Use `import type` for type-only imports
 

@@ -19,7 +19,7 @@ function makeDeps(
 ): CodingStandardsEnforcerDeps {
   return {
     readFile: () => null,
-    readSettings: () => ({}),
+    readConfig: () => null,
     signal: {
       baseDir: "/tmp/test-pai",
       appendFile: () => ({ ok: true, value: undefined }),
@@ -356,9 +356,9 @@ describe("CodingStandardsEnforcer", () => {
       expect(result).toBeNull();
     });
 
-    it("defaultDeps.readSettings returns empty object for missing settings", () => {
-      const result = CodingStandardsEnforcer.defaultDeps.readSettings();
-      expect(typeof result).toBe("object");
+    it("defaultDeps.readConfig returns null or object for missing config", () => {
+      const result = CodingStandardsEnforcer.defaultDeps.readConfig();
+      expect(result === null || typeof result === "object").toBe(true);
     });
 
     it("defaultDeps.stderr writes without throwing", () => {

@@ -8,7 +8,7 @@ Each runner imports a prompt builder from its contract, runs `claude -p` synchro
 
 | Runner | Spawned by | Purpose |
 |--------|-----------|---------|
-| **article-writer-runner** | `ArticleWriter` contract | Runs claude to write blog articles. Auto-clones repo from `settings.json articleWriter.repo` to `~/.claude/cache/repos/`. Identity from `settings.json`. |
+| **article-writer-runner** | `ArticleWriter` contract | Runs claude to write blog articles. Auto-clones repo from `hookConfig.articleWriter.repo` to `~/.claude/cache/repos/`. Identity from `settings.json`. |
 | **learning-agent-runner** | `LearningActioner` contract | Runs claude to analyze learning signals and create proposals |
 
 ## How They Work

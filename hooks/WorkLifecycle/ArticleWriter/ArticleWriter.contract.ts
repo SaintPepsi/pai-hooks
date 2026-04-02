@@ -29,7 +29,8 @@ import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp } from "@hooks/lib/time";
 
@@ -296,9 +297,7 @@ const defaultDeps: ArticleWriterDeps = {
   spawnBackground,
   getISOTimestamp,
   baseDir: getPaiDir(),
-  websiteRepo:
-    ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)
-      ?.repo || "",
+  websiteRepo: readHookConfig<{ repo?: string }>("articleWriter")?.repo || "",
   principalName: getPrincipalName(),
   daName: getDAName(),
   stderr: defaultStderr,

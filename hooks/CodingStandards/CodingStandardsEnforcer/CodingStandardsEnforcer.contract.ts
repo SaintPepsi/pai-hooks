@@ -18,12 +18,12 @@
  * for pattern analysis.
  */
 
-import { join } from "node:path";
-import { readFile as adapterReadFile, readJson as adapterReadJson } from "@hooks/core/adapters/fs";
+import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -47,17 +47,15 @@ import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface CodingStandardsSettings {
-  codingStandards?: {
-    exportDefault?: {
-      allowPatterns?: string[];
-    };
+interface CodingStandardsEnforcerConfig {
+  exportDefault?: {
+    allowPatterns?: string[];
   };
 }
 
 export interface CodingStandardsEnforcerDeps {
   readFile: (path: string) => string | null;
-  readSettings: () => CodingStandardsSettings;
+  readConfig: () => CodingStandardsEnforcerConfig | null;
   signal: SignalLoggerDeps;
   stderr: (msg: string) => void;
   baseDir: string;
@@ -142,12 +140,12 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
   return sections.join("\n");
 }
 
-/** Read export-default exclusion patterns from settings.json codingStandards config. */
+/** Read export-default exclusion patterns from hookConfig.codingStandardsEnforcer. */
 function getExportDefaultExclusions(
   deps: CodingStandardsEnforcerDeps,
 ): ViolationCheckOptions | undefined {
-  const settings = deps.readSettings();
-  const patterns = settings.codingStandards?.exportDefault?.allowPatterns;
+  const config = deps.readConfig();
+  const patterns = config?.exportDefault?.allowPatterns;
   if (!patterns?.length) return undefined;
   return { exportDefaultExclusions: patterns.map((p) => new RegExp(p)) };
 }
@@ -161,10 +159,7 @@ const defaultDeps: CodingStandardsEnforcerDeps = {
     const result = adapterReadFile(path);
     return result.ok ? result.value : null;
   },
-  readSettings: (): CodingStandardsSettings => {
-    const result = adapterReadJson<CodingStandardsSettings>(join(baseDir, "settings.json"));
-    return result.ok ? result.value : {};
-  },
+  readConfig: () => readHookConfig<CodingStandardsEnforcerConfig>("codingStandardsEnforcer"),
   signal: defaultSignalLoggerDeps,
   stderr: defaultStderr,
   baseDir,

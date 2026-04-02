@@ -10,7 +10,8 @@ import { join } from "node:path";
 import { appendFile, ensureDir, fileExists, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import { buildArticlePrompt } from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
-import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,9 +42,7 @@ const defaultDeps: RunnerDeps = {
   appendFile,
   buildPrompt: buildArticlePrompt,
   env: process.env as Record<string, string | undefined>,
-  websiteRepo:
-    ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)
-      ?.repo || "",
+  websiteRepo: readHookConfig<{ repo?: string }>("articleWriter")?.repo || "",
   cacheDir: join(BASE_DIR, "cache/repos"),
   principalName: getPrincipalName(),
   daName: getDAName(),

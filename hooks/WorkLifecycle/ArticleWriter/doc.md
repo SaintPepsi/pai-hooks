@@ -13,7 +13,7 @@ The spawned agent (via `article-writer-runner.ts`) hunts through PAI memory for 
 ## When It Fires
 
 - The session has a valid session_id
-- A website repo path is configured in settings.json under `articleWriter.repo` and exists on disk
+- A website repo path is configured in `hookConfig.articleWriter.repo` and exists on disk
 - No fresh lock file exists at `MEMORY/ARTICLES/.writing` (or the lock is stale > 30 minutes)
 - The session's work directory has a PRD.md with 4 or more checked criteria (`- [x]`)
 
@@ -64,5 +64,6 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);
 | `core/adapters/fs` | adapter | File operations (read, write, exists, stat, remove, ensureDir) |
 | `core/adapters/process` | adapter | Spawns background agent process |
 | `lib/time` | lib | ISO timestamp generation |
-| `lib/identity` | lib | Reads DA name, principal name, and settings for repo config |
+| `lib/identity` | lib | Reads DA name and principal name |
+| `lib/hook-config` | lib | Reads `hookConfig.articleWriter` for repo path |
 | `article-writer-runner.ts` | runner | Background wrapper that runs claude with the article prompt |

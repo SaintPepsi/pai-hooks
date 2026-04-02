@@ -12,16 +12,16 @@
  * Pattern: pai-hooks/contracts/BashWriteGuard.ts
  */
 
-import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { jsonParseFailed, type ResultError } from "@hooks/core/error";
-import { ok, type Result, tryCatch } from "@hooks/core/result";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -30,14 +30,6 @@ export interface ProtectedBranchGuardDeps {
   getCwd: () => string;
   getExemptDirs: () => string[];
   stderr: (msg: string) => void;
-}
-
-interface SettingsJson {
-  hookConfig?: {
-    protectedBranchGuard?: {
-      exemptDirs?: string[];
-    };
-  };
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -76,32 +68,6 @@ function isExemptDir(cwd: string, extraDirs: string[]): boolean {
   return allPatterns.some((p) => p.test(cwd));
 }
 
-/** Extract exemptDirs from a parsed settings object. */
-function extractExemptDirs(parsed: SettingsJson): string[] {
-  const dirs = parsed.hookConfig?.protectedBranchGuard?.exemptDirs;
-  if (!Array.isArray(dirs)) return [];
-  if (!dirs.every((d): d is string => typeof d === "string")) return [];
-  return dirs;
-}
-
-/**
- * Read exemptDirs from settings.json at hookConfig.protectedBranchGuard.exemptDirs.
- * Returns empty array if not configured or on any read/parse error (fails open).
- */
-function readExemptDirsFromSettings(
-  settingsPath: string,
-  readFileFn: (path: string) => string | null,
-): string[] {
-  const raw = readFileFn(settingsPath);
-  if (!raw) return [];
-  const parseResult = tryCatch(
-    () => JSON.parse(raw) as SettingsJson,
-    (cause) => jsonParseFailed(raw.slice(0, 100), cause),
-  );
-  if (!parseResult.ok) return [];
-  return extractExemptDirs(parseResult.value);
-}
-
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
 const defaultDeps: ProtectedBranchGuardDeps = {
@@ -111,11 +77,13 @@ const defaultDeps: ProtectedBranchGuardDeps = {
     return result.value.trim() || null;
   },
   getCwd: () => process.cwd(),
-  getExemptDirs: () =>
-    readExemptDirsFromSettings(getSettingsPath(), (p) => {
-      const r = readFile(p);
-      return r.ok ? r.value : null;
-    }),
+  getExemptDirs: () => {
+    const cfg = readHookConfig<{ exemptDirs?: string[] }>("protectedBranchGuard");
+    const dirs = cfg?.exemptDirs;
+    if (!Array.isArray(dirs)) return [];
+    if (!dirs.every((d): d is string => typeof d === "string")) return [];
+    return dirs;
+  },
   stderr: defaultStderr,
 };
 
