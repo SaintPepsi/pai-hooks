@@ -4,6 +4,7 @@
   "hooks": [
     "BashWriteGuard",
     "CodingStandardsAdvisor",
+    "DocCommitGuard",
     "CodingStandardsEnforcer",
     "TypeCheckVerifier",
     "TypeStrictness",

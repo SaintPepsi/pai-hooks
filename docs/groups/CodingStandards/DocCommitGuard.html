@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CodingStandards — Hook Group</title>
+  <title>DocCommitGuard — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1728,122 +1728,274 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>DocCommitGuard</h4>
+    <p>CodingStandards / PreToolUse</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Hook Group</div>
-    <h1>CodingStandards</h1>
-    <p>TypeScript quality enforcement hooks</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>DocCommitGuard</h1>
+    <p>Blocks git commit when hooks are missing doc.md or IDEA.md</p>
     <div class="hero-meta">
-      <span>7 hooks</span>
+      <span>CodingStandards</span>
+      <span>PreToolUse</span>
       <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div style="margin-bottom: var(--sp-lg);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-      <span style="font-size: 15px;">&#x1F4C2;</span>
-      <code style="color: var(--cyan); font-size: 12px;">hooks/CodingStandards/</code>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag orange">PreToolUse</span>
+    <span class="tag green">CodingStandards</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards/DocCommitGuard/DocCommitGuard.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">DocCommitGuard.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    
   </div>
-
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num" style="color:var(--orange);">5</div><div class="label">PreToolUse</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--blue);">2</div><div class="label">PostToolUse</div></div>
-  </div>
-
-  <div class="section-label">Hooks</div>
-  <h2>All Hooks in CodingStandards</h2>
 
   
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='BashWriteGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>BashWriteGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Prevents bypassing Edit/Write via Bash sed/echo</p>
-      </div>
 
-      <div class="card blue" style="cursor:pointer;" onclick="location.href='CodingStandardsAdvisor.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>CodingStandardsAdvisor</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
-          </div>
-        </div>
-        <p>Suggests improvements post-Read</p>
+  
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>DocCommitGuard is a <strong>PreToolUse</strong> hook that blocks <code>git commit</code> commands when any hook directory is missing its required documentation files (<code>doc.md</code> or <code>IDEA.md</code>). It scans all <code>hooks/{Group}/{Hook}/hook.json</code> paths, checks for the companion doc files, and blocks the commit with a detailed list of what is missing.</p>
+      <p>This enforces the documentation-as-code policy: every hook must have both user-facing documentation (<code>doc.md</code>) and a portable concept document (<code>IDEA.md</code>) before changes can be committed.</p>
+    </div>
+  </section>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='DocCommitGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>DocCommitGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Blocks git commit when hooks are missing doc.md or IDEA.md</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p><code>PreToolUse</code> — fires before Bash tool invocations that contain <code>git commit</code> and blocks if any hook directory is missing documentation.</p>
+    </div>
+  </section>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='CodingStandardsEnforcer.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>CodingStandardsEnforcer</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Enforces coding standards on Write/Edit</p>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
       </div>
+      <div class="reason"><span class="ri">&#x2022;</span> A Bash tool is about to execute</div>
+<div class="reason"><span class="ri">&#x2022;</span> The command string contains <code>git commit</code> (including chained commands like <code>git add . && git commit</code>)</div>
+      <p>It does <strong>not</strong> fire when:</p>
+      <div class="reason"><span class="ri">&#x2022;</span> The tool is not Bash</div>
+<div class="reason"><span class="ri">&#x2022;</span> The command does not contain <code>git commit</code> (e.g., <code>git status</code>, <code>git push</code>, <code>bun test</code>)</div>
+    </div>
+  </section>
 
-      <div class="card blue" style="cursor:pointer;" onclick="location.href='TypeCheckVerifier.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>TypeCheckVerifier</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
-          </div>
-        </div>
-        <p>Runs TypeScript type checking on code changes</p>
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
       </div>
-
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='TypeStrictness.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>TypeStrictness</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Extracts the command string from the tool input</p></div>
         </div>
-        <p>Hard-blocks any types in TypeScript</p>
-      </div>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='WhileLoopGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>WhileLoopGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>Checks if the command contains <code>git commit</code> via regex (<code>/\bgit\s+commit\b/</code>)</p></div>
         </div>
-        <p>Blocks while and do...while loops in code files. State-checks the full file after edit.</p>
-      </div>
 
-  <footer><p>pai-hooks documentation</p></footer>
+        <div class="flow-step">
+          <div class="step-dot">3</div>
+          <div class="step-content"><p>Scans all <code>hooks/{Group}/{Hook}/hook.json</code> directories using Bun's Glob</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">4</div>
+          <div class="step-content"><p>For each hook directory, checks for the existence of <code>doc.md</code> and <code>IDEA.md</code></p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">5</div>
+          <div class="step-content"><p>If all docs are present, returns <code>continue</code></p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">6</div>
+          <div class="step-content"><p>If any docs are missing, formats a block reason listing each missing file and returns <code>block</code></p></div>
+        </div>
+</div>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">typescript</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">typescript</span>
+// Scan pattern — uses injected deps for testability
+for (const match of deps.scanHookJsons(deps.hooksDir)) {
+  const hookDir = dirname(join(deps.hooksDir, match));
+  if (!deps.fileExists(join(hookDir, "doc.md"))) missing.push(/*...*/);
+  if (!deps.fileExists(join(hookDir, "IDEA.md"))) missing.push(/*...*/);
+}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Commit blocked for missing doc.md</h3>
+      
+      <div class="uc-example">
+        <div>The model runs <code>git commit -m "feat: add new hook"</code>. DocCommitGuard scans all hook directories and finds that <code>GitSafety/MergeGate</code> is missing <code>doc.md</code>. It blocks with: "Commit blocked: hook documentation incomplete. - GitSafety/MergeGate: missing doc.md"</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: All docs present — commit proceeds</h3>
+      
+      <div class="uc-example">
+        <div>The model runs <code>git commit -m "fix: update guard logic"</code>. DocCommitGuard scans all hook directories and every hook has both <code>doc.md</code> and <code>IDEA.md</code>. It returns <code>continue</code> and the commit proceeds.</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Multiple hooks missing docs</h3>
+      
+      <div class="uc-example">
+        <div>The model runs <code>git add . && git commit -m "refactor"</code>. DocCommitGuard detects <code>git commit</code> in the chained command, scans hooks, and finds two hooks missing docs. It blocks with a list showing both: <code>GroupA/HookOne: missing IDEA.md</code> and <code>GroupB/HookTwo: missing doc.md</code>.</div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
+      </div>
+      
+      <table class="tbl">
+        <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
+          <tr><td><code>hook-outputs</code></td><td>core</td><td><code>continueOk()</code> factory for continue results</td></tr>
+          <tr><td><code>tool-input</code></td><td>lib</td><td><code>getCommand()</code> to extract Bash command string</td></tr>
+          <tr><td><code>fs</code></td><td>adapter</td><td><code>fileExists</code> to check for doc files on disk</td></tr>
+          <tr><td><code>Glob</code></td><td>bun</td><td>Scans <code><em>/</em>/hook.json</code> patterns in hooks directory</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Generated from <code>DocCommitGuard/doc.md</code> &mdash; pai-hooks documentation</p>
+  </footer>
 </div>
 
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>

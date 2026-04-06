@@ -1,0 +1,9 @@
+{
+  "name": "DocCommitGuard",
+  "group": "CodingStandards",
+  "event": "PreToolUse",
+  "description": "Blocks git commit when hooks are missing doc.md or IDEA.md",
+  "schemaVersion": 1,
+  "tags": [],
+  "presets": []
+}
