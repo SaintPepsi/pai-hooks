@@ -20,6 +20,12 @@ A pre-write hook that extracts functions from incoming code and compares them ag
 6. If 2-3 signals match — inject an advisory warning suggesting the author check the similar function.
 7. If 0-1 signals match — pass silently.
 
+### Pattern detection
+
+Beyond pair-wise comparison, the system also detects **recurring patterns** — functions whose name and signature cluster appears across many files. The index builder groups functions by normalized signature and flags any cluster exceeding a configurable threshold. When a new function matches such a cluster, the checker emits an advisory suggesting consolidation into a shared utility rather than adding another copy.
+
+Signature matching uses two tiers: first a full normalized signature comparison, then a return-type-only fallback for domain-specific types. This two-tier approach catches both exact signature repetition and looser structural patterns where parameter lists vary but the return shape is consistent.
+
 ## Signals
 
 - **Input:** File path and content being written; access to a pre-built function index

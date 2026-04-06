@@ -16,6 +16,8 @@ Fires before any Write or Edit to a `.ts` file. Parses the incoming content, ext
 
 **Derivation detection**: when body hash matches but type signatures differ, the checker emits an advisory warning ("possible derivation issue") instead of blocking. This identifies functions with identical implementations but different type contracts — a different class than duplication.
 
+**Pattern detection**: the checker also detects recurring codebase patterns — functions whose name and signature appear across many files (e.g., `makeDeps` in 65 files). Patterns are auto-detected from the index at build time with configurable thresholds (`patternThreshold`, `requireSigMatch`, `sigMatchPercent`). When a new function matches a pattern, the checker injects an advisory via `additionalContext` suggesting consolidation. This is always advisory-only — it never blocks.
+
 Every check (clean or with findings) is logged to `/tmp/pai/duplication/{hash}/{branch}/checker.jsonl` as JSONL for later inspection.
 
 ## How They Work Together

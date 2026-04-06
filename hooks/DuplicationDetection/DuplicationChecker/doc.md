@@ -65,6 +65,47 @@ if (blockMatches.length > 0 && deps.blocking) {
 return ok({ type: "continue", continue: true });
 ```
 
+## Pattern Detection
+
+Alongside pair-wise duplicate checking, DuplicationChecker detects **recurring codebase patterns** — functions whose name and signature appear across many files. When a new function matches such a pattern, the hook injects an advisory via `additionalContext` on a continue response. It never blocks.
+
+### Two-tier signature matching
+
+- **Tier 1 — full normalized signature**: the function's full normalized parameter + return signature is compared against the index. This catches patterns like `makeDeps` that share a complete signature shape across dozens of files.
+- **Tier 2 — return-only fallback for domain types**: if Tier 1 misses and the return type is a non-primitive domain type, the return type alone is matched. This catches patterns like `makeInput` where parameter lists vary but the return shape is consistent.
+
+### Advisory format
+
+When a pattern is detected, the continue response includes `additionalContext` like:
+
+```
+Pattern detected: "makeDeps" (65 files)
+  This function matches a recurring pattern. Consider extracting a shared factory.
+  Examples: hooks/CanaryHook/CanaryHook.test.ts, hooks/GitSafety/GitAutoSync.test.ts, ...
+```
+
+### Configuration
+
+Pattern detection thresholds are set in `hookConfig.duplicationChecker` in `settings.json` and applied at index build time:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `patternThreshold` | `5` | Minimum number of files a signature must appear in to be flagged as a pattern |
+| `requireSigMatch` | `true` | When true, the function name alone is not enough — the signature must also match |
+| `sigMatchPercent` | `60` | Minimum percentage of a pattern's instances that must share the signature for a match |
+
+```json
+{
+  "hookConfig": {
+    "duplicationChecker": {
+      "patternThreshold": 5,
+      "requireSigMatch": true,
+      "sigMatchPercent": 60
+    }
+  }
+}
+```
+
 ## Examples
 
 ### Example 1: Exact duplicate blocked (4/4 signals)

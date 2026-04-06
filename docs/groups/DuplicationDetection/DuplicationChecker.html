@@ -1740,8 +1740,9 @@ section[id] {
     <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
-    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#pattern-detection"><span class="nav-num">05</span> Pattern Detection</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">06</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1806,6 +1807,12 @@ A pre-write hook that extracts functions from incoming code and compares them ag
 5. If 4/4 signals match or the exact body hash matches — block the write with "this function already exists at [location]."
 6. If 2-3 signals match — inject an advisory warning suggesting the author check the similar function.
 7. If 0-1 signals match — pass silently.
+
+### Pattern detection
+
+Beyond pair-wise comparison, the system also detects **recurring patterns** — functions whose name and signature cluster appears across many files. The index builder groups functions by normalized signature and flags any cluster exceeding a configurable threshold. When a new function matches such a cluster, the checker emits an advisory suggesting consolidation into a shared utility rather than adding another copy.
+
+Signature matching uses two tiers: first a full normalized signature comparison, then a return-type-only fallback for domain-specific types. This two-tier approach catches both exact signature repetition and looser structural patterns where parameter lists vary but the return shape is consistent.
 
 ## Signals
 
@@ -1957,6 +1964,65 @@ if (blockMatches.length &gt; 0 &amp;&amp; deps.blocking) {
 }
 // 2-3 signals: log only
 return ok({ type: "continue", continue: true });</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pattern-detection">
+    <div class="section-label accent">Pattern Detection</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Pattern Detection</h3>
+      </div>
+      <p>Alongside pair-wise duplicate checking, DuplicationChecker detects <strong>recurring codebase patterns</strong> — functions whose name and signature appear across many files. When a new function matches such a pattern, the hook injects an advisory via <code>additionalContext</code> on a continue response. It never blocks.</p>
+      <h3 id="two-tier-signature-matching">Two-tier signature matching</h3>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>Tier 1 — full normalized signature</strong>: the function's full normalized parameter + return signature is compared against the index. This catches patterns like <code>makeDeps</code> that share a complete signature shape across dozens of files.</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Tier 2 — return-only fallback for domain types</strong>: if Tier 1 misses and the return type is a non-primitive domain type, the return type alone is matched. This catches patterns like <code>makeInput</code> where parameter lists vary but the return shape is consistent.</div>
+      <h3 id="advisory-format">Advisory format</h3>
+      <p>When a pattern is detected, the continue response includes <code>additionalContext</code> like:</p>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          
+        </div>
+        <div class="code-window-body">
+          <div class="code-block">
+Pattern detected: "makeDeps" (65 files)
+  This function matches a recurring pattern. Consider extracting a shared factory.
+  Examples: hooks/CanaryHook/CanaryHook.test.ts, hooks/GitSafety/GitAutoSync.test.ts, ...</div>
+        </div>
+      </div>
+      <h3 id="configuration">Configuration</h3>
+      <p>Pattern detection thresholds are set in <code>hookConfig.duplicationChecker</code> in <code>settings.json</code> and applied at index build time:</p>
+      
+      <table class="tbl">
+        <thead><tr><th>Option</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>patternThreshold</code></td><td><code>5</code></td><td>Minimum number of files a signature must appear in to be flagged as a pattern</td></tr>
+          <tr><td><code>requireSigMatch</code></td><td><code>true</code></td><td>When true, the function name alone is not enough — the signature must also match</td></tr>
+          <tr><td><code>sigMatchPercent</code></td><td><code>60</code></td><td>Minimum percentage of a pattern's instances that must share the signature for a match</td></tr>
+        </tbody>
+      </table>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">json</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">json</span>
+{
+  "hookConfig": {
+    "duplicationChecker": {
+      "patternThreshold": 5,
+      "requireSigMatch": true,
+      "sigMatchPercent": 60
+    }
+  }
+}</div>
         </div>
       </div>
     </div>
