@@ -24,7 +24,8 @@ WikiIngest is a SessionEnd hook that automatically processes session transcripts
 6. **Extract** — runs `extract.ts` via shell, which calls Claude Haiku to extract entities, decisions, and concepts from the digest
 7. **Seed** — if the extraction contains new entities or concepts, runs `seed.ts` to create wiki pages from templates
 8. **Audit trail** — appends a JSONL entry to `.pipeline/audit.jsonl` with session ID, classification, cost, and pages created
-9. **Milestone counter** — logs a message every 50 extractions
+9. **Operation log** — appends a human-readable entry to `MEMORY/WIKI/log.md` with format `## [YYYY-MM-DD] ingest | session {short-id} — {details}`
+10. **Milestone counter** — logs a message every 50 extractions
 
 ## Examples
 
@@ -38,8 +39,11 @@ WikiIngest is a SessionEnd hook that automatically processes session transcripts
 Pipeline flow:
   Session JSONL (50KB) -> Filter -> Digest (2KB) -> Extract -> Extraction JSON -> Seed -> Wiki Pages
   
-Audit entry:
+Audit entry (audit.jsonl):
   {"session_id":"abc123","timestamp":"2026-04-06T15:00:00","classification":"standard","extractionCost":0.001,"pagesCreated":2}
+
+Log entry (log.md):
+  ## [2026-04-06] ingest | session abc12345 — standard, 2 pages, $0.0010
 ```
 
 ## Dependencies

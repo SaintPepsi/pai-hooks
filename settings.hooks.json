@@ -436,47 +436,58 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/SessionSummary/SessionSummary.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/SessionSummary/SessionSummary.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/UpdateCounts/UpdateCounts.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/UpdateCounts/UpdateCounts.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiIngest/WikiIngest.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiIngest/WikiIngest.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/GitAutoSync/GitAutoSync.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/GitAutoSync/GitAutoSync.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/SessionQualityReport/SessionQualityReport.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/SessionQualityReport/SessionQualityReport.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronSessionEnd/CronSessionEnd.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronSessionEnd/CronSessionEnd.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/LearningActioner/LearningActioner.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/LearningActioner/LearningActioner.hook.ts",
+            "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.hook.ts",
+            "async": true
           }
         ]
       }

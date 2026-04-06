@@ -195,6 +195,27 @@ function writeAuditEntry(entry: AuditEntry, deps: WikiIngestDeps): void {
 }
 
 /**
+ * Append a human-readable entry to log.md.
+ */
+function writeLogEntry(
+  sessionId: string,
+  classification: string,
+  pagesCreated: number,
+  extractionCost: number,
+  deps: WikiIngestDeps,
+  skipped?: boolean,
+  skipReason?: string,
+): void {
+  const date = deps.getTimestamp().slice(0, 10);
+  const shortId = sessionId.slice(0, 8);
+  const description = skipped
+    ? `session ${shortId} — skipped: ${skipReason}`
+    : `session ${shortId} — ${classification}, ${pagesCreated} pages, $${extractionCost.toFixed(4)}`;
+  const logPath = join(deps.baseDir, "MEMORY", "WIKI", "log.md");
+  deps.appendFile(logPath, `## [${date}] ingest | ${description}\n`);
+}
+
+/**
  * Get the current extraction counter from audit.jsonl line count.
  */
 function getExtractionCount(deps: WikiIngestDeps): number {
@@ -324,6 +345,15 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
         },
         deps,
       );
+      writeLogEntry(
+        sessionId,
+        filterOutput?.classification || "unknown",
+        0,
+        0,
+        deps,
+        true,
+        "no digest produced",
+      );
       return ok({ type: "silent" });
     }
 
@@ -350,6 +380,15 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
         },
         deps,
       );
+      writeLogEntry(
+        sessionId,
+        filterOutput.classification,
+        0,
+        0,
+        deps,
+        true,
+        "extract exec failed",
+      );
       return ok({ type: "silent" });
     }
 
@@ -368,6 +407,15 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
           skipReason: `extract exit ${extractResult.value.exitCode}`,
         },
         deps,
+      );
+      writeLogEntry(
+        sessionId,
+        filterOutput.classification,
+        0,
+        0,
+        deps,
+        true,
+        `extract exit ${extractResult.value.exitCode}`,
       );
       return ok({ type: "silent" });
     }
@@ -405,7 +453,7 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
       }
     }
 
-    // 8. Audit trail
+    // 8. Audit trail + operation log
     writeAuditEntry(
       {
         session_id: sessionId,
@@ -416,6 +464,7 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
       },
       deps,
     );
+    writeLogEntry(sessionId, filterOutput.classification, pagesCreated, extractionCost, deps);
 
     // 9. Counter milestone logging
     const totalExtractions = getExtractionCount(deps);

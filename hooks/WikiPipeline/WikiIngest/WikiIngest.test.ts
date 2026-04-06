@@ -440,10 +440,12 @@ describe("WikiIngest.execute", () => {
       deps,
     );
     expect(result.ok).toBe(true);
-    expect(appendedContent.length).toBe(1);
+    expect(appendedContent.length).toBe(2);
     const audit = JSON.parse(appendedContent[0]);
     expect(audit.skipped).toBe(true);
     expect(audit.skipReason).toBe("no digest produced");
+    expect(appendedContent[1]).toContain("## [");
+    expect(appendedContent[1]).toContain("skipped: no digest produced");
   });
 
   it("logs milestone at extraction count multiples of 50", async () => {
@@ -494,8 +496,8 @@ describe("WikiIngest.execute", () => {
         }
         return ok({ stdout: "", stderr: "", exitCode: 0 });
       },
-      appendFile: (_path: string, content: string) => {
-        auditContent += content;
+      appendFile: (path: string, content: string) => {
+        if (path.endsWith("audit.jsonl")) auditContent += content;
         return ok(undefined);
       },
       stderr: (msg) => messages.push(msg),
