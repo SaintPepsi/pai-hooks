@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>pai-hooks — Documentation</title>
+  <title>WikiContextInjector — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1728,248 +1728,286 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>WikiContextInjector</h4>
+    <p>WikiPipeline / PreToolUse</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Documentation</div>
-    <h1>pai-hooks</h1>
-    <p>71 hooks across 23 groups.</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>WikiContextInjector</h1>
+    <p>Injects relevant wiki page summaries when writing/editing files in wiki-covered domains</p>
     <div class="hero-meta">
-      <span>March 2026</span>
-      <span>71 hooks</span>
-      <span>23 groups</span>
+      <span>WikiPipeline</span>
+      <span>PreToolUse</span>
+      <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num">23</div><div class="label">Groups</div></div>
-    <div class="summary-item"><div class="num">71</div><div class="label">Hooks</div></div>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag orange">PreToolUse</span>
+    <span class="tag green">WikiPipeline</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">WikiContextInjector.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># WikiContextInjector
+
+## Problem
+
+When an AI assistant edits files in a project, it lacks domain-specific knowledge that exists in a separate wiki. Without this context, it may make decisions that contradict established patterns, architecture choices, or project history documented elsewhere.
+
+## Solution
+
+A pre-write hook that intercepts file edit/write operations, maps the target file's path to a knowledge domain, and injects relevant wiki page summaries into the assistant's context before the write proceeds. The injection is lightweight (200-500 tokens) and only fires when a matching wiki page exists.
+
+## How It Works
+
+1. On first invocation, scan the wiki entities directory and parse YAML frontmatter for `domain` tags and `title` fields
+2. Build a domain index keyed by lowercased domain tags and titles, cached for the session
+3. When a Write or Edit tool call arrives, extract the target file path
+4. Match path segments against the domain index (e.g., `/Projects/koord/src/...` matches domain `koord`)
+5. If matched, extract the `## Summary` section from up to 2 matching wiki pages
+6. Inject the summaries as additional context alongside the tool call
+
+## Signals
+
+- **Input:** Tool call event with tool name (Write/Edit) and file path
+- **Output:** Continue with optional additional context string containing wiki summaries
+- **No-op:** Tool calls to non-matching domains, non-Write/Edit tools, or empty wiki
+</script>
   </div>
 
-  <div class="section-label">Groups</div>
-  <h2>All Hook Groups</h2>
+  
 
   
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AgentLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AgentLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Agent spawn, stop, and permission management</p>
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>WikiContextInjector is a PreToolUse hook that injects relevant wiki page summaries when editing or writing files in wiki-covered domains. It maps file paths to domain tags from wiki entity pages and provides lightweight context (200-500 tokens) to improve domain-aware editing.</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AlgorithmTracking/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AlgorithmTracking</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>PAI Algorithm phase detection</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p>PreToolUse</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ArchitectureEscalation/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ArchitectureEscalation</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>Failure escalation and model delegation</p>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
       </div>
+      <div class="reason"><span class="ri">&#x2022;</span> Tool call is <strong>Write</strong> or <strong>Edit</strong></div>
+<div class="reason"><span class="ri">&#x2022;</span> The target file path contains a path segment matching a wiki entity's domain tag or title</div>
+<div class="reason"><span class="ri">&#x2022;</span> At least one matching wiki page has a non-empty <code>## Summary</code> section</div>
+      <p>Does <strong>not</strong> fire for Read, Bash, Glob, Grep, or any other tool calls.</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CanaryHook/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CanaryHook</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Debug canary for verifying hook propagation</p>
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
       </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>On first invocation per session, scans <code>MEMORY/WIKI/entities/</code> for markdown files with YAML frontmatter containing <code>domain</code> tags</p></div>
+        </div>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodeQualityPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodeQualityPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>Builds and caches a domain index keyed by lowercased domain tags and page titles</p></div>
         </div>
-        <p>3 hooks</p>
-      </div>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodingStandards/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodingStandards</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
+        <div class="flow-step">
+          <div class="step-dot">3</div>
+          <div class="step-content"><p>Extracts the target <code>file_path</code> from the tool input</p></div>
         </div>
-        <p>TypeScript quality enforcement hooks</p>
-      </div>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CronStatusLine/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CronStatusLine</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span>
+        <div class="flow-step">
+          <div class="step-dot">4</div>
+          <div class="step-content"><p>Matches path segments against the domain index</p></div>
         </div>
-        <p>Cron job scheduling and status line management</p>
-      </div>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/DuplicationDetection/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>DuplicationDetection</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
+        <div class="flow-step">
+          <div class="step-dot">5</div>
+          <div class="step-content"><p>If matched, extracts <code>## Summary</code> sections from up to 2 matching wiki pages</p></div>
         </div>
-        <p>Detect and prevent code duplication using SWC-based function analysis</p>
-      </div>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ExecutionEvidence/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ExecutionEvidence</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+        <div class="flow-step">
+          <div class="step-dot">6</div>
+          <div class="step-content"><p>Returns <code>continueOk()</code> with <code>additionalContext</code> containing the summaries, or plain <code>continueOk()</code> if no match</p></div>
         </div>
-        <p>Execution evidence verification from tool results</p>
-      </div>
+</div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/GitSafety/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>GitSafety</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
-        </div>
-        <p>Git safety, branch protection, and worktree verification</p>
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
       </div>
+      
+      <div class="uc-example">
+        <div>A Write to <code>/Users/hogers/Projects/koord/src/agent.ts</code> matches the <code>koord</code> domain tag. The hook injects: "Wiki context for this file's domain: [Wiki: koord] Multi-agent coordination system via Discord with daemon-driven FSM."</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>An Edit to <code>/Users/hogers/random-project/utils.ts</code> finds no matching domain. The hook returns plain continue with no additional context.</div>
+      </div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/IdentityBranding/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>IdentityBranding</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Maple identity branding and usage analytics</p>
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
       </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/KoordDaemon/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>KoordDaemon</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
-        </div>
-        <p>Koord agent-to-agent daemon lifecycle hooks</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LastResponseCache/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LastResponseCache</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Last response caching for reference</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LearningFeedback/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LearningFeedback</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Learning signal capture and relationship memory</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ObligationStateMachines/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ObligationStateMachines</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">9 hooks</span>
-        </div>
-        <p>Documentation, test, citation, and hook-doc obligations</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/QuestionAnswered/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>QuestionAnswered</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>User question response tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SecurityValidator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SecurityValidator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>Protected file write prevention</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SessionFraming/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SessionFraming</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
-        </div>
-        <p>Session initialization, context loading, and branch awareness</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SkillGuard/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SkillGuard</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Skill invocation validation</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/StopOrchestrator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>StopOrchestrator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Stop event coordination</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/VoiceGate/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>VoiceGate</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Voice notification routing control</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WikiPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WikiPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Wiki knowledge pipeline: session ingestion, context injection, and read tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WorkLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WorkLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
-        </div>
-        <p>Session work tracking, summaries, and content generation</p>
-      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/core/adapters/fs</code> — <code>readDir</code>, <code>readFile</code> for wiki page I/O</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/lib/paths</code> — <code>getPaiDir</code> for resolving the wiki directory path</div>
+<div class="reason"><span class="ri">&#x2022;</span> Wiki entity pages at <code>MEMORY/WIKI/entities/*.md</code> with YAML frontmatter containing <code>domain</code> and <code>title</code> fields</div>
+    </div>
+  </section>
 
   <footer>
-    <p>pai-hooks documentation</p>
-    <div class="collab"><span>pai-hooks</span></div>
+    <p>Generated from <code>WikiContextInjector/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>

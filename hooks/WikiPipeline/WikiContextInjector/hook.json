@@ -1,0 +1,9 @@
+{
+  "name": "WikiContextInjector",
+  "group": "WikiPipeline",
+  "event": "PreToolUse",
+  "description": "Injects relevant wiki page summaries when writing/editing files in wiki-covered domains",
+  "schemaVersion": 1,
+  "tags": ["wiki", "context"],
+  "presets": []
+}
