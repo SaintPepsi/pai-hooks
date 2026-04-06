@@ -13,11 +13,11 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import { isSubagent } from "@hooks/lib/environment";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { isSubagent } from "@hooks/lib/environment";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -306,8 +306,7 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   const recentSessions = getRecentWorkSessions(baseDir, deps);
   if (recentSessions.length === 0) return null;
 
-  let summary =
-    "\n📋 ACTIVE WORK:\n\n  ── Recent Sessions (last 48h) ──\n";
+  let summary = "\n📋 ACTIVE WORK:\n\n  ── Recent Sessions (last 48h) ──\n";
   for (const s of recentSessions) {
     summary += `\n  ⚡ ${s.title}\n`;
     summary += `     ${s.timestamp} | Status: ${s.status}\n`;
@@ -375,6 +374,27 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
     `To reject: annotate with rationale, move to PROPOSALS/rejected/\n` +
     `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`
   );
+}
+
+export function loadWikiPointer(baseDir: string, deps: LoadContextDeps): string | null {
+  const wikiDir = join(baseDir, "MEMORY/WIKI");
+  const indexPath = join(wikiDir, "index.md");
+
+  if (!deps.fileExists(indexPath)) return null;
+
+  // Count page files across entity/concept/source dirs
+  let pageCount = 0;
+  for (const subdir of ["entities", "concepts", "sources"]) {
+    const dirPath = join(wikiDir, subdir);
+    const entries = deps.readDir(dirPath, { withFileTypes: true });
+    if (entries.ok) {
+      pageCount += entries.value.filter((e) => e.name.endsWith(".md")).length;
+    }
+  }
+
+  if (pageCount === 0) return null;
+
+  return `📚 Wiki: ${pageCount} knowledge pages available. Read MEMORY/WIKI/index.md for the catalog.`;
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -486,7 +506,8 @@ This context is now active. Additional context loads dynamically as needed.
     // Build active work summary
     const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
     const proposals = loadPendingProposals(deps.baseDir, deps);
-    const parts = [message, activeWork, proposals].filter(Boolean);
+    const wikiPointer = loadWikiPointer(deps.baseDir, deps);
+    const parts = [message, activeWork, proposals, wikiPointer].filter(Boolean);
     const fullContent = parts.join("\n\n");
 
     deps.stderr("PAI context injected into session");

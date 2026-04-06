@@ -1,10 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
-import { err, ok } from "@hooks/core/result";
 import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { LoadContext, type LoadContextDeps } from "./LoadContext.contract";
+import { LoadContext, type LoadContextDeps, loadWikiPointer } from "./LoadContext.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -49,7 +48,10 @@ function makeDeps(overrides: Partial<LoadContextDeps> = {}): LoadContextDeps {
     readDir: (_path: string, _opts?: { withFileTypes: true }) =>
       ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>,
     stat: (_path: string) => ok({ mtimeMs: 1000 }),
-    execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => ok("rebuilt"),
+    execSyncSafe: (
+      _cmd: string,
+      _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+    ) => ok("rebuilt"),
     getDAName: () => "Maple",
     recordSessionStart: () => {},
     getCurrentDate: async () => "2026-03-30 12:00:00 UTC",
@@ -280,7 +282,6 @@ describe("LoadContext — context files loading", () => {
   });
 });
 
-
 // ─── Skill rebuild ────────────────────────────────────────────────────────────
 
 describe("LoadContext — needsSkillRebuild", () => {
@@ -292,9 +293,11 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("SKILL.md")) return false; // does not exist
         return false;
       },
-      readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: [] }) as Result<T, ResultError>,
-      execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => {
+      readJson: <T = unknown>(_path: string) => ok({ contextFiles: [] }) as Result<T, ResultError>,
+      execSyncSafe: (
+        _cmd: string,
+        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+      ) => {
         rebuiltCalled = true;
         return ok("rebuilt");
       },
@@ -332,7 +335,10 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
         return makeFileReadError();
       },
-      execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => {
+      execSyncSafe: (
+        _cmd: string,
+        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+      ) => {
         rebuiltCalled = true;
         return ok("rebuilt");
       },
@@ -369,7 +375,10 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
         return makeFileReadError();
       },
-      execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => {
+      execSyncSafe: (
+        _cmd: string,
+        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+      ) => {
         rebuiltCalled = true;
         return ok("rebuilt");
       },
@@ -386,9 +395,11 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("settings.json")) return true;
         return false;
       },
-      readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: [] }) as Result<T, ResultError>,
-      execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => ok("done"),
+      readJson: <T = unknown>(_path: string) => ok({ contextFiles: [] }) as Result<T, ResultError>,
+      execSyncSafe: (
+        _cmd: string,
+        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+      ) => ok("done"),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
       },
@@ -405,10 +416,11 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("settings.json")) return true;
         return false;
       },
-      readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: [] }) as Result<T, ResultError>,
-      execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) =>
-        err(new ResultError(ErrorCode.ProcessExecFailed, "exec failed")),
+      readJson: <T = unknown>(_path: string) => ok({ contextFiles: [] }) as Result<T, ResultError>,
+      execSyncSafe: (
+        _cmd: string,
+        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+      ) => err(new ResultError(ErrorCode.ProcessExecFailed, "exec failed")),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
       },
@@ -730,5 +742,59 @@ describe("LoadContext defaultDeps", () => {
   it("defaultDeps.baseDir is a non-empty string", () => {
     expect(typeof LoadContext.defaultDeps.baseDir).toBe("string");
     expect(LoadContext.defaultDeps.baseDir.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── Wiki pointer ────────────────────────────────────────────────────────────
+
+describe("loadWikiPointer", () => {
+  it("returns null when wiki index does not exist", () => {
+    const deps = makeDeps({ fileExists: () => false });
+    expect(loadWikiPointer("/base", deps)).toBeNull();
+  });
+
+  it("returns null when wiki has no pages", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+      readDir: () => ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>,
+    });
+    expect(loadWikiPointer("/base", deps)).toBeNull();
+  });
+
+  it("returns pointer with page count across all subdirs", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+      readDir: () =>
+        ok([makeDirent("koord.md", false), makeDirent("bun.md", false)]) as Result<
+          { name: string; isDirectory(): boolean }[],
+          ResultError
+        >,
+    });
+    const result = loadWikiPointer("/base", deps);
+    expect(result).toContain("6"); // 2 per subdir × 3 subdirs
+    expect(result).toContain("knowledge pages");
+  });
+
+  it("only counts .md files", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+      readDir: () =>
+        ok([
+          makeDirent("page.md", false),
+          makeDirent(".DS_Store", false),
+          makeDirent("subdir", true),
+        ]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>,
+    });
+    const result = loadWikiPointer("/base", deps);
+    expect(result).toContain("3"); // 1 .md per subdir × 3 subdirs
+    expect(result).toContain("MEMORY/WIKI/index.md");
+  });
+
+  it("handles readDir failure gracefully", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+      readDir: () => makeFileDirError("not found"),
+    });
+    expect(loadWikiPointer("/base", deps)).toBeNull();
   });
 });
