@@ -40,9 +40,6 @@ const GIT_COMMIT_RE = /\bgit\s+commit\b/;
 
 // ─── Pure Functions ──────────────────────────────────────────────────────────
 
-/** Check if a Bash command contains `git commit` (word-bounded, works in chained commands). */
-export const isGitCommit = (command: string): boolean => GIT_COMMIT_RE.test(command);
-
 /** Scan hook directories and return list of missing doc files. */
 export function findMissingDocs(deps: DocCommitGuardDeps): MissingDoc[] {
   const missing: MissingDoc[] = [];
@@ -103,7 +100,7 @@ export const DocCommitGuard: SyncHookContract<
 
   accepts(input: ToolHookInput): boolean {
     if (input.tool_name !== "Bash") return false;
-    return isGitCommit(getCommand(input));
+    return GIT_COMMIT_RE.test(getCommand(input));
   },
 
   execute(
