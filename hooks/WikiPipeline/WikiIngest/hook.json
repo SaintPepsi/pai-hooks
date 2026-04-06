@@ -1,0 +1,9 @@
+{
+  "name": "WikiIngest",
+  "group": "WikiPipeline",
+  "event": "SessionEnd",
+  "description": "Runs Filter->Extract->Seed pipeline to ingest session knowledge into the wiki",
+  "schemaVersion": 1,
+  "tags": ["wiki", "pipeline", "knowledge"],
+  "presets": []
+}
