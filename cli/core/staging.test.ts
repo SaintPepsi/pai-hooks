@@ -1,9 +1,10 @@
 /**
- * Staging tests — verifies stageHook produces absolute paths in commandString.
+ * Staging tests — verifies stageHook produces $CLAUDE_PROJECT_DIR paths in commandString.
  *
  * Regression test for issue #32: project-level hooks error on every tool call
  * after EnterWorktree because Claude Code resolves relative paths against the
- * wrong root in a worktree context. The fix is to emit absolute paths.
+ * wrong root in a worktree context. The fix is to use $CLAUDE_PROJECT_DIR which
+ * Claude Code resolves at runtime to the correct project root.
  */
 
 import { describe, expect, it } from "bun:test";
@@ -44,8 +45,8 @@ function makeMinimalDeps(claudeDir: string): InMemoryDeps {
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-describe("stageHook: commandString uses absolute path (issue #32)", () => {
-  it("emits absolute path when claudeDir is absolute", () => {
+describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => {
+  it("emits $CLAUDE_PROJECT_DIR path for worktree compatibility", () => {
     const claudeDir = "/Users/hogers/Projects/koord/.claude";
     const deps = makeMinimalDeps(claudeDir);
     const ctxResult = createStaging(claudeDir, deps);
@@ -64,14 +65,14 @@ describe("stageHook: commandString uses absolute path (issue #32)", () => {
 
     const { commandString } = result.value;
     expect(commandString).toBe(
-      "bun /Users/hogers/Projects/koord/.claude/hooks/pai-hooks/GitSafety/MergeGate/MergeGate.hook.ts",
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/GitSafety/MergeGate/MergeGate.hook.ts',
     );
-    // Must not start with a relative path
-    expect(commandString.startsWith("bun /")).toBe(true);
+    // Must use $CLAUDE_PROJECT_DIR, not a relative path
+    expect(commandString).toContain("$CLAUDE_PROJECT_DIR");
     expect(commandString).not.toContain("bun .claude/");
   });
 
-  it("emits absolute path for a different project root", () => {
+  it("emits $CLAUDE_PROJECT_DIR regardless of claudeDir value", () => {
     const claudeDir = "/home/user/myproject/.claude";
     const deps = makeMinimalDeps(claudeDir);
     const ctxResult = createStaging(claudeDir, deps);
@@ -100,13 +101,14 @@ describe("stageHook: commandString uses absolute path (issue #32)", () => {
     if (!result.ok) return;
 
     expect(result.value.commandString).toBe(
-      "bun /home/user/myproject/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
     );
   });
 
   it("command path is stable across worktree directory changes", () => {
     // Simulates running from a worktree: cwd differs from claudeDir's project root.
-    // The commandString must always embed the claudeDir absolute path, not the cwd.
+    // $CLAUDE_PROJECT_DIR is resolved at runtime by Claude Code, so the command
+    // is stable regardless of what cwd was at install time.
     const claudeDir = "/Users/hogers/Projects/koord/.claude";
     const worktreeCwd = "/Users/hogers/Projects/koord/.claude/worktrees/my-feature";
     const deps = new InMemoryDeps(
@@ -131,10 +133,11 @@ describe("stageHook: commandString uses absolute path (issue #32)", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    // The command must embed the claudeDir path, not the cwd
+    // The command uses $CLAUDE_PROJECT_DIR — not hardcoded claudeDir, not cwd
     expect(result.value.commandString).toBe(
-      "bun /Users/hogers/Projects/koord/.claude/hooks/pai-hooks/GitSafety/MergeGate/MergeGate.hook.ts",
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/GitSafety/MergeGate/MergeGate.hook.ts',
     );
     expect(result.value.commandString).not.toContain(worktreeCwd);
+    expect(result.value.commandString).not.toContain(claudeDir);
   });
 });

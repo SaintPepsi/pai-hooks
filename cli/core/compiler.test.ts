@@ -219,18 +219,18 @@ describe("compileHook", () => {
 
 describe("compiledCommandString", () => {
   it("compiled mode — returns direct path", () => {
-    const result = compiledCommandString("./hooks/Group/Hook.js", "compiled");
-    expect(result).toBe("./hooks/Group/Hook.js");
+    const result = compiledCommandString("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.js", "compiled");
+    expect(result).toBe("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.js");
   });
 
   it("compiled-ts mode — returns bun <path>", () => {
-    const result = compiledCommandString("./hooks/Group/Hook.ts", "compiled-ts");
-    expect(result).toBe("bun ./hooks/Group/Hook.ts");
+    const result = compiledCommandString("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.ts", "compiled-ts");
+    expect(result).toBe("bun \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.ts");
   });
 
   it("source mode — returns direct path", () => {
-    const result = compiledCommandString("./hooks/Group/Hook.hook.ts", "source");
-    expect(result).toBe("./hooks/Group/Hook.hook.ts");
+    const result = compiledCommandString("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.hook.ts", "source");
+    expect(result).toBe("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.hook.ts");
   });
 });
 

@@ -19,7 +19,7 @@ export interface GateIssue {
   hookDir: string;
   hookName: string;
   groupName: string;
-  type: "missing-doc" | "missing-html";
+  type: "missing-doc" | "missing-idea" | "missing-html";
 }
 
 export interface GateDeps {
@@ -60,6 +60,10 @@ export function checkDocGate(
       issues.push({ hookDir, hookName, groupName, type: "missing-doc" });
     }
 
+    if (!deps.fileExists(join(hookDir, "IDEA.md"))) {
+      issues.push({ hookDir, hookName, groupName, type: "missing-idea" });
+    }
+
     if (!deps.fileExists(join(config.docsDir, groupName, `${hookName}.html`))) {
       issues.push({ hookDir, hookName, groupName, type: "missing-html" });
     }
@@ -75,10 +79,15 @@ export function formatReport(issues: GateIssue[]): string {
 
   const lines: string[] = [];
   const missingDocs = issues.filter((i) => i.type === "missing-doc");
+  const missingIdea = issues.filter((i) => i.type === "missing-idea");
   const missingHtml = issues.filter((i) => i.type === "missing-html");
 
   for (const i of missingDocs) {
     lines.push(`ERROR: Missing doc.md in ${i.hookDir}/`);
+  }
+
+  for (const i of missingIdea) {
+    lines.push(`ERROR: Missing IDEA.md in ${i.hookDir}/`);
   }
 
   for (const i of missingHtml) {
@@ -88,7 +97,7 @@ export function formatReport(issues: GateIssue[]): string {
   }
 
   lines.push(
-    "\nPre-commit blocked: hook documentation incomplete.\n  - Add doc.md to hook directories that need it\n  - Run 'bun run docs:render' to generate HTML",
+    "\nPre-commit blocked: hook documentation incomplete.\n  - Add doc.md to hook directories that need it\n  - Add IDEA.md to hook directories that need it\n  - Run 'bun run docs:render' to generate HTML",
   );
 
   return lines.join("\n");

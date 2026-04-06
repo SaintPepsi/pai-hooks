@@ -127,15 +127,18 @@ export function compileHook(
 /**
  * Derive the settings.json command string for a compiled hook.
  *
- * --compiled:    direct path format (relies on shebang), e.g. "./.claude/hooks/Group/Hook.js"
- * --compiled-ts: bun <path> format, e.g. "bun ./.claude/hooks/Group/Hook.ts"
+ * --compiled:    direct path format (relies on shebang), e.g. "$CLAUDE_PROJECT_DIR/.claude/hooks/Group/Hook.js"
+ * --compiled-ts: bun <path> format, e.g. "bun $CLAUDE_PROJECT_DIR/.claude/hooks/Group/Hook.ts"
  */
-export function compiledCommandString(relativePath: string, mode: OutputMode): string {
+export function compiledCommandString(
+  hookPath: string,
+  mode: OutputMode,
+): string {
   if (mode === "compiled-ts") {
-    return `bun ${relativePath}`;
+    return `bun ${hookPath}`;
   }
-  // "compiled" and "source" both use direct path format
-  return relativePath;
+  // "compiled" mode uses direct path format (relies on shebang)
+  return hookPath;
 }
 
 // ─── Internal ───────────────────────────────────────────────────────────────

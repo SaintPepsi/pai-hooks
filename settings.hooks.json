@@ -62,6 +62,10 @@
           },
           {
             "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/DocCommitGuard/DocCommitGuard.hook.ts"
+          },
+          {
+            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
           },
           {

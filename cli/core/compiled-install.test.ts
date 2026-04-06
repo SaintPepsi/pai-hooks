@@ -115,6 +115,9 @@ describe("install --compiled", () => {
       settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
     expect(commands.some((c) => c.endsWith(".js"))).toBe(true);
     expect(commands.some((c) => c.startsWith("bun "))).toBe(false);
+
+    // Commands use $CLAUDE_PROJECT_DIR for worktree compatibility
+    expect(commands.every((c) => c.includes('$CLAUDE_PROJECT_DIR'))).toBe(true);
   });
 });
 
@@ -137,6 +140,10 @@ describe("install --compiled-ts", () => {
     const commands =
       settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
     expect(commands.some((c) => c.startsWith("bun "))).toBe(true);
+
+    // Commands use $CLAUDE_PROJECT_DIR for worktree compatibility
+    // (mirrors source-mode assertion in cli/commands/install.test.ts)
+    expect(commands.every((c) => c.includes('$CLAUDE_PROJECT_DIR'))).toBe(true);
   });
 });
 

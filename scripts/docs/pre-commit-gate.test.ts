@@ -64,16 +64,32 @@ describe("checkDocGate", () => {
     ]);
   });
 
-  it("detects both missing doc.md and HTML", () => {
+  it("detects missing IDEA.md", () => {
+    const deps = makeDeps({
+      scanHookJsons: () => ["GitSafety/MergeGate/hook.json"],
+      fileExists: (path: string) => !path.endsWith("IDEA.md"),
+    });
+
+    const issues = checkDocGate(config, deps);
+    expect(issues).toEqual([
+      {
+        hookDir: "/repo/hooks/GitSafety/MergeGate",
+        hookName: "MergeGate",
+        groupName: "GitSafety",
+        type: "missing-idea",
+      },
+    ]);
+  });
+
+  it("detects all three missing: doc.md, IDEA.md, and HTML", () => {
     const deps = makeDeps({
       scanHookJsons: () => ["GitSafety/MergeGate/hook.json"],
       fileExists: () => false,
     });
 
     const issues = checkDocGate(config, deps);
-    expect(issues).toHaveLength(2);
-    expect(issues[0].type).toBe("missing-doc");
-    expect(issues[1].type).toBe("missing-html");
+    expect(issues).toHaveLength(3);
+    expect(issues.map((i) => i.type)).toEqual(["missing-doc", "missing-idea", "missing-html"]);
   });
 
   it("handles multiple hooks across groups", () => {
@@ -86,9 +102,9 @@ describe("checkDocGate", () => {
     });
 
     const issues = checkDocGate(config, deps);
-    expect(issues).toHaveLength(4);
-    expect(issues.filter((i) => i.groupName === "GitSafety")).toHaveLength(2);
-    expect(issues.filter((i) => i.groupName === "CodeQuality")).toHaveLength(2);
+    expect(issues).toHaveLength(6);
+    expect(issues.filter((i) => i.groupName === "GitSafety")).toHaveLength(3);
+    expect(issues.filter((i) => i.groupName === "CodeQuality")).toHaveLength(3);
   });
 
   it("returns empty when no hook.json files found", () => {
@@ -134,6 +150,21 @@ describe("formatReport", () => {
     const report = formatReport(issues);
     expect(report).toContain("ERROR: Missing docs/groups/Git/Guard.html");
     expect(report).toContain("Run: bun run docs:render");
+  });
+
+  it("formats missing IDEA.md errors", () => {
+    const issues: GateIssue[] = [
+      {
+        hookDir: "/repo/hooks/Git/Guard",
+        hookName: "Guard",
+        groupName: "Git",
+        type: "missing-idea",
+      },
+    ];
+
+    const report = formatReport(issues);
+    expect(report).toContain("ERROR: Missing IDEA.md in /repo/hooks/Git/Guard/");
+    expect(report).toContain("Pre-commit blocked");
   });
 
   it("groups doc errors before HTML errors", () => {

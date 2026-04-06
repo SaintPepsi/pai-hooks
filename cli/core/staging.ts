@@ -23,7 +23,7 @@ import type { HookDef } from "@hooks/cli/types/resolved";
 export interface StagedFiles {
   /** All file paths relative to .claude/ that were staged. */
   files: string[];
-  /** The command string for settings.json (relative to .claude/). */
+  /** The command string for settings.json (uses $CLAUDE_PROJECT_DIR for portability). */
   commandString: string;
 }
 
@@ -110,7 +110,7 @@ export function stageHook(
     }
   }
 
-  const commandString = `bun ${ctx.claudeDir}/hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
+  const commandString = `bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
 
   return ok({ files, commandString });
 }
