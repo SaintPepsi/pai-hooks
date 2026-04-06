@@ -68,10 +68,26 @@ In `~/.claude/settings.json`:
       "blocking": true,
       "docFileName": "doc.md",
       "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"],
-      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$", "shared\\.ts$", "README\\.md$"]
+      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$", "shared\\.ts$", "README\\.md$"],
+      "additionalDocs": [
+        {
+          "fileName": "IDEA.md",
+          "requiredSections": ["## Problem", "## Solution", "## How It Works", "## Signals"]
+        }
+      ],
+      "mode": "independent"
     }
   }
 }
 ```
 
 Set `"blocking": false` to get advisory warnings instead of session blocks.
+
+## IDEA.md Files
+
+Every hook group and individual hook should have an `IDEA.md` alongside `doc.md`.
+IDEA.md is project-agnostic — no internal paths, no TypeScript references, no
+pai-hooks-specific terms. It describes the concept so anyone can reimplement it.
+
+Template: Problem, Solution, How It Works (numbered steps), Signals (input/output),
+Context (optional). Keep to 30-80 lines.

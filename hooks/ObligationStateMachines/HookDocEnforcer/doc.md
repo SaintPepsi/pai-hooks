@@ -123,3 +123,22 @@ Settings are read from `~/.claude/settings.json` under `hookConfig.hookDocEnforc
 | `docFileName` | `"doc.md"` | Name of the documentation file to look for |
 | `requiredSections` | 6 headings | Markdown headings that must appear in the doc |
 | `watchPatterns` | 5 patterns | Regex patterns for files that trigger the obligation |
+| `additionalDocs` | `[]` | Array of `{ fileName, requiredSections }` for extra doc files |
+| `mode` | `"independent"` | How obligations clear: `"independent"` or `"linked"` |
+
+## Multi-Doc Support
+
+The enforcer can track multiple documentation files per hook via `additionalDocs` in the config. When a hook source file is modified, obligations are created for each configured doc file.
+
+### Configuration
+
+- `additionalDocs` — array of `{ fileName, requiredSections }`. Each entry adds another doc obligation per hook.
+- `mode` — controls how obligations clear:
+  - `"independent"` (default) — writing IDEA.md clears the IDEA.md obligation; writing doc.md clears the doc.md obligation. Each clears independently.
+  - `"linked"` — ALL doc files must exist in the hook directory before any obligations clear.
+
+### Example
+
+With `additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution", "## How It Works", "## Signals"] }]`, modifying `TypeStrictness.contract.ts` creates two obligations:
+1. Update `doc.md` with required sections (Overview, Event, etc.)
+2. Update `IDEA.md` with required sections (Problem, Solution, etc.)
