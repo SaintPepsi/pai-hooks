@@ -190,17 +190,37 @@ export function buildDocSuggestions(
   pendingFiles: string[],
   settings: HookDocEnforcerSettings,
 ): string {
-  const hookDirs = [...new Set(pendingFiles.map(getHookDirFromPath))];
   const lines: string[] = [];
 
-  for (const dir of hookDirs) {
-    lines.push(`Create or update \`${dir}/${settings.docFileName}\``);
+  // Group by directory → doc files owed
+  const byDir = new Map<string, Set<string>>();
+  for (const entry of pendingFiles) {
+    const { source, docFile } = parseTag(entry);
+    const dir = getHookDirFromPath(source);
+    if (!byDir.has(dir)) byDir.set(dir, new Set());
+    byDir.get(dir)!.add(docFile);
   }
 
-  if (settings.requiredSections.length > 0) {
+  for (const [dir, docFiles] of byDir) {
+    for (const docFile of docFiles) {
+      lines.push(`Update \`${dir}/${docFile}\``);
+    }
+  }
+
+  // Show required sections per doc type that appears in pending
+  const allDocs = [
+    { fileName: settings.docFileName, requiredSections: settings.requiredSections },
+    ...settings.additionalDocs,
+  ];
+
+  const mentionedDocs = new Set(pendingFiles.map((e) => parseTag(e).docFile));
+
+  for (const doc of allDocs) {
+    if (!mentionedDocs.has(doc.fileName)) continue;
+    if (doc.requiredSections.length === 0) continue;
     lines.push("");
-    lines.push(`Required sections in \`${settings.docFileName}\`:`);
-    for (const section of settings.requiredSections) {
+    lines.push(`Required sections in \`${doc.fileName}\`:`);
+    for (const section of doc.requiredSections) {
       lines.push(`  - ${section}`);
     }
   }

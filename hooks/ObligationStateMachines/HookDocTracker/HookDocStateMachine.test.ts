@@ -206,7 +206,7 @@ describe("buildDocSuggestions", () => {
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
-    expect(result).toContain("/hooks/G/H/doc.md");
+    expect(result).toContain("Update `/hooks/G/H/doc.md`");
   });
 
   it("deduplicates directories", () => {
@@ -239,6 +239,56 @@ describe("buildDocSuggestions", () => {
     const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
     expect(result).toContain("## Overview");
     expect(result).toContain("## Event");
+  });
+
+  it("groups tagged entries by directory and lists each doc", () => {
+    const settings = {
+      enabled: true,
+      blocking: true,
+      requiredSections: ["## Overview"],
+      docFileName: "doc.md",
+      watchPatterns: [],
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem"] }],
+      mode: "independent" as const,
+    };
+
+    const result = buildDocSuggestions(
+      ["/hooks/G/H/H.contract.ts:doc.md", "/hooks/G/H/H.contract.ts:IDEA.md"],
+      settings,
+    );
+    expect(result).toContain("doc.md");
+    expect(result).toContain("IDEA.md");
+  });
+
+  it("shows per-doc required sections for tagged entries", () => {
+    const settings = {
+      enabled: true,
+      blocking: true,
+      requiredSections: ["## Overview"],
+      docFileName: "doc.md",
+      watchPatterns: [],
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] }],
+      mode: "independent" as const,
+    };
+
+    const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts:IDEA.md"], settings);
+    expect(result).toContain("IDEA.md");
+    expect(result).toContain("## Problem");
+  });
+
+  it("handles untagged entries (backwards compat)", () => {
+    const settings = {
+      enabled: true,
+      blocking: true,
+      requiredSections: ["## Overview"],
+      docFileName: "doc.md",
+      watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
+    };
+
+    const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
+    expect(result).toContain("doc.md");
   });
 });
 
