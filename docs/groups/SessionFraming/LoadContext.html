@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,46 @@ section[id] {
     <span class="tag green">SessionStart</span>
     <span class="tag green">SessionFraming</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SessionFraming/LoadContext/LoadContext.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">LoadContext.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Load Context
+
+> Load configuration, rules, identity, recent work, and relationship context into every new session.
+
+## Problem
+
+Each AI session starts as a blank slate. The assistant does not know its identity, behavioral rules, what the user was working on yesterday, or how the user prefers to communicate. Users must manually re-establish all of this context, which wastes time and leads to inconsistent behavior. A system with many configuration files, rules, and active workstreams needs automated context assembly.
+
+## Solution
+
+At session start, read a settings-driven list of context files (behavioral rules, skills, steering rules), load recent work session metadata, pull in relationship memory (preferences, recent interaction notes), check for pending improvement proposals, and assemble everything into a single context payload. If any component files have changed since last build, regenerate derived artifacts before loading.
+
+## How It Works
+
+1. Check if derived context files (like a skills manifest) need rebuilding by comparing modification times against source components; rebuild if stale.
+2. Read a list of context file paths from settings and concatenate their contents.
+3. Load relationship context: high-confidence user preferences and recent daily interaction notes.
+4. Scan recent work directories (last 48 hours) for active sessions, extracting titles, statuses, and progress from metadata files.
+5. Check for pending improvement proposals from the learning system and summarize them.
+6. Assemble all pieces — identity, date, session ID, rules, relationship context, active work, proposals — into a single structured context payload.
+
+## Signals
+
+- **Input:** Settings file (context file list, identity), behavioral rule files, relationship memory, work session directories, pending proposals
+- **Output:** A single structured context payload injected at session start, containing everything the assistant needs to operate with full awareness
+
+## Context
+
+This is the primary session bootstrap mechanism. It replaces manual context-setting with automated, comprehensive context assembly that adapts as configuration and work state change.
+</script>
   </div>
 
   
@@ -1765,7 +1827,7 @@ section[id] {
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>LoadContext is an <strong>async SessionStart</strong> hook that loads the full PAI context into a new Claude Code session. It rebuilds <code>SKILL.md</code> if any components have changed, loads context files (SKILL.md, AISTEERINGRULES.md, user rules), injects relationship context and coding standards, scans for active work sessions from the last 48 hours, surfaces pending improvement proposals, and wraps everything into a <code><system-reminder></code> block.</p>
+      <p>LoadContext is an <strong>async SessionStart</strong> hook that loads the full PAI context into a new Claude Code session. It rebuilds <code>SKILL.md</code> if any components have changed, loads context files (SKILL.md, AISTEERINGRULES.md, user rules), injects relationship context, scans for active work sessions from the last 48 hours, surfaces pending improvement proposals, and wraps everything into a <code><system-reminder></code> block.</p>
       <p>This is the primary context injection hook, responsible for establishing the agent's identity, session awareness, and knowledge of active work. It skips entirely for subagent sessions.</p>
     </div>
   </section>
@@ -1836,31 +1898,26 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Loads coding standards from <code>PAI/SYSTEM/CODINGSTANDARDS/</code> (general.md, hooks.md, skills.md)</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">8</div>
           <div class="step-content"><p>Loads relationship context: high-confidence opinions and recent relationship notes</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">9</div>
+          <div class="step-dot">8</div>
           <div class="step-content"><p>Builds a <code><system-reminder></code> block with date, session ID, identity rules, and all loaded context</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">10</div>
+          <div class="step-dot">9</div>
           <div class="step-content"><p>Scans <code>MEMORY/WORK/</code> for active work sessions from the last 48 hours</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">11</div>
+          <div class="step-dot">10</div>
           <div class="step-content"><p>Checks for pending improvement proposals in <code>MEMORY/LEARNING/PROPOSALS/pending/</code></p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">12</div>
+          <div class="step-dot">11</div>
           <div class="step-content"><p>Combines all parts and returns as <code>ContextOutput</code></p></div>
         </div>
 </div>
@@ -1876,7 +1933,6 @@ section[id] {
 const settings = loadSettings(deps.baseDir, deps);
 const contextContent = loadContextFiles(deps.baseDir, settings, deps);
 const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
-const codingStandards = loadCodingStandards(deps.baseDir, deps);
 const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
 const proposals = loadPendingProposals(deps.baseDir, deps);</div>
         </div>
@@ -1935,6 +1991,30 @@ const proposals = loadPendingProposals(deps.baseDir, deps);</div>
     <p>Generated from <code>LoadContext/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

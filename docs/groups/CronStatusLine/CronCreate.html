@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">CronStatusLine</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CronStatusLine/CronCreate/CronCreate.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">CronCreate.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Cron Create
+
+> Register a new scheduled task with its cron expression and prompt.
+
+## Problem
+
+A session needs a way to register recurring tasks so they can be tracked, fired, and eventually cleaned up. Without a creation step that persists the task definition, there is nothing for the execution and cleanup hooks to operate on.
+
+## Solution
+
+When a scheduled task is created, extract its ID, name, schedule, and prompt from the creation event. Append it to the session's cron state file (creating the file if this is the first task). Log the creation event for auditing.
+
+## How It Works
+
+1. Extract the task ID, human-readable name, cron schedule, recurrence flag, and prompt from the creation event.
+2. Read the session's existing cron state file, or initialize a new one if none exists.
+3. Append the new task entry with a fire count of zero and no last-fired time.
+4. Write the updated state file.
+5. Append a "created" event to the daily log.
+
+## Signals
+
+- **Input:** Task creation event with schedule, prompt, and metadata
+- **Output:** Updated session cron state file; "created" log entry
+</script>
   </div>
 
   
@@ -1911,6 +1968,30 @@ appendCronLog({ type: "created", cronId, name, schedule, sessionId }, deps, deps
     <p>Generated from <code>CronCreate/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body>
@@ -1710,10 +1738,10 @@ section[id] {
   <div class="container">
     <div class="hero-badge"><span class="dot"></span> Documentation</div>
     <h1>pai-hooks</h1>
-    <p>72 hooks across 22 groups.</p>
+    <p>70 hooks across 22 groups.</p>
     <div class="hero-meta">
       <span>March 2026</span>
-      <span>72 hooks</span>
+      <span>70 hooks</span>
       <span>22 groups</span>
     </div>
   </div>
@@ -1722,7 +1750,7 @@ section[id] {
 <div class="container">
   <div class="summary-grid">
     <div class="summary-item"><div class="num">22</div><div class="label">Groups</div></div>
-    <div class="summary-item"><div class="num">72</div><div class="label">Hooks</div></div>
+    <div class="summary-item"><div class="num">70</div><div class="label">Hooks</div></div>
   </div>
 
   <div class="section-label">Groups</div>
@@ -1742,9 +1770,9 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>AlgorithmTracking</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
         </div>
-        <p>PAI Algorithm phase detection and session naming</p>
+        <p>PAI Algorithm phase detection</p>
       </div>
 
       <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ArchitectureEscalation/index.html'">
@@ -1886,7 +1914,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>SessionFraming</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span>
+          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
         </div>
         <p>Session initialization, context loading, and branch awareness</p>
       </div>
@@ -1932,6 +1960,7 @@ section[id] {
     <div class="collab"><span>pai-hooks</span></div>
   </footer>
 </div>
+
 
 </body>
 </html>

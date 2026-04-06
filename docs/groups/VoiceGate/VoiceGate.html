@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,40 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">VoiceGate</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/VoiceGate/VoiceGate/VoiceGate.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">VoiceGate.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Voice Gate Filter
+
+> Block sub-agent voice requests so only the primary session can use text-to-speech.
+
+## Problem
+
+When an AI system delegates work to sub-agents, each sub-agent may independently try to send voice notifications to the user. This results in overlapping speech, duplicate announcements, and a confusing audio experience. There is no built-in mechanism to restrict TTS access by agent hierarchy.
+
+## Solution
+
+Intercept outgoing requests to the TTS service by matching the service endpoint in shell commands. Before the command executes, check the agent's identity — is it the primary session or a spawned sub-agent? Primary sessions pass through; sub-agents are blocked with a clear explanation.
+
+## How It Works
+
+1. Match shell commands that contain the voice service endpoint (e.g., a localhost TTS server).
+2. Check the current execution environment for sub-agent indicators.
+3. If the caller is not a sub-agent, allow the command through.
+4. If the caller is a sub-agent, block the command and return a reason explaining that voice access is primary-session only.
+
+## Signals
+
+- **Input:** Shell commands containing the TTS service endpoint
+- **Output:** Block with explanation (sub-agents) or silent pass-through (primary session)
+</script>
   </div>
 
   
@@ -1888,6 +1944,30 @@ accepts(input: ToolHookInput): boolean {
     <p>Generated from <code>VoiceGate/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

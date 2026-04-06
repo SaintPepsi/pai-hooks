@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag green">SessionStart</span>
     <span class="tag green">KoordDaemon</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">SessionIdRegister.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Session ID Register
+
+> Register an agent session's unique ID with the coordination daemon at startup.
+
+## Problem
+
+When a coordination daemon spawns an agent, it knows the agent's thread ID but not the session ID that the agent runtime assigns. The daemon needs the session ID to route messages and track which runtime session belongs to which coordinated thread. Without registration, the daemon cannot address the agent.
+
+## Solution
+
+At session start, read the thread ID from an environment variable (set by the daemon when it spawned the agent) and POST both the thread ID and the new session ID to the daemon's registration endpoint. This maps the daemon's thread identifier to the runtime's session identifier, enabling message routing from the first message onward.
+
+## How It Works
+
+1. On session start, extract the session ID from the runtime input.
+2. Read the thread ID from an environment variable set by the coordination daemon.
+3. If either is missing, exit silently (this session was not spawned by a daemon).
+4. Resolve the daemon URL from environment variables or configuration.
+5. POST `{ sessionId, threadId }` to the daemon's registration endpoint.
+
+## Signals
+
+- **Input:** Session start event with a session ID and a daemon-set thread ID environment variable
+- **Output:** HTTP POST to daemon `/register-session` endpoint, or silent pass-through
+</script>
   </div>
 
   
@@ -1901,6 +1958,30 @@ const result = await deps.safeFetch(url, {
     <p>Generated from <code>SessionIdRegister/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

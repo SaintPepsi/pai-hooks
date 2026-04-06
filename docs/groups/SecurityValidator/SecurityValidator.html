@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">SecurityValidator</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">SecurityValidator.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Security Validator
+
+> Block dangerous commands and protect sensitive paths before any tool executes.
+
+## Problem
+
+AI assistants with shell access can run arbitrary commands and write to any file. Without pre-execution validation, a hallucinated `rm -rf`, an accidental write to a credentials file, or a `sed -i` that bypasses file-write protections can cause real damage. Users need policy-based guardrails that work across all tool types.
+
+## Solution
+
+Intercept every shell command and file operation before execution. Match them against a YAML policy file that defines blocked command patterns, tiered path access rules, and per-project overrides. Detect tool-substitution bypasses by extracting write targets from shell commands that modify files indirectly.
+
+## How It Works
+
+1. Load a YAML security policy defining bash patterns (blocked, confirm, alert) and path tiers (zero-access, read-only, confirm-write, no-delete).
+2. For shell commands: strip environment variable prefixes, split chained commands, and test each against pattern lists.
+3. For file operations: resolve the path and check it against the appropriate tier based on the action (read, write, or delete).
+4. For shell commands that write files (sed -i, cp, mv, tee, redirects, inline scripts): extract write targets and validate them against path rules.
+5. Return block, confirm, alert, or allow — and log all non-trivial events to structured files.
+
+## Signals
+
+- **Input:** Tool name and arguments (command string or file path) on every tool invocation
+- **Output:** Block (hard stop with reason), confirm (requires manual execution), alert (logged warning), or allow (silent pass-through)
+</script>
   </div>
 
   
@@ -1915,6 +1972,30 @@ for (const target of writeTargets) {
     <p>Generated from <code>SecurityValidator/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

@@ -155,6 +155,20 @@ The repo keeps `settings.hooks.json` as the portable hook registry:
 - **Post-merge** (consumer workflow): `import-hooks.ts` merges `settings.hooks.json` back into `settings.json` after pulling updates
 - **Install/Uninstall**: `install.ts` and `uninstall.ts` handle first-time setup and clean removal
 
+## IDEA.md — Portable Concepts
+
+Every hook group and individual hook has an `IDEA.md` file — a concise, project-agnostic description of what the hook does and why. Unlike `doc.md` (which documents our specific implementation), `IDEA.md` is designed so anyone can read it and build their own version in whatever stack they use.
+
+Browse the `hooks/` directories to find IDEA.md files, or paste one into a conversation with your LLM to get a working implementation for your project.
+
+### IDEA.md structure
+
+- **Problem** — what pain point this solves
+- **Solution** — the approach, in plain language
+- **How It Works** — numbered steps an LLM can follow to implement it
+- **Signals** — what goes in and what comes out
+- **Context** — (optional) where the idea came from
+
 ## Hook Documentation
 
 Every hook can have a `doc.md` file that gets rendered into a styled HTML documentation site using the [Agent HTML Design Framework](scripts/docs/agent-html-design-framework.html).

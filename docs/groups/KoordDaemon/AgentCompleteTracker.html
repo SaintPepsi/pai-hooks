@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">KoordDaemon</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/KoordDaemon/AgentCompleteTracker/AgentCompleteTracker.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">AgentCompleteTracker.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Agent Complete Tracker
+
+> Notify a coordination daemon when a background agent finishes its work.
+
+## Problem
+
+A coordination daemon tracks which agents are active. When an agent finishes, the daemon needs to know so it can update its state, report results, and potentially assign new work. Without an explicit completion signal, the daemon has no way to distinguish a finished agent from one that is still running.
+
+## Solution
+
+After a background agent tool completes, extract the agent's thread identifier from the tool output and POST a completion notification to the coordination daemon. Distinguish completion events from spawn events by checking whether the invocation was a background launch. Fail silently on all errors so agent completion is never blocked.
+
+## How It Works
+
+1. After an agent tool use, check if this was a background spawn (if so, skip -- spawns are tracked separately).
+2. Extract the thread identifier from the tool output (not the input, to avoid false positives at spawn time).
+3. If no thread identifier is found, exit silently (not a tracked agent).
+4. Resolve the daemon URL from environment variables or configuration.
+5. POST `{ thread_id }` to the daemon's completion endpoint with a short timeout.
+
+## Signals
+
+- **Input:** Agent tool completion events (non-background invocations with a thread ID in output)
+- **Output:** HTTP POST to daemon `/complete` endpoint, or silent pass-through
+</script>
   </div>
 
   
@@ -1909,6 +1966,30 @@ const body = JSON.stringify({ thread_id: threadId });</div>
     <p>Generated from <code>AgentCompleteTracker/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

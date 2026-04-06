@@ -448,6 +448,31 @@ function renderExamplesSection(blocks: Block[]): string {
 
 // ─── Wiki Nav Script ──────────────────────────────────────────────────────────
 
+const COPY_IDEA_SCRIPT = `
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>`;
+
 const WIKI_NAV_SCRIPT = `
 <script>
 (function() {
@@ -514,6 +539,7 @@ function pageShell(opts: {
   sidebar?: string;
   body: string;
   hasSidebar?: boolean;
+  hasIdea?: boolean;
 }): string {
   const sidebarClass = opts.hasSidebar ? ' class="has-sidebar"' : "";
   return `<!DOCTYPE html>
@@ -527,6 +553,7 @@ function pageShell(opts: {
 <body${sidebarClass}>
 ${opts.sidebar ?? ""}
 ${opts.body}
+${opts.hasIdea ? COPY_IDEA_SCRIPT : ""}
 ${opts.hasSidebar ? WIKI_NAV_SCRIPT : ""}
 </body>
 </html>`;
@@ -589,7 +616,7 @@ ${metaItems}
 // ─── Page Templates ───────────────────────────────────────────────────────────
 
 /** Render a single hook documentation page. */
-export function renderHookPage(hook: HookMeta, markdownContent: string, groupName: string): string {
+export function renderHookPage(hook: HookMeta, markdownContent: string, groupName: string, ideaContent?: string): string {
   const { preamble, sections } = parseSections(markdownContent);
 
   // Remove h1 from preamble (redundant with hero)
@@ -613,6 +640,14 @@ export function renderHookPage(hook: HookMeta, markdownContent: string, groupNam
 
   const sectionHtml = sections.map(renderSection).join("\n");
 
+  const ideaButton = ideaContent
+    ? `<button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">${ideaContent.replace(/<\/script/gi, "<\\/script")}</script>`
+    : "";
+
   const body = `
 ${hero}
 
@@ -621,12 +656,13 @@ ${hero}
     ${eventList(hook.event).map((e) => `<span class="tag ${eventColor(e)}">${esc(e)}</span>`).join("\n    ")}
     <span class="tag green">${esc(groupName)}</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="${githubHookUrl(groupName, hook.name)}" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">${esc(hook.name)}.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    ${ideaButton}
   </div>
 
   ${cleanPreamble ? `<p style="color: var(--text-dim); font-size: 15px; margin-bottom: var(--sp-2xl); max-width: 680px;">${inlineMd(cleanPreamble)}</p>` : ""}
@@ -643,6 +679,7 @@ ${hero}
     sidebar,
     body,
     hasSidebar: sections.length > 2,
+    hasIdea: !!ideaContent,
   });
 }
 

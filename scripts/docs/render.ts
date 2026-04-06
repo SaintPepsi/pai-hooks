@@ -24,8 +24,8 @@ import { getArg } from "@hooks/scripts/docs/cli-utils";
 
 const args = process.argv.slice(2);
 const rootDir = resolve(import.meta.dir, "../..");
-const hooksDir = join(rootDir, "hooks");
 
+const hooksDir = resolve(getArg(args, "--hooks-dir", join(rootDir, "hooks")));
 const outDir = resolve(getArg(args, "--out", join(rootDir, "docs")));
 const docFileName = getArg(args, "--doc-name", "doc.md");
 
@@ -108,7 +108,11 @@ for (const group of groups) {
       continue;
     }
 
-    const html = renderHookPage(hook, mdResult.value, group.name);
+    const ideaPath = join(hooksDir, group.name, hook.name, "IDEA.md");
+    const ideaResult = readFile(ideaPath);
+    const ideaContent = ideaResult.ok ? ideaResult.value : undefined;
+
+    const html = renderHookPage(hook, mdResult.value, group.name, ideaContent);
     writeFile(join(groupOutDir, `${hook.name}.html`), html);
     generated++;
   }

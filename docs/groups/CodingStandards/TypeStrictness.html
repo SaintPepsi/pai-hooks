@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,45 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">CodingStandards</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">TypeStrictness.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Type Strictness Enforcement
+
+> Block code that uses type-system escape hatches, enforcing strict typing at write-time.
+
+## Problem
+
+Typed languages offer escape hatches that disable type checking — `any` in TypeScript, `Object` casts in Java, `# type: ignore` in Python, `interface{}` in Go. These spread: one escape hatch in a function signature infects every caller. Teams adopt typed languages for safety, then erode that safety one escape hatch at a time. Linters catch this in CI, but by then the code is written and the author has moved on.
+
+## Solution
+
+A pre-write hook that scans every file being written or edited, detects all forms of type escape hatch usage for that language, and blocks the write immediately. The author is forced to use a proper type before the code lands.
+
+## How It Works
+
+1. Trigger on any write or edit to a file in the target language (e.g., `.ts`, `.py`, `.go`).
+2. Strip all comments and string literals from the content (to avoid false positives on escape hatch keywords appearing in non-type contexts).
+3. Scan for all escape hatch patterns relevant to the language (e.g., in TypeScript: `: any`, `as any`, `<any>`, `any[]`).
+4. If any match is found, block the write with the specific line numbers and a suggestion to use a proper type.
+5. Optionally, also warn about ambiguous types that may indicate lazy typing rather than intentional narrowing (e.g., bare `unknown` in TypeScript, bare `object` in Python).
+
+## Signals
+
+- **Input:** File path and content being written to a typed-language source file
+- **Output:** Block with line numbers and escape hatch details, advisory for ambiguous types, or silent pass
+
+## Context
+
+The specific escape hatches vary by language, but the pattern is universal: every typed language has a way to opt out of type checking, and every team eventually needs enforcement to prevent erosion. TypeScript's `any` is the most common example, but the same approach applies to any language with a type system.
+</script>
   </div>
 
   
@@ -1929,6 +1990,30 @@ if (unknownWarnings.length &gt; 0) {
     <p>Generated from <code>TypeStrictness/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

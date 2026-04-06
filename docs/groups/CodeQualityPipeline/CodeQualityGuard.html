@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">CodeQualityPipeline</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">CodeQualityGuard.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Code Quality Guard
+
+> Score code against quality principles on every write and warn about regressions.
+
+## Problem
+
+Quality violations are easiest to fix at the moment they are introduced — when the author still has full context. If feedback comes later (in CI, code review, or audits), the fix is more expensive and less likely to happen. Authors need immediate, specific feedback on what they just wrote.
+
+## Solution
+
+After every file write or edit, re-score the file against language-specific quality checks and compare against the session baseline (if one exists). If quality regressed, inject an advisory showing the score change and which checks failed. Deduplicate identical violation reports within a session to avoid noise. Log every score to persistent storage for trend analysis.
+
+## How It Works
+
+1. After a file is written or edited, read the new content and score it against quality checks.
+2. If a baseline exists for this file (from a prior read), compute the quality delta.
+3. If violations exist, format an advisory message listing each violation's category, severity, and suggestion.
+4. If the violations are identical to the last report for this file, suppress the duplicate.
+5. Log the score, violations, and metadata to a persistent signal log for trend analysis.
+
+## Signals
+
+- **Input:** File path and content on every file write or edit of a source code file
+- **Output:** Advisory message with quality score, violations, and regression delta, or silent pass if clean
+</script>
   </div>
 
   
@@ -1928,6 +1985,30 @@ if (hash === prevHash &amp;&amp; !deltaMessage) {
     <p>Generated from <code>CodeQualityGuard/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

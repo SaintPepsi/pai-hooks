@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,45 @@ section[id] {
     <span class="tag red">Stop</span>
     <span class="tag green">LearningFeedback</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">RelationshipMemory.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Relationship Memory
+
+> Persist communication preferences and working-style observations between sessions.
+
+## Problem
+
+AI assistants forget everything about the user between sessions. Preferences discovered through interaction ("they get frustrated when I over-explain," "they respond well to concise bullet points") are lost. Each session starts from zero relationship context, leading to repeated friction and a feeling that the assistant never learns.
+
+## Solution
+
+At the end of each session, analyze the conversation transcript for relationship-relevant signals — preferences, frustrations, positive reactions, and milestones. Classify each observation by type and confidence, then append it to a daily relationship log. These notes accumulate over time and are loaded into future sessions, giving the assistant persistent memory of how the user communicates and what they value.
+
+## How It Works
+
+1. At session end, read the full conversation transcript.
+2. Scan user messages for preference indicators (likes, dislikes, frustrations) and positive feedback patterns.
+3. Scan assistant messages for session summaries and milestone markers (breakthroughs, first-time events).
+4. Aggregate signals: if multiple frustration or positive indicators appear, record an observation with a confidence score.
+5. Write all observations to a daily relationship log file, organized by timestamp and tagged with the relevant people.
+
+## Signals
+
+- **Input:** Session conversation transcript (user and assistant messages)
+- **Output:** Structured relationship notes (type, entities, content, confidence) appended to a daily log file
+
+## Context
+
+Works best as part of a system where relationship notes are loaded back into future sessions at startup, creating a persistent memory of working dynamics.
+</script>
   </div>
 
   
@@ -1922,6 +1983,30 @@ deps.writeNotes(notes);</div>
     <p>Generated from <code>RelationshipMemory/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

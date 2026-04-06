@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,46 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">GitSafety</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/GitSafety/WorktreeSafetyVerification/WorktreeSafetyVerification.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">WorktreeSafetyVerification.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Worktree Safety Verification
+
+> Run safety checks after creating a git worktree to prevent cross-contamination and ensure readiness.
+
+## Problem
+
+Git worktrees provide isolated working directories, but they require setup that's easy to forget: the worktree directory needs to be gitignored (or it gets committed as part of the parent repo), dependencies need to be installed fresh (they're not shared from the main checkout), and baseline tests should run to confirm the starting state is clean. Skipping any of these steps leads to subtle bugs, accidental commits of worktree contents, or hours of debugging "tests that pass on main but fail here."
+
+## Solution
+
+Automatically run a safety checklist after a worktree is created: verify the directory is gitignored (and add it if not), install dependencies in the background using the detected package manager, and run baseline tests in the background to establish a known-good starting state.
+
+## How It Works
+
+1. After a worktree is created, extract the worktree path from the creation response.
+2. Find the parent repository's git root and check if the worktree directory is in .gitignore.
+3. If not gitignored, add an entry and commit the change automatically.
+4. Detect the project's package manager by checking for lock files and manifests.
+5. Run dependency installation in the background so it doesn't block the author.
+6. Detect the project's test runner and run baseline tests in the background.
+
+## Signals
+
+- **Input:** Worktree creation event with the new worktree's path
+- **Output:** Advisory context (never blocks worktree creation, all checks are best-effort)
+
+## Context
+
+This pattern prevents a class of issues where worktrees appear ready but have subtle environment differences from the main checkout. The background execution model means the author can start working immediately without waiting for installs or test runs.
+</script>
   </div>
 
   
@@ -1902,6 +1964,30 @@ return ok({ type: "continue", continue: true });</div>
     <p>Generated from <code>WorktreeSafetyVerification/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

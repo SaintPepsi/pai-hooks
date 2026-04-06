@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,46 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">CodingStandards</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">CodingStandardsEnforcer.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Coding Standards Enforcer
+
+> Block code writes that violate architectural coding patterns.
+
+## Problem
+
+Codebases accumulate anti-patterns when there's no automated enforcement of architectural rules. Developers and AI assistants write code that compiles but violates conventions: calling I/O libraries directly instead of through wrappers, using try-catch for flow control instead of result types, hardcoding configuration, using unsafe type casts. Linters catch syntax issues but miss these deeper architectural violations.
+
+## Solution
+
+Intercept every file write and edit operation on code files, simulate the resulting file state, and scan for architectural violations. If the final file would contain any violations, block the operation with a categorized list of problems and specific fix guidance. Log all violations for trend analysis.
+
+## How It Works
+
+1. When a code file is about to be written or edited, determine the full file content that would result from the operation.
+2. For partial edits, read the existing file and apply the edit to produce the complete result.
+3. Scan the resulting content against a set of architectural rules (raw I/O imports, try-catch flow control, hardcoded config, unsafe casts, etc.).
+4. If the file is clean, allow the write.
+5. If violations are found, block the write with a categorized message showing each violation's line, content, and required fix.
+6. Log blocked violations to a signal file for pattern analysis over time.
+
+## Signals
+
+- **Input:** File path, operation type (write or edit), and the content being written
+- **Output:** Block (with violation details grouped by category and fix guidance) or pass
+
+## Context
+
+This is the "enforce" side of a warn-then-enforce pattern. A companion advisor warns about violations when files are read, so authors are informed before they attempt writes that would be blocked.
+</script>
   </div>
 
   
@@ -1925,6 +1987,30 @@ if (violations.length &gt; 0) {
     <p>Generated from <code>CodingStandardsEnforcer/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

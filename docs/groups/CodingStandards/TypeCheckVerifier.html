@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,45 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">CodingStandards</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">TypeCheckVerifier.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Type Check Verifier
+
+> Run the project's type checker after code changes and surface real type errors.
+
+## Problem
+
+After editing a code file, it's common to assume the change is type-safe without actually running the type checker. AI assistants are especially prone to this — they confidently declare "this should compile" without verification. Real type errors get discovered much later, often after more code has been built on top of the broken change.
+
+## Solution
+
+Automatically run the project's type checker after every code file modification and surface any type errors for the edited file as advisory feedback. The verifier discovers the correct type-check command by walking up the directory tree, respects project-specific configurations, and debounces to avoid redundant runs.
+
+## How It Works
+
+1. After a code file is written or edited, walk up the directory tree to find the project root and its type-check command.
+2. Run the type checker with a timeout to prevent blocking on large projects.
+3. Parse the output and extract only the errors relevant to the file that was just changed.
+4. If errors are found, inject them as advisory context with line numbers and messages.
+5. Debounce per file so the same file isn't re-checked within a cooldown window.
+
+## Signals
+
+- **Input:** File path after a code file is written or edited
+- **Output:** Advisory context listing type errors (if any), or nothing for clean files
+
+## Context
+
+This guard never blocks writes — it provides feedback after the fact. The key insight is "don't trust claims, run the checker." The verifier discovers the type-check command automatically, supporting multiple toolchains and frameworks.
+</script>
   </div>
 
   
@@ -1924,6 +1985,30 @@ if (errors.length &gt; 0) {
     <p>Generated from <code>TypeCheckVerifier/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

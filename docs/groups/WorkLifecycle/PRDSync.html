@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">WorkLifecycle</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WorkLifecycle/PRDSync/PRDSync.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">PRDSync.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Requirements Progress Sync
+
+> Keep a central progress tracker in sync whenever a requirements document is written or edited.
+
+## Problem
+
+Requirements documents live inside individual work directories, but downstream consumers (dashboards, other hooks, session state) need a single place to check current progress across all active work. Reading every requirements file on demand is slow and fragile. Progress state drifts out of sync when updates are only stored in the source document.
+
+## Solution
+
+Intercept every write or edit to a requirements document. Parse its YAML frontmatter (task name, phase, effort, slug) and count its checkbox criteria (checked vs. total). Upsert this data into a central JSON tracking file keyed by slug. Also update the session state file so downstream hooks can map sessions to work directories.
+
+## How It Works
+
+1. After a file write or edit, check if the target path matches a requirements document pattern in the work directory.
+2. Read the file and parse its YAML frontmatter for metadata fields (task, slug, phase, effort, progress).
+3. Count checkbox-style criteria lines to determine total and completed counts.
+4. Upsert an entry in a central tracking JSON file keyed by the document's slug.
+5. Extract the work directory name from the file path and update the session state file so other hooks can locate this session's work.
+
+## Signals
+
+- **Input:** File write or edit events targeting requirements documents in work directories
+- **Output:** Updated central progress tracking file and session state file, or silent pass-through for non-matching files
+</script>
   </div>
 
   
@@ -1904,6 +1961,30 @@ syncWorkJson(slug, entry, workJsonPath, deps);</div>
     <p>Generated from <code>PRDSync/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag maple">SubagentStop</span>
     <span class="tag green">AgentLifecycle</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/AgentLifecycle/AgentLifecycleStop/AgentLifecycleStop.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">AgentLifecycleStop.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Agent Lifecycle Stop
+
+> Record when a sub-agent finishes and clean up orphans from crashed agents.
+
+## Problem
+
+When a sub-agent finishes, the system needs to record its completion for auditing and resource tracking. Agents that crash or disconnect never report completion, leaving behind stale state files that falsely indicate active agents.
+
+## Solution
+
+When a sub-agent stops, update its state file with a completion timestamp. If the state file is missing or corrupt (indicating a crash), create a recovery record. After recording the stop, scan all agent state files and remove any that have been running without completion for longer than a threshold (30 minutes), treating them as orphans from crashed agents.
+
+## How It Works
+
+1. A sub-agent stop event fires with the agent's session ID.
+2. Read the agent's existing state file to get its start time.
+3. If the file is missing or corrupt, create a crash-recovery record with the current time as both start and end.
+4. Write the updated state file with the completion timestamp.
+5. Scan all agent state files and delete any without a completion time whose start time is more than 30 minutes ago.
+
+## Signals
+
+- **Input:** Sub-agent stop event with session ID
+- **Output:** Updated agent state file with completion time; removal of orphaned agent state files
+</script>
   </div>
 
   
@@ -1909,6 +1966,30 @@ cleanupOrphans(deps, input.session_id);</div>
     <p>Generated from <code>AgentLifecycleStop/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

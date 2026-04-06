@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,42 @@ section[id] {
     <span class="tag accent">UserPromptSubmit</span>
     <span class="tag green">LearningFeedback</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/LearningFeedback/RatingCapture/RatingCapture.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">RatingCapture.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Rating Capture
+
+> Capture explicit user ratings and detect implicit sentiment from every message.
+
+## Problem
+
+Users rarely give formal feedback to AI assistants. When they do (a quick "8" or "3 - that was wrong"), it needs to be captured instantly. More often, feedback is implicit — frustration in phrasing, enthusiasm in word choice — and goes entirely unrecorded. Without capturing both explicit and implicit signals, the system has no data to improve from.
+
+## Solution
+
+Intercept every user message and run two detection paths. First, check for explicit ratings (a bare number 1-10, optionally followed by a comment). Second, for longer messages, run lightweight sentiment analysis using an LLM to detect emotional signals and assign a confidence-weighted rating. Log both types as structured entries. For low ratings, capture additional context for detailed failure analysis.
+
+## How It Works
+
+1. On every user message, first check if it matches an explicit rating pattern (a number 1-10 with optional comment).
+2. If explicit: log the rating immediately with timestamp and session ID.
+3. If not explicit and the message is long enough: send it (with recent conversation context) to a fast sentiment analysis model.
+4. If the sentiment model returns a rating with sufficient confidence, log it as an implicit signal.
+5. For any rating below 5 (explicit or implicit), capture the surrounding conversation context and write a detailed learning file for later analysis.
+6. For ratings at 3 or below, trigger a separate failure capture process for deeper investigation.
+
+## Signals
+
+- **Input:** User message text and recent conversation transcript
+- **Output:** Structured rating entries (timestamp, score, source, confidence, session ID) appended to a ratings log; detailed learning files for low ratings
+</script>
   </div>
 
   
@@ -1913,6 +1971,30 @@ if (sentiment.rating !== null &amp;&amp; sentiment.confidence &gt;= MIN_CONFIDEN
     <p>Generated from <code>RatingCapture/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

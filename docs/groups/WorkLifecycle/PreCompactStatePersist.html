@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag pink">PreCompact</span>
     <span class="tag green">WorkLifecycle</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WorkLifecycle/PreCompactStatePersist/PreCompactStatePersist.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">PreCompactStatePersist.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Pre-Compaction State Persist
+
+> Inject active task state into context before memory compaction so progress awareness survives the reset.
+
+## Problem
+
+AI systems with limited context windows periodically compact their memory, discarding older conversation. When this happens, the agent loses awareness of what task it was working on, what phase it was in, and how far along it was. After compaction, the agent may restart work from scratch or lose its place entirely.
+
+## Solution
+
+Before compaction occurs, find the most recently modified requirements document, read its frontmatter (task name, phase, progress, slug), and inject a summary into the post-compaction context. The agent retains task awareness even after the memory window resets.
+
+## How It Works
+
+1. Before context compaction fires, scan all work directories and find the most recently modified requirements document by file modification time.
+2. Read the document and parse its YAML frontmatter for task, phase, progress, and slug fields.
+3. Build a concise summary string containing these fields.
+4. Return the summary as additional context that will persist through the compaction boundary.
+5. If no requirements document exists or parsing fails, allow compaction to proceed without injected context.
+
+## Signals
+
+- **Input:** Context compaction event
+- **Output:** Injected context summary with active task state (task, slug, phase, progress), or silent pass-through if no active work exists
+</script>
   </div>
 
   
@@ -1896,6 +1953,30 @@ return ok({ type: "continue", continue: true, additionalContext: summary });</di
     <p>Generated from <code>PreCompactStatePersist/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

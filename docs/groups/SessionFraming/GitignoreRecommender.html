@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag green">SessionStart</span>
     <span class="tag green">SessionFraming</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SessionFraming/GitignoreRecommender/GitignoreRecommender.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">GitignoreRecommender.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Gitignore Recommender
+
+> Suggest enabling gitignore-based file filtering to prevent accidental access to sensitive files.
+
+## Problem
+
+AI coding assistants can read any file in a project, including those that should be ignored — `.env` files with secrets, credential files, large generated artifacts. Most projects have a `.gitignore` that defines what should be excluded, but the AI tool may not respect it by default. Users often do not realize this setting exists until after a sensitive file has been read.
+
+## Solution
+
+At session start, check whether the current project has gitignore-respect enabled in its local settings. If not, inject a suggestion for the assistant to offer enabling it. This is a one-time check per session — non-blocking, non-intrusive, and actionable.
+
+## How It Works
+
+1. At session start, determine the current project directory.
+2. Skip if the project is the AI tool's own configuration directory (it manages its own settings).
+3. Check the project's settings file and local settings file for a gitignore-respect flag.
+4. If neither file has the flag enabled, inject a context message suggesting the assistant offer to enable it.
+5. If the flag is already enabled, produce no output.
+
+## Signals
+
+- **Input:** Project directory path and its settings files
+- **Output:** A suggestion to enable gitignore-respect if it is not already configured, or nothing
+</script>
   </div>
 
   
@@ -1918,6 +1975,30 @@ return ok({
     <p>Generated from <code>GitignoreRecommender/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

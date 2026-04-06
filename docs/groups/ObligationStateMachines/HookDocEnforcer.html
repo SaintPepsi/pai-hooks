@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1715,6 +1743,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
     <li class="wiki-nav-item"><a href="#configuration"><span class="nav-num">07</span> Configuration</a></li>
+    <li class="wiki-nav-item"><a href="#multi-doc-support"><span class="nav-num">08</span> Multi-Doc Support</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1748,12 +1777,41 @@ section[id] {
     <span class="tag red">Stop</span>
     <span class="tag green">ObligationStateMachines</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">HookDocEnforcer.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Hook Documentation Enforcer
+
+> Block session end if automation source files were changed without updating their documentation.
+
+## Problem
+
+Automation rules and plugins (hooks, extensions, middleware) have their own documentation that describes behavior, triggers, and configuration. When the source code of these automations changes but the docs do not, users encounter behavior that does not match what the documentation says.
+
+## Solution
+
+At session end, check whether any automation source files were modified without their local documentation being updated. Configurable watch patterns define which files count as source, and a configurable doc filename defines what counts as documentation. Supports both blocking and advisory (non-blocking) modes.
+
+## How It Works
+
+1. When the session is ending, check the pending obligations list (maintained by the companion tracker).
+2. If no pending items exist or the feature is disabled, pass silently.
+3. If in non-blocking mode, log a warning and pass silently.
+4. If in blocking mode, block the session with a message listing the source files that need documentation updates and suggest what to add.
+5. After the block limit is reached, release the session.
+
+## Signals
+
+- **Input:** Session end attempt, plus pending obligation state and configuration settings
+- **Output:** Block with list of undocumented source changes, advisory warning, or silent pass
+</script>
   </div>
 
   
@@ -1972,8 +2030,39 @@ if (result.action === "block") {
           <tr><td><code>docFileName</code></td><td><code>"doc.md"</code></td><td>Name of the documentation file to look for</td></tr>
           <tr><td><code>requiredSections</code></td><td>6 headings</td><td>Markdown headings that must appear in the doc</td></tr>
           <tr><td><code>watchPatterns</code></td><td>5 patterns</td><td>Regex patterns for files that trigger the obligation</td></tr>
+          <tr><td><code>additionalDocs</code></td><td><code>[]</code></td><td>Array of <code>{ fileName, requiredSections }</code> for extra doc files</td></tr>
+          <tr><td><code>mode</code></td><td><code>"independent"</code></td><td>How obligations clear: <code>"independent"</code> or <code>"linked"</code></td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="multi-doc-support">
+    <div class="section-label accent">Multi-Doc Support</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Multi-Doc Support</h3>
+      </div>
+      <p>The enforcer can track multiple documentation files per hook via <code>additionalDocs</code> in the config. When a hook source file is modified, obligations are created for each configured doc file.</p>
+      <h3 id="configuration">Configuration</h3>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>additionalDocs</code> — array of <code>{ fileName, requiredSections }</code>. Each entry adds another doc obligation per hook.</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>mode</code> — controls how obligations clear:</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>"independent"</code> (default) — writing IDEA.md clears the IDEA.md obligation; writing doc.md clears the doc.md obligation. Each clears independently.</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>"linked"</code> — ALL doc files must exist in the hook directory before any obligations clear.</div>
+      <h3 id="example">Example</h3>
+      <p>With <code>additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution", "## How It Works", "## Signals"] }]</code>, modifying <code>TypeStrictness.contract.ts</code> creates two obligations:</p>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Update <code>doc.md</code> with required sections (Overview, Event, etc.)</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>Update <code>IDEA.md</code> with required sections (Problem, Solution, etc.)</p></div>
+        </div>
+</div>
     </div>
   </section>
 
@@ -1981,6 +2070,30 @@ if (result.action === "block") {
     <p>Generated from <code>HookDocEnforcer/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

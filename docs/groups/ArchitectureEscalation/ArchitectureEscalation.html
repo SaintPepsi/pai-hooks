@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,42 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">ArchitectureEscalation</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/ArchitectureEscalation/ArchitectureEscalation/ArchitectureEscalation.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">ArchitectureEscalation.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Architecture Escalation Detector
+
+> Track fix attempt counts per problem criterion and escalate when repeated failures indicate an architectural issue.
+
+## Problem
+
+When an AI agent tries to fix a bug or satisfy a requirement, it may attempt the same general approach multiple times. Each retry costs tokens and time. After 3 or 5 failed attempts on the same criterion, the problem is almost certainly not a surface-level bug but a deeper design flaw. The agent has no built-in mechanism to recognize this pattern and change strategy.
+
+## Solution
+
+Maintain a per-session counter for each problem criterion. Every time a criterion transitions back to "in progress" (meaning the previous fix attempt did not resolve it), increment the counter. At 3 failures, inject a warning suggesting the agent reconsider its approach. At 5 failures, inject a strong stop directive recommending structured first-principles analysis and multi-perspective debate instead of another targeted fix.
+
+## How It Works
+
+1. After a task status update, check if a criterion is transitioning to "in progress" status.
+2. Load the escalation state file for this session (or create a fresh one).
+3. Increment the in-progress counter for the specific criterion ID.
+4. If the failed attempt count reaches 3, inject a warning message advising the agent to question its fundamental approach and consider root cause analysis.
+5. If the failed attempt count reaches 5, inject a stop message directing the agent to abandon the current strategy entirely and use analytical decomposition techniques.
+6. Persist the updated state so counts survive across the session.
+
+## Signals
+
+- **Input:** Task status update events where a criterion moves to "in progress"
+- **Output:** Warning message at 3 failed attempts, stop directive at 5 failed attempts, or silent pass-through below threshold
+</script>
   </div>
 
   
@@ -1903,6 +1961,30 @@ if (failedAttempts &gt;= WARN_THRESHOLD) {
     <p>Generated from <code>ArchitectureEscalation/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

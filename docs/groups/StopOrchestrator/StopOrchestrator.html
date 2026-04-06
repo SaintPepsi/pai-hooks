@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,42 @@ section[id] {
     <span class="tag red">Stop</span>
     <span class="tag green">StopOrchestrator</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/StopOrchestrator/StopOrchestrator/StopOrchestrator.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">StopOrchestrator.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Stop Orchestrator
+
+> Parse the session transcript once and fan out to all end-of-session handlers.
+
+## Problem
+
+Multiple end-of-session tasks each need the same transcript data. Without coordination, each task parses the transcript independently (wasted work), runs in undefined order, and a failure in one can crash the entire shutdown sequence.
+
+## Solution
+
+A single orchestrator claims the session-stop event, parses the transcript once, determines which handlers are eligible (e.g., voice only for primary sessions), and runs them all concurrently with individual error isolation. Each handler receives pre-parsed data and cannot affect the others.
+
+## How It Works
+
+1. Accept the session stop event and wait a short interval for the transcript to finish writing.
+2. Parse the transcript into a structured object (messages, roles, plain text summary).
+3. Check whether the current session is a primary session or a sub-session.
+4. Build the handler list: always include state restoration, skill rebuilding, and data enrichment; include voice notification only for the primary session.
+5. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
+6. Return silently after all handlers complete or fail.
+
+## Signals
+
+- **Input:** Session stop event with transcript path and session ID
+- **Output:** Silent completion (handlers produce their own side effects independently)
+</script>
   </div>
 
   
@@ -1906,6 +1964,30 @@ await Promise.allSettled(handlers);</div>
     <p>Generated from <code>StopOrchestrator/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

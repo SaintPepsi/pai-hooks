@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,43 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">AlgorithmTracking</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">AlgorithmTracker.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Algorithm Tracker
+
+> Detect phase transitions in a structured workflow by analyzing commands and task activity.
+
+## Problem
+
+A structured problem-solving workflow moves through phases (Observe, Think, Plan, Build, Verify, Learn), but nothing inherently records which phase the session is in. Without tracking, there is no progress visibility, no way to correlate work items to the phase that produced them, and no detection of rework cycles when the workflow loops back to an earlier phase.
+
+## Solution
+
+Observe four categories of session activity and update a persistent state object accordingly: (1) detect phase transitions from command patterns, (2) track success criteria from task creation, (3) update criteria status from task updates, and (4) record agent spawns. When a transition back to an early phase is detected after prior completion, flag it as a rework iteration.
+
+## How It Works
+
+1. After a command executes, check if it contains a known phase-announcement pattern (e.g., "entering the observe phase").
+2. If a phase transition is detected, update the session state to the new phase and append it to phase history.
+3. If the transition is from a completed/late phase back to the beginning, increment the rework counter and notify.
+4. After a task is created, parse its identifier for a criteria pattern and add it to the session's criteria list.
+5. After a task's status changes, update the matching criterion's status (pending, in-progress, completed, failed).
+6. After an agent is spawned, record its name, type, and assigned task in session state.
+7. When criteria count crosses thresholds (12, 20, 40), automatically infer and update the session's effort level.
+
+## Signals
+
+- **Input:** Completed commands, task creation events, task status updates, agent spawn events
+- **Output:** Persistent session state tracking current phase, phase history, criteria, agents, effort level, and rework count
+</script>
   </div>
 
   
@@ -1913,6 +1972,30 @@ if (criterion) {
     <p>Generated from <code>AlgorithmTracker/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

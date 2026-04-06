@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag cyan">SessionEnd</span>
     <span class="tag green">WorkLifecycle</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">ArticleWriter.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Article Writer
+
+> Spawn a background agent to write a blog article from the session's work when a session ends.
+
+## Problem
+
+Interesting work sessions produce stories worth sharing, but writing about them after the fact requires reconstructing context that has already faded. The best time to write about work is immediately after it happens, while all the details are fresh in the system's memory.
+
+## Solution
+
+At session end, check whether the session produced substantial work (measured by completed requirements criteria). If it did, spawn a background agent in a website repository with instructions to hunt through recent memory for the most compelling story, write an article in a specific voice, and create a pull request. Use a lock file to prevent concurrent article-writing agents.
+
+## How It Works
+
+1. At session end, check that a website repository path is configured and exists on disk.
+2. Check that no other article-writing agent is currently running (via a lock file with a 30-minute stale timeout).
+3. Verify the session had substantial work by reading its requirements document and counting completed criteria (minimum 4 required).
+4. Write a lock file and spawn a background runner process.
+5. The runner launches an agent in the website repository with a detailed prompt that instructs it to search memory for stories, write an article, fact-check it, and create a pull request.
+
+## Signals
+
+- **Input:** Session end event with a session ID
+- **Output:** A spawned background article-writing agent, or silent skip if gates are not met (no website repo, lock held, insufficient work)
+</script>
   </div>
 
   
@@ -1789,7 +1846,7 @@ section[id] {
         <h3>When It Fires</h3>
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> The session has a valid session_id</div>
-<div class="reason"><span class="ri">&#x2022;</span> A website repo path is configured in settings.json under <code>articleWriter.repo</code> and exists on disk</div>
+<div class="reason"><span class="ri">&#x2022;</span> A website repo path is configured in <code>hookConfig.articleWriter.repo</code> and exists on disk</div>
 <div class="reason"><span class="ri">&#x2022;</span> No fresh lock file exists at <code>MEMORY/ARTICLES/.writing</code> (or the lock is stale > 30 minutes)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The session's work directory has a PRD.md with 4 or more checked criteria (<code>- [x]</code>)</div>
       <p>It does <strong>not</strong> fire when:</p>
@@ -1903,7 +1960,8 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);</div
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File operations (read, write, exists, stat, remove, ensureDir)</td></tr>
           <tr><td><code>core/adapters/process</code></td><td>adapter</td><td>Spawns background agent process</td></tr>
           <tr><td><code>lib/time</code></td><td>lib</td><td>ISO timestamp generation</td></tr>
-          <tr><td><code>lib/identity</code></td><td>lib</td><td>Reads DA name, principal name, and settings for repo config</td></tr>
+          <tr><td><code>lib/identity</code></td><td>lib</td><td>Reads DA name and principal name</td></tr>
+          <tr><td><code>lib/hook-config</code></td><td>lib</td><td>Reads <code>hookConfig.articleWriter</code> for repo path</td></tr>
           <tr><td><code>article-writer-runner.ts</code></td><td>runner</td><td>Background wrapper that runs claude with the article prompt</td></tr>
         </tbody>
       </table>
@@ -1914,6 +1972,30 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);</div
     <p>Generated from <code>ArticleWriter/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">KoordDaemon</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/KoordDaemon/MessageQueueRelay/MessageQueueRelay.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">MessageQueueRelay.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Message Queue Relay
+
+> Relay incoming messages from a queue watcher into the agent's context and keep the listening loop alive.
+
+## Problem
+
+Agents need to receive real-time messages from a coordinator or other agents. A watcher process blocks until a message arrives, then exits with the message content. But the agent needs to actually process that message and immediately resume listening. Without a relay mechanism, the message is lost as raw command output with no processing directive.
+
+## Solution
+
+Detect when a queue watcher process exits (meaning a message arrived or it timed out). Parse the message from the watcher's output, inject it as structured context into the agent, and include a directive to respawn the watcher. This creates a persistent loop: watcher blocks, message arrives, watcher exits, relay injects message, agent processes it and restarts the watcher.
+
+## How It Works
+
+1. After a shell command completes, check if it was the message queue watcher script.
+2. If the watcher exited with no output (timeout), inject a respawn directive so listening resumes.
+3. If the watcher exited with message content, parse it (JSON with sender and body, or raw text as fallback).
+4. Inject the parsed message as structured context along with a directive to respawn the watcher after processing.
+5. The agent processes the message and runs the watcher again, creating a continuous listening loop.
+
+## Signals
+
+- **Input:** Shell command completions where the command was a message queue watcher
+- **Output:** Injected message context with respawn instructions, or silent pass-through for non-watcher commands
+</script>
   </div>
 
   
@@ -1913,6 +1970,30 @@ return ok(continueOk(
     <p>Generated from <code>MessageQueueRelay/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

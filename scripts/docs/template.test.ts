@@ -166,6 +166,42 @@ describe("renderHookPage", () => {
     // Should NOT have a raw h1 in container (hero has it)
     expect(html).not.toContain('<h1 id="myhook"');
   });
+
+  it("includes copy-idea button when ideaContent is provided", () => {
+    const idea = "# Test\n\n## Problem\n\nSome problem.";
+    const html = renderHookPage(hook, "## Overview\nHello", "TestGroup", idea);
+    expect(html).toContain("copy-idea-btn");
+    expect(html).toContain('id="ideaContent"');
+    expect(html).toContain("copyIdea");
+  });
+
+  it("stores idea content in a script element", () => {
+    const idea = "# Test Hook\n\n## Problem\n\nA problem.";
+    const html = renderHookPage(hook, "## Overview\nHello", "TestGroup", idea);
+    expect(html).toContain('<script type="text/plain" id="ideaContent">');
+    expect(html).toContain("# Test Hook");
+  });
+
+  it("omits copy-idea button when no ideaContent", () => {
+    const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
+    expect(html).not.toContain('onclick="copyIdea()"');
+    expect(html).not.toContain('id="ideaContent"');
+  });
+
+  it("stores raw idea content in script element without HTML parsing", () => {
+    const idea = "# Test\n\n## Problem\n\nUse `<any>` carefully.";
+    const html = renderHookPage(hook, "## Overview\nHello", "TestGroup", idea);
+    expect(html).toContain('<script type="text/plain" id="ideaContent"># Test');
+    expect(html).toContain("Use `<any>` carefully.");
+  });
+
+  it("escapes closing script tag in idea content to prevent tag breakout", () => {
+    const closingTag = "<" + "/script>";
+    const idea = "# Test\n\n## Problem\n\nAvoid " + closingTag + " injection.";
+    const html = renderHookPage(hook, "## Overview\nHello", "TestGroup", idea);
+    expect(html).not.toContain(closingTag + " injection");
+    expect(html).toContain("<\\/script>" + " injection");
+  });
 });
 
 // ─── renderGroupPage ─────────────────────────────────────────────────────────

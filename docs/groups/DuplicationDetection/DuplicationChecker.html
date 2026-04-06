@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,48 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">DuplicationDetection</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">DuplicationChecker.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Duplication Checker
+
+> Block code writes that duplicate functions already in the codebase.
+
+## Problem
+
+When writing new code, developers and LLMs frequently create functions that are identical or near-identical to ones that already exist. Without real-time detection, these duplicates merge in and increase maintenance burden — bugs fixed in one copy don't get fixed in the other.
+
+## Solution
+
+A pre-write hook that extracts functions from incoming code and compares them against a pre-built index of all existing functions. Uses multi-signal matching (hash, name, signature, body structure) to catch both exact and near duplicates.
+
+## How It Works
+
+1. Trigger on any write or edit to a code file.
+2. Extract all function declarations from the new content.
+3. For each function, compute four signals: exact body hash, function name, parameter signature hash, and normalized body hash (ignoring variable names).
+4. Query the duplication index for matches across all four signals.
+5. If 4/4 signals match or the exact body hash matches — block the write with "this function already exists at [location]."
+6. If 2-3 signals match — inject an advisory warning suggesting the author check the similar function.
+7. If 0-1 signals match — pass silently.
+
+## Signals
+
+- **Input:** File path and content being written; access to a pre-built function index
+- **Output:** Block with duplicate location, advisory with similar function reference, or silent pass
+- **Dependency:** Requires a separate index-building component that maintains the function index (see the Duplication Detection group concept)
+
+## Context
+
+This is the checking half of a two-part system. A separate index builder maintains the function index; this component only queries it. The multi-signal approach (rather than simple string matching) catches duplicates even when variable names differ.
+</script>
   </div>
 
   
@@ -1957,6 +2021,30 @@ return ok({ type: "continue", continue: true });</div>
     <p>Generated from <code>DuplicationChecker/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

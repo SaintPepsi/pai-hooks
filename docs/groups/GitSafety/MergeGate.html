@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,43 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">GitSafety</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/GitSafety/MergeGate/MergeGate.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">MergeGate.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Merge Gate
+
+> Block pull request merges when CI is failing or no approved review exists.
+
+## Problem
+
+Merging a pull request with failing CI or without an explicit approval ships broken or unreviewed code. AI assistants may attempt to merge after self-reviewing, skipping the human review requirement. Once merged to the main branch, the damage requires a revert, which adds noise and delays.
+
+## Solution
+
+Intercept merge commands, query both CI status and review status in real time, and block if either requirement isn't met. Require all CI checks to pass (not just be running) and at least one explicit approval (comments don't count). When both conditions fail, report both issues together.
+
+## How It Works
+
+1. When a shell command is about to execute, detect pull request merge commands.
+2. Extract the PR number from the command, or resolve it from the current branch.
+3. Query the CI system for check status — any failing or pending checks trigger a block.
+4. Query the review system for approval status — at least one explicit approval is required.
+5. If both CI and review fail, combine both messages into a single block response.
+6. If only one fails, block with the specific issue.
+7. If status can't be determined, fail open and allow the merge.
+
+## Signals
+
+- **Input:** Shell command string about to be executed
+- **Output:** Block (with failing checks and/or missing review details) or pass
+</script>
   </div>
 
   
@@ -1928,6 +1987,30 @@ return ok(continueOk());</div>
     <p>Generated from <code>MergeGate/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {

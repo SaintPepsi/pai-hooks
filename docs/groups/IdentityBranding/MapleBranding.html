@@ -1698,6 +1698,34 @@ section[id] {
     display: block;
   }
 }
+
+/* ─── Copy Idea Button ──────────────────────────────────────────────────────── */
+
+.copy-idea-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-idea-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-bright);
+  background: var(--accent-glow);
+}
+
+.copy-idea-btn svg {
+  flex-shrink: 0;
+}
 </style>
 </head>
 <body class="has-sidebar">
@@ -1747,12 +1775,41 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">IdentityBranding</span>
   </div>
-  <div style="margin-bottom: var(--sp-2xl);">
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
     <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/IdentityBranding/MapleBranding/MapleBranding.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">MapleBranding.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent"># Brand Identity Enforcer
+
+> Block outgoing public content that uses incorrect or default branding.
+
+## Problem
+
+AI coding tools add their own default footers and signatures to pull requests, issues, and comments. When an AI assistant has a custom identity, these defaults leak through and create inconsistent branding. An emoji-based sign-off might also render differently across platforms, breaking visual consistency.
+
+## Solution
+
+Intercept every command that publishes content to external platforms (PR creation, issue comments, code reviews). Check whether the content contains a default AI footer or an incorrect sign-off format. If found, block the command and instruct the AI to replace it with the correct branded sign-off before retrying.
+
+## How It Works
+
+1. Before any shell command that targets a publishing endpoint (PR create, issue comment, review submit, API call), capture the command text.
+2. Check whether it contains a default AI tool footer (e.g., "Generated with [Tool Name]").
+3. Check whether it uses a plain emoji sign-off instead of the required image-based format.
+4. If either violation is found, block the command and return the correct sign-off for substitution.
+5. If branding is correct or absent, allow the command through.
+
+## Signals
+
+- **Input:** Shell commands that publish content to external platforms
+- **Output:** Block with the correct sign-off template, or silent pass-through
+</script>
   </div>
 
   
@@ -1901,6 +1958,30 @@ const HTML_IMG_SIGNOFF = /&lt;img\s[^&gt;]*alt="🍁"[^&gt;]*&gt;\s*Maple/;</div
     <p>Generated from <code>MapleBranding/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
+
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {
