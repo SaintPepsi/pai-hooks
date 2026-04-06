@@ -1822,7 +1822,7 @@ A pre-write hook that intercepts file edit/write operations, maps the target fil
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>WikiContextInjector is a PreToolUse hook that injects relevant wiki page summaries when editing or writing files in wiki-covered domains. It maps file paths to domain tags from wiki entity pages and provides lightweight context (200-500 tokens) to improve domain-aware editing.</p>
+      <p>WikiContextInjector is a PreToolUse hook that injects relevant wiki page summaries when editing or writing files in wiki-covered domains. It maps file paths to domain tags from wiki entity pages and slugified titles from concept pages, providing lightweight context (200-500 tokens) to improve domain-aware editing. Includes per-file dedup to prevent duplicate injection and metrics tracking for injection events.</p>
     </div>
   </section>
 
@@ -1845,8 +1845,9 @@ A pre-write hook that intercepts file edit/write operations, maps the target fil
         <h3>When It Fires</h3>
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> Tool call is <strong>Write</strong> or <strong>Edit</strong></div>
-<div class="reason"><span class="ri">&#x2022;</span> The target file path contains a path segment matching a wiki entity's domain tag or title</div>
-<div class="reason"><span class="ri">&#x2022;</span> At least one matching wiki page has a non-empty <code>## Summary</code> section</div>
+<div class="reason"><span class="ri">&#x2022;</span> The target file path contains a path segment matching a wiki page's domain tag or title</div>
+<div class="reason"><span class="ri">&#x2022;</span> At least one matching wiki page has a non-empty <code>## Summary</code> or <code>## Definition</code> section</div>
+<div class="reason"><span class="ri">&#x2022;</span> The same file path has not already been injected this session (dedup)</div>
       <p>Does <strong>not</strong> fire for Read, Bash, Glob, Grep, or any other tool calls.</p>
     </div>
   </section>
@@ -1861,31 +1862,46 @@ A pre-write hook that intercepts file edit/write operations, maps the target fil
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>On first invocation per session, scans <code>MEMORY/WIKI/entities/</code> for markdown files with YAML frontmatter containing <code>domain</code> tags</p></div>
+          <div class="step-content"><p>On first invocation per session, scans both <code>MEMORY/WIKI/entities/</code> and <code>MEMORY/WIKI/concepts/</code> for markdown files with YAML frontmatter</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>Builds and caches a domain index keyed by lowercased domain tags and page titles</p></div>
+          <div class="step-content"><p>Entity pages are indexed by their <code>domain</code> tags; concept pages (which lack domain fields) are indexed by their slugified title (e.g., "Design-first methodology" becomes "design-first-methodology")</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Extracts the target <code>file_path</code> from the tool input</p></div>
+          <div class="step-content"><p>Builds and caches a domain index keyed by lowercased domain tags and page titles</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>Matches path segments against the domain index</p></div>
+          <div class="step-content"><p>Extracts the target <code>file_path</code> from the tool input</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>If matched, extracts <code>## Summary</code> sections from up to 2 matching wiki pages</p></div>
+          <div class="step-content"><p>Checks dedup set — skips if this file path was already injected this session</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">6</div>
+          <div class="step-content"><p>Matches path segments against the domain index</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">7</div>
+          <div class="step-content"><p>If matched, extracts <code>## Summary</code> (entity pages) or <code>## Definition</code> (concept pages) sections from up to 2 matching wiki pages</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">8</div>
+          <div class="step-content"><p>Records an injection metric to <code>MEMORY/WIKI/.pipeline/metrics.jsonl</code> with type, session ID, file path, matched pages, and timestamp</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">9</div>
           <div class="step-content"><p>Returns <code>continueOk()</code> with <code>additionalContext</code> containing the summaries, or plain <code>continueOk()</code> if no match</p></div>
         </div>
 </div>
@@ -1905,6 +1921,14 @@ A pre-write hook that intercepts file edit/write operations, maps the target fil
       </div>
       
       <div class="uc-example">
+        <div>An Edit to <code>/Users/hogers/Projects/design-first-methodology/notes.md</code> matches the concept page title. The hook injects the <code>## Definition</code> content from the concept page.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>A second Edit to the same file in the same session is skipped (dedup). No additional context injected, no metric recorded.</div>
+      </div>
+      
+      <div class="uc-example">
         <div>An Edit to <code>/Users/hogers/random-project/utils.ts</code> finds no matching domain. The hook returns plain continue with no additional context.</div>
       </div>
     </div>
@@ -1917,9 +1941,11 @@ A pre-write hook that intercepts file edit/write operations, maps the target fil
         <div class="card-icon">&#x1F517;</div>
         <h3>Dependencies</h3>
       </div>
-      <div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/core/adapters/fs</code> — <code>readDir</code>, <code>readFile</code> for wiki page I/O</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/core/adapters/fs</code> — <code>readDir</code>, <code>readFile</code> for wiki page I/O; <code>appendFile</code> for metrics</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/lib/paths</code> — <code>getPaiDir</code> for resolving the wiki directory path</div>
 <div class="reason"><span class="ri">&#x2022;</span> Wiki entity pages at <code>MEMORY/WIKI/entities/*.md</code> with YAML frontmatter containing <code>domain</code> and <code>title</code> fields</div>
+<div class="reason"><span class="ri">&#x2022;</span> Wiki concept pages at <code>MEMORY/WIKI/concepts/*.md</code> with YAML frontmatter containing <code>title</code> field and <code>## Definition</code> sections</div>
+<div class="reason"><span class="ri">&#x2022;</span> Shared metrics file at <code>MEMORY/WIKI/.pipeline/metrics.jsonl</code> (also used by WikiReadTracker)</div>
     </div>
   </section>
 

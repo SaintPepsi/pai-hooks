@@ -2,7 +2,8 @@
  * WikiContextInjector Contract Tests
  *
  * Tests the pure functions (buildDomainIndex, matchDomain, extractSummary)
- * and the contract's accepts() and execute() methods.
+ * and the contract's accepts() and execute() methods including concept page
+ * indexing, dedup behavior, and injection metrics.
  */
 
 import { beforeEach, describe, expect, it } from "bun:test";
@@ -29,6 +30,7 @@ function makeDeps(overrides: Partial<WikiContextInjectorDeps> = {}): WikiContext
   return {
     readDir: () => ok([]),
     readFile: () => ok(""),
+    appendFile: () => ok(undefined),
     wikiDir: "/tmp/test-wiki",
     stderr: () => {},
     ...overrides,
@@ -181,6 +183,38 @@ Final section content.`;
     const summary = extractSummary(content);
     expect(summary).toBe("Final section content.");
   });
+
+  it("extracts Definition section from concept pages", () => {
+    const content = `---
+title: "Canonical state pattern"
+type: concept
+tags: []
+---
+
+## Definition
+Array-based reactive state with sequential ID assignment and self-cleanup timers.
+
+## How It Appears
+- In svelte stores`;
+    const summary = extractSummary(content);
+    expect(summary).toBe(
+      "Array-based reactive state with sequential ID assignment and self-cleanup timers.",
+    );
+  });
+
+  it("prefers Summary over Definition when both present", () => {
+    const content = `---
+title: Test
+---
+
+## Summary
+The summary wins.
+
+## Definition
+The definition loses.`;
+    const summary = extractSummary(content);
+    expect(summary).toBe("The summary wins.");
+  });
 });
 
 // ─── accepts() gate ─────────────────────────────────────────────────────────
@@ -226,11 +260,43 @@ Multi-agent coordination system via Discord.
 ## Key Facts
 - Some fact`;
 
-  it("returns continue with additionalContext when domain matches", () => {
-    const deps = makeDeps({
-      readDir: () => ok(["koord.md"]),
-      readFile: () => ok(KOORD_PAGE),
+  const CONCEPT_PAGE = `---
+title: "Design-first methodology"
+type: concept
+tags: []
+---
+
+## Definition
+Exploring requirements and design before writing implementation code.
+
+## How It Appears
+- In planning sessions`;
+
+  /** Creates deps that serve entity files from readDir("entities") and concept files from readDir("concepts"). */
+  function makeDualDirDeps(
+    entityFiles: string[],
+    conceptFiles: string[],
+    fileMap: Record<string, string>,
+    overrides: Partial<WikiContextInjectorDeps> = {},
+  ): WikiContextInjectorDeps {
+    return makeDeps({
+      readDir: (path: string) => {
+        if (path.endsWith("/entities")) return ok(entityFiles);
+        if (path.endsWith("/concepts")) return ok(conceptFiles);
+        return ok([]);
+      },
+      readFile: (path: string) => {
+        for (const [key, content] of Object.entries(fileMap)) {
+          if (path.endsWith(key)) return ok(content);
+        }
+        return ok("");
+      },
+      ...overrides,
     });
+  }
+
+  it("returns continue with additionalContext when domain matches", () => {
+    const deps = makeDualDirDeps(["koord.md"], [], { "koord.md": KOORD_PAGE });
     const input = makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts");
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
@@ -245,10 +311,7 @@ Multi-agent coordination system via Discord.
   });
 
   it("returns plain continue when no domain matches", () => {
-    const deps = makeDeps({
-      readDir: () => ok(["koord.md"]),
-      readFile: () => ok(KOORD_PAGE),
-    });
+    const deps = makeDualDirDeps(["koord.md"], [], { "koord.md": KOORD_PAGE });
     const input = makeToolInput("Edit", "/Users/hogers/unrelated-project/src/main.ts");
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
@@ -259,10 +322,7 @@ Multi-agent coordination system via Discord.
   });
 
   it("returns plain continue when file_path is missing", () => {
-    const deps = makeDeps({
-      readDir: () => ok(["koord.md"]),
-      readFile: () => ok(KOORD_PAGE),
-    });
+    const deps = makeDualDirDeps(["koord.md"], [], { "koord.md": KOORD_PAGE });
     const input: ToolHookInput = {
       session_id: "test-sess",
       tool_name: "Write",
@@ -285,5 +345,186 @@ Multi-agent coordination system via Discord.
     if (result.ok) {
       expect(result.value.additionalContext).toBeUndefined();
     }
+  });
+
+  it("indexes and injects concept pages by slugified title", () => {
+    const deps = makeDualDirDeps([], ["design-first-methodology.md"], {
+      "design-first-methodology.md": CONCEPT_PAGE,
+    });
+    const input = makeToolInput("Edit", "/Users/hogers/Projects/design-first-methodology/notes.md");
+    const result = WikiContextInjector.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.additionalContext).toBeDefined();
+      expect(result.value.additionalContext).toContain("Design-first methodology");
+      expect(result.value.additionalContext).toContain(
+        "Exploring requirements and design before writing implementation code.",
+      );
+    }
+  });
+
+  it("indexes both entities and concepts in the same index", () => {
+    const deps = makeDualDirDeps(["koord.md"], ["design-first-methodology.md"], {
+      "koord.md": KOORD_PAGE,
+      "design-first-methodology.md": CONCEPT_PAGE,
+    });
+    // First call: entity match
+    const entityInput = makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts");
+    const entityResult = WikiContextInjector.execute(entityInput, deps);
+    expect(entityResult.ok).toBe(true);
+    if (entityResult.ok) {
+      expect(entityResult.value.additionalContext).toContain("koord");
+    }
+
+    // Second call: concept match (different file path to avoid dedup)
+    const conceptInput = makeToolInput(
+      "Edit",
+      "/Users/hogers/Projects/design-first-methodology/plan.md",
+    );
+    const conceptResult = WikiContextInjector.execute(conceptInput, deps);
+    expect(conceptResult.ok).toBe(true);
+    if (conceptResult.ok) {
+      expect(conceptResult.value.additionalContext).toContain("Design-first methodology");
+    }
+  });
+});
+
+// ─── Dedup behavior ────────────────────────────────────────────────────────
+
+describe("WikiContextInjector dedup", () => {
+  const KOORD_PAGE = `---
+title: "koord"
+type: entity
+domain: [koord]
+---
+
+## Summary
+Multi-agent coordination system via Discord.
+
+## Key Facts
+- Some fact`;
+
+  it("injects context on first call but skips on second call for same file", () => {
+    const deps = makeDeps({
+      readDir: (path: string) => {
+        if (path.endsWith("/entities")) return ok(["koord.md"]);
+        return ok([]);
+      },
+      readFile: () => ok(KOORD_PAGE),
+    });
+    const input = makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts");
+
+    const first = WikiContextInjector.execute(input, deps);
+    expect(first.ok).toBe(true);
+    if (first.ok) {
+      expect(first.value.additionalContext).toBeDefined();
+    }
+
+    const second = WikiContextInjector.execute(input, deps);
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      expect(second.value.additionalContext).toBeUndefined();
+    }
+  });
+
+  it("injects context for different files in the same domain", () => {
+    const deps = makeDeps({
+      readDir: (path: string) => {
+        if (path.endsWith("/entities")) return ok(["koord.md"]);
+        return ok([]);
+      },
+      readFile: () => ok(KOORD_PAGE),
+    });
+
+    const first = WikiContextInjector.execute(
+      makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts"),
+      deps,
+    );
+    expect(first.ok && first.value.additionalContext).toBeDefined();
+
+    const second = WikiContextInjector.execute(
+      makeToolInput("Edit", "/Users/hogers/Projects/koord/src/daemon.ts"),
+      deps,
+    );
+    expect(second.ok && second.value.additionalContext).toBeDefined();
+  });
+});
+
+// ─── Injection metrics ─────────────────────────────────────────────────────
+
+describe("WikiContextInjector metrics", () => {
+  const KOORD_PAGE = `---
+title: "koord"
+type: entity
+domain: [koord]
+---
+
+## Summary
+Multi-agent coordination system via Discord.
+
+## Key Facts
+- Some fact`;
+
+  it("appends injection metric on successful match", () => {
+    const appendedLines: string[] = [];
+    const deps = makeDeps({
+      readDir: (path: string) => {
+        if (path.endsWith("/entities")) return ok(["koord.md"]);
+        return ok([]);
+      },
+      readFile: () => ok(KOORD_PAGE),
+      appendFile: (_path: string, content: string) => {
+        appendedLines.push(content);
+        return ok(undefined);
+      },
+    });
+
+    const input = makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts");
+    WikiContextInjector.execute(input, deps);
+
+    expect(appendedLines.length).toBe(1);
+    const metric = JSON.parse(appendedLines[0].trim());
+    expect(metric.type).toBe("injection");
+    expect(metric.session_id).toBe("test-sess");
+    expect(metric.file_path).toBe("/Users/hogers/Projects/koord/src/agent.ts");
+    expect(metric.matched_pages).toEqual(["entities/koord.md"]);
+    expect(metric.timestamp).toBeDefined();
+  });
+
+  it("does not append metric when no match", () => {
+    const appendedLines: string[] = [];
+    const deps = makeDeps({
+      readDir: () => ok([]),
+      appendFile: (_path: string, content: string) => {
+        appendedLines.push(content);
+        return ok(undefined);
+      },
+    });
+
+    const input = makeToolInput("Write", "/Users/hogers/random/file.ts");
+    WikiContextInjector.execute(input, deps);
+
+    expect(appendedLines.length).toBe(0);
+  });
+
+  it("does not append metric on dedup skip", () => {
+    const appendedLines: string[] = [];
+    const deps = makeDeps({
+      readDir: (path: string) => {
+        if (path.endsWith("/entities")) return ok(["koord.md"]);
+        return ok([]);
+      },
+      readFile: () => ok(KOORD_PAGE),
+      appendFile: (_path: string, content: string) => {
+        appendedLines.push(content);
+        return ok(undefined);
+      },
+    });
+
+    const input = makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts");
+    WikiContextInjector.execute(input, deps);
+    WikiContextInjector.execute(input, deps);
+
+    expect(appendedLines.length).toBe(1);
   });
 });

@@ -2,15 +2,15 @@
  * WikiContextInjector Contract — Injects wiki page summaries as context.
  *
  * PreToolUse hook that fires on Write/Edit. Maps the target file path
- * to a wiki domain, looks up matching entity pages, and injects their
- * Summary section as additionalContext.
+ * to a wiki domain, looks up matching entity and concept pages, and
+ * injects their Summary/Definition section as additionalContext.
  *
  * Token cost: ~200-500 tokens per injection. Only fires when a wiki
  * page matches the target domain.
  */
 
 import { join } from "node:path";
-import { readDir, readFile } from "@hooks/core/adapters/fs";
+import { appendFile, readDir, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -32,6 +32,7 @@ export type DomainIndex = Record<string, WikiPageMeta[]>;
 export interface WikiContextInjectorDeps {
   readDir: (path: string) => Result<string[], ResultError>;
   readFile: (path: string) => Result<string, ResultError>;
+  appendFile: (path: string, content: string) => Result<void, ResultError>;
   wikiDir: string;
   stderr: (msg: string) => void;
 }
@@ -54,15 +55,20 @@ export function buildDomainIndex(
   const index: DomainIndex = {};
   for (const [path, meta] of Object.entries(pages)) {
     const entry: WikiPageMeta = { title: meta.title, path, summary: meta.summary };
+    const addedKeys = new Set<string>();
     for (const domain of meta.domain) {
       const key = domain.toLowerCase();
+      if (addedKeys.has(key)) continue;
+      addedKeys.add(key);
       if (!index[key]) index[key] = [];
       index[key].push(entry);
     }
-    // Also index by title for path-based matching
+    // Also index by title for path-based matching (skip if already covered by domain)
     const titleKey = meta.title.toLowerCase();
-    if (!index[titleKey]) index[titleKey] = [];
-    index[titleKey].push(entry);
+    if (!addedKeys.has(titleKey)) {
+      if (!index[titleKey]) index[titleKey] = [];
+      index[titleKey].push(entry);
+    }
   }
   return index;
 }
@@ -83,22 +89,23 @@ export function matchDomain(filePath: string, index: DomainIndex): WikiPageMeta[
 }
 
 /**
- * Extract the ## Summary section content from a markdown page.
- * Returns the text between ## Summary and the next ## heading (or EOF).
+ * Extract the ## Summary or ## Definition section content from a markdown page.
+ * Checks for ## Summary first (entity pages), then ## Definition (concept pages).
+ * Returns the text between the heading and the next ## heading (or EOF).
  */
 export function extractSummary(markdownContent: string): string {
   const lines = markdownContent.split("\n");
-  let inSummary = false;
-  const summaryLines: string[] = [];
+  let inSection = false;
+  const sectionLines: string[] = [];
   for (const line of lines) {
-    if (line.trim() === "## Summary") {
-      inSummary = true;
+    if (inSection && line.startsWith("## ")) break;
+    if (!inSection && (line.trim() === "## Summary" || line.trim() === "## Definition")) {
+      inSection = true;
       continue;
     }
-    if (inSummary && line.startsWith("## ")) break;
-    if (inSummary && line.trim()) summaryLines.push(line.trim());
+    if (inSection && line.trim()) sectionLines.push(line.trim());
   }
-  return summaryLines.join(" ");
+  return sectionLines.join(" ");
 }
 
 // ─── Internal: Parse YAML Frontmatter ───────────────────────────────────────
@@ -109,8 +116,9 @@ interface ParsedFrontmatter {
 }
 
 /**
- * Lightweight YAML frontmatter parser — extracts only title and domain.
+ * Lightweight YAML frontmatter parser — extracts title and optional domain.
  * Avoids importing a full YAML library for two fields.
+ * Title is required; domain defaults to [] if absent (concept pages).
  */
 function parseFrontmatter(content: string): ParsedFrontmatter | null {
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -118,61 +126,108 @@ function parseFrontmatter(content: string): ParsedFrontmatter | null {
 
   const fm = fmMatch[1];
   const titleMatch = fm.match(/^title:\s*"?([^"\n]+)"?\s*$/m);
-  const domainMatch = fm.match(/^domain:\s*\[([^\]]*)\]\s*$/m);
 
-  if (!titleMatch || !domainMatch) return null;
+  if (!titleMatch) return null;
 
   const title = titleMatch[1].trim();
-  const domain = domainMatch[1]
-    .split(",")
-    .map((d) => d.trim())
-    .filter((d) => d.length > 0);
+  const domainMatch = fm.match(/^domain:\s*\[([^\]]*)\]\s*$/m);
+  const domain = domainMatch
+    ? domainMatch[1]
+        .split(",")
+        .map((d) => d.trim())
+        .filter((d) => d.length > 0)
+    : [];
 
   return { title, domain };
 }
 
 // ─── Internal: Load Index ───────────────────────────────────────────────────
 
-function loadDomainIndex(deps: WikiContextInjectorDeps): DomainIndex {
-  if (cachedIndex) return cachedIndex;
+/** Directories to scan for wiki pages. */
+const WIKI_PAGE_DIRS = ["entities", "concepts"] as const;
 
-  const entitiesDir = join(deps.wikiDir, "entities");
-  const dirResult = deps.readDir(entitiesDir);
+function scanDirectory(
+  deps: WikiContextInjectorDeps,
+  dirName: string,
+  pages: Record<string, { title: string; domain: string[]; summary: string }>,
+): void {
+  const dir = join(deps.wikiDir, dirName);
+  const dirResult = deps.readDir(dir);
   if (!dirResult.ok) {
-    deps.stderr(`[WikiContextInjector] Cannot read wiki entities dir: ${dirResult.error.message}`);
-    cachedIndex = {};
-    return cachedIndex;
+    deps.stderr(
+      `[WikiContextInjector] Cannot read wiki ${dirName} dir: ${dirResult.error.message}`,
+    );
+    return;
   }
 
-  const pages: Record<string, { title: string; domain: string[]; summary: string }> = {};
   for (const filename of dirResult.value) {
     if (!filename.endsWith(".md")) continue;
 
-    const filePath = join(entitiesDir, filename);
+    const filePath = join(dir, filename);
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) continue;
 
     const content = contentResult.value;
     const fm = parseFrontmatter(content);
-    if (!fm || fm.domain.length === 0) continue;
+    if (!fm) continue;
+
+    // Entities require domain tags; concepts use title as implicit domain
+    const domain = fm.domain.length > 0 ? fm.domain : [fm.title.toLowerCase().replace(/\s+/g, "-")];
 
     const summary = extractSummary(content);
     if (!summary) continue;
 
-    pages[`entities/${filename}`] = {
+    pages[`${dirName}/${filename}`] = {
       title: fm.title,
-      domain: fm.domain,
+      domain,
       summary,
     };
+  }
+}
+
+function loadDomainIndex(deps: WikiContextInjectorDeps): DomainIndex {
+  if (cachedIndex) return cachedIndex;
+
+  const pages: Record<string, { title: string; domain: string[]; summary: string }> = {};
+  for (const dirName of WIKI_PAGE_DIRS) {
+    scanDirectory(deps, dirName, pages);
   }
 
   cachedIndex = buildDomainIndex(pages);
   return cachedIndex;
 }
 
-/** Reset cached index — exposed for testing only. */
+/** Set of file paths already injected this session — prevents duplicate injection. */
+let injectedPaths: Set<string> = new Set();
+
+/** Reset cached index and dedup set — exposed for testing only. */
 export function _resetCache(): void {
   cachedIndex = null;
+  injectedPaths = new Set();
+}
+
+// ─── Internal: Metrics ─────────────────────────────────────────────────────
+
+const METRICS_FILE = ".pipeline/metrics.jsonl";
+
+function recordInjectionMetric(
+  deps: WikiContextInjectorDeps,
+  sessionId: string,
+  filePath: string,
+  matchedPages: string[],
+): void {
+  const record = {
+    type: "injection",
+    session_id: sessionId,
+    file_path: filePath,
+    matched_pages: matchedPages,
+    timestamp: new Date().toISOString(),
+  };
+  const metricsPath = join(deps.wikiDir, METRICS_FILE);
+  const result = deps.appendFile(metricsPath, `${JSON.stringify(record)}\n`);
+  if (!result.ok) {
+    deps.stderr(`[WikiContextInjector] failed to write metric: ${result.error.message}`);
+  }
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -180,6 +235,7 @@ export function _resetCache(): void {
 const defaultDeps: WikiContextInjectorDeps = {
   readDir,
   readFile,
+  appendFile,
   wikiDir: join(getPaiDir(), "MEMORY", "WIKI"),
   stderr: defaultStderr,
 };
@@ -207,13 +263,27 @@ export const WikiContextInjector: SyncHookContract<
 
     if (!filePath) return ok(continueOk());
 
+    // Dedup: skip if we already injected context for this exact file path
+    if (injectedPaths.has(filePath)) return ok(continueOk());
+
     const index = loadDomainIndex(deps);
     const matches = matchDomain(filePath, index);
 
     if (!matches || matches.length === 0) return ok(continueOk());
 
+    // Mark as injected to prevent duplicate injection on same file
+    injectedPaths.add(filePath);
+
     const contextParts = matches.map((m) => `[Wiki: ${m.title}] ${m.summary}`);
     const contextText = `Wiki context for this file's domain:\n${contextParts.join("\n")}`;
+
+    // Record injection metric
+    recordInjectionMetric(
+      deps,
+      input.session_id,
+      filePath,
+      matches.map((m) => m.path),
+    );
 
     return ok(continueOk(contextText));
   },
