@@ -14,19 +14,13 @@
  */
 
 import { dirname } from "node:path";
-import { readFile } from "@hooks/core/adapters/fs";
-import { jsonParseFailed } from "@hooks/core/error";
-import { tryCatch } from "@hooks/core/result";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getFilePath } from "@hooks/lib/tool-input";
+import { readHookConfig } from "@hooks/lib/hook-config";
 import type { ObligationConfig, ObligationDeps } from "@hooks/lib/obligation-machine";
 import {
   createDefaultDeps,
   blockCountPath as genericBlockCountPath,
   pendingPath as genericPendingPath,
 } from "@hooks/lib/obligation-machine";
-import { getSettingsPath } from "@hooks/lib/paths";
-import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Re-export generic deps type for contracts ───────────────────────────────
 
@@ -44,14 +38,20 @@ export const HOOK_DOC_CONFIG: ObligationConfig = {
 
 // ─── Settings Types ───────────────────────────────────────────────────────────
 
+export interface AdditionalDoc {
+  fileName: string;
+  requiredSections: string[];
+}
+
 export interface HookDocEnforcerSettings {
   enabled: boolean;
   blocking: boolean;
   requiredSections: string[];
   docFileName: string;
   watchPatterns: RegExp[];
+  additionalDocs: AdditionalDoc[];
+  mode: "independent" | "linked";
 }
-
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
@@ -79,6 +79,8 @@ function defaults(): HookDocEnforcerSettings {
     requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
     docFileName: "doc.md",
     watchPatterns: [...DEFAULT_WATCH_PATTERNS],
+    additionalDocs: [],
+    mode: "independent",
   };
 }
 
@@ -88,7 +90,11 @@ export function readHookDocSettings(
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
 ): HookDocEnforcerSettings {
-  const cfg = readHookConfig<Record<string, unknown>>("hookDocEnforcer", readFileFn ?? undefined, settingsPath);
+  const cfg = readHookConfig<Record<string, unknown>>(
+    "hookDocEnforcer",
+    readFileFn ?? undefined,
+    settingsPath,
+  );
   if (!cfg) return defaults();
 
   return {
@@ -101,6 +107,17 @@ export function readHookDocSettings(
     watchPatterns: Array.isArray(cfg.watchPatterns)
       ? cfg.watchPatterns.map((p: string) => new RegExp(p))
       : [...DEFAULT_WATCH_PATTERNS],
+    additionalDocs: Array.isArray(cfg.additionalDocs)
+      ? (cfg.additionalDocs as Array<{ fileName?: unknown; requiredSections?: unknown }>)
+          .filter((d) => typeof d.fileName === "string")
+          .map((d) => ({
+            fileName: d.fileName as string,
+            requiredSections: Array.isArray(d.requiredSections)
+              ? (d.requiredSections as string[])
+              : [],
+          }))
+      : [],
+    mode: cfg.mode === "linked" ? ("linked" as const) : ("independent" as const),
   };
 }
 

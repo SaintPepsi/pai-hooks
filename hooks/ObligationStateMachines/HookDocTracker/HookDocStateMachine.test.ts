@@ -122,6 +122,8 @@ describe("buildDocSuggestions", () => {
       requiredSections: ["## Overview"],
       docFileName: "doc.md",
       watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
@@ -135,6 +137,8 @@ describe("buildDocSuggestions", () => {
       requiredSections: [],
       docFileName: "doc.md",
       watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/a.ts", "/hooks/G/H/b.ts"], settings);
@@ -149,6 +153,8 @@ describe("buildDocSuggestions", () => {
       requiredSections: ["## Overview", "## Event"],
       docFileName: "doc.md",
       watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
@@ -195,6 +201,50 @@ describe("readHookDocSettings", () => {
   it("handles malformed JSON gracefully", () => {
     const settings = readHookDocSettings(() => "not json{{{");
     expect(settings.enabled).toBe(true); // defaults
+  });
+
+  it("parses additionalDocs from config", () => {
+    const json = JSON.stringify({
+      hookConfig: {
+        hookDocEnforcer: {
+          additionalDocs: [
+            { fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] },
+          ],
+        },
+      },
+    });
+    const settings = readHookDocSettings(() => json);
+    expect(settings.additionalDocs).toHaveLength(1);
+    expect(settings.additionalDocs[0].fileName).toBe("IDEA.md");
+    expect(settings.additionalDocs[0].requiredSections).toEqual(["## Problem", "## Solution"]);
+  });
+
+  it("defaults additionalDocs to empty array", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(settings.additionalDocs).toEqual([]);
+  });
+
+  it("parses mode from config", () => {
+    const json = JSON.stringify({
+      hookConfig: {
+        hookDocEnforcer: { mode: "linked" },
+      },
+    });
+    const settings = readHookDocSettings(() => json);
+    expect(settings.mode).toBe("linked");
+  });
+
+  it("defaults mode to independent", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(settings.mode).toBe("independent");
+  });
+
+  it("ignores invalid mode values", () => {
+    const json = JSON.stringify({
+      hookConfig: { hookDocEnforcer: { mode: "bogus" } },
+    });
+    const settings = readHookDocSettings(() => json);
+    expect(settings.mode).toBe("independent");
   });
 });
 
@@ -373,7 +423,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("/hooks/G/H/H.contract.ts");
@@ -384,7 +437,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("doc.md");
@@ -395,7 +451,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("## Overview");
