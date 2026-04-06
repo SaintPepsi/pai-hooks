@@ -1,0 +1,9 @@
+{
+  "name": "WikiReadTracker",
+  "group": "WikiPipeline",
+  "event": "PostToolUse",
+  "description": "Tracks wiki page reads by appending metrics to .pipeline/metrics.jsonl",
+  "schemaVersion": 1,
+  "tags": ["wiki", "metrics"],
+  "presets": []
+}

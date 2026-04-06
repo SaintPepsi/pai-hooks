@@ -232,6 +232,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiReadTracker/WikiReadTracker.hook.ts"
           }
         ]
       },
@@ -445,6 +449,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiIngest/WikiIngest.hook.ts"
           },
           {
             "type": "command",

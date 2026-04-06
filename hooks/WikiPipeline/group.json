@@ -1,6 +1,6 @@
 {
   "name": "WikiPipeline",
   "description": "Wiki knowledge pipeline: session ingestion, context injection, and read tracking",
-  "hooks": ["WikiContextInjector"],
+  "hooks": ["WikiContextInjector", "WikiReadTracker", "WikiIngest"],
   "sharedFiles": []
 }

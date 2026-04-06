@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WikiPipeline — Hook Group</title>
+  <title>WikiIngest — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1728,79 +1728,326 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>WikiIngest</h4>
+    <p>WikiPipeline / SessionEnd</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Hook Group</div>
-    <h1>WikiPipeline</h1>
-    <p>Wiki knowledge pipeline: session ingestion, context injection, and read tracking</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>WikiIngest</h1>
+    <p>Runs Filter-&gt;Extract-&gt;Seed pipeline to ingest session knowledge into the wiki</p>
     <div class="hero-meta">
-      <span>3 hooks</span>
+      <span>WikiPipeline</span>
+      <span>SessionEnd</span>
       <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div style="margin-bottom: var(--sp-lg);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WikiPipeline" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-      <span style="font-size: 15px;">&#x1F4C2;</span>
-      <code style="color: var(--cyan); font-size: 12px;">hooks/WikiPipeline/</code>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag cyan">SessionEnd</span>
+    <span class="tag green">WikiPipeline</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WikiPipeline/WikiIngest/WikiIngest.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">WikiIngest.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
-  </div>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">## Problem
 
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num" style="color:var(--orange);">1</div><div class="label">PreToolUse</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--blue);">1</div><div class="label">PostToolUse</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--cyan);">1</div><div class="label">SessionEnd</div></div>
-  </div>
+AI assistants generate valuable knowledge during work sessions: architectural decisions, entity relationships, design patterns, trade-off analyses. This knowledge lives only in raw session transcripts and is never surfaced again. Each session is an isolated conversation that contributes nothing to a persistent knowledge base.
 
-  <div class="section-label">Hooks</div>
-  <h2>All Hooks in WikiPipeline</h2>
+## Solution
+
+An automatic post-session hook that runs a three-stage knowledge pipeline (Filter, Extract, Seed) to convert session transcripts into structured wiki pages. The hook fires at session end, processes the transcript through classification and LLM-based extraction, and creates wiki entries for discovered entities and concepts.
+
+## How It Works
+
+1. **Gate checks** prevent unnecessary processing: skip sessions that are too small (under 5KB), skip sessions that only touched wiki files (prevents circular self-reference), skip sessions already processed (dedup by session ID)
+2. **Filter stage** classifies the session by size tier (quick-scan, standard, deep), scores messages by wiki-relevance using decision-language patterns, and produces a compressed digest keeping only high-value content
+3. **Extract stage** sends the digest to a fast LLM (Haiku) with a structured extraction prompt, producing typed entities (projects, technologies, people, concepts), decisions with rationale, and concept definitions
+4. **Seed stage** reads the extraction output and creates wiki pages from templates for any entities or concepts that do not already have pages, then updates the wiki index
+5. **Audit trail** records every run with session ID, classification tier, extraction cost, and pages created for pipeline observability
+
+## Signals
+
+**Input:**
+- Session ID and transcript path from the SessionEnd hook event
+- Raw session JSONL file (varies from 1KB to 500KB+)
+
+**Output:**
+- Silent hook output (no visible effect on session end)
+- Digest file in `.pipeline/digests/` (compressed session summary)
+- Extraction JSON in `.pipeline/extractions/haiku/` (structured entities, decisions, concepts)
+- Wiki pages in `entities/` and `concepts/` directories (created from templates)
+- Audit JSONL line in `.pipeline/audit.jsonl` (run metadata)
+</script>
+  </div>
 
   
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='WikiContextInjector.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>WikiContextInjector</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Injects relevant wiki page summaries when writing/editing files in wiki-covered domains</p>
-      </div>
 
-      <div class="card blue" style="cursor:pointer;" onclick="location.href='WikiReadTracker.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>WikiReadTracker</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
-          </div>
-        </div>
-        <p>Tracks wiki page reads by appending metrics to .pipeline/metrics.jsonl</p>
+  
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>WikiIngest is a SessionEnd hook that automatically processes session transcripts through a three-stage knowledge pipeline: Filter, Extract, and Seed. It converts raw session conversations into structured wiki pages containing entities, decisions, and concepts discovered during the session.</p>
+    </div>
+  </section>
 
-      <div class="card cyan" style="cursor:pointer;" onclick="location.href='WikiIngest.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>WikiIngest</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--cyan-dim);color:var(--cyan);">SessionEnd</span>
-          </div>
-        </div>
-        <p>Runs Filter-&gt;Extract-&gt;Seed pipeline to ingest session knowledge into the wiki</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p><strong>SessionEnd</strong> — fires after every Claude Code session ends, giving the hook access to the full session transcript.</p>
+    </div>
+  </section>
 
-  <footer><p>pai-hooks documentation</p></footer>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
+      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> Fires on every session end (accepts all inputs)</div>
+<div class="reason"><span class="ri">&#x2022;</span> Gates prevent unnecessary processing:</div>
+<div class="reason"><span class="ri">&#x2022;</span> Sessions smaller than 5KB are skipped (too little content)</div>
+<div class="reason"><span class="ri">&#x2022;</span> Sessions that only touched wiki files (MEMORY/WIKI/) are skipped to prevent circular self-reference</div>
+<div class="reason"><span class="ri">&#x2022;</span> Sessions that have already been extracted are skipped (dedup by session ID)</div>
+    </div>
+  </section>
+
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p><strong>Locate transcript</strong> — finds the session JSONL file via <code>input.transcript_path</code> or by searching the projects directory</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p><strong>Size gate</strong> — checks file size; skips sessions under 5KB as they lack substance</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">3</div>
+          <div class="step-content"><p><strong>Wiki-only guard</strong> — quick-scans for file paths in the transcript; skips if all paths are under MEMORY/WIKI/</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">4</div>
+          <div class="step-content"><p><strong>Dedup check</strong> — looks for an existing extraction JSON in <code>.pipeline/extractions/haiku/</code></p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">5</div>
+          <div class="step-content"><p><strong>Filter</strong> — runs <code>filter.ts</code> via shell to classify the session and produce a compressed digest</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">6</div>
+          <div class="step-content"><p><strong>Extract</strong> — runs <code>extract.ts</code> via shell, which calls Claude Haiku to extract entities, decisions, and concepts from the digest</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">7</div>
+          <div class="step-content"><p><strong>Seed</strong> — if the extraction contains new entities or concepts, runs <code>seed.ts</code> to create wiki pages from templates</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">8</div>
+          <div class="step-content"><p><strong>Audit trail</strong> — appends a JSONL entry to <code>.pipeline/audit.jsonl</code> with session ID, classification, cost, and pages created</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">9</div>
+          <div class="step-content"><p><strong>Milestone counter</strong> — logs a message every 50 extractions</p></div>
+        </div>
+</div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
+      </div>
+      
+      <div class="uc-example">
+        <div>A developer works on a new feature involving TypeScript hooks and discusses architectural decisions. At session end, WikiIngest filters the transcript down to key messages, extracts "TypeScript" as a technology entity and "Hook Contract Pattern" as a concept, then creates wiki pages for each.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>A short greeting session (2KB) ends. WikiIngest sees the file is below the 5KB threshold and immediately returns silent with no processing.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>A session that only edited wiki entity pages ends. WikiIngest detects all file paths contain MEMORY/WIKI/ and skips to prevent circular ingestion.</div>
+      </div>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          
+        </div>
+        <div class="code-window-body">
+          <div class="code-block">
+Pipeline flow:
+  Session JSONL (50KB) -&gt; Filter -&gt; Digest (2KB) -&gt; Extract -&gt; Extraction JSON -&gt; Seed -&gt; Wiki Pages
+  
+Audit entry:
+  {"session_id":"abc123","timestamp":"2026-04-06T15:00:00","classification":"standard","extractionCost":0.001,"pagesCreated":2}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
+      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>Pipeline tools</strong>: <code>~/.claude/MEMORY/WIKI/.pipeline/tools/filter.ts</code>, <code>extract.ts</code>, <code>seed.ts</code> — called via <code>bun</code> shell exec</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Claude Haiku</strong>: extraction step uses Claude CLI which calls Haiku for structured knowledge extraction</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Wiki templates</strong>: <code>~/.claude/MEMORY/WIKI/.pipeline/templates/</code> — entity and concept page templates used by seed</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Core adapters</strong>: <code>@hooks/core/adapters/fs</code> for file operations, <code>@hooks/core/adapters/process</code> for shell exec</div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Generated from <code>WikiIngest/doc.md</code> &mdash; pai-hooks documentation</p>
+  </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>
