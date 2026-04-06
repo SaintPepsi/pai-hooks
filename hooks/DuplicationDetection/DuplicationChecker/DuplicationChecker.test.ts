@@ -223,6 +223,105 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
       expect(output.type).toBe("block");
     });
+    test("injects additionalContext when function matches a known pattern", () => {
+      const patternContent = `
+function makeDeps(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
+  return { stderr: () => {}, now: () => Date.now(), ...overrides };
+}
+      `.trim();
+
+      // Build a minimal index with a makeDeps pattern entry
+      const mockIndex = {
+        version: 1,
+        root: PAI_HOOKS_ROOT,
+        builtAt: new Date().toISOString(),
+        fileCount: 3,
+        functionCount: 3,
+        entries: [],
+        hashGroups: [],
+        nameGroups: [],
+        sigGroups: [],
+        patterns: [
+          {
+            id: "makeDeps-abc123",
+            name: "makeDeps",
+            sig: "(Partial<*>)→Record<*,*>",
+            tier: 1 as const,
+            fileCount: 10,
+            files: ["a.test.ts", "b.test.ts", "c.test.ts"],
+          },
+        ],
+      };
+      const mockIndexJson = JSON.stringify(mockIndex);
+
+      const stderrMessages: string[] = [];
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        readFile: (path) => (path.endsWith("index.json") ? mockIndexJson : null),
+        exists: (path) => path.endsWith("index.json"),
+        stderr: (msg) => stderrMessages.push(msg),
+      };
+
+      const input = makeWriteInput(
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+        patternContent,
+      );
+      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      expect(output.type).toBe("continue");
+      if (output.type === "continue") {
+        expect(output.additionalContext).toBeDefined();
+        expect(output.additionalContext).toContain("Pattern detected");
+        expect(output.additionalContext).toContain("makeDeps");
+      }
+    });
+
+    test("no pattern advisory for unique function names", () => {
+      const uniqueContent = `
+function superUniqueSpecialFunction123(): string {
+  return "unique";
+}
+      `.trim();
+
+      // Same mock index with patterns — but no pattern matches the unique function name
+      const mockIndex = {
+        version: 1,
+        root: PAI_HOOKS_ROOT,
+        builtAt: new Date().toISOString(),
+        fileCount: 3,
+        functionCount: 3,
+        entries: [],
+        hashGroups: [],
+        nameGroups: [],
+        sigGroups: [],
+        patterns: [
+          {
+            id: "makeDeps-abc123",
+            name: "makeDeps",
+            sig: "(Partial<*>)→Record<*,*>",
+            tier: 1 as const,
+            fileCount: 10,
+            files: ["a.test.ts", "b.test.ts", "c.test.ts"],
+          },
+        ],
+      };
+      const mockIndexJson = JSON.stringify(mockIndex);
+
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        readFile: (path) => (path.endsWith("index.json") ? mockIndexJson : null),
+        exists: (path) => path.endsWith("index.json"),
+      };
+      const input = makeWriteInput(
+        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+        uniqueContent,
+      );
+      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      expect(output.type).toBe("continue");
+      if (output.type === "continue") {
+        expect(output.additionalContext).toBeUndefined();
+      }
+    });
+
     test("continues instead of blocking when blocking config is false", () => {
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,

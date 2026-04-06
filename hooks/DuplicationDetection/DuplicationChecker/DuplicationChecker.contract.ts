@@ -31,6 +31,7 @@ import {
   getArtifactsDir,
   getCurrentBranch,
   loadIndex,
+  type PatternEntry,
   simulateEdit,
 } from "@hooks/hooks/DuplicationDetection/shared";
 import { readHookConfig } from "@hooks/lib/hook-config";
@@ -152,6 +153,29 @@ export const DuplicationCheckerContract: SyncHookContract<
       : allFunctions;
     if (functions.length === 0) return ok(continueOk());
 
+    // ─── Pattern advisory ───────────────────────────────────────────────
+    const patternAdvisories: string[] = [];
+    if (index.patterns && index.patterns.length > 0) {
+      const patternMap = new Map<string, PatternEntry>(index.patterns.map((p) => [p.name, p]));
+      for (const fn of functions) {
+        const pattern = patternMap.get(fn.name);
+        if (!pattern) continue;
+        const examples = pattern.files.slice(0, 3).join(", ");
+        patternAdvisories.push(
+          `Pattern detected: "${pattern.name}" (${pattern.fileCount} instances across ${pattern.fileCount} files)\n` +
+            `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
+            `  Examples: ${examples}`,
+        );
+      }
+    }
+
+    function continueWithPatterns(extra?: string): ContinueOutput {
+      const parts = [...patternAdvisories];
+      if (extra) parts.push(extra);
+      if (parts.length === 0) return continueOk();
+      return { ...continueOk(), additionalContext: parts.join("\n\n") };
+    }
+
     const relPath = filePath.startsWith(index.root)
       ? filePath.slice(index.root.length + 1)
       : filePath;
@@ -174,12 +198,21 @@ export const DuplicationCheckerContract: SyncHookContract<
         signals: m.signals,
         score: Math.round(m.topScore * 100),
       })),
+      patterns:
+        patternAdvisories.length > 0
+          ? functions
+              .filter((fn) => index.patterns?.some((p) => p.name === fn.name))
+              .map((fn) => {
+                const p = index.patterns!.find((pat) => pat.name === fn.name)!;
+                return { fn: fn.name, patternId: p.id, instances: p.fileCount };
+              })
+          : undefined,
     };
     deps.appendFile(logPath, `${JSON.stringify(logEntry)}\n`);
 
     if (matches.length === 0) {
       deps.stderr(`[DuplicationChecker] ${filePath}: clean`);
-      return ok(continueOk());
+      return ok(continueWithPatterns());
     }
 
     // Separate derivation matches (advisory) from real duplicates (blockable)
@@ -227,17 +260,14 @@ export const DuplicationCheckerContract: SyncHookContract<
       deps.stderr(
         `[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`,
       );
-      return ok({
-        ...continueOk(),
-        additionalContext: advisory,
-      });
+      return ok(continueWithPatterns(advisory));
     }
 
     // 2-3 signals: log only, no additionalContext, no block
     deps.stderr(
       `[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`,
     );
-    return ok(continueOk());
+    return ok(continueWithPatterns());
   },
 
   defaultDeps,
