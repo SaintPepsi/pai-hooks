@@ -1781,7 +1781,32 @@ section[id] {
       <code style="color: var(--cyan); font-size: 12px;">DocCommitGuard.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
-    
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">## Problem
+
+Developers create new automation hooks but forget to write documentation. Missing docs accumulate silently until someone notices, making onboarding and maintenance harder.
+
+## Solution
+
+A commit-time gate that scans every hook directory for required documentation files and blocks the commit if any are missing. Catches documentation gaps before they enter the repository.
+
+## How It Works
+
+1. A pre-commit interceptor watches for version control commit commands
+2. It scans the hooks directory tree for hook manifest files (e.g., `hook.json`)
+3. For each manifest found, it checks whether sibling documentation files exist
+4. If any documentation is missing, the commit is blocked with a clear listing of what's needed
+5. If all documentation is present, the commit proceeds
+
+## Signals
+
+**Input:** A shell command about to be executed (specifically, a version control commit)
+
+**Output:** Either allow (continue) or block with a list of hooks missing documentation
+</script>
   </div>
 
   
@@ -1939,6 +1964,29 @@ for (const match of deps.scanHookJsons(deps.hooksDir)) {
   </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
 <script>
 (function() {
