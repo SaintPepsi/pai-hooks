@@ -48,9 +48,6 @@ const mockDeps: DuplicationCheckerDeps = {
   stderr: () => {},
   now: () => Date.now(),
   blocking: true,
-  patternThreshold: 5,
-  requireSigMatch: true,
-  sigMatchPercent: 60,
 };
 
 function unwrap(

@@ -50,26 +50,13 @@ export interface DuplicationCheckerDeps {
   now: () => number;
   /** When true, 4/4 signal matches block the operation. When false, they log only. */
   blocking: boolean;
-  patternThreshold: number;
-  requireSigMatch: boolean;
-  sigMatchPercent: number;
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-interface DuplicationCheckerConfig {
-  blocking?: boolean;
-  patternThreshold?: number;
-  requireSigMatch?: boolean;
-  sigMatchPercent?: number;
-}
-
-function readConfig(): DuplicationCheckerConfig {
-  return readHookConfig<DuplicationCheckerConfig>("duplicationChecker") ?? {};
-}
-
 function readBlockingConfig(): boolean {
-  return readConfig().blocking !== false;
+  const cfg = readHookConfig<{ blocking?: boolean }>("duplicationChecker");
+  return cfg?.blocking !== false;
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -89,9 +76,6 @@ const defaultDeps: DuplicationCheckerDeps = {
   stderr: defaultStderr,
   now: () => Date.now(),
   blocking: readBlockingConfig(),
-  patternThreshold: readConfig().patternThreshold ?? 5,
-  requireSigMatch: readConfig().requireSigMatch ?? true,
-  sigMatchPercent: readConfig().sigMatchPercent ?? 60,
 };
 
 export const DuplicationCheckerContract: SyncHookContract<
@@ -162,7 +146,7 @@ export const DuplicationCheckerContract: SyncHookContract<
         if (!pattern) continue;
         const examples = pattern.files.slice(0, 3).join(", ");
         patternAdvisories.push(
-          `Pattern detected: "${pattern.name}" (${pattern.fileCount} instances across ${pattern.fileCount} files)\n` +
+          `Pattern detected: "${pattern.name}" (${pattern.fileCount} files)\n` +
             `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
             `  Examples: ${examples}`,
         );
