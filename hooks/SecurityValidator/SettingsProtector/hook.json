@@ -1,9 +1,0 @@
-{
-  "name": "SettingsProtector",
-  "group": "SecurityValidator",
-  "event": "PreToolUse",
-  "description": "Guard settings.json from uncontrolled mutation — asks for user confirmation on any modification attempt",
-  "schemaVersion": 1,
-  "tags": ["safety"],
-  "presets": ["minimal", "quality", "full"]
-}

@@ -1,9 +1,0 @@
-{
-  "name": "SettingsProtectorPost",
-  "group": "SecurityValidator",
-  "event": "PostToolUse",
-  "description": "Detect and revert unauthorized settings.json changes after Bash commands",
-  "schemaVersion": 1,
-  "tags": ["safety"],
-  "presets": ["minimal", "quality", "full"]
-}
