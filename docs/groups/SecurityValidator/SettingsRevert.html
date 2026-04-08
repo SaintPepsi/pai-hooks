@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SecurityValidator — Hook Group</title>
+  <title>SettingsRevert — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1728,90 +1728,328 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>SettingsRevert</h4>
+    <p>SecurityValidator / PostToolUse</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#audit-log"><span class="nav-num">06</span> Audit Log</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Hook Group</div>
-    <h1>SecurityValidator</h1>
-    <p>Protected file write prevention</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>SettingsRevert</h1>
+    <p>Detect and revert unauthorized settings.json changes after Bash commands</p>
     <div class="hero-meta">
-      <span>4 hooks</span>
+      <span>SecurityValidator</span>
+      <span>PostToolUse</span>
       <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div style="margin-bottom: var(--sp-lg);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SecurityValidator" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-      <span style="font-size: 15px;">&#x1F4C2;</span>
-      <code style="color: var(--cyan); font-size: 12px;">hooks/SecurityValidator/</code>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag blue">PostToolUse</span>
+    <span class="tag green">SecurityValidator</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SecurityValidator/SettingsRevert/SettingsRevert.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">SettingsRevert.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
-  </div>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">## Problem
 
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num" style="color:var(--orange);">2</div><div class="label">PreToolUse</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--blue);">1</div><div class="label">PostToolUse</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--accent-bright);">1</div><div class="label">PermissionRequest</div></div>
-  </div>
+Shell commands can modify files through arbitrarily complex means — variable indirection, string concatenation, encoded paths, multi-step pipelines. No amount of command parsing can reliably detect every write vector. A pre-execution hook that tries to block dangerous commands will always have gaps.
 
-  <div class="section-label">Hooks</div>
-  <h2>All Hooks in SecurityValidator</h2>
+## Solution
+
+Instead of trying to predict what a command will do, observe what it actually did. Compare the protected file's content before and after execution. If it changed, revert it. This is a post-execution guard that catches every modification regardless of the mechanism used.
+
+## How It Works
+
+1. A pre-execution hook (paired with this one) snapshots the protected file to a temporary location before each shell command
+2. After the shell command completes, this hook reads the file and compares it to the snapshot
+3. If the content differs, the snapshot is written back over the modified file (revert)
+4. If the file was deleted, the snapshot restores it
+5. A warning message is injected into the AI's context explaining what happened
+6. If the file is unchanged or no snapshot exists, the hook exits silently with zero overhead
+
+## Signals
+
+**Input:**
+- Tool name (only processes Bash)
+- Session ID (to locate the correct snapshot)
+
+**Output:**
+- `silent` when no change detected (most common path)
+- `continue` with warning context when a change was reverted
+</script>
+  </div>
 
   
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='SecurityValidator.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>SecurityValidator</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Blocks writes to protected files</p>
-      </div>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='SettingsGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>SettingsGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Guard settings.json from uncontrolled mutation — asks for user confirmation on any modification attempt</p>
+  
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>Detects and automatically reverts unauthorized changes to <code>~/.claude/settings.json</code> and <code>~/.claude/settings.local.json</code> after Bash commands. Paired with <code>SettingsProtector</code> (PreToolUse) which takes the pre-command snapshots.</p>
+    </div>
+  </section>
 
-      <div class="card blue" style="cursor:pointer;" onclick="location.href='SettingsRevert.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>SettingsRevert</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
-          </div>
-        </div>
-        <p>Detect and revert unauthorized settings.json changes after Bash commands</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p>PostToolUse</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='PermissionPromptLogger.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>PermissionPromptLogger</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--accent-dim);color:var(--accent);">PermissionRequest</span>
-          </div>
-        </div>
-        <p>Diagnostic: logs every permission prompt to JSONL for analysis</p>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
       </div>
+      <p>After every Bash tool call completes.</p>
+    </div>
+  </section>
 
-  <footer><p>pai-hooks documentation</p></footer>
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Reads the snapshot files written by <code>SettingsProtector</code> from <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code></p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>Compares each settings file's current content to its snapshot</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">3</div>
+          <div class="step-content"><p>If any file changed (content differs) or was deleted:</p></div>
+        </div>
+</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>Reverts</strong> the file by writing the snapshot content back</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Logs</strong> the revert to stderr</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Injects context</strong> telling the AI the change was reverted and not to retry</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>If no snapshot exists (SettingsProtector didn't run) or files are unchanged, returns silent</p></div>
+        </div>
+</div>
+      
+      <div class="uc-example">
+        <div>A Bash command runs <code>sed -i 's/true/false/' ~/.claude/settings.json</code>. After it completes, SettingsProtectorPost detects the content differs from the snapshot and overwrites settings.json with the original content. The AI receives a security warning.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>A Bash command runs <code>rm ~/.claude/settings.json</code>. SettingsProtectorPost detects the file is missing and restores it from the snapshot.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
+      </div>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">bash</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">bash</span>
+# No change detected — silent return
+PostToolUse { tool_name: "Bash", command: "git status" }
+# → silent (settings unchanged)
+
+# Change detected — revert + inject warning
+PostToolUse { tool_name: "Bash", command: "python3 -c '...'" }
+# settings.json content differs from snapshot
+# → writeFile(settings.json, snapshot_content)
+# → continue("[SECURITY] Your Bash command modified settings.json... reverted")
+
+# Non-Bash tools — not processed
+PostToolUse { tool_name: "Edit", ... }
+# → rejected by accepts() (Edit changes go through SettingsProtector ask flow)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="audit-log">
+    <div class="section-label accent">Audit Log</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Audit Log</h3>
+      </div>
+      <p>Every comparison result is logged to <code>MEMORY/SECURITY/settings-audit.jsonl</code>:</p>
+      
+      <table class="tbl">
+        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ts</code></td><td>ISO timestamp</td></tr>
+          <tr><td><code>session_id</code></td><td>Claude Code session ID</td></tr>
+          <tr><td><code>tool</code></td><td>Always <code>Bash</code></td></tr>
+          <tr><td><code>target</code></td><td>Reverted filename(s) or <code>settings.json</code> if unchanged</td></tr>
+          <tr><td><code>action</code></td><td><code>reverted</code> (change detected and undone) or <code>unchanged</code> (no modification)</td></tr>
+          <tr><td><code>command</code></td><td>First 500 chars of the Bash command</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
+      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for comparison, revert, and audit I/O</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract</code> — <code>snapshotPath</code> and <code>logSettingsAudit</code> for snapshot locations and shared audit logging</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getCommand</code> for extracting Bash commands</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
+<div class="reason"><span class="ri">&#x2022;</span> Requires <code>SettingsProtector</code> (PreToolUse) to have run first to create snapshots</div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Generated from <code>SettingsRevert/doc.md</code> &mdash; pai-hooks documentation</p>
+  </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>
