@@ -1,0 +1,9 @@
+{
+  "name": "SteeringRuleInjector",
+  "group": "SteeringRuleInjector",
+  "event": ["SessionStart", "UserPromptSubmit"],
+  "description": "Injects steering rules into context based on event type and keyword matching",
+  "schemaVersion": 1,
+  "tags": [],
+  "presets": []
+}

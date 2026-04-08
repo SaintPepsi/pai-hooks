@@ -201,7 +201,12 @@ const ZSHRC_BEGIN = "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do n
 const ZSHRC_END = "# PAI-HOOKS-END";
 
 export function buildZshrcBlock(envVar: string, relPath: string): string {
-  return [ZSHRC_BEGIN, `export ${envVar}="$PAI_DIR/${relPath}"`, ZSHRC_END].join("\n");
+  return [
+    ZSHRC_BEGIN,
+    `export ${envVar}="$PAI_DIR/${relPath}"`,
+    `alias paih='bun $PAI_DIR/${relPath}/cli/bin/paih.ts'`,
+    ZSHRC_END,
+  ].join("\n");
 }
 
 export function addToZshrc(content: string, envVar: string, relPath: string): string {

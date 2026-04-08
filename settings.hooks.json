@@ -46,6 +46,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtector/SettingsProtector.hook.ts"
+          },
+          {
+            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/VoiceGate/VoiceGate/VoiceGate.hook.ts"
           },
           {
@@ -83,6 +87,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtector/SettingsProtector.hook.ts"
+          },
+          {
+            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
           },
           {
@@ -114,6 +122,10 @@
       {
         "matcher": "Write",
         "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtector/SettingsProtector.hook.ts"
+          },
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
@@ -185,6 +197,10 @@
       {
         "matcher": "Bash",
         "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtectorPost/SettingsProtectorPost.hook.ts"
+          },
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"

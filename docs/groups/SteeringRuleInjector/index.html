@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>pai-hooks — Documentation</title>
+  <title>SteeringRuleInjector — Hook Group</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1736,247 +1736,47 @@ section[id] {
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Documentation</div>
-    <h1>pai-hooks</h1>
-    <p>77 hooks across 24 groups.</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Group</div>
+    <h1>SteeringRuleInjector</h1>
+    <p>Contextual steering rule injection based on event type and keyword matching</p>
     <div class="hero-meta">
-      <span>March 2026</span>
-      <span>77 hooks</span>
-      <span>24 groups</span>
+      <span>1 hooks</span>
+      <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num">24</div><div class="label">Groups</div></div>
-    <div class="summary-item"><div class="num">77</div><div class="label">Hooks</div></div>
+  <div style="margin-bottom: var(--sp-lg);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SteeringRuleInjector" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C2;</span>
+      <code style="color: var(--cyan); font-size: 12px;">hooks/SteeringRuleInjector/</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
-  <div class="section-label">Groups</div>
-  <h2>All Hook Groups</h2>
+  <div class="summary-grid">
+    <div class="summary-item"><div class="num" style="color:var(--green);">1</div><div class="label">SessionStart</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--accent-bright);">1</div><div class="label">UserPromptSubmit</div></div>
+  </div>
+
+  <div class="section-label">Hooks</div>
+  <h2>All Hooks in SteeringRuleInjector</h2>
 
   
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AgentLifecycle/index.html'">
+      <div class="card green" style="cursor:pointer;" onclick="location.href='SteeringRuleInjector.html'">
         <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AgentLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Agent spawn, stop, and permission management</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AlgorithmTracking/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AlgorithmTracking</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>PAI Algorithm phase detection</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ArchitectureEscalation/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ArchitectureEscalation</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>Failure escalation and model delegation</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CanaryHook/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CanaryHook</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Debug canary for verifying hook propagation</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodeQualityPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodeQualityPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>3 hooks</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodingStandards/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodingStandards</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
-        </div>
-        <p>TypeScript quality enforcement hooks</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CronStatusLine/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CronStatusLine</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span>
-        </div>
-        <p>Cron job scheduling and status line management</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/DuplicationDetection/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>DuplicationDetection</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>Detect and prevent code duplication using SWC-based function analysis</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ExecutionEvidence/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ExecutionEvidence</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Execution evidence verification from tool results</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/GitSafety/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>GitSafety</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
-        </div>
-        <p>Git safety, branch protection, and worktree verification</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/IdentityBranding/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>IdentityBranding</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Maple identity branding and usage analytics</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/KoordDaemon/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>KoordDaemon</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
-        </div>
-        <p>Koord agent-to-agent daemon lifecycle hooks</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LastResponseCache/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LastResponseCache</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Last response caching for reference</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LearningFeedback/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LearningFeedback</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Learning signal capture and relationship memory</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ObligationStateMachines/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ObligationStateMachines</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">9 hooks</span>
-        </div>
-        <p>Documentation, test, citation, and hook-doc obligations</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/QuestionAnswered/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>QuestionAnswered</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>User question response tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SecurityValidator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SecurityValidator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
-        </div>
-        <p>Protected file write prevention</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SessionFraming/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SessionFraming</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
-        </div>
-        <p>Session initialization, context loading, and branch awareness</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SkillGuard/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SkillGuard</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Skill invocation validation</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SteeringRuleInjector/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
+          <div class="card-icon">&#x1F517;</div>
           <h3>SteeringRuleInjector</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--green-dim);color:var(--green);">SessionStart</span>
+            <span class="card-badge" style="background:var(--accent-dim);color:var(--accent);">UserPromptSubmit</span>
+          </div>
         </div>
-        <p>Contextual steering rule injection based on event type and keyword matching</p>
+        <p>Injects steering rules into context based on event type and keyword matching</p>
       </div>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/StopOrchestrator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>StopOrchestrator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Stop event coordination</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/VoiceGate/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>VoiceGate</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Voice notification routing control</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WikiPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WikiPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Wiki knowledge pipeline: session ingestion, context injection, and read tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WorkLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WorkLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
-        </div>
-        <p>Session work tracking, summaries, and content generation</p>
-      </div>
-
-  <footer>
-    <p>pai-hooks documentation</p>
-    <div class="collab"><span>pai-hooks</span></div>
-  </footer>
+  <footer><p>pai-hooks documentation</p></footer>
 </div>
 
 
