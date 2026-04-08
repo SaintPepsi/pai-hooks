@@ -28,8 +28,8 @@ interface HookContractBase<
   /** Human-readable hook name for logging and error context. */
   name: string;
 
-  /** Which hook event type this contract handles. */
-  event: HookEventType;
+  /** Which hook event type(s) this contract handles. */
+  event: HookEventType | HookEventType[];
 
   /** ISP gate: return true if this hook should process the given input. */
   accepts(input: I): boolean;

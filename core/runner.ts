@@ -13,8 +13,23 @@ import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import { isDuplicate } from "@hooks/core/dedup";
-import type { HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
+import type { HookEventType, HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
 import type { HookOutput } from "@hooks/core/types/hook-outputs";
+
+// ─── Event Resolution ──────────────────────────────────────────────────────
+
+/**
+ * Normalize contract.event for logging/formatting.
+ * When a contract declares multiple events, infer the actual event from input shape.
+ */
+function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
+  if (Array.isArray(contractEvent)) {
+    if ("prompt" in input) return "UserPromptSubmit";
+    if ("tool_name" in input) return "tool_input" in input ? "PreToolUse" : "PostToolUse";
+    return contractEvent[0];
+  }
+  return contractEvent;
+}
 
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
@@ -112,14 +127,15 @@ function createPipelineIO(options: RunHookOptions): PipelineIO {
 
 function makeEmitLog(
   io: PipelineIO,
-  contract: { name: string; event: string },
+  contract: { name: string; event: HookEventType | HookEventType[] },
   sessionId: string | undefined,
+  input?: HookInput,
 ): (status: HookLogEntry["status"], outputType?: string, error?: string) => void {
   return (status, outputType?, error?) => {
     io.log({
       ts: new Date().toISOString(),
       hook: contract.name,
-      event: contract.event,
+      event: input ? resolveEvent(contract.event, input) : (Array.isArray(contract.event) ? contract.event[0] : contract.event),
       status,
       duration_ms: Math.round(performance.now() - io.startTime),
       session_id: sessionId,
@@ -145,7 +161,7 @@ async function executePipeline<I extends HookInput, O extends HookOutput, D>(
   opts?: { handleSecurityBlock?: boolean },
 ): Promise<void> {
   const sessionId = (input as HookInputBase).session_id;
-  const emitLog = makeEmitLog(io, contract, sessionId);
+  const emitLog = makeEmitLog(io, contract, sessionId, input);
 
   if (!contract.accepts(input)) {
     emitLog("skipped");
@@ -174,7 +190,8 @@ async function executePipeline<I extends HookInput, O extends HookOutput, D>(
     return;
   }
 
-  const formatted = formatOutput(result.value, contract.event);
+  const eventName = resolveEvent(contract.event, input);
+  const formatted = formatOutput(result.value, eventName);
   if (formatted !== null) {
     io.write(formatted);
   }
@@ -235,7 +252,8 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 ): Promise<void> {
   const io = createPipelineIO(options);
   const timeoutMs = options.stdinTimeout ?? 200;
-  const isToolEvent = contract.event === "PreToolUse" || contract.event === "PostToolUse";
+  const events = Array.isArray(contract.event) ? contract.event : [contract.event];
+  const isToolEvent = events.includes("PreToolUse") || events.includes("PostToolUse");
 
   const safeExit = () => {
     if (isToolEvent) {
@@ -273,10 +291,11 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
     // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
     if (isToolEvent && !("tool_name" in inputResult.value)) {
+      const resolvedEvent = resolveEvent(contract.event, input);
       io.writeErr(
-        `[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`,
+        `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
       );
-      makeEmitLog(io, contract, (input as HookInputBase).session_id)("error", undefined, "input missing tool_name");
+      makeEmitLog(io, contract, (input as HookInputBase).session_id, input)("error", undefined, "input missing tool_name");
       safeExit();
       return;
     }
