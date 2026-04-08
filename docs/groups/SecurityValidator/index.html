@@ -1740,7 +1740,7 @@ section[id] {
     <h1>SecurityValidator</h1>
     <p>Protected file write prevention</p>
     <div class="hero-meta">
-      <span>2 hooks</span>
+      <span>4 hooks</span>
       <span>pai-hooks</span>
     </div>
   </div>
@@ -1756,7 +1756,8 @@ section[id] {
   </div>
 
   <div class="summary-grid">
-    <div class="summary-item"><div class="num" style="color:var(--orange);">1</div><div class="label">PreToolUse</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--orange);">2</div><div class="label">PreToolUse</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--blue);">1</div><div class="label">PostToolUse</div></div>
     <div class="summary-item"><div class="num" style="color:var(--accent-bright);">1</div><div class="label">PermissionRequest</div></div>
   </div>
 
@@ -1773,6 +1774,28 @@ section[id] {
           </div>
         </div>
         <p>Blocks writes to protected files</p>
+      </div>
+
+      <div class="card orange" style="cursor:pointer;" onclick="location.href='SettingsProtector.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>SettingsProtector</h3>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
+          </div>
+        </div>
+        <p>Guard settings.json from uncontrolled mutation — asks for user confirmation on any modification attempt</p>
+      </div>
+
+      <div class="card blue" style="cursor:pointer;" onclick="location.href='SettingsProtectorPost.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>SettingsProtectorPost</h3>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
+          </div>
+        </div>
+        <p>Detect and revert unauthorized settings.json changes after Bash commands</p>
       </div>
 
       <div class="card accent" style="cursor:pointer;" onclick="location.href='PermissionPromptLogger.html'">

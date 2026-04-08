@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>pai-hooks — Documentation</title>
+  <title>SettingsProtector — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1728,248 +1728,296 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>SettingsProtector</h4>
+    <p>SecurityValidator / PreToolUse</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Documentation</div>
-    <h1>pai-hooks</h1>
-    <p>76 hooks across 23 groups.</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>SettingsProtector</h1>
+    <p>Guard settings.json from uncontrolled mutation — asks for user confirmation on any modification attempt</p>
     <div class="hero-meta">
-      <span>March 2026</span>
-      <span>76 hooks</span>
-      <span>23 groups</span>
+      <span>SecurityValidator</span>
+      <span>PreToolUse</span>
+      <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num">23</div><div class="label">Groups</div></div>
-    <div class="summary-item"><div class="num">76</div><div class="label">Hooks</div></div>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag orange">PreToolUse</span>
+    <span class="tag green">SecurityValidator</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">SettingsProtector.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">## Problem
+
+AI coding assistants can modify configuration files through multiple vectors: direct file editing tools, shell commands (sed, python, node, jq), piped redirects, and more. A security hook that only intercepts the editing tool leaves dozens of bypass paths open. Pattern-matching every possible shell command is an arms race that can't be won.
+
+## Solution
+
+A two-layer protection system that combines permission prompts with filesystem-level change detection:
+
+1. **Direct edits** (tools that declare their target file) get an interactive confirmation prompt
+2. **Shell commands** are handled by snapshotting the protected file before execution and comparing afterward — if the file changed, it's automatically reverted
+
+This eliminates the need to parse or pattern-match commands. The protection works regardless of how the file was modified.
+
+## How It Works
+
+1. When a direct file edit targets a protected settings file, the system returns a confirmation prompt asking the user to approve or deny
+2. When any shell command runs, the system reads the protected file and stores its content in a temporary snapshot
+3. After the shell command completes, a paired post-execution hook reads the file again
+4. If the content differs from the snapshot, the original content is written back (reverted)
+5. An error message is injected into the AI's context explaining the revert and instructing it not to retry
+
+## Signals
+
+**Input:**
+- Tool name (Edit, Write, Bash)
+- File path (for Edit/Write)
+- Session ID (for snapshot namespacing)
+
+**Output:**
+- `ask` decision with confirmation message (Edit/Write)
+- `continue` with snapshot side-effect (Bash — PreToolUse)
+- `continue` with revert + warning context (Bash — PostToolUse, when change detected)
+- `silent` (Bash — PostToolUse, when no change detected)
+</script>
   </div>
 
-  <div class="section-label">Groups</div>
-  <h2>All Hook Groups</h2>
+  
 
   
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AgentLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AgentLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Agent spawn, stop, and permission management</p>
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>Guards <code>~/.claude/settings.json</code> and <code>~/.claude/settings.local.json</code> from unauthorized modification by using a two-layer strategy: permission prompts for direct tool edits and filesystem-level snapshot/revert for Bash commands.</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AlgorithmTracking/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AlgorithmTracking</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>PAI Algorithm phase detection</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p>PreToolUse</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ArchitectureEscalation/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ArchitectureEscalation</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>Failure escalation and model delegation</p>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
       </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>Edit/Write tools</strong>: When the target <code>file_path</code> ends with <code>settings.json</code> or <code>settings.local.json</code> and is in <code>~/.claude/</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Bash tool</strong>: On every Bash command (snapshot strategy — no pattern matching needed)</div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CanaryHook/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CanaryHook</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Debug canary for verifying hook propagation</p>
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
       </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p><strong>Edit/Write targeting settings files</strong>: Returns an <code>ask</code> decision prompting the user to confirm the modification. The prompt includes an AI instruction not to suggest workarounds if denied.</p></div>
+        </div>
+</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p><strong>Bash commands</strong>: Reads the current content of both settings files and writes snapshots to <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code>. Returns <code>continue</code> so the command proceeds normally. The paired PostToolUse hook (<code>SettingsProtectorPost</code>) compares the files after execution and reverts any unauthorized changes.</p></div>
+        </div>
+</div>
+      
+      <div class="uc-example">
+        <div>A user edits settings.json via the Edit tool. Claude shows: "Settings Protection: Claude wants to modify a settings file. Allow this modification?" The user approves or denies.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>A Bash command runs <code>python3 -c "open('settings.json','w')..."</code>. The command completes, but SettingsProtectorPost detects the change and reverts settings.json to its pre-command state, injecting an error message.</div>
+      </div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodeQualityPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodeQualityPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>3 hooks</p>
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
       </div>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">bash</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">bash</span>
+# Edit tool targeting settings.json — triggers ask prompt
+Edit { file_path: "~/.claude/settings.json", ... }
+# → ask("⚠️ Settings Protection: Claude wants to modify a settings file...")
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodingStandards/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodingStandards</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
-        </div>
-        <p>TypeScript quality enforcement hooks</p>
-      </div>
+# Any Bash command — snapshots settings files silently
+Bash { command: "git status" }
+# → continue (snapshot written to /tmp/)
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CronStatusLine/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CronStatusLine</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span>
+# Bash command that modifies settings.json — caught by PostToolUse pair
+Bash { command: "python3 -c \"...writeFileSync('settings.json')...\"" }
+# → continue (PostToolUse will compare and revert)</div>
         </div>
-        <p>Cron job scheduling and status line management</p>
       </div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/DuplicationDetection/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>DuplicationDetection</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
-        </div>
-        <p>Detect and prevent code duplication using SWC-based function analysis</p>
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
       </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ExecutionEvidence/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ExecutionEvidence</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Execution evidence verification from tool results</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/GitSafety/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>GitSafety</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
-        </div>
-        <p>Git safety, branch protection, and worktree verification</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/IdentityBranding/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>IdentityBranding</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Maple identity branding and usage analytics</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/KoordDaemon/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>KoordDaemon</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
-        </div>
-        <p>Koord agent-to-agent daemon lifecycle hooks</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LastResponseCache/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LastResponseCache</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Last response caching for reference</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LearningFeedback/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LearningFeedback</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Learning signal capture and relationship memory</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ObligationStateMachines/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ObligationStateMachines</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">9 hooks</span>
-        </div>
-        <p>Documentation, test, citation, and hook-doc obligations</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/QuestionAnswered/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>QuestionAnswered</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>User question response tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SecurityValidator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SecurityValidator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
-        </div>
-        <p>Protected file write prevention</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SessionFraming/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SessionFraming</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
-        </div>
-        <p>Session initialization, context loading, and branch awareness</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SkillGuard/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SkillGuard</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Skill invocation validation</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/StopOrchestrator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>StopOrchestrator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Stop event coordination</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/VoiceGate/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>VoiceGate</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
-        </div>
-        <p>Voice notification routing control</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WikiPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WikiPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
-        </div>
-        <p>Wiki knowledge pipeline: session ingestion, context injection, and read tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WorkLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WorkLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
-        </div>
-        <p>Session work tracking, summaries, and content generation</p>
-      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>fileExists</code> for snapshot I/O</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getFilePath</code> for extracting file paths from tool input</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code> for logging</div>
+<div class="reason"><span class="ri">&#x2022;</span> Paired with <code>SettingsProtectorPost</code> (PostToolUse) for the revert mechanism</div>
+    </div>
+  </section>
 
   <footer>
-    <p>pai-hooks documentation</p>
-    <div class="collab"><span>pai-hooks</span></div>
+    <p>Generated from <code>SettingsProtector/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>

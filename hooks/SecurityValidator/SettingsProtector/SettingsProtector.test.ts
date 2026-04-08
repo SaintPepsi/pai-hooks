@@ -1,0 +1,259 @@
+import { describe, expect, it } from "bun:test";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import {
+  SettingsProtector,
+  type SettingsProtectorDeps,
+  isSettingsPath,
+  snapshotPath,
+} from "@hooks/hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract";
+
+const HOME = "/Users/testuser";
+const SESSION = "test-session-abc";
+const ORIGINAL = '{"hooks":{"enabled":true}}';
+
+type FakeFS = Map<string, string>;
+
+function protectorDeps(fs: FakeFS, overrides: Partial<SettingsProtectorDeps> = {}): SettingsProtectorDeps {
+  return {
+    homedir: () => HOME,
+    stderr: () => {},
+    fileExists: (p) => fs.has(p),
+    readFile: (p) => {
+      const content = fs.get(p);
+      if (content === undefined) return { ok: false, error: new ResultError(ErrorCode.FileNotFound, p) };
+      return ok(content);
+    },
+    writeFile: (p, c) => { fs.set(p, c); return ok(undefined as void); },
+    appendFile: (p, c) => { const prev = fs.get(p) || ""; fs.set(p, prev + c); return ok(undefined as void); },
+    ensureDir: () => ok(undefined as void),
+    baseDir: "/fake/pai",
+    ...overrides,
+  };
+}
+
+function settingsInput(tool: string, params: Record<string, unknown>): ToolHookInput {
+  return { session_id: SESSION, tool_name: tool, tool_input: params };
+}
+
+// ─── isSettingsPath ─────────────────────────────────────────────────────────
+
+describe("isSettingsPath", () => {
+  it("matches ~/.claude/settings.json with expanded home", () => {
+    expect(isSettingsPath(`${HOME}/.claude/settings.json`, HOME)).toBe(true);
+  });
+
+  it("matches ~/.claude/settings.local.json with expanded home", () => {
+    expect(isSettingsPath(`${HOME}/.claude/settings.local.json`, HOME)).toBe(true);
+  });
+
+  it("matches tilde-prefixed paths", () => {
+    expect(isSettingsPath("~/.claude/settings.json", HOME)).toBe(true);
+    expect(isSettingsPath("~/.claude/settings.local.json", HOME)).toBe(true);
+  });
+
+  it("rejects settings.json in other directories", () => {
+    expect(isSettingsPath("/some/project/.claude/settings.json", HOME)).toBe(false);
+    expect(isSettingsPath(`${HOME}/projects/foo/settings.json`, HOME)).toBe(false);
+  });
+
+  it("rejects non-settings files in ~/.claude/", () => {
+    expect(isSettingsPath(`${HOME}/.claude/CLAUDE.md`, HOME)).toBe(false);
+  });
+});
+
+// ─── snapshotPath ───────────────────────────────────────────────────────────
+
+describe("snapshotPath", () => {
+  it("produces deterministic paths", () => {
+    const p1 = snapshotPath("sess-1", "settings.json");
+    const p2 = snapshotPath("sess-1", "settings.json");
+    expect(p1).toBe(p2);
+  });
+
+  it("differs by session", () => {
+    expect(snapshotPath("a", "settings.json")).not.toBe(snapshotPath("b", "settings.json"));
+  });
+
+  it("differs by filename", () => {
+    expect(snapshotPath("a", "settings.json")).not.toBe(snapshotPath("a", "settings.local.json"));
+  });
+
+  it("sanitises session id", () => {
+    const p = snapshotPath("../../etc/passwd", "settings.json");
+    expect(p).not.toContain("..");
+  });
+});
+
+// ─── accepts ────────────────────────────────────────────────────────────────
+
+describe("SettingsProtector.accepts", () => {
+  it("has correct name and event", () => {
+    expect(SettingsProtector.name).toBe("SettingsProtector");
+    expect(SettingsProtector.event).toBe("PreToolUse");
+  });
+
+  it("accepts ALL Bash commands (snapshot strategy)", () => {
+    expect(SettingsProtector.accepts(settingsInput("Bash", { command: "git status" }))).toBe(true);
+    expect(SettingsProtector.accepts(settingsInput("Bash", { command: "echo hello" }))).toBe(true);
+  });
+
+  it("accepts Edit targeting settings.json", () => {
+    expect(SettingsProtector.accepts(
+      settingsInput("Edit", { file_path: `${HOME}/.claude/settings.json` }),
+    )).toBe(true);
+  });
+
+  it("accepts Write targeting settings.local.json", () => {
+    expect(SettingsProtector.accepts(
+      settingsInput("Write", { file_path: `${HOME}/.claude/settings.local.json` }),
+    )).toBe(true);
+  });
+
+  it("rejects Read tool", () => {
+    expect(SettingsProtector.accepts(
+      settingsInput("Read", { file_path: `${HOME}/.claude/settings.json` }),
+    )).toBe(false);
+  });
+
+  it("rejects Edit to unrelated files", () => {
+    expect(SettingsProtector.accepts(
+      settingsInput("Edit", { file_path: `${HOME}/project/src/index.ts` }),
+    )).toBe(false);
+  });
+
+  it("rejects Glob and other tools", () => {
+    expect(SettingsProtector.accepts(settingsInput("Glob", { pattern: "*.json" }))).toBe(false);
+  });
+});
+
+// ─── execute: Edit/Write (ask) ──────────────────────────────────────────────
+
+describe("SettingsProtector.execute — Edit/Write", () => {
+  it("returns ask for Edit targeting ~/.claude/settings.json", () => {
+    const fs: FakeFS = new Map();
+    const result = SettingsProtector.execute(
+      settingsInput("Edit", { file_path: `${HOME}/.claude/settings.json` }),
+      protectorDeps(fs),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("ask");
+      if (result.value.type === "ask") {
+        expect(result.value.message).toContain("Settings Protection");
+        expect(result.value.message).toContain("do NOT suggest workarounds");
+      }
+    }
+  });
+
+  it("returns ask for Write targeting ~/.claude/settings.local.json", () => {
+    const fs: FakeFS = new Map();
+    const result = SettingsProtector.execute(
+      settingsInput("Write", { file_path: `${HOME}/.claude/settings.local.json` }),
+      protectorDeps(fs),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("ask");
+  });
+
+  it("returns continue for Edit targeting project-level settings.json", () => {
+    const fs: FakeFS = new Map();
+    const result = SettingsProtector.execute(
+      settingsInput("Edit", { file_path: "/some/project/.claude/settings.json" }),
+      protectorDeps(fs),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
+
+// ─── execute: Bash (snapshot) ───────────────────────────────────────────────
+
+describe("SettingsProtector.execute — Bash snapshot", () => {
+  it("snapshots settings.json before Bash command", () => {
+    const fs: FakeFS = new Map([
+      [`${HOME}/.claude/settings.json`, ORIGINAL],
+    ]);
+    const result = SettingsProtector.execute(
+      settingsInput("Bash", { command: "python3 -c '...'" }),
+      protectorDeps(fs),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+
+    // Verify snapshot was written
+    const snap = fs.get(snapshotPath(SESSION, "settings.json"));
+    expect(snap).toBe(ORIGINAL);
+  });
+
+  it("snapshots both files when both exist", () => {
+    const localContent = '{"respectGitignore":true}';
+    const fs: FakeFS = new Map([
+      [`${HOME}/.claude/settings.json`, ORIGINAL],
+      [`${HOME}/.claude/settings.local.json`, localContent],
+    ]);
+    SettingsProtector.execute(
+      settingsInput("Bash", { command: "ls" }),
+      protectorDeps(fs),
+    );
+
+    expect(fs.get(snapshotPath(SESSION, "settings.json"))).toBe(ORIGINAL);
+    expect(fs.get(snapshotPath(SESSION, "settings.local.json"))).toBe(localContent);
+  });
+
+  it("skips snapshot for files that dont exist", () => {
+    const fs: FakeFS = new Map();
+    SettingsProtector.execute(
+      settingsInput("Bash", { command: "echo test" }),
+      protectorDeps(fs),
+    );
+
+    expect(fs.has(snapshotPath(SESSION, "settings.json"))).toBe(false);
+  });
+
+  it("writes audit log entry on snapshot", () => {
+    const fs: FakeFS = new Map([
+      [`${HOME}/.claude/settings.json`, ORIGINAL],
+    ]);
+    SettingsProtector.execute(
+      settingsInput("Bash", { command: "python3 -c '...'" }),
+      protectorDeps(fs),
+    );
+
+    const logPath = "/fake/pai/MEMORY/SECURITY/settings-audit.jsonl";
+    const logContent = fs.get(logPath);
+    expect(logContent).toBeDefined();
+    const entry = JSON.parse(logContent!.trim());
+    expect(entry.action).toBe("snapshotted");
+    expect(entry.tool).toBe("Bash");
+    expect(entry.session_id).toBe(SESSION);
+  });
+
+  it("writes audit log entry on ask", () => {
+    const fs: FakeFS = new Map();
+    SettingsProtector.execute(
+      settingsInput("Edit", { file_path: `${HOME}/.claude/settings.json` }),
+      protectorDeps(fs),
+    );
+
+    const logPath = "/fake/pai/MEMORY/SECURITY/settings-audit.jsonl";
+    const logContent = fs.get(logPath);
+    expect(logContent).toBeDefined();
+    const entry = JSON.parse(logContent!.trim());
+    expect(entry.action).toBe("asked");
+    expect(entry.tool).toBe("Edit");
+  });
+
+  it("always returns continue for Bash (never blocks)", () => {
+    const fs: FakeFS = new Map([
+      [`${HOME}/.claude/settings.json`, ORIGINAL],
+    ]);
+    const result = SettingsProtector.execute(
+      settingsInput("Bash", { command: "some dangerous command" }),
+      protectorDeps(fs),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
