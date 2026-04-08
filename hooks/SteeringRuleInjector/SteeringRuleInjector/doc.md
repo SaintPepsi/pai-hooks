@@ -1,52 +1,79 @@
-# SteeringRuleInjector
-
 ## Overview
 
-SteeringRuleInjector is a **SessionStart** and **UserPromptSubmit** hook that injects contextual steering rules into the session based on event type and keyword matching. It discovers rule files from a `steering-rules/` directory, parses their YAML frontmatter for event and keyword metadata, and injects matching rules as context.
+Injects individual steering rule files into context based on event type and keyword matching. Rules are `.md` files with YAML frontmatter declaring when they should fire. Each rule injects at most once per session, tracked via a gitignored JSON file.
 
-On SessionStart, rules matching that event are always injected. On UserPromptSubmit, rules are injected only if the user's prompt contains one of the rule's declared keywords.
+Registered for both `SessionStart` and `UserPromptSubmit`. Skips subagent sessions.
 
 ## Event
 
-`SessionStart` and `UserPromptSubmit` — fires at session initialization to inject baseline rules, and on each user prompt to inject keyword-triggered rules.
+`SessionStart` and `UserPromptSubmit` — fires at session initialization for always-on rules, and on each user prompt for keyword-triggered rules.
 
 ## When It Fires
 
-- Every session start for rules that declare `SessionStart` in their events
-- Every user prompt submission, matching rules whose keywords appear in the prompt text
+- Every `SessionStart` for rules with empty keywords (always-inject)
+- Every `UserPromptSubmit` when a rule's keywords match the prompt text (case-insensitive substring)
 
 It does **not** fire when:
 
-- No rule files exist in the `steering-rules/` directory
+- Running in a subagent session
+- Config has `enabled: false`
+- No rule files resolve from the configured glob patterns
 - No rules match the current event type
-- On UserPromptSubmit, no keywords from any rule match the prompt
+- On `UserPromptSubmit`, rules with empty keywords are skipped (must have at least one keyword)
+- A rule has already been injected this session (per-session dedup)
 
 ## What It Does
 
-1. Discovers all `.md` files in the `steering-rules/` directory
-2. Parses YAML frontmatter from each file to extract `name`, `events`, and `keywords`
-3. Filters rules by the current event type
-4. For UserPromptSubmit events, further filters by keyword presence in the prompt
-5. Injects matching rule content as context output
+1. Reads config from `hookConfig.steeringRuleInjector` (with defaults)
+2. Resolves rule files from `includes` glob patterns (supports `${ENV_VAR}` expansion)
+3. Parses YAML frontmatter from each file to extract `name`, `events`, and `keywords`
+4. Filters rules by current event type
+5. For `UserPromptSubmit`: filters by case-insensitive keyword substring match against prompt
+6. Checks per-session injection tracker — skips already-injected rules
+7. Concatenates matched rule bodies into a single `ContextOutput`
+8. Records injected rules to tracker file at `{trackerDir}/injections-{sessionId}.json`
 
 ## Examples
 
-### Example 1: Session start injects baseline rules
+> A session starts. SteeringRuleInjector resolves glob patterns and finds rules with `SessionStart` in their events and empty keywords. Those rules inject as context from the first interaction.
 
-> A session starts. SteeringRuleInjector scans `steering-rules/` and finds rules with `SessionStart` in their events list. Those rules are injected as context, giving the agent behavioral guidance from the start.
+> The user submits "let's push to origin". The `git-safety` rule declares keywords `[push, remote, origin]`. "push" matches, so the rule injects. On the next prompt mentioning "push", the tracker prevents re-injection.
 
-### Example 2: Keyword-triggered rule on prompt
+> The user submits a prompt about database migrations. No rules declare matching keywords. SteeringRuleInjector returns silent.
 
-> The user submits a prompt containing the word "concise". SteeringRuleInjector matches the `minimize-output-tokens` rule (which declares `concise` as a keyword) and injects its content: "Minimize Output Tokens. Output tokens cost 5x input tokens..."
+### Rule File Format
 
-### Example 3: No matching keywords
+```markdown
+---
+name: minimize-output-tokens
+events: [UserPromptSubmit]
+keywords: [tokens, output, cost, verbose, concise, brief]
+---
 
-> The user submits a prompt about database migrations. No steering rules declare matching keywords. SteeringRuleInjector returns silent — no rules are injected.
+Rule content injected as context...
+```
+
+### Configuration
+
+```json
+{
+  "hookConfig": {
+    "steeringRuleInjector": {
+      "enabled": true,
+      "includes": [
+        "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/*.md",
+        "${HOME}/.claude/PAI/USER/rules/*.md"
+      ],
+      "trackerDir": "MEMORY/STATE/.injections"
+    }
+  }
+}
+```
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | Reads steering rule files from the `steering-rules/` directory |
-| `result` | core | Provides `ok` and `Result` type for error handling |
-| `path` | node | Resolves file paths for rule discovery |
+- `lib/hook-config` — reads `hookConfig.steeringRuleInjector` from settings.json
+- `lib/environment` — `isSubagent()` to skip subagent sessions
+- `lib/paths` — `getPaiDir()` for tracker file location
+- `core/adapters/fs` — `readFile`, `readJson`, `writeJson`, `fileExists` for rule and tracker I/O
+- `Bun.Glob` — resolves include patterns to file paths

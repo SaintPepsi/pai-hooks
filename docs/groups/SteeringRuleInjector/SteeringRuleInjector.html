@@ -1824,8 +1824,8 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>SteeringRuleInjector is a <strong>SessionStart</strong> and <strong>UserPromptSubmit</strong> hook that injects contextual steering rules into the session based on event type and keyword matching. It discovers rule files from a <code>steering-rules/</code> directory, parses their YAML frontmatter for event and keyword metadata, and injects matching rules as context.</p>
-      <p>On SessionStart, rules matching that event are always injected. On UserPromptSubmit, rules are injected only if the user's prompt contains one of the rule's declared keywords.</p>
+      <p>Injects individual steering rule files into context based on event type and keyword matching. Rules are <code>.md</code> files with YAML frontmatter declaring when they should fire. Each rule injects at most once per session, tracked via a gitignored JSON file.</p>
+      <p>Registered for both <code>SessionStart</code> and <code>UserPromptSubmit</code>. Skips subagent sessions.</p>
     </div>
   </section>
 
@@ -1836,7 +1836,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
         <div class="card-icon">&#x26A1;</div>
         <h3>Event</h3>
       </div>
-      <p><code>SessionStart</code> and <code>UserPromptSubmit</code> — fires at session initialization to inject baseline rules, and on each user prompt to inject keyword-triggered rules.</p>
+      <p><code>SessionStart</code> and <code>UserPromptSubmit</code> — fires at session initialization for always-on rules, and on each user prompt for keyword-triggered rules.</p>
     </div>
   </section>
 
@@ -1847,12 +1847,15 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
         <div class="card-icon">&#x1F3AF;</div>
         <h3>When It Fires</h3>
       </div>
-      <div class="reason"><span class="ri">&#x2022;</span> Every session start for rules that declare <code>SessionStart</code> in their events</div>
-<div class="reason"><span class="ri">&#x2022;</span> Every user prompt submission, matching rules whose keywords appear in the prompt text</div>
+      <div class="reason"><span class="ri">&#x2022;</span> Every <code>SessionStart</code> for rules with empty keywords (always-inject)</div>
+<div class="reason"><span class="ri">&#x2022;</span> Every <code>UserPromptSubmit</code> when a rule's keywords match the prompt text (case-insensitive substring)</div>
       <p>It does <strong>not</strong> fire when:</p>
-      <div class="reason"><span class="ri">&#x2022;</span> No rule files exist in the <code>steering-rules/</code> directory</div>
+      <div class="reason"><span class="ri">&#x2022;</span> Running in a subagent session</div>
+<div class="reason"><span class="ri">&#x2022;</span> Config has <code>enabled: false</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> No rule files resolve from the configured glob patterns</div>
 <div class="reason"><span class="ri">&#x2022;</span> No rules match the current event type</div>
-<div class="reason"><span class="ri">&#x2022;</span> On UserPromptSubmit, no keywords from any rule match the prompt</div>
+<div class="reason"><span class="ri">&#x2022;</span> On <code>UserPromptSubmit</code>, rules with empty keywords are skipped (must have at least one keyword)</div>
+<div class="reason"><span class="ri">&#x2022;</span> A rule has already been injected this session (per-session dedup)</div>
     </div>
   </section>
 
@@ -1866,27 +1869,42 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Discovers all <code>.md</code> files in the <code>steering-rules/</code> directory</p></div>
+          <div class="step-content"><p>Reads config from <code>hookConfig.steeringRuleInjector</code> (with defaults)</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>Parses YAML frontmatter from each file to extract <code>name</code>, <code>events</code>, and <code>keywords</code></p></div>
+          <div class="step-content"><p>Resolves rule files from <code>includes</code> glob patterns (supports <code>${ENV_VAR}</code> expansion)</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Filters rules by the current event type</p></div>
+          <div class="step-content"><p>Parses YAML frontmatter from each file to extract <code>name</code>, <code>events</code>, and <code>keywords</code></p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>For UserPromptSubmit events, further filters by keyword presence in the prompt</p></div>
+          <div class="step-content"><p>Filters rules by current event type</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Injects matching rule content as context output</p></div>
+          <div class="step-content"><p>For <code>UserPromptSubmit</code>: filters by case-insensitive keyword substring match against prompt</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">6</div>
+          <div class="step-content"><p>Checks per-session injection tracker — skips already-injected rules</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">7</div>
+          <div class="step-content"><p>Concatenates matched rule bodies into a single <code>ContextOutput</code></p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">8</div>
+          <div class="step-content"><p>Records injected rules to tracker file at <code>{trackerDir}/injections-{sessionId}.json</code></p></div>
         </div>
 </div>
     </div>
@@ -1899,25 +1917,61 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
         <div class="card-icon">&#x1F4A1;</div>
         <h3>Examples</h3>
       </div>
-      <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Session start injects baseline rules</h3>
       
       <div class="uc-example">
-        <div>A session starts. SteeringRuleInjector scans <code>steering-rules/</code> and finds rules with <code>SessionStart</code> in their events list. Those rules are injected as context, giving the agent behavioral guidance from the start.</div>
+        <div>A session starts. SteeringRuleInjector resolves glob patterns and finds rules with <code>SessionStart</code> in their events and empty keywords. Those rules inject as context from the first interaction.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>The user submits "let's push to origin". The <code>git-safety</code> rule declares keywords <code>[push, remote, origin]</code>. "push" matches, so the rule injects. On the next prompt mentioning "push", the tracker prevents re-injection.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>The user submits a prompt about database migrations. No rules declare matching keywords. SteeringRuleInjector returns silent.</div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Rule File Format</h3>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">markdown</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">markdown</span>
+---
+name: minimize-output-tokens
+events: [UserPromptSubmit]
+keywords: [tokens, output, cost, verbose, concise, brief]
+---
+
+Rule content injected as context...</div>
+        </div>
       </div>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Keyword-triggered rule on prompt</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Configuration</h3>
       
-      <div class="uc-example">
-        <div>The user submits a prompt containing the word "concise". SteeringRuleInjector matches the <code>minimize-output-tokens</code> rule (which declares <code>concise</code> as a keyword) and injects its content: "Minimize Output Tokens. Output tokens cost 5x input tokens..."</div>
-      </div>
-      </div>
-      <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: No matching keywords</h3>
-      
-      <div class="uc-example">
-        <div>The user submits a prompt about database migrations. No steering rules declare matching keywords. SteeringRuleInjector returns silent — no rules are injected.</div>
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">json</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">json</span>
+{
+  "hookConfig": {
+    "steeringRuleInjector": {
+      "enabled": true,
+      "includes": [
+        "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/*.md",
+        "${HOME}/.claude/PAI/USER/rules/*.md"
+      ],
+      "trackerDir": "MEMORY/STATE/.injections"
+    }
+  }
+}</div>
+        </div>
       </div>
       </div>
     </div>
@@ -1930,15 +1984,11 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
         <div class="card-icon">&#x1F517;</div>
         <h3>Dependencies</h3>
       </div>
-      
-      <table class="tbl">
-        <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
-        <tbody>
-          <tr><td><code>fs</code></td><td>adapter</td><td>Reads steering rule files from the <code>steering-rules/</code> directory</td></tr>
-          <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code> and <code>Result</code> type for error handling</td></tr>
-          <tr><td><code>path</code></td><td>node</td><td>Resolves file paths for rule discovery</td></tr>
-        </tbody>
-      </table>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>lib/hook-config</code> — reads <code>hookConfig.steeringRuleInjector</code> from settings.json</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/environment</code> — <code>isSubagent()</code> to skip subagent sessions</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>getPaiDir()</code> for tracker file location</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>readJson</code>, <code>writeJson</code>, <code>fileExists</code> for rule and tracker I/O</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>Bun.Glob</code> — resolves include patterns to file paths</div>
     </div>
   </section>
 

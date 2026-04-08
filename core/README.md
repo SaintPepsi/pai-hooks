@@ -14,6 +14,8 @@ Three exported types for hook contracts:
 
 All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
+The `event` field accepts `HookEventType | HookEventType[]` — multi-event hooks declare an array (e.g., `event: ["SessionStart", "UserPromptSubmit"]`). The runner resolves the actual event from the input shape for logging and output formatting.
+
 ## Result Pattern (`result.ts`)
 
 `Result<T, E>` (Ok | Err) replaces try/catch in business logic. Constructors: `ok()`, `err()`. Combinators: `andThen`, `map`, `mapError`, `match`, `unwrapOr`. Collection ops: `collectResults`, `partitionResults`. Bridge functions (`tryCatch`, `tryCatchAsync`) exist only for adapter boundaries.
