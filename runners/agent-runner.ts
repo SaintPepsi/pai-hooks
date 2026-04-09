@@ -24,6 +24,7 @@ export interface RunnerConfig {
   logPath: string;
   source: string;
   cwd?: string;
+  claudeArgs?: string[];
 }
 
 export interface AgentRunnerDeps {
@@ -75,7 +76,7 @@ export function runAgent(
   // Real execution
   const result = deps.spawnSyncSafe(
     "claude",
-    ["-p", config.prompt, "--max-turns", String(config.maxTurns), "--model", config.model],
+    ["-p", config.prompt, "--max-turns", String(config.maxTurns), "--model", config.model, ...(config.claudeArgs ?? [])],
     {
       cwd: config.cwd,
       timeout: config.timeout,

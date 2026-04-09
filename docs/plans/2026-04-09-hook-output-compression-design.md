@@ -1,5 +1,10 @@
 # Hook Output Compression Design
 
+> **Revised 2026-04-09:** After adversarial review, the fire count tracker and diminishing detail
+> were dropped (complexity not justified by marginal savings). Every fire now gets the same
+> compressed format with behavioral prefix. Verbose detail preserved in stderr for developer logs.
+> See implementation plan for the authoritative spec: `2026-04-09-hook-output-compression-plan.md`
+
 ## Problem
 
 Hook feedback injected into Claude's context is excessively verbose. A single HookDocEnforcer

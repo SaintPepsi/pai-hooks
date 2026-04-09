@@ -155,6 +155,10 @@ export const SettingsRevert: SyncHookContract<
         logPath: join(deps.baseDir, "MEMORY/SECURITY/hardening-log.jsonl"),
         source: "SettingsRevert",
         reason: `bypass: ${command.slice(0, 200)}`,
+        claudeArgs: [
+          "--setting-sources", "",
+          "--settings", join(import.meta.dir, "..", "hardening-agent-settings.json"),
+        ],
       });
     }
 
