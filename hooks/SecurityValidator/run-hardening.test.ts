@@ -33,7 +33,7 @@ describe("runHardening", () => {
 
     expect(deps._captured[0].lockPath).toBe("/tmp/pai-hardening-agent.lock");
     expect(deps._captured[0].logPath).toContain("MEMORY/SECURITY/hardening-log.jsonl");
-    expect(deps._captured[0].cwd).toBe("/tmp");
+    expect(deps._captured[0].cwd).toContain("hooks/SecurityValidator");
   });
 
   it("passes MCP config via claudeArgs", () => {

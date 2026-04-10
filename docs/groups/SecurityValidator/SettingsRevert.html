@@ -1971,7 +1971,7 @@ PostToolUse { tool_name: "Edit", ... }
           <div class="step-content"><p>Calls <code>insert_blocked_pattern</code> to add a new <code>blocked</code> entry with pattern, reason, and optional group (must match an existing group)</p></div>
         </div>
 </div>
-      <p>The agent runs with <code>--strict-mcp-config</code> (MCP tools only, no filesystem access) and <code>--setting-sources ""</code> (no user hooks). Agent lifecycle is logged to <code>MEMORY/SECURITY/hardening-log.jsonl</code>. A lock file at <code>/tmp/pai-hardening-agent.lock</code> prevents concurrent runs.</p>
+      <p>The agent runs from <code>hooks/SecurityValidator/</code> with <code>--strict-mcp-config</code> (MCP tools only, no filesystem access), <code>--setting-sources ""</code> (no user hooks), and <code>--disable-slash-commands</code>. Agent lifecycle is logged as JSONL to <code>MEMORY/SECURITY/hardening-log.jsonl</code> with session IDs for traceability. A lock file at <code>/tmp/pai-hardening-agent.lock</code> prevents concurrent runs.</p>
     </div>
   </section>
 

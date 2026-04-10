@@ -63,7 +63,7 @@ When a revert occurs, SettingsRevert calls `runHardening(command)` which spawns 
 1. Calls `get_blocked_patterns` to check if the bypass is already covered and see valid groups
 2. Calls `insert_blocked_pattern` to add a new `blocked` entry with pattern, reason, and optional group (must match an existing group)
 
-The agent runs with `--strict-mcp-config` (MCP tools only, no filesystem access) and `--setting-sources ""` (no user hooks). Agent lifecycle is logged to `MEMORY/SECURITY/hardening-log.jsonl`. A lock file at `/tmp/pai-hardening-agent.lock` prevents concurrent runs.
+The agent runs from `hooks/SecurityValidator/` with `--strict-mcp-config` (MCP tools only, no filesystem access), `--setting-sources ""` (no user hooks), and `--disable-slash-commands`. Agent lifecycle is logged as JSONL to `MEMORY/SECURITY/hardening-log.jsonl` with session IDs for traceability. A lock file at `/tmp/pai-hardening-agent.lock` prevents concurrent runs.
 
 ## Dependencies
 

@@ -2,8 +2,7 @@
   "mcpServers": {
     "hardening": {
       "command": "bun",
-      "args": ["hooks/SecurityValidator/hardening-mcp.ts"],
-      "cwd": "/Users/ian.hogers/.claude/pai-hooks"
+      "args": ["hardening-mcp.ts"]
     }
   }
 }
