@@ -13,6 +13,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput, UserPromptSubmitInput, ToolHookInput, SubagentStartInput, StopInput } from "@hooks/core/types/hook-inputs";
+import { getEventType as schemaGetEventType, parseHookInput } from "@hooks/core/types/hook-input-schema";
 import { block, continueOk, silent } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
@@ -98,40 +99,35 @@ export function matchesKeywords(prompt: string, keywords: string[]): boolean {
   return keywords.some((kw) => lower.includes(kw.toLowerCase()));
 }
 
-// ─── Event Detection ────────────────────────────────────────────────────────
+// ─── Event Detection (Effect Schema) ────────────────────────────────────────
 
-function isPromptEvent(input: SteeringRuleInput): input is UserPromptSubmitInput {
-  return "prompt" in input && input.prompt != null;
-}
-
-function isToolEvent(input: SteeringRuleInput): input is ToolHookInput {
-  return "tool_name" in input;
-}
-
-function isStopEvent(input: SteeringRuleInput): input is StopInput {
-  return "stop_hook_active" in input || "last_assistant_message" in input;
-}
-
-function getEventType(input: SteeringRuleInput): SteeringEventType {
-  if (isToolEvent(input)) {
-    return "tool_response" in input && input.tool_response !== undefined ? "PostToolUse" : "PreToolUse";
-  }
-  if (isPromptEvent(input)) return "UserPromptSubmit";
-  if (isStopEvent(input)) return "Stop";
-  if ("transcript_path" in input && (input as SubagentStartInput).transcript_path != null) return "SubagentStart";
+function resolveEvent(input: SteeringRuleInput): SteeringEventType {
+  const parsed = parseHookInput(input);
+  if (parsed._tag === "Right") return schemaGetEventType(parsed.right) as SteeringEventType;
+  // Schema requires hook_type — should always be present from Claude Code
   return "SessionStart";
 }
 
 function getMatchText(input: SteeringRuleInput): string {
-  if (isToolEvent(input)) {
-    const filePath = typeof input.tool_input["file_path"] === "string" ? input.tool_input["file_path"] : "";
-    const skill = typeof input.tool_input["skill"] === "string" ? input.tool_input["skill"] : "";
-    return `${input.tool_name} ${filePath} ${skill}`.trim();
+  const parsed = parseHookInput(input);
+  if (parsed._tag !== "Right") return "";
+  const p = parsed.right;
+
+  switch (p.hook_type) {
+    case "PreToolUse":
+    case "PostToolUse": {
+      const filePath = typeof p.tool_input["file_path"] === "string" ? p.tool_input["file_path"] : "";
+      const skill = typeof p.tool_input["skill"] === "string" ? p.tool_input["skill"] : "";
+      return `${p.tool_name} ${filePath} ${skill}`.trim();
+    }
+    case "UserPromptSubmit":
+      return p.prompt ?? "";
+    case "Stop":
+      return p.last_assistant_message ?? "";
+    // SessionStart/SubagentStart use always-inject only — keyword matching is skipped in execute()
+    default:
+      return "";
   }
-  if (isPromptEvent(input)) return input.prompt ?? "";
-  if (isStopEvent(input)) return (input as StopInput).last_assistant_message ?? "";
-  // SubagentStart/PreCompact/SessionStart use always-inject only — keyword matching is skipped in execute()
-  return "";
 }
 
 // ─── Env Expansion (used only in defaultDeps) ───────────────────────────────
@@ -213,7 +209,7 @@ export const SteeringRuleInjector: SyncHookContract<
       return ok(SILENT);
     }
 
-    const eventType = getEventType(input);
+    const eventType = resolveEvent(input);
     const matchText = getMatchText(input);
     const isToolEventType = eventType === "PreToolUse" || eventType === "PostToolUse";
 
