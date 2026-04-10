@@ -156,8 +156,13 @@
         "group": "Auto-hardened by settings bypass detection"
       },
       {
-        "pattern": "node\\s+(-e|--eval)\\s+.*settings\\.json",
-        "reason": "Auto-hardened: node -e/--eval one-liner writing to settings.json via require('fs') (caught 2026-04-10)",
+        "pattern": "swift\\s+(-e|--expression)\\s+.*settings\\.json",
+        "reason": "Auto-hardened: swift -e inline execution writing to settings.json (caught 2026-04-10)",
+        "group": "Auto-hardened by settings bypass detection"
+      },
+      {
+        "pattern": "tclsh\\s+.*open\\s+settings\\.json\\s+w",
+        "reason": "Auto-hardened: tclsh inline script opening settings.json for writing (caught 2026-04-10)",
         "group": "Auto-hardened by settings bypass detection"
       }
     ],

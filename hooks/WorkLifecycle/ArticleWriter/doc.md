@@ -4,7 +4,7 @@
 
 ArticleWriter spawns a background agent to write blog articles for the AI's personal column on the principal's website. It runs at session end, checking three gates before spawning: the website repo must exist on disk, no other article-writing agent can be running (lock file with 30-minute stale timeout), and the session must have substantial work (PRD with 4+ checked criteria).
 
-The spawned agent (via `article-writer-runner.ts`) hunts through PAI memory for compelling stories, writes an article matching a detailed voice guide, creates a PR in the website repo, and tracks the article in MEMORY/ARTICLES/. The runner handles lock cleanup deterministically in a finally block.
+The spawned agent (via `run-article-writer.ts` → `spawnAgent()` → `agent-runner.ts`) hunts through PAI memory for compelling stories, writes an article matching a detailed voice guide, creates a PR in the website repo, and tracks the article in MEMORY/ARTICLES/. The generic agent-runner handles lock cleanup deterministically in a finally block.
 
 ## Event
 
@@ -30,8 +30,7 @@ It does **not** fire when:
 2. Checks for an existing lock file; if fresh, skips; if stale, removes it (Gate 2)
 3. Reads the session's work state file to find the work directory, then checks the PRD.md for 4+ checked criteria (Gate 3)
 4. Ensures the `MEMORY/ARTICLES/` directory exists
-5. Writes a lock file with the current timestamp
-6. Spawns `article-writer-runner.ts` as a background process with the base directory and session ID
+5. Calls `runArticleWriter(sessionId)` which resolves the GitHub repo to a local cache, builds the prompt, and delegates to `spawnAgent()` for lock creation, traceability logging, and background spawning via the generic `agent-runner.ts`
 
 ```typescript
 // Three gates, then spawn
@@ -39,15 +38,14 @@ if (!hasWebsiteRepo(deps)) return ok({ type: "silent" });
 if (deps.fileExists(lockPath) && isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) return ok({ type: "silent" });
 if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) return ok({ type: "silent" });
 
-deps.writeFile(lockPath, deps.getISOTimestamp());
-deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);
+deps.runArticleWriter(input.session_id);
 ```
 
 ## Examples
 
 ### Example 1: Substantial session triggers article
 
-> You complete a session with a PRD that has 6 checked criteria. No lock file exists. ArticleWriter writes the `.writing` lock and spawns the article-writer-runner, which reads PAI memory, writes an article matching the voice guide, generates audio, creates a git branch, and opens a PR on the website repo.
+> You complete a session with a PRD that has 6 checked criteria. No lock file exists. ArticleWriter calls `runArticleWriter()` which resolves the website repo, builds the prompt, and spawns the agent via `spawnAgent()`. The agent reads PAI memory, writes an article matching the voice guide, generates audio, creates a git branch, and opens a PR on the website repo.
 
 ### Example 2: Concurrent agent blocked by lock
 
@@ -62,8 +60,8 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `core/adapters/fs` | adapter | File operations (read, write, exists, stat, remove, ensureDir) |
-| `core/adapters/process` | adapter | Spawns background agent process |
-| `lib/time` | lib | ISO timestamp generation |
+| `run-article-writer.ts` | wrapper | Resolves repo, builds prompt, calls `spawnAgent()` |
+| `lib/spawn-agent` | lib | Shared agent spawning with lock/log/traceability |
+| `runners/agent-runner.ts` | runner | Generic background runner for all hook agents |
 | `lib/identity` | lib | Reads DA name and principal name |
 | `lib/hook-config` | lib | Reads `hookConfig.articleWriter` for repo path |
-| `article-writer-runner.ts` | runner | Background wrapper that runs claude with the article prompt |

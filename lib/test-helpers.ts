@@ -5,7 +5,9 @@
  * across 40+ test files.
  */
 
+import { join } from "node:path";
 import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { removeDir } from "@hooks/core/adapters/fs";
 
 /** Create a Write tool input for testing. */
 export function makeWriteInput(filePath: string, content: string): ToolHookInput {
@@ -48,15 +50,18 @@ export function uniqueSessionId(base: string): string {
   return `${base}-${Date.now()}-${++_hookRunId}`;
 }
 
-/** Spawn a hook script with JSON stdin and capture stdout/stderr/exitCode. */
+/** Spawn a hook script with JSON stdin and capture stdout/stderr/exitCode.
+ *  Sets PAI_DIR to a temp directory so hooks don't pollute the real filesystem. */
 export async function runHookScript(
   hookPath: string,
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const tmpDir = join(import.meta.dir, `__hook-test-${Date.now()}-${++_hookRunId}__`);
   const proc = Bun.spawn(["bun", hookPath], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
+    env: { ...Bun.env, PAI_DIR: tmpDir },
   });
   const writer = proc.stdin!;
   writer.write(JSON.stringify(input));
@@ -66,5 +71,6 @@ export async function runHookScript(
     new Response(proc.stderr).text(),
   ]);
   const exitCode = await proc.exited;
+  removeDir(tmpDir);
   return { stdout: stdout.trim(), stderr, exitCode };
 }

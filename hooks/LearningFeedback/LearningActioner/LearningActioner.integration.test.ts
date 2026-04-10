@@ -9,7 +9,7 @@ function makeLiveDeps(overrides: Partial<LearningActionerDeps> = {}): LearningAc
   return {
     ...LearningActioner.defaultDeps,
     baseDir: TEST_DIR,
-    spawnBackground: () => ({ ok: true, value: undefined }),
+    runLearningAgent: () => ({ ok: true, value: undefined }),
     stderr: () => {},
     ...overrides,
   };
@@ -34,18 +34,16 @@ describe("LearningActioner integration", () => {
     removeDir(TEST_DIR);
   });
 
-  it("creates lock + prompt files and calls spawnBackground when reflections exist", () => {
+  it("calls runLearningAgent when reflections exist", () => {
     writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
       '{"timestamp":"2026-01-01","reflection_q1":"test"}\n',
     );
 
-    let spawnedCmd = "";
-    let spawnedArgs: string[] = [];
+    let called = false;
     const deps = makeLiveDeps({
-      spawnBackground: (cmd: string, args: string[]) => {
-        spawnedCmd = cmd;
-        spawnedArgs = args;
+      runLearningAgent: () => {
+        called = true;
         return { ok: true, value: undefined };
       },
     });
@@ -54,15 +52,13 @@ describe("LearningActioner integration", () => {
 
     expect(result.ok).toBe(true);
     expect(result.value!.type).toBe("silent");
-    expect(spawnedCmd).toBe("bun");
-    expect(spawnedArgs[0]).toContain("learning-agent-runner.ts");
-    expect(fileExists(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"))).toBe(true);
+    expect(called).toBe(true);
   });
 
   it("skips when no learning sources exist", () => {
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -83,7 +79,7 @@ describe("LearningActioner integration", () => {
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -108,7 +104,7 @@ describe("LearningActioner integration", () => {
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -133,7 +129,7 @@ describe("LearningActioner integration", () => {
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -151,7 +147,7 @@ describe("LearningActioner integration", () => {
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },

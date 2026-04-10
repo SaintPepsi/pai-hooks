@@ -1,14 +1,13 @@
 /**
  * LearningActioner Contract — Spawn background agent to analyze learnings.
  *
- * At SessionEnd, checks if learning sources exist. If so, spawns a bun wrapper
- * (learning-agent-runner.ts) that runs claude synchronously and handles cleanup
- * deterministically in code, not via prompt instructions.
+ * At SessionEnd, checks if learning sources exist. If so, calls runLearningAgent()
+ * which delegates to spawnAgent() → agent-runner.ts for background execution.
  *
  * Mitigations:
  * - Lock file prevents concurrent agents (.analyzing with 45-min stale timeout)
  * - Credit accumulation gating replaces fixed cooldown (threshold: 10, based on 5h usage)
- * - Wrapper cleans up lock in finally block (no prompt-based cleanup)
+ * - agent-runner.ts cleans up lock in finally block (no prompt-based cleanup)
  * - Lock persists during child claude's SessionEnd hooks, preventing recursion
  * - Agent reads pending/ proposals to avoid duplicates
  * - max-turns (25) and model (opus) cap agent cost
@@ -24,7 +23,6 @@ import {
   stat,
   writeFile,
 } from "@hooks/core/adapters/fs";
-import { spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -32,6 +30,7 @@ import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getISOTimestamp } from "@hooks/lib/time";
+import { runLearningAgent } from "@hooks/hooks/LearningFeedback/LearningActioner/run-learning-agent";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +42,7 @@ export interface LearningActionerDeps {
   removeFile: (path: string) => Result<void, ResultError>;
   ensureDir: (path: string) => Result<void, ResultError>;
   stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
+  runLearningAgent: () => Result<void, ResultError>;
   getISOTimestamp: () => string;
   baseDir: string;
   stderr: (msg: string) => void;
@@ -74,7 +73,6 @@ interface CreditResult {
 
 const LEARNING_SOURCES = [
   "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl",
-  "MEMORY/LEARNING/SIGNALS/ratings.jsonl",
   "MEMORY/LEARNING/SIGNALS/quality-violations.jsonl",
 ];
 
@@ -98,9 +96,8 @@ Read the following learning sources (all paths relative to ${baseDir}):
 1. MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl — Algorithm reflections (last 50 lines)
 2. MEMORY/LEARNING/ALGORITHM/ — Recent algorithm learning .md files (last 30 days)
 3. MEMORY/LEARNING/SYSTEM/ — Recent system learning .md files (last 30 days)
-4. MEMORY/LEARNING/SIGNALS/ratings.jsonl — Sentiment ratings (last 50 lines)
-5. MEMORY/LEARNING/SIGNALS/quality-violations.jsonl — SOLID violations (last 50 lines)
-6. MEMORY/LEARNING/QUALITY/ — Session quality reports
+4. MEMORY/LEARNING/SIGNALS/quality-violations.jsonl — SOLID violations (last 50 lines)
+5. MEMORY/LEARNING/QUALITY/ — Session quality reports
 
 ═══ SECTION 2: SYSTEM STATE ════════════════════════════════════════════════════
 
@@ -351,7 +348,7 @@ const defaultDeps: LearningActionerDeps = {
   removeFile,
   ensureDir,
   stat,
-  spawnBackground,
+  runLearningAgent: () => runLearningAgent(),
   getISOTimestamp,
   baseDir: getPaiDir(),
   stderr: defaultStderr,
@@ -427,19 +424,10 @@ export const LearningActioner: SyncHookContract<
       }
     }
 
-    // Write lock file
-    const lockResult = deps.writeFile(lockPath, deps.getISOTimestamp());
-    if (!lockResult.ok) {
-      deps.stderr(`[LearningActioner] Failed to write lock file: ${lockResult.error.message}`);
-      return ok({ type: "silent" });
-    }
+    // Spawn agent via shared infrastructure (handles lock write, logging, background spawn)
+    deps.runLearningAgent();
 
-    // Spawn wrapper that runs claude synchronously then cleans up deterministically
-    // Wrapper imports buildAgentPrompt directly — no temp files needed
-    const wrapperPath = join(deps.baseDir, "pai-hooks/runners/learning-agent-runner.ts");
-    deps.spawnBackground("bun", [wrapperPath, deps.baseDir]);
-
-    deps.stderr("[LearningActioner] Spawned wrapper to run analysis agent");
+    deps.stderr("[LearningActioner] Spawned learning agent via spawnAgent infrastructure");
     return ok({ type: "silent" });
   },
 

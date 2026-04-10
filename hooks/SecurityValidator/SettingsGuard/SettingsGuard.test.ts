@@ -256,4 +256,20 @@ describe("SettingsGuard.execute — Bash snapshot", () => {
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("continue");
   });
+
+  it("warns on stderr when snapshot write fails", () => {
+    const messages: string[] = [];
+    const fs: FakeFS = new Map([
+      [`${HOME}/.claude/settings.json`, ORIGINAL],
+    ]);
+    SettingsGuard.execute(
+      settingsInput("Bash", { command: "echo test" }),
+      protectorDeps(fs, {
+        stderr: (msg: string) => messages.push(msg),
+        writeFile: () => ({ ok: false, error: new ResultError(ErrorCode.FileWriteFailed, "/tmp/snap") }),
+      }),
+    );
+
+    expect(messages.some((m) => m.includes("[SettingsGuard] snapshot write failed"))).toBe(true);
+  });
 });

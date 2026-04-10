@@ -19,12 +19,10 @@ function makeDeps(overrides: Partial<ArticleWriterDeps> = {}): ArticleWriterDeps
     fileExists: () => false,
     readFile: () => ok(""),
     readJson: <T>(_path: string) => ok({} as T),
-    writeFile: () => ok(undefined),
     removeFile: () => ok(undefined),
     ensureDir: () => ok(undefined),
     stat: () => ok({ mtimeMs: 0 }),
-    spawnBackground: () => ok(undefined),
-    getISOTimestamp: () => "2026-03-12T19:00:00+11:00",
+    runArticleWriter: () => ok(undefined),
     baseDir: "/mock/.claude",
     websiteRepo: "/mock/Projects/website",
     principalName: "Test User",
@@ -139,7 +137,7 @@ describe("ArticleWriter", () => {
         ok(
           "- [x] ISC-1: one\n- [x] ISC-2: two\n- [x] ISC-3: three\n- [x] ISC-4: four\n- [ ] ISC-5: five\n",
         ),
-      spawnBackground: () => {
+      runArticleWriter: () => {
         spawned = true;
         return ok(undefined);
       },
@@ -162,7 +160,7 @@ describe("ArticleWriter", () => {
       },
       readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
       readFile: () => ok("- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n- [x] ISC-5\n"),
-      spawnBackground: () => {
+      runArticleWriter: () => {
         spawned = true;
         return ok(undefined);
       },
@@ -172,8 +170,8 @@ describe("ArticleWriter", () => {
     expect(spawned).toBe(true);
   });
 
-  test("writes lock file before spawning", () => {
-    const written: Array<{ path: string; content: string }> = [];
+  test("passes session_id to runArticleWriter", () => {
+    const capturedSessionIds: string[] = [];
     const deps = makeDeps({
       fileExists: (p: string) => {
         if (p === "/mock/Projects/website") return true;
@@ -183,13 +181,13 @@ describe("ArticleWriter", () => {
       },
       readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
       readFile: () => ok("- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n"),
-      writeFile: (p: string, c: string) => {
-        written.push({ path: p, content: c });
+      runArticleWriter: (sessionId: string) => {
+        capturedSessionIds.push(sessionId);
         return ok(undefined);
       },
     });
     ArticleWriter.execute(baseInput, deps);
-    expect(written.some((w) => w.path.endsWith(".writing"))).toBe(true);
+    expect(capturedSessionIds).toEqual(["test-session-123"]);
   });
 });
 
@@ -330,19 +328,5 @@ describe("ArticleWriter error paths after gates pass", () => {
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("silent");
     expect(stderrMessages.some((m) => m.includes("Failed to create articles dir"))).toBe(true);
-  });
-
-  test("returns silent when lock writeFile fails", () => {
-    const stderrMessages: string[] = [];
-    const deps = gatePassingDeps({
-      writeFile: () => err(fileWriteFailed(".writing", new Error("disk full"))),
-      stderr: (msg) => {
-        stderrMessages.push(msg);
-      },
-    });
-    const result = ArticleWriter.execute(baseInput, deps);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
-    expect(stderrMessages.some((m) => m.includes("Failed to write lock"))).toBe(true);
   });
 });

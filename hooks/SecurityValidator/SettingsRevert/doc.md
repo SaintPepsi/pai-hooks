@@ -19,7 +19,8 @@ After every Bash tool call completes.
    - **Logs** the revert to stderr
    - **Injects context** telling the AI the change was reverted and not to retry
    - **Spawns a hardening agent** via `lib/spawn-agent.ts` that auto-adds a `blocked` pattern to `patterns.json` so SecurityValidator catches the same bypass pre-execution next time
-4. If no snapshot exists (SettingsGuard didn't run) or files are unchanged, returns silent
+4. **Cleans up** snapshot files after comparison — prevents stale snapshots from causing false positives on subsequent commands
+5. If no snapshot exists (SettingsGuard didn't run, or cleaned up from previous cycle) or files are unchanged, returns silent
 
 > A Bash command runs `sed -i 's/true/false/' ~/.claude/settings.json`. After it completes, SettingsRevert detects the content differs from the snapshot and overwrites settings.json with the original content. The AI receives a security warning.
 
@@ -67,7 +68,7 @@ The agent runs from `hooks/SecurityValidator/` with `--strict-mcp-config` (MCP t
 
 ## Dependencies
 
-- `core/adapters/fs` — `readFile`, `writeFile`, `appendFile`, `ensureDir`, `fileExists` for comparison, revert, and audit I/O
+- `core/adapters/fs` — `readFile`, `writeFile`, `removeFile`, `appendFile`, `ensureDir`, `fileExists` for comparison, revert, cleanup, and audit I/O
 - `hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract` — `snapshotPath` and `logSettingsAudit` for snapshot locations and shared audit logging
 - `hooks/SecurityValidator/run-hardening` — `runHardening()` spawns a background hardening agent via MCP
 - `lib/tool-input` — `getCommand` for extracting Bash commands

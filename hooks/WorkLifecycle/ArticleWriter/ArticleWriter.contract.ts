@@ -2,9 +2,9 @@
  * ArticleWriter Contract — Spawn background agent to write blog articles.
  *
  * At SessionEnd, checks gating conditions (website repo exists, lock, substance).
- * If all pass, spawns article-writer-runner.ts which runs claude -p synchronously
- * in the website repo. The agent reads PAI memory for material, writes an
- * article, and creates a PR. Runner handles lock cleanup in finally block.
+ * If all pass, calls runArticleWriter() which resolves the repo, builds the prompt,
+ * and delegates to spawnAgent() → agent-runner.ts for background execution.
+ * The agent reads PAI memory for material, writes an article, and creates a PR.
  *
  * Gates:
  * - Website repo must exist on disk (settings.json articleWriter.repo)
@@ -21,9 +21,7 @@ import {
   readJson,
   removeFile,
   stat,
-  writeFile,
 } from "@hooks/core/adapters/fs";
-import { spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -32,7 +30,7 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import { getISOTimestamp } from "@hooks/lib/time";
+import { runArticleWriter } from "@hooks/hooks/WorkLifecycle/ArticleWriter/run-article-writer";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,12 +38,10 @@ export interface ArticleWriterDeps {
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, ResultError>;
   readJson: <T = unknown>(path: string) => Result<T, ResultError>;
-  writeFile: (path: string, content: string) => Result<void, ResultError>;
   removeFile: (path: string) => Result<void, ResultError>;
   ensureDir: (path: string) => Result<void, ResultError>;
   stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
-  getISOTimestamp: () => string;
+  runArticleWriter: (sessionId: string) => Result<void, ResultError>;
   baseDir: string;
   websiteRepo: string;
   principalName: string;
@@ -290,12 +286,10 @@ const defaultDeps: ArticleWriterDeps = {
   fileExists,
   readFile,
   readJson,
-  writeFile,
   removeFile,
   ensureDir,
   stat,
-  spawnBackground,
-  getISOTimestamp,
+  runArticleWriter: (sessionId) => runArticleWriter(sessionId),
   baseDir: getPaiDir(),
   websiteRepo: readHookConfig<{ repo?: string }>("articleWriter")?.repo || "",
   principalName: getPrincipalName(),
@@ -344,16 +338,8 @@ export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, Arti
       return ok({ type: "silent" });
     }
 
-    // Write lock
-    const lockResult = deps.writeFile(lockPath, deps.getISOTimestamp());
-    if (!lockResult.ok) {
-      deps.stderr(`[ArticleWriter] Failed to write lock: ${lockResult.error.message}`);
-      return ok({ type: "silent" });
-    }
-
-    // Spawn wrapper
-    const wrapperPath = join(deps.baseDir, "pai-hooks/runners/article-writer-runner.ts");
-    deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);
+    // Spawn agent via shared infrastructure (handles lock, log, background spawn)
+    deps.runArticleWriter(input.session_id);
 
     deps.stderr("[ArticleWriter] Spawned article writing agent");
     return ok({ type: "silent" });

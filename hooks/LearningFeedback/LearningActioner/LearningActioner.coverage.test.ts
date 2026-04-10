@@ -18,7 +18,6 @@ describe("buildAgentPrompt", () => {
   it("references all learning source files", () => {
     const prompt = buildAgentPrompt(baseDir);
     expect(prompt).toContain("algorithm-reflections.jsonl");
-    expect(prompt).toContain("ratings.jsonl");
     expect(prompt).toContain("quality-violations.jsonl");
   });
 

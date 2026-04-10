@@ -1823,7 +1823,7 @@ At the end of each session, evaluate whether enough new learning has accumulated
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>LearningActioner spawns a background analysis agent that reads accumulated learning signals (reflections, ratings, quality violations, and learning files) and produces structured improvement proposals. It uses a credit accumulation system based on API usage to control spawn frequency: each session end accumulates credit proportional to available capacity, and the agent only spawns when credit reaches the threshold of 10 (roughly equivalent to 10 low-usage sessions or 5 hours of work).</p>
+      <p>LearningActioner spawns a background analysis agent that reads accumulated learning signals (reflections, quality violations, and learning files) and produces structured improvement proposals. It uses a credit accumulation system based on API usage to control spawn frequency: each session end accumulates credit proportional to available capacity, and the agent only spawns when credit reaches the threshold of 10 (roughly equivalent to 10 low-usage sessions or 5 hours of work).</p>
       <p>The spawned agent (via <code>run-learning-agent.ts</code> → <code>spawnAgent()</code> → <code>agent-runner.ts</code>) runs Claude with a detailed prompt that reads learning sources, studies the historical proposal corpus for calibration, and writes 0-3 evidence-backed proposals to <code>MEMORY/LEARNING/PROPOSALS/pending/</code>. A lock file with 45-minute stale timeout prevents concurrent agents, and the generic agent-runner handles cleanup in a finally block.</p>
     </div>
   </section>
@@ -1855,7 +1855,7 @@ At the end of each session, evaluate whether enough new learning has accumulated
       <div class="reason"><span class="ri">&#x2022;</span> A fresh lock file indicates another analysis agent is already running</div>
 <div class="reason"><span class="ri">&#x2022;</span> Accumulated credit is below the threshold of 10</div>
 <div class="reason"><span class="ri">&#x2022;</span> Projected 5-hour API usage would reach or exceed 100%</div>
-<div class="reason"><span class="ri">&#x2022;</span> No learning source files exist (no reflections, ratings, violations, or learning directories)</div>
+<div class="reason"><span class="ri">&#x2022;</span> No learning source files exist (no reflections, violations, or learning directories)</div>
 <div class="reason"><span class="ri">&#x2022;</span> Proposal directory creation fails</div>
     </div>
   </section>
@@ -1934,7 +1934,7 @@ deps.runLearningAgent();</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Credit threshold reached after multiple sessions</h3>
       
       <div class="uc-example">
-        <div>Over 12 low-usage sessions, credit accumulates from 0.0 to 10.2. On the 12th session end, LearningActioner detects the threshold is met, resets credit to 0, checks that learning sources exist, writes the lock file, and spawns the analysis agent. The agent reads reflections, ratings, and quality violations, then writes 2 proposals to <code>MEMORY/LEARNING/PROPOSALS/pending/</code>.</div>
+        <div>Over 12 low-usage sessions, credit accumulates from 0.0 to 10.2. On the 12th session end, LearningActioner detects the threshold is met, resets credit to 0, checks that learning sources exist, writes the lock file, and spawns the analysis agent. The agent reads reflections and quality violations, then writes 2 proposals to <code>MEMORY/LEARNING/PROPOSALS/pending/</code>.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">

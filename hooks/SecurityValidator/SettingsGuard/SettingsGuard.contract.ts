@@ -119,7 +119,10 @@ function snapshotSettings(
     if (!content.ok) continue;
 
     const snapPath = snapshotPath(sessionId, filename);
-    deps.writeFile(snapPath, content.value);
+    const writeResult = deps.writeFile(snapPath, content.value);
+    if (!writeResult.ok) {
+      deps.stderr(`[SettingsGuard] snapshot write failed for ${filename}: ${writeResult.error.message}`);
+    }
   }
 }
 

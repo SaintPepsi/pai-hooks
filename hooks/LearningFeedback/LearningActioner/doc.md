@@ -2,9 +2,9 @@
 
 ## Overview
 
-LearningActioner spawns a background analysis agent that reads accumulated learning signals (reflections, ratings, quality violations, and learning files) and produces structured improvement proposals. It uses a credit accumulation system based on API usage to control spawn frequency: each session end accumulates credit proportional to available capacity, and the agent only spawns when credit reaches the threshold of 10 (roughly equivalent to 10 low-usage sessions or 5 hours of work).
+LearningActioner spawns a background analysis agent that reads accumulated learning signals (reflections, quality violations, and learning files) and produces structured improvement proposals. It uses a credit accumulation system based on API usage to control spawn frequency: each session end accumulates credit proportional to available capacity, and the agent only spawns when credit reaches the threshold of 10 (roughly equivalent to 10 low-usage sessions or 5 hours of work).
 
-The spawned agent (via `learning-agent-runner.ts`) runs Claude with a detailed prompt that reads learning sources, studies the historical proposal corpus for calibration, and writes 0-3 evidence-backed proposals to `MEMORY/LEARNING/PROPOSALS/pending/`. A lock file with 45-minute stale timeout prevents concurrent agents, and the runner handles cleanup in a finally block.
+The spawned agent (via `run-learning-agent.ts` → `spawnAgent()` → `agent-runner.ts`) runs Claude with a detailed prompt that reads learning sources, studies the historical proposal corpus for calibration, and writes 0-3 evidence-backed proposals to `MEMORY/LEARNING/PROPOSALS/pending/`. A lock file with 45-minute stale timeout prevents concurrent agents, and the generic agent-runner handles cleanup in a finally block.
 
 ## Event
 
@@ -23,7 +23,7 @@ It does **not** fire when:
 - A fresh lock file indicates another analysis agent is already running
 - Accumulated credit is below the threshold of 10
 - Projected 5-hour API usage would reach or exceed 100%
-- No learning source files exist (no reflections, ratings, violations, or learning directories)
+- No learning source files exist (no reflections, violations, or learning directories)
 - Proposal directory creation fails
 
 ## What It Does
@@ -37,7 +37,7 @@ It does **not** fire when:
    - If credit >= 10: resets to 0 and proceeds; otherwise persists and skips
 3. Verifies learning sources exist (JSONL signal files or learning directories)
 4. Ensures proposal subdirectories exist (pending, applied, rejected, deferred)
-5. Writes the lock file and spawns `learning-agent-runner.ts` as a background process
+5. Calls `runLearningAgent()` which delegates to `spawnAgent()` for lock creation, traceability logging, and background spawning via the generic `agent-runner.ts`
 
 ```typescript
 // Credit accumulation replaces fixed cooldown
@@ -49,16 +49,15 @@ if (!creditResult.shouldSpawn) return ok({ type: "silent" });
 // Gate: learning sources must exist
 if (!hasLearningSources(deps.baseDir, deps)) return ok({ type: "silent" });
 
-// Spawn analysis agent
-deps.writeFile(lockPath, deps.getISOTimestamp());
-deps.spawnBackground("bun", [wrapperPath, deps.baseDir]);
+// Spawn analysis agent via shared infrastructure
+deps.runLearningAgent();
 ```
 
 ## Examples
 
 ### Example 1: Credit threshold reached after multiple sessions
 
-> Over 12 low-usage sessions, credit accumulates from 0.0 to 10.2. On the 12th session end, LearningActioner detects the threshold is met, resets credit to 0, checks that learning sources exist, writes the lock file, and spawns the analysis agent. The agent reads reflections, ratings, and quality violations, then writes 2 proposals to `MEMORY/LEARNING/PROPOSALS/pending/`.
+> Over 12 low-usage sessions, credit accumulates from 0.0 to 10.2. On the 12th session end, LearningActioner detects the threshold is met, resets credit to 0, checks that learning sources exist, writes the lock file, and spawns the analysis agent. The agent reads reflections and quality violations, then writes 2 proposals to `MEMORY/LEARNING/PROPOSALS/pending/`.
 
 ### Example 2: High API usage blocks spawn
 
@@ -73,7 +72,7 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir]);
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `core/adapters/fs` | adapter | File operations for lock, credit state, and learning sources |
-| `core/adapters/process` | adapter | Spawns background analysis agent |
-| `lib/time` | lib | ISO timestamps for lock files and credit state |
-| `learning-agent-runner.ts` | runner | Background wrapper that runs claude with the analysis prompt |
+| `run-learning-agent.ts` | wrapper | Thin wrapper that calls `spawnAgent()` with learning-agent config |
+| `lib/spawn-agent` | lib | Shared agent spawning with lock/log/traceability |
+| `runners/agent-runner.ts` | runner | Generic background runner for all hook agents |
 | `core/result` | core | Result type for error handling |

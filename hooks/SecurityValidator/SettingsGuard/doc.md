@@ -15,7 +15,7 @@ PreToolUse
 
 1. **Edit/Write targeting settings files**: Returns an `ask` decision prompting the user to confirm the modification. The prompt includes an AI instruction not to suggest workarounds if denied.
 
-2. **Bash commands**: Reads the current content of both settings files and writes snapshots to `/tmp/pai-settings-snapshot-{session_id}-{filename}`. Returns `continue` so the command proceeds normally. The paired PostToolUse hook (`SettingsRevert`) compares the files after execution and reverts any unauthorized changes.
+2. **Bash commands**: Reads the current content of both settings files and writes snapshots to `/tmp/pai-settings-snapshot-{session_id}-{filename}`. Warns on stderr if a snapshot write fails (prevents silent stale-snapshot accumulation). Returns `continue` so the command proceeds normally. The paired PostToolUse hook (`SettingsRevert`) compares the files after execution, reverts any unauthorized changes, and cleans up snapshot files.
 
 > A user edits settings.json via the Edit tool. Claude shows: "Settings Protection: Claude wants to modify a settings file. Allow this modification?" The user approves or denies.
 

@@ -1881,7 +1881,7 @@ SecurityValidator's `confirmWrite` path rule for settings.json acts as a **failu
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p><strong>Bash commands</strong>: Reads the current content of both settings files and writes snapshots to <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code>. Returns <code>continue</code> so the command proceeds normally. The paired PostToolUse hook (<code>SettingsRevert</code>) compares the files after execution and reverts any unauthorized changes.</p></div>
+          <div class="step-content"><p><strong>Bash commands</strong>: Reads the current content of both settings files and writes snapshots to <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code>. Warns on stderr if a snapshot write fails (prevents silent stale-snapshot accumulation). Returns <code>continue</code> so the command proceeds normally. The paired PostToolUse hook (<code>SettingsRevert</code>) compares the files after execution, reverts any unauthorized changes, and cleans up snapshot files.</p></div>
         </div>
 </div>
       

@@ -31,7 +31,7 @@ function makeDeps(overrides: Partial<LearningActionerDeps> = {}): LearningAction
     writeFile: () => ({ ok: true, value: undefined }),
     removeFile: () => ({ ok: true, value: undefined }),
     stat: () => ({ ok: true, value: { mtimeMs: Date.now() } }),
-    spawnBackground: () => ({ ok: true, value: undefined }),
+    runLearningAgent: () => ({ ok: true, value: undefined }),
     getISOTimestamp: () => "2026-02-27T16:30:00+11:00",
     baseDir: "/tmp/test-pai",
     stderr: () => {},
@@ -91,55 +91,24 @@ describe("LearningActioner contract", () => {
         removedPath = path;
         return { ok: true, value: undefined };
       },
-      spawnBackground: () => ({ ok: true, value: undefined }),
     });
     LearningActioner.execute(makeInput(), deps);
     expect(removedPath).toContain(".analyzing");
   });
 
-  it("spawns bun wrapper instead of claude directly", () => {
-    let spawnedCmd = "";
-    let spawnedArgs: string[] = [];
+  it("calls runLearningAgent when conditions met", () => {
+    let called = false;
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      spawnBackground: (cmd: string, args: string[]) => {
-        spawnedCmd = cmd;
-        spawnedArgs = args;
+      runLearningAgent: () => {
+        called = true;
         return { ok: true, value: undefined };
       },
     });
     LearningActioner.execute(makeInput(), deps);
-    expect(spawnedCmd).toBe("bun");
-    expect(spawnedArgs[0]).toContain("learning-agent-runner.ts");
-    expect(spawnedArgs[1]).toBe("/tmp/test-pai");
+    expect(called).toBe(true);
   });
 
-  it("writes .analyzing lock file before spawning", () => {
-    let writtenPath = "";
-    const deps = makeDeps({
-      fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      writeFile: (path: string) => {
-        if (path.endsWith(".analyzing")) writtenPath = path;
-        return { ok: true, value: undefined };
-      },
-      spawnBackground: () => ({ ok: true, value: undefined }),
-    });
-    LearningActioner.execute(makeInput(), deps);
-    expect(writtenPath).toContain(".analyzing");
-  });
-
-  it("passes baseDir as argument to wrapper", () => {
-    let spawnedArgs: string[] = [];
-    const deps = makeDeps({
-      fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      spawnBackground: (_cmd: string, args: string[]) => {
-        spawnedArgs = args;
-        return { ok: true, value: undefined };
-      },
-    });
-    LearningActioner.execute(makeInput(), deps);
-    expect(spawnedArgs[1]).toBe("/tmp/test-pai");
-  });
 
   it("returns silent when credit is below threshold", () => {
     const deps = makeDeps({
@@ -178,7 +147,7 @@ describe("LearningActioner contract", () => {
           error: { code: "NOT_FOUND", message: "not found", context: {} },
         } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
       }) as unknown as LearningActionerDeps["readJson"],
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -212,7 +181,7 @@ describe("LearningActioner contract", () => {
           error: { code: "NOT_FOUND", message: "not found", context: {} },
         } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
       }) as unknown as LearningActionerDeps["readJson"],
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -232,29 +201,7 @@ describe("LearningActioner contract", () => {
           new Error("permission denied"),
         ),
       }),
-      spawnBackground: () => {
-        spawned = true;
-        return { ok: true, value: undefined };
-      },
-    });
-    const result = LearningActioner.execute(makeInput(), deps);
-    expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
-    expect(spawned).toBe(false);
-  });
-
-  it("returns silent without spawning when lock file write fails", () => {
-    let spawned = false;
-    const deps = makeDeps({
-      fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      writeFile: () => ({
-        ok: false,
-        error: dirCreateFailed(
-          "/tmp/test-pai/MEMORY/LEARNING/PROPOSALS/.analyzing",
-          new Error("read-only filesystem"),
-        ),
-      }),
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -279,7 +226,7 @@ describe("LearningActioner contract", () => {
         }
         return { ok: true, value: [] };
       },
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -322,7 +269,6 @@ describe("LearningActioner contract", () => {
         ok: false,
         error: dirCreateFailed("/tmp/.analyzing", new Error("permission denied")),
       }),
-      spawnBackground: () => ({ ok: true, value: undefined }),
       stderr: (msg: string) => stderrLines.push(msg),
     });
     LearningActioner.execute(makeInput(), deps);
@@ -339,7 +285,7 @@ describe("LearningActioner contract", () => {
       },
       stat: () => ({ ok: false, error: dirCreateFailed("/tmp", new Error("no stat")) }),
       removeFile: () => ({ ok: true, value: undefined }),
-      spawnBackground: () => {
+      runLearningAgent: () => {
         spawned = true;
         return { ok: true, value: undefined };
       },
@@ -367,7 +313,6 @@ describe("buildAgentPrompt", () => {
   it("mentions learning source paths", () => {
     const prompt = buildAgentPrompt("/tmp/pai");
     expect(prompt).toContain("algorithm-reflections.jsonl");
-    expect(prompt).toContain("ratings.jsonl");
     expect(prompt).toContain("quality-violations.jsonl");
   });
 
@@ -556,9 +501,8 @@ describe("LearningActioner defaultDeps", () => {
     expect(typeof result.ok).toBe("boolean");
   });
 
-  it("defaultDeps.spawnBackground returns a Result", () => {
-    const result = LearningActioner.defaultDeps.spawnBackground("echo", ["test"], { cwd: "/tmp" });
-    expect(typeof result.ok).toBe("boolean");
+  it("defaultDeps.runLearningAgent is a function", () => {
+    expect(typeof LearningActioner.defaultDeps.runLearningAgent).toBe("function");
   });
 
   it("defaultDeps.getISOTimestamp returns a string", () => {

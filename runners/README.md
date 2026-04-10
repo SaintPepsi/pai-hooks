@@ -1,43 +1,43 @@
 # Runners
 
-Background process wrappers spawned by hook contracts at SessionEnd.
+Background process wrapper spawned by hook contracts via `lib/spawn-agent.ts`.
 
-Each runner imports a prompt builder from its contract, runs `claude -p` synchronously, then handles lock/cooldown cleanup deterministically in code (not via prompt instructions).
-
-## Runners
+## Runner
 
 | Runner | Spawned by | Purpose |
 |--------|-----------|---------|
 | **agent-runner** | `spawnAgent()` via `lib/spawn-agent.ts` | Generic runner for any background agent. Receives config as JSON arg, runs `claude -p` synchronously, captures session ID from JSON output, logs JSONL events. BUN_TEST guard prevents accidental token burn in tests. |
-| **article-writer-runner** | `ArticleWriter` contract | Runs claude to write blog articles. Auto-clones repo from `hookConfig.articleWriter.repo` to `~/.claude/cache/repos/`. Identity from `settings.json`. |
-| **learning-agent-runner** | `LearningActioner` contract | Runs claude to analyze learning signals and create proposals |
 
-## How They Work
+All hook-specific agent spawning is handled by thin wrapper functions that call `spawnAgent()`:
 
-1. Contract checks gating conditions (lock, cooldown, substance)
-2. Contract spawns runner as a detached `bun` process via `spawnBackground`
-3. Runner builds a prompt using the contract's exported builder function
-4. Runner logs START to its log file
-5. Runner calls `claude -p` synchronously via `spawnSyncSafe` with `--max-turns` cap and `CLAUDECODE` unset in env
-6. Runner logs COMPLETE (with exit code) or ERROR (with message)
-7. Runner cleans up lock file and writes cooldown file
-8. Runner logs CLEANUP confirmation
+| Wrapper | Hook | Location |
+|---------|------|----------|
+| `runHardening()` | SettingsRevert | `hooks/SecurityValidator/run-hardening.ts` |
+| `runLearningAgent()` | LearningActioner | `hooks/LearningFeedback/LearningActioner/run-learning-agent.ts` |
+| `runArticleWriter()` | ArticleWriter | `hooks/WorkLifecycle/ArticleWriter/run-article-writer.ts` |
 
-Both runners use `spawnSyncSafe` which returns `Result` (never throws), so cleanup always executes after the sync call returns.
+## How It Works
 
-The lock file persists while the child claude runs, preventing recursive spawning — any SessionEnd hooks in the child session see the lock and skip.
+1. Contract checks gating conditions (lock, cooldown, substance, credit)
+2. Contract calls its `run*()` wrapper function
+3. Wrapper builds a prompt and calls `spawnAgent()` with hook-specific config
+4. `spawnAgent()` checks lock, writes lock, logs "spawned" event, spawns `agent-runner.ts` as a detached process
+5. `agent-runner.ts` runs `claude -p` synchronously with `--output-format json`
+6. `agent-runner.ts` captures session ID from JSON output
+7. `agent-runner.ts` logs "completed" or "failed" event as JSONL
+8. `agent-runner.ts` removes lock file in finally block
 
 ## Log Files
 
-Each runner appends timestamped entries to a log file for diagnostics:
+Each wrapper configures its own log and lock paths via `SpawnAgentConfig`:
 
-| Runner | Log file | Lock file |
-|--------|----------|-----------|
-| agent-runner | Configured per caller (e.g. `MEMORY/SECURITY/hardening-log.jsonl`) | Configured per caller (e.g. `/tmp/pai-hardening-agent.lock`) |
-| learning-agent-runner | `MEMORY/LEARNING/PROPOSALS/.analysis-log` | `MEMORY/LEARNING/PROPOSALS/.analyzing` |
-| article-writer-runner | `MEMORY/ARTICLES/.writing-log` | `MEMORY/ARTICLES/.writing` |
+| Wrapper | Log file | Lock file |
+|---------|----------|-----------|
+| `runHardening()` | `MEMORY/SECURITY/hardening-log.jsonl` | `/tmp/pai-hardening-agent.lock` |
+| `runLearningAgent()` | `MEMORY/LEARNING/learning-agent-log.jsonl` | `MEMORY/LEARNING/PROPOSALS/.analyzing` |
+| `runArticleWriter()` | `MEMORY/ARTICLES/article-writer-log.jsonl` | `MEMORY/ARTICLES/.writing` |
 
-`agent-runner` logs structured JSONL entries: `{"ts":"...","event":"completed","source":"...","exitCode":0,"session":"...","resumed":"false"}`. Legacy runners use plaintext `{ISO timestamp} {STATUS} {details}`.
+All logs use structured JSONL: `{"ts":"...","event":"completed","source":"...","exitCode":0,"session":"...","resumed":"false"}`.
 
 ## Session Resumption
 
@@ -48,10 +48,6 @@ Each runner appends timestamped entries to a log file for diagnostics:
 4. After success, writes the new session ID to the state file for next run
 
 This reduces token cost on repeated runs by leveraging Claude's prompt cache.
-
-## Path Resolution
-
-Contracts reference runners via `join(deps.baseDir, "pai-hooks/runners/<name>.ts")` where `baseDir` is `~/.claude`.
 
 ## Testing
 

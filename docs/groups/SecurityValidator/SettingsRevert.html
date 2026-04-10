@@ -1882,7 +1882,12 @@ Instead of trying to predict what a command will do, observe what it actually di
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>If no snapshot exists (SettingsGuard didn't run) or files are unchanged, returns silent</p></div>
+          <div class="step-content"><p><strong>Cleans up</strong> snapshot files after comparison — prevents stale snapshots from causing false positives on subsequent commands</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>If no snapshot exists (SettingsGuard didn't run, or cleaned up from previous cycle) or files are unchanged, returns silent</p></div>
         </div>
 </div>
       
@@ -1982,7 +1987,7 @@ PostToolUse { tool_name: "Edit", ... }
         <div class="card-icon">&#x1F517;</div>
         <h3>Dependencies</h3>
       </div>
-      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for comparison, revert, and audit I/O</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>removeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for comparison, revert, cleanup, and audit I/O</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract</code> — <code>snapshotPath</code> and <code>logSettingsAudit</code> for snapshot locations and shared audit logging</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/run-hardening</code> — <code>runHardening()</code> spawns a background hardening agent via MCP</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getCommand</code> for extracting Bash commands</div>

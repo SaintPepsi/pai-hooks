@@ -12,7 +12,7 @@
  * string concatenation, etc.), the change is caught and reverted.
  */
 
-import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
+import { readFile, writeFile, fileExists, removeFile, readDir } from "@hooks/core/adapters/fs";
 import { getCommand } from "@hooks/lib/tool-input";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
@@ -33,6 +33,8 @@ export interface SettingsRevertDeps extends AuditLogDeps {
   readFile: (path: string) => Result<string, ResultError>;
   writeFile: (path: string, content: string) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
+  removeFile: (path: string) => Result<void, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
   runHardening: (bypassCommand: string) => Result<void, ResultError>;
 }
 
@@ -52,8 +54,39 @@ const REVERT_CONTEXT = [
   "approve the Edit tool prompt or modify it manually outside Claude Code.]",
 ].join("\n");
 
+const SNAPSHOT_PREFIX = "pai-settings-snapshot-";
+
+/**
+ * Remove snapshot files for this session and opportunistically
+ * sweep orphaned snapshots from dead sessions (~1 in 20 calls).
+ */
+function cleanupSnapshots(
+  sessionId: string,
+  deps: SettingsRevertDeps,
+): void {
+  // Always clean up current session's snapshots
+  for (const filename of SETTINGS_FILENAMES) {
+    const snapPath = snapshotPath(sessionId, filename);
+    if (deps.fileExists(snapPath)) {
+      deps.removeFile(snapPath);
+    }
+  }
+
+  // Probabilistic sweep of orphaned snapshots from dead sessions
+  if (Math.random() < 1 / 20) {
+    const entries = deps.readDir("/tmp");
+    if (!entries.ok) return;
+    for (const name of entries.value) {
+      if (name.startsWith(SNAPSHOT_PREFIX) && !name.includes(sessionId)) {
+        deps.removeFile(`/tmp/${name}`);
+      }
+    }
+  }
+}
+
 /**
  * Compare current settings files to snapshots. If any changed, revert.
+ * Always cleans up snapshot files afterward to prevent stale comparisons.
  * Returns the list of filenames that were reverted.
  */
 function compareAndRevert(
@@ -87,6 +120,9 @@ function compareAndRevert(
     }
   }
 
+  // Always clean up snapshots — prevents stale comparisons on next Bash command
+  cleanupSnapshots(sessionId, deps);
+
   return reverted;
 }
 
@@ -100,6 +136,8 @@ const defaultDeps: SettingsRevertDeps = {
   readFile,
   writeFile,
   fileExists,
+  removeFile,
+  readDir,
   appendFile,
   ensureDir,
   baseDir: getPaiDir(),
