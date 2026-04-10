@@ -18,6 +18,10 @@ The output type is always `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-
 
 The `event` field accepts `HookEventType | HookEventType[]` — multi-event hooks declare an array (e.g., `event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "PreCompact", "Stop"]`). The runner resolves the actual event from the input shape for logging and output formatting.
 
+## Barrel Exports (`index.ts`)
+
+The barrel re-exports SDK types and validation directly rather than wrapping them: `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk`, the `HookSpecificEventName` / `NonHookSpecificEvent` type aliases from `types/hook-output-helpers.ts`, and `validateHookOutput` from `types/hook-output-schema.ts`. Contracts that want SDK types can import from `@hooks/core` and get SDK shapes directly — no translation layer.
+
 ## Result Pattern (`result.ts`)
 
 `Result<T, E>` (Ok | Err) replaces try/catch in business logic. Constructors: `ok()`, `err()`. Combinators: `andThen`, `map`, `mapError`, `match`, `unwrapOr`. Collection ops: `collectResults`, `partitionResults`. Bridge functions (`tryCatch`, `tryCatchAsync`) exist only for adapter boundaries.

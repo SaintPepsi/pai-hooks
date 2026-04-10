@@ -4,6 +4,8 @@
  * Contracts import from './core' only. This is the single entry point.
  */
 
+// SDK output type (source of truth)
+export type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 export { type FetchResult, safeFetch } from "@hooks/core/adapters/fetch";
 export {
   appendFile,
@@ -33,9 +35,9 @@ export {
   fileWriteFailed,
   invalidInput,
   jsonParseFailed,
-  ResultError,
   processExecFailed,
   processSpawnFailed,
+  ResultError,
   securityBlock,
   stateCorrupted,
   stdinReadFailed,
@@ -72,17 +74,10 @@ export type {
   ToolHookInput,
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
-// Output types
-export {
-  type AskOutput,
-  ask,
-  type BlockOutput,
-  block,
-  type ContextOutput,
-  type ContinueOutput,
-  context,
-  continueOk,
-  type HookOutput,
-  type SilentOutput,
-  silent,
-} from "@hooks/core/types/hook-outputs";
+// Type helpers derived from SDK
+export type {
+  HookSpecificEventName,
+  NonHookSpecificEvent,
+} from "@hooks/core/types/hook-output-helpers";
+// Output schema validation
+export { validateHookOutput } from "@hooks/core/types/hook-output-schema";
