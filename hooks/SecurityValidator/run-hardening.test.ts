@@ -27,12 +27,13 @@ describe("runHardening", () => {
     expect(deps._captured[0].prompt).toContain("insert_blocked_pattern");
   });
 
-  it("sets correct lockPath and logPath", () => {
+  it("sets correct lockPath, logPath, and cwd", () => {
     const deps = fakeDeps();
     runHardening("jq . settings.json", deps);
 
     expect(deps._captured[0].lockPath).toBe("/tmp/pai-hardening-agent.lock");
     expect(deps._captured[0].logPath).toContain("MEMORY/SECURITY/hardening-log.jsonl");
+    expect(deps._captured[0].cwd).toBe("/tmp");
   });
 
   it("passes MCP config via claudeArgs", () => {
@@ -41,6 +42,7 @@ describe("runHardening", () => {
 
     const args = deps._captured[0].claudeArgs ?? [];
     expect(args).toContain("--setting-sources");
+    expect(args).toContain("--disable-slash-commands");
     expect(args).toContain("--strict-mcp-config");
     expect(args).toContain("--mcp-config");
     expect(args).toContain("/fake/mcp-config.json");

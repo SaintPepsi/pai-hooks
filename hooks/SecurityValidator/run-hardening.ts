@@ -58,8 +58,10 @@ export function runHardening(
     reason: `bypass: ${bypassCommand.slice(0, 200)}`,
     maxTurns: 5,
     timeout: 120_000,
+    cwd: "/tmp",
     claudeArgs: [
       "--setting-sources", "",
+      "--disable-slash-commands",
       "--strict-mcp-config",
       "--mcp-config", deps.mcpConfigPath,
       "--settings", deps.settingsPath,
