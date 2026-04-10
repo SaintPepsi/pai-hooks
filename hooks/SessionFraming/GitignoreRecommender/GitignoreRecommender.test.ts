@@ -1,14 +1,23 @@
 import { describe, expect, test } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   GitignoreRecommender,
   type GitignoreRecommenderDeps,
 } from "./GitignoreRecommender.contract";
+
+// Test-scoped narrowing helper: extracts additionalContext from the
+// SessionStart hookSpecificOutput discriminated union member, or returns
+// undefined when the shape is bare continue (no injection).
+function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== "SessionStart") return undefined;
+  return hs.additionalContext;
+}
 
 const PAI_ROOT = "/Users/hogers/.claude";
 const PROJECT_DIR = "/Users/hogers/Projects/my-app";
@@ -42,14 +51,13 @@ describe("GitignoreRecommender", () => {
     test("returns continue with no additionalContext when cwd is paiRoot", () => {
       const deps = makeDeps({ cwd: () => PAI_ROOT });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContext(result.value)).toBeUndefined();
       }
     });
   });
@@ -65,13 +73,12 @@ describe("GitignoreRecommender", () => {
         },
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContext(result.value)).toBeUndefined();
       }
     });
 
@@ -85,12 +92,12 @@ describe("GitignoreRecommender", () => {
         },
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeDefined();
+        expect(getInjectedContext(result.value)).toBeDefined();
       }
     });
   });
@@ -106,13 +113,12 @@ describe("GitignoreRecommender", () => {
         },
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContext(result.value)).toBeUndefined();
       }
     });
 
@@ -128,12 +134,12 @@ describe("GitignoreRecommender", () => {
         },
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContext(result.value)).toBeUndefined();
       }
     });
   });
@@ -142,29 +148,28 @@ describe("GitignoreRecommender", () => {
     test("injects recommendation when no .claude directory exists", () => {
       const deps = makeDeps();
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
-        expect(result.value.additionalContext).toBeDefined();
-        expect(result.value.additionalContext).toContain("respectGitignore");
-        expect(result.value.additionalContext).toContain("settings.local.json");
+        expect(getInjectedContext(result.value)).toBeDefined();
+        expect(getInjectedContext(result.value) ?? "").toContain("respectGitignore");
+        expect(getInjectedContext(result.value) ?? "").toContain("settings.local.json");
       }
     });
 
     test("recommendation mentions .env and credentials", () => {
       const deps = makeDeps();
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toContain(".env");
-        expect(result.value.additionalContext).toContain("credentials");
+        expect(getInjectedContext(result.value) ?? "").toContain(".env");
+        expect(getInjectedContext(result.value) ?? "").toContain("credentials");
       }
     });
 
@@ -180,12 +185,12 @@ describe("GitignoreRecommender", () => {
         },
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeDefined();
+        expect(getInjectedContext(result.value)).toBeDefined();
       }
     });
   });
@@ -198,13 +203,12 @@ describe("GitignoreRecommender", () => {
         readFile: (_path) => err(fileNotFound(_path)),
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       // Fails open: injects recommendation (treats unreadable as not set)
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });
@@ -219,12 +223,12 @@ describe("GitignoreRecommender", () => {
         },
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(result.value.continue).toBe(true);
       }
     });
   });

@@ -2,20 +2,20 @@
  * GitignoreRecommender Contract — Recommend enabling respectGitignore at session start.
  *
  * Checks if the current project's .claude/settings.json or .claude/settings.local.json
- * has respectGitignore enabled. If not, injects additionalContext asking the AI to
- * offer to add it. Skips when running in the PAI root (~/.claude).
+ * has respectGitignore enabled. If not, injects additionalContext via
+ * hookSpecificOutput (SessionStart) asking the AI to offer to add it.
+ * Skips when running in the PAI root (~/.claude).
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,11 +66,7 @@ function fileHasRespectGitignore(path: string, deps: GitignoreRecommenderDeps): 
 
 // ─── Contract ─────────────────────────────────────────────────────────────────
 
-export const GitignoreRecommender: SyncHookContract<
-  SessionStartInput,
-  ContinueOutput,
-  GitignoreRecommenderDeps
-> = {
+export const GitignoreRecommender: SyncHookContract<SessionStartInput, GitignoreRecommenderDeps> = {
   name: "GitignoreRecommender",
   event: "SessionStart",
 
@@ -81,29 +77,35 @@ export const GitignoreRecommender: SyncHookContract<
   execute(
     _input: SessionStartInput,
     deps: GitignoreRecommenderDeps,
-  ): Result<ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const projectDir = deps.cwd();
 
     // Skip for PAI root — it manages its own settings
     if (projectDir === deps.paiRoot) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Check .claude/settings.json
     const settingsPath = join(projectDir, ".claude", "settings.json");
     if (fileHasRespectGitignore(settingsPath, deps)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Check .claude/settings.local.json
     const localSettingsPath = join(projectDir, ".claude", "settings.local.json");
     if (fileHasRespectGitignore(localSettingsPath, deps)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
-    // Neither file has it — inject recommendation
+    // Neither file has it — inject recommendation (R2: SessionStart hookSpecificOutput.additionalContext)
     deps.stderr("[GitignoreRecommender] respectGitignore not set — injecting recommendation");
-    return ok(continueOk(RECOMMENDATION_CONTEXT));
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: RECOMMENDATION_CONTEXT,
+      },
+    });
   },
 
   defaultDeps,

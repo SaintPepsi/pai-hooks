@@ -36,19 +36,23 @@ It does **not** fire when:
 // Check both settings files for respectGitignore
 const settingsPath = join(projectDir, ".claude", "settings.json");
 if (fileHasRespectGitignore(settingsPath, deps)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 const localSettingsPath = join(projectDir, ".claude", "settings.local.json");
 if (fileHasRespectGitignore(localSettingsPath, deps)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
-// Neither file has it — inject recommendation
+// Neither file has it — inject recommendation via hookSpecificOutput
+// (SessionStart is a hookSpecific event; additionalContext lives under
+// hookSpecificOutput, not at the top level)
 return ok({
-  type: "continue",
   continue: true,
-  additionalContext: RECOMMENDATION_CONTEXT,
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: RECOMMENDATION_CONTEXT,
+  },
 });
 ```
 
@@ -69,3 +73,4 @@ return ok({
 | `fs` | adapter | Provides `fileExists` and `readFile` for reading settings files |
 | `error` | core | Provides `fileReadFailed` for JSON parse error wrapping |
 | `result` | core | Provides `ok`, `Result`, and `tryCatch` for error handling |
+| `@anthropic-ai/claude-agent-sdk` | sdk | Provides `SyncHookJSONOutput` — the contract output shape (migrated from `@hooks/core/types/hook-outputs` in the SDK Type Foundation refactor). `additionalContext` now lives under `hookSpecificOutput` per the SessionStart discriminator. |

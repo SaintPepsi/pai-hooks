@@ -1909,19 +1909,23 @@ At session start, check whether the current project has gitignore-respect enable
 // Check both settings files for respectGitignore
 const settingsPath = join(projectDir, ".claude", "settings.json");
 if (fileHasRespectGitignore(settingsPath, deps)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 const localSettingsPath = join(projectDir, ".claude", "settings.local.json");
 if (fileHasRespectGitignore(localSettingsPath, deps)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
-// Neither file has it — inject recommendation
+// Neither file has it — inject recommendation via hookSpecificOutput
+// (SessionStart is a hookSpecific event; additionalContext lives under
+// hookSpecificOutput, not at the top level)
 return ok({
-  type: "continue",
   continue: true,
-  additionalContext: RECOMMENDATION_CONTEXT,
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: RECOMMENDATION_CONTEXT,
+  },
 });</div>
         </div>
       </div>
@@ -1966,6 +1970,7 @@ return ok({
           <tr><td><code>fs</code></td><td>adapter</td><td>Provides <code>fileExists</code> and <code>readFile</code> for reading settings files</td></tr>
           <tr><td><code>error</code></td><td>core</td><td>Provides <code>fileReadFailed</code> for JSON parse error wrapping</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code>, <code>Result</code>, and <code>tryCatch</code> for error handling</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>sdk</td><td>Provides <code>SyncHookJSONOutput</code> — the contract output shape (migrated from <code>@hooks/core/types/hook-outputs</code> in the SDK Type Foundation refactor). <code>additionalContext</code> now lives under <code>hookSpecificOutput</code> per the SessionStart discriminator.</td></tr>
         </tbody>
       </table>
     </div>
