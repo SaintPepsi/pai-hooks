@@ -8,11 +8,13 @@ Three exported types for hook contracts:
 
 | Type | `execute()` returns | Use when |
 |------|-------------------|----------|
-| `SyncHookContract<I,O,D>` | `Result<O, E>` | Most hooks (34 of 40) |
-| `AsyncHookContract<I,O,D>` | `Promise<Result<O, E>>` | Hooks with async I/O (6 hooks) |
-| `HookContract<I,O,D>` | Union of both | Runner only — contracts should use the narrowed type |
+| `SyncHookContract<I,D>` | `Result<SyncHookJSONOutput, ResultError>` | Most hooks (34 of 40) |
+| `AsyncHookContract<I,D>` | `Promise<Result<SyncHookJSONOutput, ResultError>>` | Hooks with async I/O (6 hooks) |
+| `HookContract<I,D>` | Union of both | Runner only — contracts should use the narrowed type |
 
 All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
+
+The output type is always `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk` — no custom output types. The previous `O` generic parameter was dropped in the SDK type foundation refactor; contracts construct SDK-shaped return values directly.
 
 The `event` field accepts `HookEventType | HookEventType[]` — multi-event hooks declare an array (e.g., `event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "PreCompact", "Stop"]`). The runner resolves the actual event from the input shape for logging and output formatting.
 

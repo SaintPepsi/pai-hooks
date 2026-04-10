@@ -11,20 +11,17 @@
  *
  * Type parameters:
  *   I = input type (what the hook receives after parsing)
- *   O = output type (what the hook returns)
  *   D = deps type (injectable dependencies for testing)
+ *
+ * Output type is always SyncHookJSONOutput from the SDK — no custom output types.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { HookEventType, HookInput } from "@hooks/core/types/hook-inputs";
-import type { HookOutput } from "@hooks/core/types/hook-outputs";
 
-interface HookContractBase<
-  I extends HookInput = HookInput,
-  _O extends HookOutput = HookOutput,
-  D = unknown,
-> {
+interface HookContractBase<I extends HookInput = HookInput, D = unknown> {
   /** Human-readable hook name for logging and error context. */
   name: string;
 
@@ -38,27 +35,19 @@ interface HookContractBase<
   defaultDeps: D;
 }
 
-export interface SyncHookContract<
-  I extends HookInput = HookInput,
-  O extends HookOutput = HookOutput,
-  D = unknown,
-> extends HookContractBase<I, O, D> {
+export interface SyncHookContract<I extends HookInput = HookInput, D = unknown>
+  extends HookContractBase<I, D> {
   /** SRP core: synchronous pure business logic. Returns Result, never throws. */
-  execute(input: I, deps: D): Result<O, ResultError>;
+  execute(input: I, deps: D): Result<SyncHookJSONOutput, ResultError>;
 }
 
-export interface AsyncHookContract<
-  I extends HookInput = HookInput,
-  O extends HookOutput = HookOutput,
-  D = unknown,
-> extends HookContractBase<I, O, D> {
+export interface AsyncHookContract<I extends HookInput = HookInput, D = unknown>
+  extends HookContractBase<I, D> {
   /** SRP core: async business logic. Returns Promise<Result>, never throws. */
-  execute(input: I, deps: D): Promise<Result<O, ResultError>>;
+  execute(input: I, deps: D): Promise<Result<SyncHookJSONOutput, ResultError>>;
 }
 
 /** Union type accepted by the runner. Contracts should use SyncHookContract or AsyncHookContract. */
-export type HookContract<
-  I extends HookInput = HookInput,
-  O extends HookOutput = HookOutput,
-  D = unknown,
-> = SyncHookContract<I, O, D> | AsyncHookContract<I, O, D>;
+export type HookContract<I extends HookInput = HookInput, D = unknown> =
+  | SyncHookContract<I, D>
+  | AsyncHookContract<I, D>;
