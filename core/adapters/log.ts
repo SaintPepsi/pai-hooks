@@ -22,7 +22,6 @@ export interface HookLogEntry {
   duration_ms: number;
   session_id?: string;
   error?: string;
-  output_type?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────

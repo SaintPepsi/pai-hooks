@@ -67,15 +67,14 @@ describe("appendHookLog", () => {
     expect(parsed.error).toBe("something broke");
   });
 
-  it("includes optional session_id and output_type", () => {
-    const entry = makeEntry({ session_id: "abc-123", output_type: "context" });
+  it("includes optional session_id", () => {
+    const entry = makeEntry({ session_id: "abc-123" });
     appendHookLog(entry, TEST_LOG_DIR);
 
     const files = [...new Bun.Glob("*.jsonl").scanSync(TEST_LOG_DIR)];
     const content = readFileSync(join(TEST_LOG_DIR, files[0]), "utf-8");
     const parsed = JSON.parse(content.trim());
     expect(parsed.session_id).toBe("abc-123");
-    expect(parsed.output_type).toBe("context");
   });
 
   it("does not fail when dir already exists", () => {
