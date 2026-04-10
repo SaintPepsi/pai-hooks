@@ -91,4 +91,6 @@ Rule content injected as context...
 - `lib/environment` — `isSubagent()` to skip subagent sessions
 - `lib/paths` — `getPaiDir()` for tracker file location
 - `core/adapters/fs` — `readFile`, `readJson`, `writeJson`, `fileExists` for rule and tracker I/O
+- `core/types/hook-input-schema` — Effect Schema for discriminated input parsing (replaces field-sniffing)
+- `Bun.Glob` — resolves include patterns to file paths
 - `Bun.Glob` — resolves include patterns to file paths
