@@ -43,6 +43,7 @@ export interface SpawnAgentConfig {
   source: string;
   reason: string;
   claudeArgs?: string[];
+  sessionStatePath?: string;
 }
 
 export interface SpawnAgentDeps {
@@ -139,6 +140,7 @@ export function spawnAgent(
     source: config.source,
     cwd: config.cwd,
     claudeArgs: config.claudeArgs,
+    sessionStatePath: config.sessionStatePath,
   };
 
   const spawnOpts = config.cwd ? { cwd: config.cwd } : undefined;

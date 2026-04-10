@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { processSpawnFailed } from "@hooks/core/error";
+import { fileNotFound, processSpawnFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { AgentRunnerDeps, RunnerConfig } from "@hooks/runners/agent-runner";
 import { runAgent } from "@hooks/runners/agent-runner";
@@ -22,6 +22,7 @@ function makeConfig(overrides: Partial<RunnerConfig> = {}): RunnerConfig {
 function makeDeps(overrides: Partial<AgentRunnerDeps> = {}): AgentRunnerDeps {
   return {
     appendFile: () => ok(undefined),
+    readFile: () => err(fileNotFound("no-session")),
     removeFile: () => ok(undefined),
     writeFile: () => ok(undefined),
     spawnSyncSafe: () => ok({ stdout: "", exitCode: 0 }),
@@ -172,5 +173,94 @@ describe("agent-runner / real execution", () => {
     });
     runAgent(config, false, deps);
     expect(removed).toContain("/tmp/fail-test.lock");
+  });
+});
+
+// ─── Session Resumption ──────────────────────────────────────────────────
+
+describe("agent-runner / session resumption", () => {
+  test("passes --resume when session state file exists", () => {
+    const calls: string[][] = [];
+    const deps = makeDeps({
+      env: {},
+      readFile: (p) => p.endsWith(".session") ? ok("prev-session-123") : err(fileNotFound(p)),
+      spawnSyncSafe: (_cmd, args) => {
+        calls.push(args);
+        return ok({ stdout: '{"session_id":"new-session-456"}', exitCode: 0 });
+      },
+    });
+    const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
+    runAgent(config, false, deps);
+
+    expect(calls[0]).toContain("--resume");
+    expect(calls[0]).toContain("prev-session-123");
+  });
+
+  test("does not pass --resume when no session state file", () => {
+    const calls: string[][] = [];
+    const deps = makeDeps({
+      env: {},
+      spawnSyncSafe: (_cmd, args) => {
+        calls.push(args);
+        return ok({ stdout: '{"session_id":"fresh-session"}', exitCode: 0 });
+      },
+    });
+    const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
+    runAgent(config, false, deps);
+
+    expect(calls[0]).not.toContain("--resume");
+  });
+
+  test("writes session ID to state file after success", () => {
+    const written: Array<{ path: string; content: string }> = [];
+    const deps = makeDeps({
+      env: {},
+      spawnSyncSafe: () => ok({ stdout: '{"session_id":"saved-session-789"}', exitCode: 0 }),
+      writeFile: (p, c) => { written.push({ path: p, content: c }); return ok(undefined); },
+    });
+    const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
+    runAgent(config, false, deps);
+
+    const stateWrite = written.find((w) => w.path === "/tmp/test.session");
+    expect(stateWrite).toBeDefined();
+    expect(stateWrite!.content).toBe("saved-session-789");
+  });
+
+  test("falls back to fresh session when resume fails", () => {
+    const calls: string[][] = [];
+    let callCount = 0;
+    const deps = makeDeps({
+      env: {},
+      readFile: (p) => p.endsWith(".session") ? ok("stale-session") : err(fileNotFound(p)),
+      spawnSyncSafe: (_cmd, args) => {
+        calls.push(args);
+        callCount++;
+        if (callCount === 1) return err(processSpawnFailed("claude", new Error("session expired")));
+        return ok({ stdout: '{"session_id":"fallback-session"}', exitCode: 0 });
+      },
+    });
+    const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
+    runAgent(config, false, deps);
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toContain("--resume");
+    expect(calls[1]).not.toContain("--resume");
+  });
+
+  test("logs resumed status in completed event", () => {
+    const logged: Array<{ path: string; content: string }> = [];
+    const deps = makeDeps({
+      env: {},
+      readFile: (p) => p.endsWith(".session") ? ok("prev-id") : err(fileNotFound(p)),
+      spawnSyncSafe: () => ok({ stdout: '{"session_id":"new-id"}', exitCode: 0 }),
+      appendFile: (p, content) => { logged.push({ path: p, content }); return ok(undefined); },
+    });
+    const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
+    runAgent(config, false, deps);
+
+    const entry = logged.find((l) => l.content.includes('"completed"'));
+    expect(entry).toBeDefined();
+    const parsed = JSON.parse(entry!.content.trim());
+    expect(parsed.resumed).toBe("true");
   });
 });

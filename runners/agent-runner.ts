@@ -8,7 +8,7 @@
  * throws immediately to prevent accidental token burn in tests.
  */
 
-import { appendFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
+import { appendFile, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
@@ -31,10 +31,12 @@ export interface RunnerConfig {
   source: string;
   cwd?: string;
   claudeArgs?: string[];
+  sessionStatePath?: string;
 }
 
 export interface AgentRunnerDeps {
   appendFile: (path: string, content: string) => Result<void, ResultError>;
+  readFile: (path: string) => Result<string, ResultError>;
   removeFile: (path: string) => Result<void, ResultError>;
   writeFile: (path: string, content: string) => Result<void, ResultError>;
   spawnSyncSafe: typeof spawnSyncSafe;
@@ -44,6 +46,7 @@ export interface AgentRunnerDeps {
 
 const defaultDeps: AgentRunnerDeps = {
   appendFile,
+  readFile,
   removeFile,
   writeFile,
   spawnSyncSafe,
@@ -79,22 +82,32 @@ export function runAgent(
     return;
   }
 
-  // Real execution — use pipe + --output-format json to capture session ID
-  const result = deps.spawnSyncSafe(
-    "claude",
-    [
-      "-p", config.prompt,
-      "--max-turns", String(config.maxTurns),
-      "--model", config.model,
-      "--output-format", "json",
-      ...(config.claudeArgs ?? []),
-    ],
-    {
-      cwd: config.cwd,
-      timeout: config.timeout,
-      stdio: "pipe",
-    },
-  );
+  // Check for previous session to resume
+  let previousSessionId = "";
+  if (config.sessionStatePath) {
+    const stateResult = deps.readFile(config.sessionStatePath);
+    if (stateResult.ok) previousSessionId = stateResult.value.trim();
+  }
+
+  const baseArgs = [
+    "--max-turns", String(config.maxTurns),
+    "--model", config.model,
+    "--output-format", "json",
+    ...(config.claudeArgs ?? []),
+  ];
+
+  const spawnOpts = { cwd: config.cwd, timeout: config.timeout, stdio: "pipe" as const };
+
+  // Try resume if we have a previous session
+  let result = previousSessionId
+    ? deps.spawnSyncSafe("claude", ["--resume", previousSessionId, "-p", config.prompt, ...baseArgs], spawnOpts)
+    : deps.spawnSyncSafe("claude", ["-p", config.prompt, ...baseArgs], spawnOpts);
+
+  // Fallback to fresh session if resume failed
+  if (!result.ok && previousSessionId) {
+    deps.stderr(`[agent-runner] Resume failed, falling back to fresh session`);
+    result = deps.spawnSyncSafe("claude", ["-p", config.prompt, ...baseArgs], spawnOpts);
+  }
 
   let sessionId = "";
   if (result.ok && result.value.stdout) {
@@ -102,8 +115,13 @@ export function runAgent(
     sessionId = output.session_id ?? "";
   }
 
+  // Persist session ID for next run
+  if (sessionId && config.sessionStatePath) {
+    deps.writeFile(config.sessionStatePath, sessionId);
+  }
+
   if (result.ok) {
-    logEvent(config.logPath, { event: "completed", source: config.source, exitCode: result.value.exitCode, session: sessionId }, deps);
+    logEvent(config.logPath, { event: "completed", source: config.source, exitCode: result.value.exitCode, session: sessionId, resumed: previousSessionId ? "true" : "false" }, deps);
   } else {
     logEvent(config.logPath, { event: "failed", source: config.source, error: result.error.message }, deps);
   }

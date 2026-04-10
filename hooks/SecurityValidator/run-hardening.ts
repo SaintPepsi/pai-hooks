@@ -60,6 +60,7 @@ export function runHardening(
     maxTurns: 5,
     timeout: 120_000,
     cwd: join(import.meta.dir),
+    sessionStatePath: join(import.meta.dir, ".hardening-session"),
     claudeArgs: [
       "--setting-sources", "",
       "--disable-slash-commands",
