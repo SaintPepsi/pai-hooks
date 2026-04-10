@@ -226,6 +226,10 @@ describe("SteeringRuleInjector contract", () => {
   it("accepts all inputs", () => {
     expect(SteeringRuleInjector.accepts(makeSessionStartInput())).toBe(true);
     expect(SteeringRuleInjector.accepts(makePromptInput("test"))).toBe(true);
+    expect(SteeringRuleInjector.accepts(makeToolInput("Edit", "foo.ts"))).toBe(true);
+    expect(SteeringRuleInjector.accepts(makePostToolInput("Edit", "foo.ts"))).toBe(true);
+    expect(SteeringRuleInjector.accepts(makeSubagentInput())).toBe(true);
+    expect(SteeringRuleInjector.accepts(makePreCompactInput())).toBe(true);
   });
 
   it("returns silent for subagents", () => {

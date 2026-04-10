@@ -109,7 +109,7 @@ function isToolEvent(input: SteeringRuleInput): input is ToolHookInput {
 }
 
 function isPreCompactEvent(input: SteeringRuleInput): input is PreCompactInput {
-  return "trigger" in input;
+  return "trigger" in input && (input as PreCompactInput).trigger != null;
 }
 
 function getEventType(input: SteeringRuleInput): SteeringEventType {
@@ -118,7 +118,7 @@ function getEventType(input: SteeringRuleInput): SteeringEventType {
   }
   if (isPromptEvent(input)) return "UserPromptSubmit";
   if (isPreCompactEvent(input)) return "PreCompact";
-  if ("transcript_path" in input) return "SubagentStart";
+  if ("transcript_path" in input && (input as SubagentStartInput).transcript_path != null) return "SubagentStart";
   return "SessionStart";
 }
 
@@ -128,6 +128,7 @@ function getMatchText(input: SteeringRuleInput): string {
     return `${input.tool_name} ${filePath}`;
   }
   if (isPromptEvent(input)) return input.prompt ?? "";
+  // SubagentStart/PreCompact/SessionStart use always-inject only — keyword matching is skipped in execute()
   return "";
 }
 
