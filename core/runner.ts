@@ -23,6 +23,10 @@ import type { HookOutput } from "@hooks/core/types/hook-outputs";
  * When a contract declares multiple events, infer the actual event from input shape.
  */
 function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
+  // Prefer hook_type from Claude Code when available — single source of truth
+  if ("hook_type" in input && typeof (input as HookInputBase).hook_type === "string" && (input as HookInputBase).hook_type) {
+    return (input as HookInputBase).hook_type as string;
+  }
   if (Array.isArray(contractEvent)) {
     if ("tool_name" in input) return "tool_response" in input ? "PostToolUse" : "PreToolUse";
     if ("prompt" in input) return "UserPromptSubmit";
