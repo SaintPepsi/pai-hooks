@@ -371,6 +371,18 @@ describe("SteeringRuleInjector contract", () => {
     expect(result.value.type).toBe("silent");
   });
 
+  it("returns bare continue (not silent) when no rule files found on PreToolUse", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => [],
+    });
+    const result = SteeringRuleInjector.execute(makeToolInput("Edit", "foo.ts"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+  });
+
   it("concatenates multiple matched rules with separator", () => {
     const deps = makeDeps({
       resolveGlobs: () => ["/rules/always.md", "/rules/both.md"],

@@ -1,6 +1,6 @@
 ---
 name: give-equal-analytical-depth-to-all-presented-options
-events: [UserPromptSubmit]
+events: [SessionStart]
 keywords: []
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: try-both-before-presenting-tradeoffs
-events: [UserPromptSubmit]
+events: [SessionStart]
 keywords: []
 ---
 

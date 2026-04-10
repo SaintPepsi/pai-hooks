@@ -1,6 +1,6 @@
 ---
 name: use-rewind-over-in-context-correction
-events: [UserPromptSubmit]
+events: [SessionStart]
 keywords: []
 ---
 
