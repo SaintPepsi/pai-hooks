@@ -24,16 +24,9 @@ import { getEventType as schemaGetEventType, parseHookInput } from "@hooks/core/
  * When a contract declares multiple events, infer the actual event from input shape.
  */
 function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
-  // Single-event contracts — no ambiguity
   if (!Array.isArray(contractEvent)) return contractEvent;
-
-  // Try Effect Schema first — discriminates on hook_type (no field-sniffing)
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right);
-
-  // Fallback for inputs without hook_type (older Claude Code versions)
-  if ("tool_name" in input) return "tool_response" in input ? "PostToolUse" : "PreToolUse";
-  if ("prompt" in input) return "UserPromptSubmit";
   return contractEvent[0];
 }
 
