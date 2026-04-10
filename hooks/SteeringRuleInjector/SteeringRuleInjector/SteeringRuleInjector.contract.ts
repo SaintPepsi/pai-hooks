@@ -213,6 +213,13 @@ export const SteeringRuleInjector: SyncHookContract<
     const matchText = getMatchText(input);
     const isToolEventType = eventType === "PreToolUse" || eventType === "PostToolUse";
 
+    // DEBUG: Log Stop input fields to diagnose blocking issue (remove after fix)
+    if (eventType === "Stop") {
+      const keys = Object.keys(input);
+      deps.stderr(`[SteeringRuleInjector] DEBUG Stop input keys: ${keys.join(", ")}`);
+      deps.stderr(`[SteeringRuleInjector] DEBUG Stop matchText (first 100): ${matchText.slice(0, 100)}`);
+    }
+
     // Resolve glob patterns to file paths
     const filePaths = deps.resolveGlobs(config.includes);
     if (filePaths.length === 0) {
