@@ -56,6 +56,7 @@ export function runHardening(
     logPath: join(deps.baseDir, "MEMORY/SECURITY/hardening-log.jsonl"),
     source: "SettingsRevert",
     reason: `bypass: ${bypassCommand.slice(0, 200)}`,
+    model: "sonnet",
     maxTurns: 5,
     timeout: 120_000,
     cwd: join(import.meta.dir),
