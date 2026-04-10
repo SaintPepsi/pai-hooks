@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, SubagentStartInput, PreCompactInput, StopInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import type { SessionStartInput, SubagentStartInput, StopInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   type InjectionTracker,
@@ -128,14 +128,6 @@ keywords: []
 
 Least privilege for sub-agents.`;
 
-const PRECOMPACT_RULE = `---
-name: precompact-rule
-events: [PreCompact]
-keywords: []
----
-
-Write state before compacting.`;
-
 const STOP_RULE = `---
 name: stop-rule
 events: [Stop]
@@ -214,10 +206,6 @@ function makeSubagentInput(): SubagentStartInput {
   return { session_id: "test-session-123", transcript_path: "/tmp/transcript.jsonl" };
 }
 
-function makePreCompactInput(): PreCompactInput {
-  return { session_id: "test-session-123", trigger: "auto" };
-}
-
 function makeStopInput(lastMessage?: string): StopInput {
   return { session_id: "test-session-123", last_assistant_message: lastMessage, stop_hook_active: true };
 }
@@ -231,7 +219,6 @@ describe("SteeringRuleInjector contract", () => {
       "PreToolUse",
       "PostToolUse",
       "SubagentStart",
-      "PreCompact",
       "Stop",
     ]);
   });
@@ -242,7 +229,7 @@ describe("SteeringRuleInjector contract", () => {
     expect(SteeringRuleInjector.accepts(makeToolInput("Edit", "foo.ts"))).toBe(true);
     expect(SteeringRuleInjector.accepts(makePostToolInput("Edit", "foo.ts"))).toBe(true);
     expect(SteeringRuleInjector.accepts(makeSubagentInput())).toBe(true);
-    expect(SteeringRuleInjector.accepts(makePreCompactInput())).toBe(true);
+    expect(SteeringRuleInjector.accepts(makeStopInput("test"))).toBe(true);
   });
 
   it("returns silent for subagents", () => {
@@ -272,9 +259,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Always inject this content.");
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
   });
 
   it("does NOT inject UserPromptSubmit-only rules on SessionStart", () => {
@@ -298,9 +285,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Deploy safety guidelines.");
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Deploy safety guidelines.");
   });
 
   it("returns silent when no keywords match prompt", () => {
@@ -409,11 +396,11 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Always inject this content.");
-    expect(result.value.content).toContain("Git workflow rules.");
-    expect(result.value.content).toContain("\n\n---\n\n");
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect((result.value as ContinueOutput).additionalContext).toContain("Git workflow rules.");
+    expect((result.value as ContinueOutput).additionalContext).toContain("\n\n---\n\n");
   });
 
   it("skips files with invalid frontmatter", () => {
@@ -429,9 +416,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Always inject this content.");
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
   });
 
   it("skips files that cannot be read", () => {
@@ -447,9 +434,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Always inject this content.");
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
   });
 
   it("injects matched rules on PreToolUse (keyword matches file path)", () => {
@@ -517,23 +504,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Least privilege for sub-agents.");
-  });
-
-  it("injects always-rules on PreCompact", () => {
-    const deps = makeDeps({
-      resolveGlobs: () => ["/rules/precompact.md"],
-      readFile: () => PRECOMPACT_RULE,
-    });
-    const result = SteeringRuleInjector.execute(makePreCompactInput(), deps);
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Write state before compacting.");
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Least privilege for sub-agents.");
   });
 
   it("injects keyword-matched rules on Stop (matches last_assistant_message)", () => {

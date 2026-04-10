@@ -12,18 +12,18 @@ import { fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { SessionStartInput, UserPromptSubmitInput, ToolHookInput, SubagentStartInput, PreCompactInput, StopInput } from "@hooks/core/types/hook-inputs";
-import { block } from "@hooks/core/types/hook-outputs";
-import type { BlockOutput, ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type { SessionStartInput, UserPromptSubmitInput, ToolHookInput, SubagentStartInput, StopInput } from "@hooks/core/types/hook-inputs";
+import { block, continueOk, silent } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type SteeringRuleInput = SessionStartInput | UserPromptSubmitInput | ToolHookInput | SubagentStartInput | PreCompactInput | StopInput;
+type SteeringRuleInput = SessionStartInput | UserPromptSubmitInput | ToolHookInput | SubagentStartInput | StopInput;
 
-type SteeringEventType = "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "SubagentStart" | "PreCompact" | "Stop";
+type SteeringEventType = "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "SubagentStart" | "Stop";
 
 export interface RuleFrontmatter {
   name: string;
@@ -55,7 +55,6 @@ export interface SteeringRuleInjectorDeps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const SILENT: SilentOutput = { type: "silent" };
 
 const DEFAULT_CONFIG: SteeringRuleConfig = {
   enabled: true,
@@ -109,10 +108,6 @@ function isToolEvent(input: SteeringRuleInput): input is ToolHookInput {
   return "tool_name" in input;
 }
 
-function isPreCompactEvent(input: SteeringRuleInput): input is PreCompactInput {
-  return "trigger" in input && (input as PreCompactInput).trigger != null;
-}
-
 function isStopEvent(input: SteeringRuleInput): input is StopInput {
   return "stop_hook_active" in input || "last_assistant_message" in input;
 }
@@ -122,7 +117,6 @@ function getEventType(input: SteeringRuleInput): SteeringEventType {
     return "tool_response" in input && input.tool_response !== undefined ? "PostToolUse" : "PreToolUse";
   }
   if (isPromptEvent(input)) return "UserPromptSubmit";
-  if (isPreCompactEvent(input)) return "PreCompact";
   if (isStopEvent(input)) return "Stop";
   if ("transcript_path" in input && (input as SubagentStartInput).transcript_path != null) return "SubagentStart";
   return "SessionStart";
@@ -191,15 +185,16 @@ const defaultDeps: SteeringRuleInjectorDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-const BARE_CONTINUE: ContinueOutput = { type: "continue", continue: true };
+const BARE_CONTINUE = continueOk();
+const SILENT = silent();
 
 export const SteeringRuleInjector: SyncHookContract<
   SteeringRuleInput,
-  BlockOutput | ContextOutput | ContinueOutput | SilentOutput,
+  BlockOutput | ContinueOutput | SilentOutput,
   SteeringRuleInjectorDeps
 > = {
   name: "SteeringRuleInjector",
-  event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "PreCompact", "Stop"],
+  event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "Stop"],
 
   accepts(_input: SteeringRuleInput): boolean {
     return true;
@@ -208,7 +203,7 @@ export const SteeringRuleInjector: SyncHookContract<
   execute(
     input: SteeringRuleInput,
     deps: SteeringRuleInjectorDeps,
-  ): Result<ContextOutput | ContinueOutput | SilentOutput, ResultError> {
+  ): Result<BlockOutput | ContinueOutput | SilentOutput, ResultError> {
     if (deps.isSubagent()) {
       return ok(SILENT);
     }
@@ -247,7 +242,7 @@ export const SteeringRuleInjector: SyncHookContract<
       if (tracker.injected[rule.name]) continue;
 
       // For always-events (SessionStart, SubagentStart, PreCompact), only inject empty-keyword rules
-      if ((eventType === "SessionStart" || eventType === "SubagentStart" || eventType === "PreCompact") && rule.keywords.length > 0) continue;
+      if ((eventType === "SessionStart" || eventType === "SubagentStart") && rule.keywords.length > 0) continue;
 
       // For keyword-events (UserPromptSubmit, PreToolUse, PostToolUse, Stop), require a keyword match
       if (eventType === "UserPromptSubmit" || eventType === "Stop" || isToolEventType) {
@@ -273,16 +268,16 @@ export const SteeringRuleInjector: SyncHookContract<
       `[SteeringRuleInjector] Injecting ${bodiesToInject.length} rule(s) on ${eventType}`,
     );
 
-    // Stop events block with the rule as the reason — Stop hooks can't inject context
+    // Stop events block — Stop hooks can't inject context, only block
     if (eventType === "Stop") {
       return ok(block(joined));
     }
 
-    if (isToolEventType) {
-      return ok({ type: "continue", continue: true, additionalContext: joined });
-    }
-
-    return ok({ type: "context", content: joined });
+    // All other events use ContinueOutput with additionalContext
+    // The runner formats this as hookSpecificOutput.additionalContext which
+    // Claude Code expects for SessionStart, UserPromptSubmit, SubagentStart,
+    // PreToolUse, and PostToolUse (see https://code.claude.com/docs/en/hooks)
+    return ok(continueOk(joined));
   },
 
   defaultDeps,
