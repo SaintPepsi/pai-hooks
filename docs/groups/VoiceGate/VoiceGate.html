@@ -1754,7 +1754,8 @@ section[id] {
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#bug-history"><span class="nav-num">06</span> Bug History</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1932,6 +1933,17 @@ accepts(input: ToolHookInput): boolean {
         <div>The main session sends a request to <code>localhost:8888/notify</code>. VoiceGate confirms the session is not a subagent and returns <code>continue</code>, allowing the request to proceed.</div>
       </div>
       </div>
+    </div>
+  </section>
+
+  <section id="bug-history">
+    <div class="section-label accent">Bug History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Bug History</h3>
+      </div>
+      <p><!-- L14 tombstone: bug #11 (R4-vs-R5 class) — the block return on PreToolUse used top-level <code>decision:"block"</code> (R5 shape), which is silently dropped by the SDK on PreToolUse events. Fixed in sdk-type-foundation migration: now uses <code>hookSpecificOutput.permissionDecision:"deny"</code> (R4 shape), which is the correct PreToolUse block mechanism. Subagent voice requests are now actually suppressed rather than silently passing through. --></p>
     </div>
   </section>
 

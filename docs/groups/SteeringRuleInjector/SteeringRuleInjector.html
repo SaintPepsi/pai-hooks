@@ -1929,7 +1929,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Concatenates matched rule bodies into output — <code>ContinueOutput</code> with <code>additionalContext</code> (formatted as <code>hookSpecificOutput</code> by runner) for all context-injecting events; <code>BlockOutput</code> for <code>Stop</code> events (Stop hooks cannot inject context)</p></div>
+          <div class="step-content"><p>Concatenates matched rule bodies into output — <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> for context-injecting events; <code>{ decision: "block", reason }</code> for <code>Stop</code> events (Stop hooks cannot inject context)</p></div>
         </div>
 
         <div class="flow-step">

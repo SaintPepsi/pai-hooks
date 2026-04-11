@@ -1867,7 +1867,7 @@ After a background agent is launched, extract identifying information (agent nam
       <div class="reason"><span class="ri">&#x2022;</span> The tool is not the Agent tool</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>run_in_background</code> is not set or is false (completion events are handled by AgentCompleteTracker)</div>
 <div class="reason"><span class="ri">&#x2022;</span> No valid <code>thread_id</code> (Discord snowflake) is found in tool input</div>
-<div class="reason"><span class="ri">&#x2022;</span> No daemon URL is configured</div>
+<div class="reason"><span class="ri">&#x2022;</span> No daemon URL is configured (returns <code>ok({})</code>)</div>
     </div>
   </section>
 
@@ -1919,7 +1919,7 @@ After a background agent is launched, extract identifying information (agent nam
           <div class="code-block"><span class="code-lang">typescript</span>
 // Only fire for background agents
 if (!toolInput.run_in_background) {
-  return ok(continueOk());
+  return ok({});
 }
 
 const threadId = extractThreadId(toolInput);
@@ -1951,7 +1951,7 @@ const url = `${baseUrl}/spawn`;</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Missing thread ID (skipped)</h3>
       
       <div class="uc-example">
-        <div>A background agent is spawned but the tool input does not contain a valid Discord snowflake thread ID. AgentSpawnTracker logs a warning and returns <code>continueOk()</code> without calling the daemon, avoiding pollution of delegation tracking with invalid data.</div>
+        <div>A background agent is spawned but the tool input does not contain a valid Discord snowflake thread ID. AgentSpawnTracker logs a warning and returns <code>ok({})</code> without calling the daemon, avoiding pollution of delegation tracking with invalid data.</div>
       </div>
       </div>
     </div>
@@ -1969,7 +1969,6 @@ const url = `${baseUrl}/spawn`;</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result wrapping</td></tr>
-          <tr><td><code>types/hook-outputs</code></td><td>core</td><td><code>continueOk()</code> for non-blocking continue output</td></tr>
           <tr><td><code>fetch</code></td><td>adapter</td><td><code>safeFetch</code> for HTTP POST with timeout</td></tr>
           <tr><td><code>KoordDaemon/shared</code></td><td>shared</td><td><code>extractThreadId</code>, <code>extractAgentName</code>, <code>extractTask</code>, <code>readKoordConfig</code>, <code>defaultReadFileOrNull</code></td></tr>
           <tr><td><code>paths</code></td><td>lib</td><td>Path resolution utilities</td></tr>

@@ -1888,7 +1888,7 @@ Detect when a queue watcher process exits (meaning a message arrived or it timed
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>If the watcher output is empty (timeout), returns a <code>continueOk()</code> with a respawn directive</p></div>
+          <div class="step-content"><p>If the watcher output is empty (timeout), returns <code>ok({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "..." } })</code> with a respawn directive</p></div>
         </div>
 
         <div class="flow-step">
@@ -1908,7 +1908,7 @@ Detect when a queue watcher process exits (meaning a message arrived or it timed
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Returns <code>continueOk()</code> with context instructing the agent to process the message and respawn the watcher</p></div>
+          <div class="step-content"><p>Returns <code>ok({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "..." } })</code> instructing the agent to process the message and respawn the watcher</p></div>
         </div>
 </div>
       
@@ -1922,15 +1922,18 @@ Detect when a queue watcher process exits (meaning a message arrived or it timed
 // Parse the message from watcher stdout
 const message = parseWatcherOutput(responseText);
 
-return ok(continueOk(
-  [
-    "## Message Queue: New Message Received",
-    `**Message${from}:**`,
-    message.body,
-    "**IMPORTANT: After processing this message, immediately respawn the watcher:**",
-    respawnCmd,
-  ].join("\n"),
-));</div>
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: [
+      "## Message Queue: New Message Received",
+      `**Message${from}:**`,
+      message.body,
+      "**IMPORTANT: After processing this message, immediately respawn the watcher:**",
+      respawnCmd,
+    ].join("\n"),
+  },
+});</div>
         </div>
       </div>
     </div>
@@ -1972,7 +1975,6 @@ return ok(continueOk(
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result wrapping</td></tr>
-          <tr><td><code>types/hook-outputs</code></td><td>core</td><td><code>continueOk()</code> for continue output with context</td></tr>
           <tr><td><code>KoordDaemon/shared</code></td><td>shared</td><td><code>MQ_WATCHER_MARKER</code> constant for command detection</td></tr>
         </tbody>
       </table>

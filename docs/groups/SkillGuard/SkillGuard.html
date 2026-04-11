@@ -1904,15 +1904,18 @@ Intercept every skill invocation before it executes. Compare the target skill na
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
 if (BLOCKED_SKILLS.includes(skillName)) {
-  const opener = pickNarrative("SkillGuard", 1);
+  const opener = pickNarrative("SkillGuard", 1, import.meta.dir);
   return ok({
-    type: "block",
-    decision: "block",
-    reason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias.`,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias.`,
+    },
   });
 }</div>
         </div>
       </div>
+      <p><!-- L12 tombstone: bug #12 (R4-vs-R5 class) — legacy <code>{ type: "block", decision: "block", reason }</code> shape was a silent-drop on PreToolUse; replaced with <code>hookSpecificOutput.permissionDecision: "deny"</code> via R4 migration (feat/sdk-type-foundation). --></p>
     </div>
   </section>
 

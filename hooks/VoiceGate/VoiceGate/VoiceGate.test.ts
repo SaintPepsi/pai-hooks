@@ -37,16 +37,18 @@ describe("VoiceGate", () => {
     const deps = makeDeps({ getIsSubagent: () => false });
     const result = VoiceGate.execute(makeInput("curl localhost:8888/notify"), deps);
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("continue");
+    expect(result.value?.continue).toBe(true);
   });
 
   it("blocks voice request from subagent", () => {
     const deps = makeDeps({ getIsSubagent: () => true });
     const result = VoiceGate.execute(makeInput("curl localhost:8888/notify"), deps);
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("block");
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason.toLowerCase()).toContain("subagent");
+    const hs = result.value?.hookSpecificOutput;
+    expect(hs?.hookEventName).toBe("PreToolUse");
+    if (hs && hs.hookEventName === "PreToolUse") {
+      expect(hs.permissionDecision).toBe("deny");
+      expect(hs.permissionDecisionReason?.toLowerCase()).toContain("subagent");
     }
   });
 });
