@@ -1119,7 +1119,8 @@ Delete: `import type { HookOutput }`, `encodeHookOutput`, `buildOutputObject`.
  * Usage:
  *   import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
  *   const result = validateHookOutput(contractOutput);
- *   if (result._tag === "Left") { /* validation failed */ }
+ *   if (result._tag === "Left") { // validation failed
+ *   }
  */
 
 import { Schema } from "effect";
