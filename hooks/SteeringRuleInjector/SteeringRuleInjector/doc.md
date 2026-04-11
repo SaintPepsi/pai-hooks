@@ -39,7 +39,7 @@ It does **not** fire when:
 4. Filters rules by current event type
 5. Filters by keyword match — prompt text for `UserPromptSubmit`; `tool_name` + `file_path` + `skill` for `PreToolUse`/`PostToolUse`; `last_assistant_message` for `Stop`; empty keywords pass through for `SessionStart` and `SubagentStart`
 6. Checks per-session injection tracker — skips already-injected rules
-7. Concatenates matched rule bodies into output — `ContinueOutput` with `additionalContext` (formatted as `hookSpecificOutput` by runner) for all context-injecting events; `BlockOutput` for `Stop` events (Stop hooks cannot inject context)
+7. Concatenates matched rule bodies into output — `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` for context-injecting events; `{ decision: "block", reason }` for `Stop` events (Stop hooks cannot inject context)
 8. Records injected rules to tracker file at `{trackerDir}/injections-{sessionId}.json`
 
 ## Examples

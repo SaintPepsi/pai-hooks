@@ -8,6 +8,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
@@ -23,8 +24,6 @@ import type {
   ToolHookInput,
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { block, continueOk, silent } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -209,14 +208,7 @@ const defaultDeps: SteeringRuleInjectorDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-const BARE_CONTINUE = continueOk();
-const SILENT = silent();
-
-export const SteeringRuleInjector: SyncHookContract<
-  SteeringRuleInput,
-  BlockOutput | ContinueOutput | SilentOutput,
-  SteeringRuleInjectorDeps
-> = {
+export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringRuleInjectorDeps> = {
   name: "SteeringRuleInjector",
   event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "Stop"],
 
@@ -227,14 +219,14 @@ export const SteeringRuleInjector: SyncHookContract<
   execute(
     input: SteeringRuleInput,
     deps: SteeringRuleInjectorDeps,
-  ): Result<BlockOutput | ContinueOutput | SilentOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     if (deps.isSubagent()) {
-      return ok(SILENT);
+      return ok({});
     }
 
     const config = deps.getConfig();
     if (!config.enabled) {
-      return ok(SILENT);
+      return ok({});
     }
 
     const eventType = resolveEvent(input);
@@ -254,7 +246,7 @@ export const SteeringRuleInjector: SyncHookContract<
     const filePaths = deps.resolveGlobs(config.includes);
     if (filePaths.length === 0) {
       deps.stderr("[SteeringRuleInjector] No rule files found");
-      return ok(isToolEventType ? BARE_CONTINUE : SILENT);
+      return ok(isToolEventType ? { continue: true } : {});
     }
 
     // Load tracker for deduplication
@@ -294,7 +286,7 @@ export const SteeringRuleInjector: SyncHookContract<
     }
 
     if (bodiesToInject.length === 0) {
-      return ok(isToolEventType ? BARE_CONTINUE : SILENT);
+      return ok(isToolEventType ? { continue: true } : {});
     }
 
     // Persist tracker
@@ -307,14 +299,55 @@ export const SteeringRuleInjector: SyncHookContract<
 
     // Stop events block — Stop hooks can't inject context, only block
     if (eventType === "Stop") {
-      return ok(block(joined));
+      return ok({ decision: "block", reason: joined });
     }
 
-    // All other events use ContinueOutput with additionalContext
-    // The runner formats this as hookSpecificOutput.additionalContext which
-    // Claude Code expects for SessionStart, UserPromptSubmit, SubagentStart,
-    // PreToolUse, and PostToolUse (see https://code.claude.com/docs/en/hooks)
-    return ok(continueOk(joined));
+    // All other events use hookSpecificOutput.additionalContext.
+    // Explicit switch per event to avoid widening cast on hookEventName —
+    // the SDK discriminated union requires a literal hookEventName to
+    // satisfy the variant that supports additionalContext.
+    switch (eventType) {
+      case "SessionStart":
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "SessionStart",
+            additionalContext: joined,
+          },
+        });
+      case "UserPromptSubmit":
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit",
+            additionalContext: joined,
+          },
+        });
+      case "PreToolUse":
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            additionalContext: joined,
+          },
+        });
+      case "PostToolUse":
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PostToolUse",
+            additionalContext: joined,
+          },
+        });
+      case "SubagentStart":
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "SubagentStart",
+            additionalContext: joined,
+          },
+        });
+    }
   },
 
   defaultDeps,
