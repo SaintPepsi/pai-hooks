@@ -47,3 +47,8 @@ The pai-hooks installer discovers and merges these automatically.
 ## Design Doc
 
 `docs/plans/2026-03-24-cron-statusline-design.md`
+
+## Output Type
+
+All five hooks return `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk` directly.
+Silent no-ops are emitted as `ok({})` — no wrapper types.

@@ -2,7 +2,7 @@
 
 **Event:** PostToolUse (matcher: `CronDelete`)
 **Contract:** `CronDelete.contract.ts`
-**Output:** Silent
+**Output:** `SyncHookJSONOutput` — silent no-op (`ok({})`)
 
 Removes a cron entry by ID from `MEMORY/STATE/crons/{sessionId}.json` when `CronDelete` tool
 is called. Reads cron ID from `tool_input.id`. Deletes the session file entirely when the last

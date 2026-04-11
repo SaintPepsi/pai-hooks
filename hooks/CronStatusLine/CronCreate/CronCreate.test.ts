@@ -107,7 +107,7 @@ describe("CronCreateContract.execute() -- new session file", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
 
     const sessionPath = "/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json";
     expect(deps._files[sessionPath]).toBeDefined();

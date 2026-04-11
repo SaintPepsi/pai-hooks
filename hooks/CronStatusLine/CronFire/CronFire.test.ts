@@ -123,7 +123,7 @@ describe("CronFireContract.execute() — empty/undefined prompt", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
     expect(deps._appendLog).toHaveLength(0);
   });
 
@@ -134,7 +134,7 @@ describe("CronFireContract.execute() — empty/undefined prompt", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
     expect(deps._appendLog).toHaveLength(0);
   });
 });
@@ -149,7 +149,7 @@ describe("CronFireContract.execute() — no cron file", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
     expect(deps._appendLog).toHaveLength(0);
   });
 });
@@ -169,7 +169,7 @@ describe("CronFireContract.execute() — no matching cron", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
     // File content should be unchanged (no write happened)
     expect(deps._files["/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json"]).toBe(
       fileBeforeExec,
@@ -191,7 +191,7 @@ describe("CronFireContract.execute() — matching cron", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
 
     const written = readWrittenFile(deps);
     expect(written.crons[0].fireCount).toBe(3);

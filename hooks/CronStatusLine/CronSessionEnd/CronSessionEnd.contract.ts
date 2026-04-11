@@ -9,6 +9,7 @@
  * This hook handles the clean-exit path deterministically.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile,
   ensureDir,
@@ -22,8 +23,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   appendCronLog,
   type CronFileDeps,
@@ -31,6 +30,7 @@ import {
   cronFilePath,
   readCronFile,
 } from "@hooks/hooks/CronStatusLine/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ const defaultDeps: CronSessionEndDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronSessionEnd: SyncHookContract<SessionEndInput, SilentOutput, CronSessionEndDeps> = {
+export const CronSessionEnd: SyncHookContract<SessionEndInput, CronSessionEndDeps> = {
   name: "CronSessionEnd",
   event: "SessionEnd",
 
@@ -60,13 +60,16 @@ export const CronSessionEnd: SyncHookContract<SessionEndInput, SilentOutput, Cro
     return true;
   },
 
-  execute(input: SessionEndInput, deps: CronSessionEndDeps): Result<SilentOutput, ResultError> {
+  execute(
+    input: SessionEndInput,
+    deps: CronSessionEndDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const sessionId = input.session_id;
     const path = cronFilePath(sessionId, deps);
 
     // No file for this session — nothing to clean up
     if (!deps.fileExists(path)) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Read file to get cron count for logging
@@ -77,13 +80,13 @@ export const CronSessionEnd: SyncHookContract<SessionEndInput, SilentOutput, Cro
     const removeResult = deps.removeFile(path);
     if (!removeResult.ok) {
       deps.stderr(`[CronSessionEnd] Failed to remove ${path}: ${removeResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Log the cleanup event
     appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_ended" }, deps, deps);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

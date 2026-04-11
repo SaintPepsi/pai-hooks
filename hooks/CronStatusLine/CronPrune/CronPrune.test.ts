@@ -9,13 +9,13 @@ import { describe, expect, it } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
 import {
   CronPrune,
   type CronPruneDeps,
   cronIntervalMs,
   DEFAULT_PRUNE_THRESHOLD_MS,
 } from "@hooks/hooks/CronStatusLine/CronPrune/CronPrune.contract";
+import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -127,7 +127,7 @@ describe("CronPrune execute", () => {
     const result = CronPrune.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toEqual({});
     }
     expect(removed.length).toBe(0);
   });
@@ -238,7 +238,7 @@ describe("CronPrune execute", () => {
     const result = CronPrune.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toEqual({});
     }
   });
 
@@ -393,7 +393,7 @@ describe("CronPrune — readDir error path", () => {
     });
     const result = CronPrune.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 });
 

@@ -36,7 +36,7 @@ It does **not** fire when:
 ```typescript
 // Match prompt against session crons
 const matchIndex = sessionFile.crons.findIndex((cron) => prompt.includes(cron.prompt));
-if (matchIndex === -1) return ok(silent());
+if (matchIndex === -1) return ok({});
 
 const updatedCron = {
   ...matched,

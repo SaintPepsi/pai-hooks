@@ -35,7 +35,7 @@ It does **not** fire when:
 ```typescript
 // Remove cron entry by ID
 const targetIndex = session.crons.findIndex((c) => c.id === cronId);
-if (targetIndex === -1) return ok({ type: "silent" });
+if (targetIndex === -1) return ok({});
 
 session.crons.splice(targetIndex, 1);
 

@@ -31,7 +31,7 @@ It does **not** fire when:
 ```typescript
 // Clean up session cron file on exit
 const path = cronFilePath(sessionId, deps);
-if (!deps.fileExists(path)) return ok({ type: "silent" });
+if (!deps.fileExists(path)) return ok({});
 
 const cronCount = readResult.ok && readResult.value ? readResult.value.crons.length : 0;
 deps.removeFile(path);

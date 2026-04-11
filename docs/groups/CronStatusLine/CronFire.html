@@ -1915,7 +1915,7 @@ On every incoming user prompt, check whether it matches any registered cron task
           <div class="code-block"><span class="code-lang">typescript</span>
 // Match prompt against session crons
 const matchIndex = sessionFile.crons.findIndex((cron) =&gt; prompt.includes(cron.prompt));
-if (matchIndex === -1) return ok(silent());
+if (matchIndex === -1) return ok({});
 
 const updatedCron = {
   ...matched,

@@ -1900,7 +1900,7 @@ On session end, check if the current session has a cron state file. If it does, 
           <div class="code-block"><span class="code-lang">typescript</span>
 // Clean up session cron file on exit
 const path = cronFilePath(sessionId, deps);
-if (!deps.fileExists(path)) return ok({ type: "silent" });
+if (!deps.fileExists(path)) return ok({});
 
 const cronCount = readResult.ok &amp;&amp; readResult.value ? readResult.value.crons.length : 0;
 deps.removeFile(path);
