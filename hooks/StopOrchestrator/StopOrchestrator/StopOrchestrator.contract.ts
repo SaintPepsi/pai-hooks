@@ -7,11 +7,11 @@
  * Voice only fires for main terminal sessions (not subagents).
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { handleAlgorithmEnrichment } from "@hooks/handlers/AlgorithmEnrichment";
 import { handleRebuildSkill } from "@hooks/handlers/RebuildSkill";
 import { handleVoice } from "@hooks/handlers/VoiceNotification";
@@ -44,7 +44,7 @@ const defaultDeps: StopOrchestratorDeps = {
   stderr: defaultStderr,
 };
 
-export const StopOrchestrator: AsyncHookContract<StopInput, SilentOutput, StopOrchestratorDeps> = {
+export const StopOrchestrator: AsyncHookContract<StopInput, StopOrchestratorDeps> = {
   name: "StopOrchestrator",
   event: "Stop",
 
@@ -55,7 +55,7 @@ export const StopOrchestrator: AsyncHookContract<StopInput, SilentOutput, StopOr
   async execute(
     input: StopInput,
     deps: StopOrchestratorDeps,
-  ): Promise<Result<SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     // Wait for transcript to be fully written
     await deps.delay(150);
 
@@ -89,7 +89,7 @@ export const StopOrchestrator: AsyncHookContract<StopInput, SilentOutput, StopOr
       }
     });
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,
