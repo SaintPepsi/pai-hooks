@@ -43,7 +43,7 @@ if (isDocFile(filePath)) {
   const remaining = pending.filter((p) => !isRelatedDoc(filePath, p));
   if (remaining.length === 0) deps.removeFlag(flagFile);
   else deps.writePending(flagFile, remaining);
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 // Code file adds to pending

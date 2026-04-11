@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { DocObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.contract";
 import {
   projectHasHook,
@@ -15,6 +15,19 @@ import {
 } from "@hooks/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.contract";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Narrow SyncHookJSONOutput for Stop block reason (R5: top-level decision/reason). */
+function getBlockReason(output: SyncHookJSONOutput): string | undefined {
+  if ("decision" in output && output.decision === "block") {
+    return "reason" in output ? output.reason : undefined;
+  }
+  return undefined;
+}
+
+/** True when output has no decision and no hookSpecificOutput (R8 silent skip). */
+function isSilent(output: SyncHookJSONOutput): boolean {
+  return !("decision" in output) && !output.hookSpecificOutput;
+}
 
 function makeTrackerDeps(overrides: Partial<DocTrackerDeps> = {}): DocTrackerDeps {
   return {
@@ -122,7 +135,7 @@ describe("DocObligationTracker", () => {
     const result = DocObligationTracker.execute(
       makeToolInput("Edit", { file_path: "/src/handler.ts" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/handler.ts");
@@ -140,7 +153,7 @@ describe("DocObligationTracker", () => {
     const result = DocObligationTracker.execute(
       makeToolInput("Write", { file_path: "/src/utils.ts" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/utils.ts");
@@ -313,13 +326,13 @@ describe("DocObligationEnforcer", () => {
     const deps = makeTrackerDeps({ fileExists: () => false });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns silent when pending list is empty", () => {
@@ -329,13 +342,13 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns block when pending flag exists", () => {
@@ -345,13 +358,13 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getBlockReason(result.value)).toBeDefined();
   });
 
   it("block reason includes file paths", () => {
@@ -361,13 +374,15 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("/src/handler.ts");
+    const reason = getBlockReason(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("/src/handler.ts");
   });
 
   it("block reason mentions documentation", () => {
@@ -377,13 +392,15 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason.toLowerCase()).toContain("documentation");
+    const reason = getBlockReason(result.value);
+    expect(reason).toBeDefined();
+    expect((reason ?? "").toLowerCase()).toContain("documentation");
   });
 
   // ── Actionable doc path suggestions ──
@@ -400,13 +417,15 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("Update `/src/README.md`");
+    const reason = getBlockReason(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("Update `/src/README.md`");
   });
 
   it("suggests directory when no existing doc found", () => {
@@ -417,13 +436,15 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("Create or update documentation in `/src/`");
+    const reason = getBlockReason(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("Create or update documentation in `/src/`");
   });
 
   it("groups files by directory in suggestions", () => {
@@ -434,14 +455,16 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("/src/auth/");
-    expect(result.value.reason).toContain("/lib/");
+    const reason = getBlockReason(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("/src/auth/");
+    expect(reason ?? "").toContain("/lib/");
   });
 
   it("finds CHANGELOG.md as existing doc", () => {
@@ -456,13 +479,15 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("Update `/src/CHANGELOG.md`");
+    const reason = getBlockReason(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("Update `/src/CHANGELOG.md`");
   });
 
   // ── Block limit (escape valve) ──
@@ -477,13 +502,13 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getBlockReason(result.value)).toBeDefined();
   });
 
   it("returns silent on second stop attempt (blockCount=1, MAX_BLOCKS=1)", () => {
@@ -496,13 +521,13 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns silent on third stop attempt (blockCount=2)", () => {
@@ -516,13 +541,13 @@ describe("DocObligationEnforcer", () => {
     });
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("increments block count when blocking", () => {
@@ -633,10 +658,7 @@ describe("DocObligationTracker excludePatterns", () => {
       getExcludePatterns: () => [],
     });
 
-    DocObligationTracker.execute(
-      makeToolInput("Edit", { file_path: "/src/app.ts" }),
-      deps,
-    );
+    DocObligationTracker.execute(makeToolInput("Edit", { file_path: "/src/app.ts" }), deps);
 
     expect(writtenFiles).toContain("/src/app.ts");
   });
