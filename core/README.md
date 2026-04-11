@@ -70,7 +70,7 @@ Contract-specific checks (missing-deps-interface, contract-pattern, adapter-bypa
 
 - `hook-inputs.ts` — ToolHookInput, SessionStartInput, UserPromptSubmitInput, SubagentStartInput, SubagentStopInput, etc.
 - `hook-input-schema.ts` — Effect Schema discriminated union for validated input parsing
-- `hook-outputs.ts` — ContinueOutput, BlockOutput, ContextOutput, UpdatedInputOutput, SilentOutput, AskOutput
 - `hook-output-schema.ts` — Effect Schema discriminated union covering all 15 SDK `hookSpecificOutput` variants. Exports `validateHookOutput(output)` for runtime validation against `SyncHookJSONOutput` — called by the runner as a fail-open safety net before serializing contract output to stdout. No encoding layer: contracts return `SyncHookJSONOutput` directly.
+- `hook-output-helpers.ts` — SDK-derived type aliases (`HookSpecificEventName`, `NonHookSpecificEvent`) for compile-time safety across contracts.
 
 **Source of truth:** `@anthropic-ai/claude-agent-sdk` (v0.2.98+) exports all hook input/output types. See `types/doc.md` for the full hookSpecificOutput support matrix.

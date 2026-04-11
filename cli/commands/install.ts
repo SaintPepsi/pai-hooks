@@ -145,7 +145,6 @@ export function install(
     "core/adapters/fs",
     "core/adapters/process",
     "core/types/hook-inputs",
-    "core/types/hook-outputs",
     "core/language-profiles",
     "core/quality-scorer",
     "lib/paths",
