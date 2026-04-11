@@ -1,7 +1,15 @@
 import { describe, expect, test } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 import { CitationEnforcement } from "./CitationEnforcement.contract";
+
+/** Narrow SyncHookJSONOutput to PostToolUse additionalContext (R2 channel). */
+function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== "PostToolUse") return undefined;
+  return "additionalContext" in hs ? hs.additionalContext : undefined;
+}
 
 function makeDeps(overrides: Partial<CitationEnforcementDeps> = {}): CitationEnforcementDeps {
   return {
@@ -62,8 +70,8 @@ describe("CitationEnforcement", () => {
       const result = CitationEnforcement.execute(makeWriteInput("/tmp/file.ts"), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.continue).toBe(true);
+        expect(getInjectedContext(result.value)).toBeUndefined();
       }
     });
 
@@ -76,14 +84,14 @@ describe("CitationEnforcement", () => {
       };
       const result = CitationEnforcement.execute(input, makeDeps());
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.additionalContext).toBeUndefined();
+      if (result.ok) expect(getInjectedContext(result.value)).toBeUndefined();
     });
 
     test("injects citation reminder for new file", () => {
       const result = CitationEnforcement.execute(makeWriteInput("/tmp/article.md"), makeDeps());
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toContain("citation");
+        expect(getInjectedContext(result.value) ?? "").toContain("citation");
       }
     });
 
@@ -93,7 +101,7 @@ describe("CitationEnforcement", () => {
       });
       const result = CitationEnforcement.execute(makeWriteInput("/tmp/article.md"), deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.additionalContext).toBeUndefined();
+      if (result.ok) expect(getInjectedContext(result.value)).toBeUndefined();
     });
 
     test("writes reminded file to state", () => {

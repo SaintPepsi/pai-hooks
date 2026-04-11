@@ -1,11 +1,18 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
 import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
+
+/** Narrow SyncHookJSONOutput to PostToolUse additionalContext (R2 channel). */
+function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== "PostToolUse") return undefined;
+  return "additionalContext" in hs ? hs.additionalContext : undefined;
+}
 
 const TEST_STATE_DIR = "/tmp/pai-citation-test";
 
@@ -82,7 +89,7 @@ describe("CitationTracker", () => {
       },
     });
     const result = CitationTracker.execute(makeToolInput("WebSearch"), deps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
@@ -119,11 +126,11 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/test.md" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
   it("returns citation reminder when research flag exists", () => {
@@ -134,12 +141,12 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article.md" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeDefined();
-    expect(result.value.additionalContext).toContain("citation");
+    expect(getInjectedContext(result.value)).toBeDefined();
+    expect(getInjectedContext(result.value) ?? "").toContain("citation");
   });
 
   it("only reminds once per file path", () => {
@@ -150,11 +157,11 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article.md" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
   it("writes reminded file path after reminding", () => {
@@ -176,13 +183,13 @@ describe("CitationEnforcement", () => {
       fileExists: () => true,
     });
     const result = CitationEnforcement.execute(makeToolInput("Write", {}), deps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
   it("returns continue without context when tool_input is a string", () => {
@@ -194,11 +201,14 @@ describe("CitationEnforcement", () => {
       tool_name: "Write",
       tool_input: "/tmp/test.md" as unknown as Record<string, unknown>,
     };
-    const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, ResultError>;
+    const result = CitationEnforcement.execute(input, deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
   it("reminds for different file paths", () => {
@@ -209,11 +219,11 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article2.md" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeDefined();
+    expect(getInjectedContext(result.value)).toBeDefined();
   });
 });
 

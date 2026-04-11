@@ -1901,15 +1901,30 @@ After external research has been detected in the session, inject a citation remi
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Core reminder injection
+// Core reminder injection (R2 — PostToolUse context injection via hookSpecificOutput)
 const reminded = deps.readReminded(remindedPath(deps.stateDir));
 if (reminded.includes(filePath)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 reminded.push(filePath);
 deps.writeReminded(remindedPath(deps.stateDir), reminded);
-return ok({ type: "continue", continue: true, additionalContext: buildCitationReminder() });</div>
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: buildCitationReminder(),
+  },
+});</div>
         </div>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>Bug fix note (SDK Type Foundation refactor — 1E-1):</strong> Pre-refactor, this hook used the legacy</div>
+        <div><code>continueOk(buildCitationReminder())</code> shape, which placed <code>additionalContext</code> at the **top</div>
+        <div>level** of the output object. The SDK silently dropped that field for <code>PostToolUse</code> events,</div>
+        <div>meaning citation reminders were never actually surfaced to the model. Migration to the R2 recipe</div>
+        <div>(<code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "PostToolUse"</code>) routes the reminder</div>
+        <div>through the channel the SDK actually reads. Same bug class as the PreCompactStatePersist 1A fix.</div>
       </div>
     </div>
   </section>

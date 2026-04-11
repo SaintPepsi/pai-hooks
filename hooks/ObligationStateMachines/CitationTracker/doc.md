@@ -32,7 +32,7 @@ It does **not** fire when:
 const flag = flagPath(deps.stateDir);
 deps.writeFlag(flag);
 deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
-return ok({ type: "continue", continue: true });
+return ok({ continue: true });
 ```
 
 ## Examples
