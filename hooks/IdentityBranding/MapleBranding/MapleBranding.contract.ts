@@ -6,12 +6,11 @@
  * the AI to replace it with the Maple pixel-art sign-off.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { defaultStderr } from "@hooks/lib/paths";
 
@@ -52,11 +51,7 @@ function containsEmojiSignoff(command: string): boolean {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const MapleBranding: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  MapleBrandingDeps
-> = {
+export const MapleBranding: SyncHookContract<ToolHookInput, MapleBrandingDeps> = {
   name: "MapleBranding",
   event: "PreToolUse",
 
@@ -66,19 +61,18 @@ export const MapleBranding: SyncHookContract<
     return isGhCommandWithBody(command);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: MapleBrandingDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput, deps: MapleBrandingDeps): Result<SyncHookJSONOutput, ResultError> {
     const command = String(input.tool_input?.command ?? "");
 
     if (containsClaudeCodeFooter(command)) {
       const opener = pickNarrative("MapleBranding", 1, import.meta.dir);
       deps.stderr("[MapleBranding] Blocked: Claude Code footer detected in gh command");
       return ok({
-        type: "block",
-        decision: "block",
-        reason: `${opener}\n${MAPLE_SIGNOFF}`,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: `${opener}\n${MAPLE_SIGNOFF}`,
+        },
       });
     }
 
@@ -86,13 +80,15 @@ export const MapleBranding: SyncHookContract<
       const opener = pickNarrative("MapleBranding", 1, import.meta.dir);
       deps.stderr("[MapleBranding] Blocked: emoji sign-off used instead of HTML image");
       return ok({
-        type: "block",
-        decision: "block",
-        reason: `${opener}\n${MAPLE_SIGNOFF}`,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: `${opener}\n${MAPLE_SIGNOFF}`,
+        },
       });
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

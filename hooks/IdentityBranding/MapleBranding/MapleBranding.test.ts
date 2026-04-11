@@ -1,9 +1,28 @@
 import { describe, expect, it } from "bun:test";
-import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { MapleBranding, type MapleBrandingDeps } from "./MapleBranding.contract";
+
+// ─── Narrowing Helpers ───────────────────────────────────────────────────────
+
+function isDeny(output: SyncHookJSONOutput): boolean {
+  const hs = output.hookSpecificOutput;
+  return (
+    hs?.hookEventName === "PreToolUse" &&
+    "permissionDecision" in hs &&
+    hs.permissionDecision === "deny"
+  );
+}
+
+function getDenyReason(output: SyncHookJSONOutput): string {
+  const hs = output.hookSpecificOutput;
+  if (hs?.hookEventName !== "PreToolUse" || !("permissionDecisionReason" in hs)) return "";
+  return hs.permissionDecisionReason ?? "";
+}
+
+function isContinue(output: SyncHookJSONOutput): boolean {
+  return output.continue === true;
+}
 
 const mockDeps: MapleBrandingDeps = {
   stderr: () => {},
@@ -91,12 +110,11 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr create --title "test" --body "Summary\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
-        expect(result.value.decision).toBe("block");
-        expect(result.value.reason).toContain("img src");
+        expect(isDeny(result.value)).toBe(true);
+        expect(getDenyReason(result.value)).toContain("img src");
       }
     });
 
@@ -104,10 +122,10 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr create --body "generated with [claude code](https://claude.com)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
@@ -115,29 +133,28 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr create --title "test" --body "Summary\n\n<img src=\\"https://github.com/user-attachments/assets/08e4e5de\\" alt=\\"🍁\\"> Maple"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.continue).toBe(true);
+        expect(isContinue(result.value)).toBe(true);
       }
     });
 
     it("allows commands with no footer at all", () => {
       const input = makeInput('gh pr create --title "test" --body "Just a plain body"');
-      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(isContinue(result.value)).toBe(true);
       }
     });
 
     it("allows gh issue create without Claude Code footer", () => {
       const input = makeInput('gh issue create --title "bug" --body "Description here"');
-      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(isContinue(result.value)).toBe(true);
       }
     });
 
@@ -145,10 +162,10 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh issue comment 1 --body "Fix applied\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
@@ -156,10 +173,10 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr edit 42 --body "Updated\n\nGenerated with [Claude Code](https://example.com)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
@@ -167,10 +184,10 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr review 42 --body "LGTM\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
@@ -178,19 +195,19 @@ describe("MapleBranding", () => {
       const input = makeInput(
         "gh api repos/owner/repo/issues/1/comments -f body='Generated with [Claude Code](https://claude.com)'",
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
     it("allows gh api without Claude Code footer", () => {
       const input = makeInput("gh api repos/owner/repo/pulls/1 -f body='Clean update'");
-      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(isContinue(result.value)).toBe(true);
       }
     });
 
@@ -198,30 +215,29 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr create --title "fix" --body "$(cat <<\'EOF\'\n## Summary\nFixed the bug.\n\n🍁 Maple\nEOF\n)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
-        expect(result.value.decision).toBe("block");
-        expect(result.value.reason).toContain("img src");
+        expect(isDeny(result.value)).toBe(true);
+        expect(getDenyReason(result.value)).toContain("img src");
       }
     });
 
     it("blocks gh issue comment with emoji sign-off", () => {
       const input = makeInput('gh issue comment 42 --body "Maple here.\n\nDone.\n\n🍁 Maple"');
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
     it("blocks gh pr review with emoji sign-off", () => {
       const input = makeInput('gh pr review 7 --comment -b "Looks good.\n\n🍁 Maple"');
-      const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("block");
+        expect(isDeny(result.value)).toBe(true);
       }
     });
 
@@ -229,19 +245,19 @@ describe("MapleBranding", () => {
       const input = makeInput(
         'gh pr create --title "fix" --body "$(cat <<\'EOF\'\n## Summary\nFixed.\n\n<img src=\\"https://github.com/user-attachments/assets/08e4e5de-c220-46c6-968d-1976411654b3\\" alt=\\"🍁\\" width=\\"16\\" height=\\"16\\"> Maple\nEOF\n)"',
       );
-      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(isContinue(result.value)).toBe(true);
       }
     });
 
     it("does not false-positive on emoji maple leaf without Maple name", () => {
       const input = makeInput('gh pr create --title "autumn" --body "Love the 🍁 season"');
-      const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, ResultError>;
+      const result = MapleBranding.execute(input, mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(isContinue(result.value)).toBe(true);
       }
     });
   });

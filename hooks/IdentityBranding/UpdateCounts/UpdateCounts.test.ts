@@ -44,7 +44,7 @@ describe("UpdateCounts", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
       expect(deps.spawnBackground).toHaveBeenCalledTimes(1);
       expect(deps.spawnBackground).toHaveBeenCalledWith("bun", [
@@ -62,7 +62,7 @@ describe("UpdateCounts", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
       expect(deps.stderr).toHaveBeenCalledTimes(1);
     });
