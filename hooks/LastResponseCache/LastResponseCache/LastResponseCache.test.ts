@@ -75,7 +75,7 @@ describe("LastResponseCache.execute() — transcript read failure", () => {
     const result = LastResponseCache.execute(makeInput("/tmp/transcript.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("Could not read transcript"))).toBe(true);
     // Also logs "No assistant message"
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
@@ -94,7 +94,7 @@ describe("LastResponseCache.execute() — empty and malformed transcripts", () =
     const result = LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
   });
 
@@ -107,7 +107,7 @@ describe("LastResponseCache.execute() — empty and malformed transcripts", () =
     const result = LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
   });
 
@@ -142,7 +142,7 @@ describe("LastResponseCache.execute() — no assistant messages", () => {
     const result = LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
   });
 
@@ -159,7 +159,7 @@ describe("LastResponseCache.execute() — no assistant messages", () => {
     const result = LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
   });
 
@@ -176,7 +176,7 @@ describe("LastResponseCache.execute() — no assistant messages", () => {
     const result = LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
   });
 });
@@ -312,7 +312,7 @@ describe("LastResponseCache.execute() — write failure", () => {
     const result = LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("Failed to write cache"))).toBe(true);
   });
 });

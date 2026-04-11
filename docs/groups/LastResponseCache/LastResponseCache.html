@@ -1889,7 +1889,7 @@ On session stop, parse the transcript once, find the last assistant message, tru
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>Always returns <code>{ type: "silent" }</code> — never blocks or delays the Stop event</p></div>
+          <div class="step-content"><p>Always returns <code>ok({})</code> — never blocks or delays the Stop event</p></div>
         </div>
 </div>
       
@@ -1929,7 +1929,7 @@ deps.writeFile(cachePath, lastResponse.slice(0, 2000));</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Empty or missing transcript</h3>
       
       <div class="uc-example">
-        <div>A session ends but the transcript file is missing or contains only user messages with no assistant responses. LastResponseCache logs a warning and returns <code>{ type: "silent" }</code> without writing anything, leaving the previous cache file intact.</div>
+        <div>A session ends but the transcript file is missing or contains only user messages with no assistant responses. LastResponseCache logs a warning and returns <code>ok({})</code> without writing anything, leaving the previous cache file intact.</div>
       </div>
       </div>
     </div>
