@@ -8,8 +8,8 @@ Registered for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, 
 
 - `SessionStart` — always-inject rules with empty keywords fire at session initialization
 - `UserPromptSubmit` — keyword-matched against prompt text; rules with matching keywords inject as context
-- `PreToolUse` — keyword-matched against `tool_name` and `file_path`; returns `ContinueOutput` with `additionalContext`
-- `PostToolUse` — keyword-matched against `tool_name` and `file_path`; returns `ContinueOutput` with `additionalContext`
+- `PreToolUse` — keyword-matched against `tool_name` and `file_path`; returns `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` and `hookEventName: "PreToolUse"`
+- `PostToolUse` — keyword-matched against `tool_name` and `file_path`; returns `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` and `hookEventName: "PostToolUse"`
 - `SubagentStart` — always-inject rules with empty keywords fire when a subagent is spawned
 - `Stop` — keyword-matched against `last_assistant_message`; blocks with matched rule as reason (Stop hooks cannot inject context)
 

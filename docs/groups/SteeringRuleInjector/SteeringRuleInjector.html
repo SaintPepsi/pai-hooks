@@ -1859,8 +1859,8 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> <code>SessionStart</code> — always-inject rules with empty keywords fire at session initialization</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>UserPromptSubmit</code> — keyword-matched against prompt text; rules with matching keywords inject as context</div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>PreToolUse</code> — keyword-matched against <code>tool_name</code> and <code>file_path</code>; returns <code>ContinueOutput</code> with <code>additionalContext</code></div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>PostToolUse</code> — keyword-matched against <code>tool_name</code> and <code>file_path</code>; returns <code>ContinueOutput</code> with <code>additionalContext</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>PreToolUse</code> — keyword-matched against <code>tool_name</code> and <code>file_path</code>; returns <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> and <code>hookEventName: "PreToolUse"</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>PostToolUse</code> — keyword-matched against <code>tool_name</code> and <code>file_path</code>; returns <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> and <code>hookEventName: "PostToolUse"</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>SubagentStart</code> — always-inject rules with empty keywords fire when a subagent is spawned</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>Stop</code> — keyword-matched against <code>last_assistant_message</code>; blocks with matched rule as reason (Stop hooks cannot inject context)</div>
     </div>

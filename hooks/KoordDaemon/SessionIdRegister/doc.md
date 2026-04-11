@@ -4,7 +4,7 @@
 
 SessionIdRegister is an **async SessionStart** hook that registers a thread agent's `session_id` with the Koord daemon. When the daemon spawns a Claude Code thread agent, it sets `KOORD_THREAD_ID` and `KOORD_DAEMON_URL` as environment variables. This hook POSTs the session-to-thread mapping back to the daemon so messages can include the correct session ID from the first message onward.
 
-The hook always returns `SilentOutput` and fails silently on errors, ensuring it never blocks session startup.
+The hook always returns `SyncHookJSONOutput` as a silent no-op (`ok({})`) and fails silently on errors, ensuring it never blocks session startup.
 
 ## Event
 

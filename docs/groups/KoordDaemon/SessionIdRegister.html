@@ -1836,7 +1836,7 @@ At session start, read the thread ID from an environment variable (set by the da
         <h3>Overview</h3>
       </div>
       <p>SessionIdRegister is an <strong>async SessionStart</strong> hook that registers a thread agent's <code>session_id</code> with the Koord daemon. When the daemon spawns a Claude Code thread agent, it sets <code>KOORD_THREAD_ID</code> and <code>KOORD_DAEMON_URL</code> as environment variables. This hook POSTs the session-to-thread mapping back to the daemon so messages can include the correct session ID from the first message onward.</p>
-      <p>The hook always returns <code>SilentOutput</code> and fails silently on errors, ensuring it never blocks session startup.</p>
+      <p>The hook always returns <code>SyncHookJSONOutput</code> as a silent no-op (<code>ok({})</code>) and fails silently on errors, ensuring it never blocks session startup.</p>
     </div>
   </section>
 
