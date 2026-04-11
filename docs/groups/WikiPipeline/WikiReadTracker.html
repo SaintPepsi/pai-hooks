@@ -1874,10 +1874,10 @@ A lightweight post-read hook that appends a structured metric record every time 
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>Returns <code>continueOk()</code> with no additional context — this is a silent tracking hook</p></div>
+          <div class="step-content"><p>Returns <code>{ continue: true }</code> with no additional context — this is a silent tracking hook</p></div>
         </div>
 </div>
-      <p>If the file append fails (e.g., disk full), the error is logged to stderr and the hook still returns <code>continueOk()</code> to avoid blocking the session.</p>
+      <p>If the file append fails (e.g., disk full), the error is logged to stderr and the hook still returns <code>{ continue: true }</code> to avoid blocking the session.</p>
     </div>
   </section>
 

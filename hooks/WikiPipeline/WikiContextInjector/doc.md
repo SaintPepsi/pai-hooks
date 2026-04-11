@@ -25,7 +25,7 @@ Does **not** fire for Read, Bash, Glob, Grep, or any other tool calls.
 6. Matches path segments against the domain index
 7. If matched, extracts `## Summary` (entity pages) or `## Definition` (concept pages) sections from up to 2 matching wiki pages
 8. Records an injection metric to `MEMORY/WIKI/.pipeline/metrics.jsonl` with type, session ID, file path, matched pages, and timestamp
-9. Returns `continueOk()` with `additionalContext` containing the summaries, or plain `continueOk()` if no match
+9. Returns `{ continue: true, hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext } }` with the summaries, or plain `{ continue: true }` if no match
 
 ## Examples
 
@@ -44,3 +44,7 @@ Does **not** fire for Read, Bash, Glob, Grep, or any other tool calls.
 - Wiki entity pages at `MEMORY/WIKI/entities/*.md` with YAML frontmatter containing `domain` and `title` fields
 - Wiki concept pages at `MEMORY/WIKI/concepts/*.md` with YAML frontmatter containing `title` field and `## Definition` sections
 - Shared metrics file at `MEMORY/WIKI/.pipeline/metrics.jsonl` (also used by WikiReadTracker)
+
+## History
+
+> **2026-04-11 — SDK Type Foundation (1X):** The context injection at `WikiContextInjector.contract.ts:288` was using `continueOk(contextText)` which routed `additionalContext` at the top level of the hook output. Claude Code's SDK silently dropped this field on PreToolUse events. Wiki context was being built correctly (metrics even recorded the injection) but never reached the model. 7th instance of the same bug class found in this refactor, after 1A PreCompactStatePersist, 1C CodingStandardsAdvisor/TypeCheckVerifier/TypeStrictness, 1E-1 CitationEnforcement, and 1B SettingsRevert. The fix routes context through `hookSpecificOutput.additionalContext` with `hookEventName: "PreToolUse"`, matching the SDK contract. Behaviour change: the model now actually receives wiki summaries for files in covered domains.

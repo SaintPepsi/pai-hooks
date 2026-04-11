@@ -222,7 +222,7 @@ describe("WikiIngest.execute", () => {
     const deps = makeDeps({ stderr: (msg) => messages.push(msg) });
     const result = await WikiIngest.execute(makeInput({ session_id: "" }), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("No session_id"))).toBe(true);
   });
 
@@ -354,7 +354,7 @@ describe("WikiIngest.execute", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
     expect(messages.some((m) => m.includes("Filter complete"))).toBe(true);
     expect(messages.some((m) => m.includes("Extraction complete"))).toBe(true);
     expect(messages.some((m) => m.includes("Done"))).toBe(true);

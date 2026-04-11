@@ -100,9 +100,8 @@ describe("WikiReadTracker.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
       expect(result.value.continue).toBe(true);
-      expect(result.value.additionalContext).toBeUndefined();
+      expect(result.value.hookSpecificOutput).toBeUndefined();
     }
 
     expect(appendedPath).toBe("/tmp/test-wiki/.pipeline/metrics.jsonl");
@@ -144,7 +143,7 @@ describe("WikiReadTracker.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -177,7 +176,7 @@ describe("WikiReadTracker.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });

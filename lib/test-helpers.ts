@@ -6,8 +6,23 @@
  */
 
 import { join } from "node:path";
-import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { removeDir } from "@hooks/core/adapters/fs";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+
+/**
+ * Narrow SyncHookJSONOutput to additionalContext for a specific hookEventName.
+ * Returns undefined when the output has no hookSpecificOutput or when the event
+ * name does not match. Use for any R2/R7 context-injection assertion.
+ */
+export function getInjectedContextFor(
+  output: SyncHookJSONOutput,
+  eventName: string,
+): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== eventName) return undefined;
+  return "additionalContext" in hs ? hs.additionalContext : undefined;
+}
 
 /** Create a Write tool input for testing. */
 export function makeWriteInput(filePath: string, content: string): ToolHookInput {

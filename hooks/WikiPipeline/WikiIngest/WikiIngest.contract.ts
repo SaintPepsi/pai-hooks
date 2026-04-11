@@ -8,6 +8,7 @@
  */
 
 import { basename, join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile,
   ensureDir,
@@ -21,7 +22,6 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp } from "@hooks/lib/time";
 
@@ -259,7 +259,7 @@ const defaultDeps: WikiIngestDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIngestDeps> = {
+export const WikiIngest: AsyncHookContract<SessionEndInput, WikiIngestDeps> = {
   name: "WikiIngest",
   event: "SessionEnd",
 
@@ -270,25 +270,25 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
   async execute(
     input: SessionEndInput,
     deps: WikiIngestDeps,
-  ): Promise<Result<SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     const sessionId = input.session_id;
     if (!sessionId) {
       deps.stderr("[WikiIngest] No session_id, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 1. Find transcript
     const transcriptPath = findTranscriptPath(input, deps);
     if (!transcriptPath) {
       deps.stderr("[WikiIngest] No transcript found, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 2. Size gate — read transcript to check byte length
     const contentResult = deps.readFile(transcriptPath);
     if (!contentResult.ok) {
       deps.stderr(`[WikiIngest] Cannot read transcript: ${contentResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const fileSizeBytes = Buffer.byteLength(contentResult.value, "utf-8");
@@ -296,19 +296,19 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
       deps.stderr(
         `[WikiIngest] Session too small (${fileSizeBytes}B < ${SIZE_GATE_BYTES}B), skipping`,
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 3. Wiki-only guard
     if (isWikiOnlySession(contentResult.value)) {
       deps.stderr("[WikiIngest] Wiki-only session detected, skipping self-reference");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 4. Dedup check
     if (hasExistingExtraction(sessionId, deps)) {
       deps.stderr(`[WikiIngest] Session ${sessionId} already extracted, skipping`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 5. Filter — run pipeline filter tool
@@ -318,14 +318,14 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
 
     if (!filterResult.ok) {
       deps.stderr(`[WikiIngest] Filter exec failed: ${filterResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     if (filterResult.value.exitCode !== 0) {
       deps.stderr(
         `[WikiIngest] Filter failed (exit ${filterResult.value.exitCode}): ${filterResult.value.stderr}`,
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const filterOutput = parseFilterOutput(filterResult.value.stdout);
@@ -354,7 +354,7 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
         true,
         "no digest produced",
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr(
@@ -389,7 +389,7 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
         true,
         "extract exec failed",
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     if (extractResult.value.exitCode !== 0) {
@@ -417,7 +417,7 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
         true,
         `extract exit ${extractResult.value.exitCode}`,
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr("[WikiIngest] Extraction complete");
@@ -475,7 +475,7 @@ export const WikiIngest: AsyncHookContract<SessionEndInput, SilentOutput, WikiIn
     deps.stderr(
       `[WikiIngest] Done — ${filterOutput.classification}, cost $${extractionCost.toFixed(4)}, ${pagesCreated} pages`,
     );
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,
