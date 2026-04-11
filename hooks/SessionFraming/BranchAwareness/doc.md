@@ -22,21 +22,27 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Checks if the session is a subagent; if so, returns `silent`
+1. Checks if the session is a subagent; if so, returns silent (`{}`)
 2. Runs `git branch --show-current` via `execSyncSafe`
-3. If the command fails or returns empty, logs a warning and returns `silent`
-4. If a branch name is found, logs it to stderr and returns a `ContextOutput` with the branch name
+3. If the command fails or returns empty, logs a warning and returns silent
+4. If a branch name is found, logs it to stderr and returns a `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` carrying the branch name
 
 ```typescript
 const branch = deps.getBranch();
 
 if (!branch) {
   deps.stderr("[BranchAwareness] Could not determine git branch — skipping");
-  return ok({ type: "silent" });
+  return ok({});
 }
 
 deps.stderr(`[BranchAwareness] Current branch: ${branch}`);
-return ok({ type: "context", content: `Current git branch: \`${branch}\`` });
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: `Current git branch: \`${branch}\``,
+  },
+});
 ```
 
 ## Examples
@@ -55,3 +61,4 @@ return ok({ type: "context", content: `Current git branch: \`${branch}\`` });
 | --- | --- | --- |
 | `process` | adapter | Provides `execSyncSafe` for running `git branch --show-current` |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `hookSpecificOutput.additionalContext` with `hookEventName: "SessionStart"` is the context-injection channel (post-SDK-refactor, replaces legacy `ContextOutput`/`SilentOutput`) |

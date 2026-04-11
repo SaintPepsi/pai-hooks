@@ -22,13 +22,13 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Checks if the session is a subagent; if so, returns `silent`
+1. Checks if the session is a subagent; if so, returns silent (`{}`)
 2. Runs two version lookups in parallel:
    - `claude --version` to get the installed version (5-second timeout)
    - `npm view @anthropic-ai/claude-code version` to get the latest published version (10-second timeout)
-3. If either lookup fails, returns `silent` without notification
+3. If either lookup fails, returns silent without notification
 4. If both versions are known and they differ, logs an update notification to stderr
-5. Always returns `silent` output (never injects context)
+5. Always returns silent `SyncHookJSONOutput` (`{}`) — never injects context
 
 ```typescript
 const [currentResult, latestResult] = await Promise.all([
@@ -41,7 +41,7 @@ if (currentVersion !== "unknown" && latestVersion !== "unknown" &&
   deps.stderr(`Update available: CC ${currentVersion} -> ${latestVersion}`);
 }
 
-return ok({ type: "silent" });
+return ok({});
 ```
 
 ## Examples
@@ -60,3 +60,4 @@ return ok({ type: "silent" });
 | --- | --- | --- |
 | `process` | adapter | Provides `exec` for running `claude --version` and `npm view` commands |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; CheckVersion always returns `{}` (no `hookSpecificOutput`, no `continue` override) — stderr is the only user-facing channel |

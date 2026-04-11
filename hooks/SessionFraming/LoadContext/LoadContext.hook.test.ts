@@ -30,14 +30,15 @@ async function runHook(
 describe("LoadContext hook shell", () => {
   it("exits 0 and produces valid output for SessionStart", async () => {
     // accepts() always returns true for any SessionStartInput.
-    // execute() loads PAI context files and returns ContextOutput (raw string)
-    // or SilentOutput if no context files found or if running as subagent.
-    // See: contracts/LoadContext.ts accepts() and execute()
+    // execute() loads PAI context files and returns a SyncHookJSONOutput with
+    // hookSpecificOutput.additionalContext (SessionStart) carrying the full
+    // <system-reminder> payload, or an empty {} if no context files found or
+    // if running as subagent. See: LoadContext.contract.ts accepts() and execute()
     const result = await runHook({
       session_id: uniqueSessionId("lc"),
     });
     expect(result.exitCode).toBe(0);
-    // Output is either context string (contains system-reminder) or empty (silent/subagent)
+    // Output is either the JSON envelope (contains system-reminder) or {} (silent/subagent)
     if (result.stdout.length > 0) {
       expect(result.stdout).toContain("system-reminder");
     }

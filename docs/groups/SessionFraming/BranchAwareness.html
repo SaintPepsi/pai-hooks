@@ -1862,7 +1862,7 @@ At session start, run a single git command to detect the current branch and inje
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Checks if the session is a subagent; if so, returns <code>silent</code></p></div>
+          <div class="step-content"><p>Checks if the session is a subagent; if so, returns silent (<code>{}</code>)</p></div>
         </div>
 
         <div class="flow-step">
@@ -1872,12 +1872,12 @@ At session start, run a single git command to detect the current branch and inje
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>If the command fails or returns empty, logs a warning and returns <code>silent</code></p></div>
+          <div class="step-content"><p>If the command fails or returns empty, logs a warning and returns silent</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>If a branch name is found, logs it to stderr and returns a <code>ContextOutput</code> with the branch name</p></div>
+          <div class="step-content"><p>If a branch name is found, logs it to stderr and returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> carrying the branch name</p></div>
         </div>
 </div>
       
@@ -1892,11 +1892,17 @@ const branch = deps.getBranch();
 
 if (!branch) {
   deps.stderr("[BranchAwareness] Could not determine git branch — skipping");
-  return ok({ type: "silent" });
+  return ok({});
 }
 
 deps.stderr(`[BranchAwareness] Current branch: ${branch}`);
-return ok({ type: "context", content: `Current git branch: \`${branch}\`` });</div>
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: `Current git branch: \`${branch}\``,
+  },
+});</div>
         </div>
       </div>
     </div>
@@ -1939,6 +1945,7 @@ return ok({ type: "context", content: `Current git branch: \`${branch}\`` });</d
         <tbody>
           <tr><td><code>process</code></td><td>adapter</td><td>Provides <code>execSyncSafe</code> for running <code>git branch --show-current</code></td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code> and <code>Result</code> type for error handling</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "SessionStart"</code> is the context-injection channel (post-SDK-refactor, replaces legacy <code>ContextOutput</code>/<code>SilentOutput</code>)</td></tr>
         </tbody>
       </table>
     </div>

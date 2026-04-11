@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { BranchAwareness, type BranchAwarenessDeps } from "./BranchAwareness.contract";
 
 function makeDeps(overrides: Partial<BranchAwarenessDeps> = {}): BranchAwarenessDeps {
@@ -18,6 +16,13 @@ function makeInput(): SessionStartInput {
   return { session_id: "test-session-123" };
 }
 
+/** Narrow SyncHookJSONOutput to SessionStart additionalContext (Option B pattern from Gate 1). */
+function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== "SessionStart") return undefined;
+  return hs.additionalContext;
+}
+
 describe("BranchAwareness", () => {
   it("has correct name and event", () => {
     expect(BranchAwareness.name).toBe("BranchAwareness");
@@ -28,68 +33,54 @@ describe("BranchAwareness", () => {
     expect(BranchAwareness.accepts(makeInput())).toBe(true);
   });
 
-  it("returns ContextOutput with branch name on success", () => {
+  it("returns context injection with branch name on success", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = BranchAwareness.execute(makeInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("main");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("main");
   });
 
   it("includes branch name in context content", () => {
     const deps = makeDeps({ getBranch: () => "feature/auth-refactor" });
-    const result = BranchAwareness.execute(makeInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("feature/auth-refactor");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("feature/auth-refactor");
   });
 
-  it("returns SilentOutput for subagents", () => {
+  it("returns silent ({}) for subagents", () => {
     const deps = makeDeps({ isSubagent: () => true });
-    const result = BranchAwareness.execute(makeInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(getInjectedContext(result.value)).toBeUndefined();
+    expect(result.value.continue).toBeUndefined();
   });
 
-  it("returns SilentOutput when git command fails", () => {
+  it("returns silent ({}) when git command fails", () => {
     const deps = makeDeps({ getBranch: () => null });
-    const result = BranchAwareness.execute(makeInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
-  it("returns SilentOutput when branch is empty string", () => {
+  it("returns silent ({}) when branch is empty string", () => {
     const deps = makeDeps({ getBranch: () => "" });
-    const result = BranchAwareness.execute(makeInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
   it("logs skip message when branch is null", () => {

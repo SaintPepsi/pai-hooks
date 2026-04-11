@@ -8,13 +8,13 @@
  * Skips for subagents. Fails silently if git command fails.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { isSubagent } from "@hooks/lib/environment";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -39,11 +39,7 @@ const defaultDeps: BranchAwarenessDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const BranchAwareness: SyncHookContract<
-  SessionStartInput,
-  ContextOutput | SilentOutput,
-  BranchAwarenessDeps
-> = {
+export const BranchAwareness: SyncHookContract<SessionStartInput, BranchAwarenessDeps> = {
   name: "BranchAwareness",
   event: "SessionStart",
 
@@ -54,20 +50,26 @@ export const BranchAwareness: SyncHookContract<
   execute(
     _input: SessionStartInput,
     deps: BranchAwarenessDeps,
-  ): Result<ContextOutput | SilentOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     if (deps.isSubagent()) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const branch = deps.getBranch();
 
     if (!branch) {
       deps.stderr("[BranchAwareness] Could not determine git branch — skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr(`[BranchAwareness] Current branch: ${branch}`);
-    return ok({ type: "context", content: `Current git branch: \`${branch}\`` });
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: `Current git branch: \`${branch}\``,
+      },
+    });
   },
 
   defaultDeps,

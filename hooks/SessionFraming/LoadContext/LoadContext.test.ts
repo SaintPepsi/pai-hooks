@@ -1,9 +1,17 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { LoadContext, type LoadContextDeps, loadWikiPointer } from "./LoadContext.contract";
+
+/** Narrow SyncHookJSONOutput to SessionStart additionalContext (Option B pattern from Gate 1). */
+function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== "SessionStart") return undefined;
+  return hs.additionalContext;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -90,7 +98,8 @@ describe("LoadContext — subagent path", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(getInjectedContext(result.value)).toBeUndefined();
+    expect(result.value.continue).toBeUndefined();
   });
 
   it("does not call recordSessionStart for subagents", async () => {
@@ -134,8 +143,9 @@ describe("LoadContext — settings loading", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("TestPrincipal");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("TestPrincipal");
   });
 
   it("uses DA identity name from settings in context output", async () => {
@@ -150,8 +160,9 @@ describe("LoadContext — settings loading", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("SpecialDA");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("SpecialDA");
   });
 
   it("falls back to 'User' and 'PAI' when settings.json is missing", async () => {
@@ -166,9 +177,10 @@ describe("LoadContext — settings loading", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("User");
-    expect(result.value.content).toContain("PAI");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("User");
+    expect(ctx ?? "").toContain("PAI");
   });
 
   it("falls back to defaults when readJson fails on settings.json", async () => {
@@ -216,9 +228,9 @@ describe("LoadContext — context files loading", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("My Skill Content");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("My Skill Content");
   });
 
   it("logs skip message for missing context files", async () => {
@@ -263,10 +275,11 @@ describe("LoadContext — context files loading", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Content A");
-    expect(result.value.content).toContain("Content B");
-    expect(result.value.content).toContain("---");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("Content A");
+    expect(ctx ?? "").toContain("Content B");
+    expect(ctx ?? "").toContain("---");
   });
 
   it("returns silent when no context files are found", async () => {
@@ -278,7 +291,8 @@ describe("LoadContext — context files loading", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(getInjectedContext(result.value)).toBeUndefined();
+    expect(result.value.continue).toBeUndefined();
   });
 });
 
@@ -463,9 +477,10 @@ Below threshold.
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("They prefer concise responses");
-    expect(result.value.content).not.toContain("They dislike verbose output");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("They prefer concise responses");
+    expect(ctx ?? "").not.toContain("They dislike verbose output");
   });
 
   it("excludes opinions below 0.85 confidence threshold", async () => {
@@ -496,10 +511,11 @@ Just below threshold.
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).not.toContain("Low confidence opinion");
-    expect(result.value.content).not.toContain("Another low one");
-    expect(result.value.content).not.toContain("Relationship Context");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").not.toContain("Low confidence opinion");
+    expect(ctx ?? "").not.toContain("Another low one");
+    expect(ctx ?? "").not.toContain("Relationship Context");
   });
 
   it("includes relationship context section header when opinions are high confidence", async () => {
@@ -526,8 +542,9 @@ Very confident.
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Relationship Context");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("Relationship Context");
   });
 });
 
@@ -582,8 +599,9 @@ describe("LoadContext — work sessions", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("ACTIVE WORK");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("ACTIVE WORK");
   });
 
   it("omits active work section when no recent work sessions exist", async () => {
@@ -604,8 +622,9 @@ describe("LoadContext — work sessions", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).not.toContain("ACTIVE WORK");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").not.toContain("ACTIVE WORK");
   });
 
   it("skips COMPLETED sessions from work summary", async () => {
@@ -648,20 +667,22 @@ describe("LoadContext — work sessions", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).not.toContain("ACTIVE WORK");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").not.toContain("ACTIVE WORK");
   });
 });
 
 // ─── Full happy path ──────────────────────────────────────────────────────────
 
 describe("LoadContext — full execute happy path", () => {
-  it("returns ContextOutput with type context on success", async () => {
+  it("returns SyncHookJSONOutput with SessionStart additionalContext on success", async () => {
     const deps = makeDeps();
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
+    expect(getInjectedContext(result.value)).toBeDefined();
+    expect(result.value.continue).toBe(true);
   });
 
   it("includes system-reminder tags in output", async () => {
@@ -669,9 +690,10 @@ describe("LoadContext — full execute happy path", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("<system-reminder>");
-    expect(result.value.content).toContain("</system-reminder>");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("<system-reminder>");
+    expect(ctx ?? "").toContain("</system-reminder>");
   });
 
   it("includes session ID in output", async () => {
@@ -679,8 +701,9 @@ describe("LoadContext — full execute happy path", () => {
     const result = await LoadContext.execute(makeInput({ session_id: "my-unique-session" }), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("my-unique-session");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("my-unique-session");
   });
 
   it("includes canary phrase in output", async () => {
@@ -688,8 +711,9 @@ describe("LoadContext — full execute happy path", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("penguin");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("penguin");
   });
 
   it("includes current date in output", async () => {
@@ -699,8 +723,9 @@ describe("LoadContext — full execute happy path", () => {
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("2026-03-30");
+    const ctx = getInjectedContext(result.value);
+    expect(ctx).toBeDefined();
+    expect(ctx ?? "").toContain("2026-03-30");
   });
 
   it("calls recordSessionStart during execute", async () => {
@@ -714,12 +739,15 @@ describe("LoadContext — full execute happy path", () => {
     expect(called).toBe(true);
   });
 
-  it("result type is ContextOutput | SilentOutput — never errors on valid deps", async () => {
+  it("result is SyncHookJSONOutput — never errors on valid deps", async () => {
     const deps = makeDeps();
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(["context", "silent"].includes(result.value.type)).toBe(true);
+      // Either context injection (happy path) or silent ({})
+      const hasContext = getInjectedContext(result.value) !== undefined;
+      const isSilent = result.value.continue === undefined && !result.value.hookSpecificOutput;
+      expect(hasContext || isSilent).toBe(true);
     }
   });
 });

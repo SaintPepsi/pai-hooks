@@ -38,7 +38,7 @@ describe("CheckVersion", () => {
     const deps = makeDeps({ isSubagent: () => true });
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value.continue).toBeUndefined();
   });
 
   test("returns silent when versions match", async () => {
@@ -48,7 +48,7 @@ describe("CheckVersion", () => {
     });
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value.continue).toBeUndefined();
   });
 
   test("logs update message when versions differ", async () => {
@@ -74,7 +74,7 @@ describe("CheckVersion", () => {
     });
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value.continue).toBeUndefined();
     expect(messages.length).toBe(0);
   });
 
@@ -86,7 +86,7 @@ describe("CheckVersion", () => {
     });
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value.continue).toBeUndefined();
     expect(messages.length).toBe(0);
   });
 
@@ -97,7 +97,7 @@ describe("CheckVersion", () => {
     });
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value.continue).toBeUndefined();
   });
 
   test("does not log when subagent even if versions differ", async () => {

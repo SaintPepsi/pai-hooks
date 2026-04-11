@@ -22,7 +22,7 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Checks if the session is a subagent; if so, returns `silent` immediately
+1. Checks if the session is a subagent; if so, returns silent (`{}`) immediately
 2. Records the session start for notification tracking
 4. Checks if SKILL.md needs rebuilding by comparing component file timestamps
 5. If rebuild is needed, runs `RebuildPAI.ts` to regenerate SKILL.md from components
@@ -32,7 +32,7 @@ It does **not** fire when:
 9. Scans `MEMORY/WORK/` for active work sessions from the last 48 hours
 10. Checks for pending improvement proposals in `MEMORY/LEARNING/PROPOSALS/pending/`
 11. Checks for wiki pages in `MEMORY/WIKI/` and adds a wiki pointer if pages exist
-12. Combines all parts and returns as `ContextOutput`
+12. Combines all parts and returns a `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` carrying the full context payload
 
 ```typescript
 // Core context assembly
@@ -42,6 +42,16 @@ const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
 const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
 const proposals = loadPendingProposals(deps.baseDir, deps);
 const wikiPointer = loadWikiPointer(deps.baseDir, deps);
+const parts = [message, activeWork, proposals, wikiPointer].filter(Boolean);
+const fullContent = parts.join("\n\n");
+
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: fullContent,
+  },
+});
 ```
 
 ## Examples
@@ -65,3 +75,4 @@ const wikiPointer = loadWikiPointer(deps.baseDir, deps);
 | `error` | core | Provides `unknownError` for wrapping unexpected errors |
 | `result` | core | Provides `ok`, `Result`, and `tryCatch` for error handling |
 | `MEMORY/WIKI/` | data | Wiki knowledge pages; `loadWikiPointer` counts pages across entities/concepts/sources |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `hookSpecificOutput.additionalContext` with `hookEventName: "SessionStart"` is the SessionStart-compatible context-injection channel (post-SDK-refactor, replaces legacy `ContextOutput`/`SilentOutput` — this is the LARGEST injection in pai-hooks, carrying the multi-KB PAI context payload assembled from `<system-reminder>` block + identity rules + context files + relationship + active work + proposals + wiki pointer) |

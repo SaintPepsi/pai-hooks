@@ -5,13 +5,13 @@
  * to stderr if an update is available. Skips for subagents.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { exec } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { isSubagent } from "@hooks/lib/environment";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ const defaultDeps: CheckVersionDeps = {
   stderr: defaultStderr,
 };
 
-export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, CheckVersionDeps> = {
+export const CheckVersion: AsyncHookContract<SessionStartInput, CheckVersionDeps> = {
   name: "CheckVersion",
   event: "SessionStart",
 
@@ -59,9 +59,9 @@ export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, Ch
   async execute(
     _input: SessionStartInput,
     deps: CheckVersionDeps,
-  ): Promise<Result<SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     if (deps.isSubagent()) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const [currentResult, latestResult] = await Promise.all([
@@ -70,7 +70,7 @@ export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, Ch
     ]);
 
     if (!currentResult.ok || !latestResult.ok) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const currentVersion = currentResult.value;
@@ -84,7 +84,7 @@ export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, Ch
       deps.stderr(`💡 Update available: CC ${currentVersion} → ${latestVersion}`);
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,
