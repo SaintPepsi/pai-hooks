@@ -12,18 +12,20 @@
  * string concatenation, etc.), the change is caught and reverted.
  */
 
-import { readFile, writeFile, fileExists, removeFile, readDir } from "@hooks/core/adapters/fs";
-import { getCommand } from "@hooks/lib/tool-input";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import { fileExists, readDir, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk, silent } from "@hooks/core/types/hook-outputs";
-import type { ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { snapshotPath, logSettingsAudit } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
-import type { AuditLogDeps } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { runHardening } from "@hooks/hooks/SecurityValidator/run-hardening";
+import type { AuditLogDeps } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
+import {
+  logSettingsAudit,
+  snapshotPath,
+} from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -60,10 +62,7 @@ const SNAPSHOT_PREFIX = "pai-settings-snapshot-";
  * Remove snapshot files for this session and opportunistically
  * sweep orphaned snapshots from dead sessions (~1 in 20 calls).
  */
-function cleanupSnapshots(
-  sessionId: string,
-  deps: SettingsRevertDeps,
-): void {
+function cleanupSnapshots(sessionId: string, deps: SettingsRevertDeps): void {
   // Always clean up current session's snapshots
   for (const filename of SETTINGS_FILENAMES) {
     const snapPath = snapshotPath(sessionId, filename);
@@ -89,11 +88,7 @@ function cleanupSnapshots(
  * Always cleans up snapshot files afterward to prevent stale comparisons.
  * Returns the list of filenames that were reverted.
  */
-function compareAndRevert(
-  sessionId: string,
-  home: string,
-  deps: SettingsRevertDeps,
-): string[] {
+function compareAndRevert(sessionId: string, home: string, deps: SettingsRevertDeps): string[] {
   const reverted: string[] = [];
 
   for (const filename of SETTINGS_FILENAMES) {
@@ -144,11 +139,7 @@ const defaultDeps: SettingsRevertDeps = {
   runHardening,
 };
 
-export const SettingsRevert: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | SilentOutput,
-  SettingsRevertDeps
-> = {
+export const SettingsRevert: SyncHookContract<ToolHookInput, SettingsRevertDeps> = {
   name: "SettingsRevert",
   event: "PostToolUse",
 
@@ -156,37 +147,41 @@ export const SettingsRevert: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: SettingsRevertDeps,
-  ): Result<ContinueOutput | SilentOutput, ResultError> {
+  execute(input: ToolHookInput, deps: SettingsRevertDeps): Result<SyncHookJSONOutput, ResultError> {
     const home = deps.homedir();
     const command = getCommand(input).slice(0, 500);
     const reverted = compareAndRevert(input.session_id, home, deps);
 
-    const action = reverted.length > 0 ? "reverted" as const : "unchanged" as const;
-    logSettingsAudit({
-      ts: new Date().toISOString(),
-      session_id: input.session_id,
-      tool: "Bash",
-      target: reverted.length > 0 ? reverted.join(", ") : "settings.json",
-      action,
-      command,
-    }, deps);
+    const action = reverted.length > 0 ? ("reverted" as const) : ("unchanged" as const);
+    logSettingsAudit(
+      {
+        ts: new Date().toISOString(),
+        session_id: input.session_id,
+        tool: "Bash",
+        target: reverted.length > 0 ? reverted.join(", ") : "settings.json",
+        action,
+        command,
+      },
+      deps,
+    );
 
     if (reverted.length > 0) {
       deps.runHardening(command);
     }
 
     if (reverted.length === 0) {
-      return ok(silent());
+      return ok({});
     }
 
-    deps.stderr(
-      `[SettingsRevert] Reverted unauthorized changes to: ${reverted.join(", ")}`,
-    );
+    deps.stderr(`[SettingsRevert] Reverted unauthorized changes to: ${reverted.join(", ")}`);
 
-    return ok(continueOk(REVERT_CONTEXT));
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: REVERT_CONTEXT,
+      },
+    });
   },
 
   defaultDeps,

@@ -26,7 +26,7 @@ PreToolUse
 ```bash
 # Edit tool targeting settings.json — triggers ask prompt
 Edit { file_path: "~/.claude/settings.json", ... }
-# → ask("⚠️ Settings Protection: Claude wants to modify a settings file...")
+# → hookSpecificOutput.permissionDecision: "ask", permissionDecisionReason: "⚠️ Settings Protection..."
 
 # Any Bash command — snapshots settings files silently
 Bash { command: "git status" }

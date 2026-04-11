@@ -266,7 +266,7 @@ describe("SecurityValidator.execute() — Bash commands", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -276,7 +276,7 @@ describe("SecurityValidator.execute() — Bash commands", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -286,7 +286,7 @@ describe("SecurityValidator.execute() — Bash commands", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -296,7 +296,7 @@ describe("SecurityValidator.execute() — Bash commands", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -327,7 +327,7 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -364,7 +364,7 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -374,7 +374,7 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -384,7 +384,7 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -394,7 +394,7 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -541,7 +541,7 @@ describe("SecurityValidator.execute() — bash tool substitution bypass", () => 
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -624,7 +624,7 @@ describe("SecurityValidator.execute() — patterns fallback", () => {
     // With empty patterns, nothing is blocked — fail open
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -649,13 +649,24 @@ describe("matchesPathPattern — regex fallback on null", () => {
 });
 
 describe("SecurityValidator.execute() — noDelete paths", () => {
-  it("blocks deletion of protected paths", () => {
+  // NOTE: The pre-S1 version of this test asserted `result.value.type === "block"`
+  // inside an `if` that was never taken (Bash rm commands don't route through the
+  // delete-path validation; only Edit/Write/Read set `action` via line 512, and
+  // neither sets it to "delete"). The old test was vacuous. Under S1 the `.type`
+  // field no longer exists, so the dead branch must either be removed or the
+  // intent restored. Current contract behavior for a Bash rm of a protected path
+  // is "continue" (because RM_PATTERN in test JSON only catches `rm -rf /`, not
+  // arbitrary rm commands). Asserting the actual behavior to keep this test alive
+  // for future regression detection; tracked in 2D queue.
+  it("returns continue for Bash rm of a protected path (noDelete is Edit/Write-only dead code)", () => {
     const deps = makeDeps();
-    const input = makeInput("Bash", { command: "r" + "m /Users/test/.claude/skills/my-skill/SKILL.md" });
+    const input = makeInput("Bash", {
+      command: "r" + "m /Users/test/.claude/skills/my-skill/SKILL.md",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("protected");
+    if (result.ok) {
+      expect(result.value.continue).toBe(true);
     }
   });
 });

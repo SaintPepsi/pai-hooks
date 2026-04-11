@@ -58,7 +58,7 @@ describe("PermissionPromptLogger.execute", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toEqual({});
     }
   });
 

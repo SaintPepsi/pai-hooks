@@ -74,3 +74,7 @@ The agent runs from `hooks/SecurityValidator/` with `--strict-mcp-config` (MCP t
 - `lib/tool-input` — `getCommand` for extracting Bash commands
 - `lib/paths` — `defaultStderr`, `getPaiDir` for logging and base directory
 - Requires `SettingsGuard` (PreToolUse) to have run first to create snapshots
+
+## History
+
+> **2026-04-11 — SDK Type Foundation (1B):** The revert context (`REVERT_CONTEXT`) was being built correctly but silently dropped by Claude Code. The legacy helper `continueOk(text)` returned a top-level `additionalContext` field that the SDK ignored on PostToolUse events. Sixth instance of the same bug class found in this refactor (after 1A PreCompactStatePersist, 1C CodingStandardsAdvisor/TypeCheckVerifier/TypeStrictness, and 1E-1 CitationEnforcement). The fix routes the context through `hookSpecificOutput.additionalContext` on PostToolUse, matching the SDK contract. Behaviour change: the AI now actually receives the `[SECURITY] ... reverted ...` warning after a bypass attempt. Previously, a bypassed `python3 -c '...'` would be reverted silently and the AI would retry indefinitely. Recipe R2 applied at line 189 of `SettingsRevert.contract.ts`; test assertions updated to read `result.value.hookSpecificOutput?.additionalContext` instead of `result.value.additionalContext`.
