@@ -5,21 +5,16 @@
  * on unrelated prompts.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 export const BLOCKED_SKILLS = ["keybindings-help"];
 
-export const SkillGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  Record<string, never>
-> = {
+export const SkillGuard: SyncHookContract<ToolHookInput, Record<string, never>> = {
   name: "SkillGuard",
   event: "PreToolUse",
 
@@ -27,19 +22,21 @@ export const SkillGuard: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput): Result<SyncHookJSONOutput, ResultError> {
     const skillName = ((input.tool_input?.skill as string) || "").toLowerCase().trim();
 
     if (BLOCKED_SKILLS.includes(skillName)) {
       const opener = pickNarrative("SkillGuard", 1, import.meta.dir);
       return ok({
-        type: "block",
-        decision: "block",
-        reason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias. If the user genuinely wants keybinding help, they will explicitly say "keybindings" or use /keybindings-help.`,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias. If the user genuinely wants keybinding help, they will explicitly say "keybindings" or use /keybindings-help.`,
+        },
       });
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps: {},

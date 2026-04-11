@@ -23,27 +23,35 @@ describe("SkillGuard", () => {
   it("blocks keybindings-help", () => {
     const result = SkillGuard.execute(makeInput("keybindings-help"), {});
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("block");
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("position bias");
+    const hs = result.value?.hookSpecificOutput;
+    if (hs?.hookEventName === "PreToolUse") {
+      expect(hs.permissionDecision).toBe("deny");
+      expect(hs.permissionDecisionReason).toContain("position bias");
+    } else {
+      throw new Error("expected PreToolUse hookSpecificOutput");
     }
   });
 
   it("blocks case-insensitive", () => {
     const result = SkillGuard.execute(makeInput("Keybindings-Help"), {});
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("block");
+    const hs = result.value?.hookSpecificOutput;
+    if (hs?.hookEventName === "PreToolUse") {
+      expect(hs.permissionDecision).toBe("deny");
+    } else {
+      throw new Error("expected PreToolUse hookSpecificOutput");
+    }
   });
 
   it("allows legitimate skills", () => {
     const result = SkillGuard.execute(makeInput("commit"), {});
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("continue");
+    expect(result.value?.continue).toBe(true);
   });
 
   it("allows empty skill name", () => {
     const result = SkillGuard.execute(makeInput(""), {});
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("continue");
+    expect(result.value?.continue).toBe(true);
   });
 });
