@@ -1863,7 +1863,7 @@ This hook establishes the detection point. The heavier logic — extracting ques
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Returns <code>{ type: "silent" }</code> immediately</p></div>
+          <div class="step-content"><p>Returns <code>ok({})</code> immediately (silent no-op)</p></div>
         </div>
 </div>
       
@@ -1874,8 +1874,8 @@ This hook establishes the detection point. The heavier logic — extracting ques
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-execute(_input, _deps): Result&lt;SilentOutput, E&gt; {
-  return ok({ type: "silent" });
+execute(_input, _deps): Result&lt;SyncHookJSONOutput, E&gt; {
+  return ok({});
 }</div>
         </div>
       </div>

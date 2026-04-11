@@ -27,9 +27,9 @@ describe("QuestionAnswered", () => {
     expect(QuestionAnswered.accepts(stubInput)).toBe(true);
   });
 
-  it("returns ok with silent type", () => {
+  it("returns ok with silent no-op", () => {
     const result = QuestionAnswered.execute(stubInput, makeDeps());
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 });
