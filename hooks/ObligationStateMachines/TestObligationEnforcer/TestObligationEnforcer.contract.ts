@@ -1,9 +1,9 @@
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   blockCountPath,
   buildBlockLimitReview,
@@ -15,11 +15,7 @@ import {
 } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
-export const TestObligationEnforcer: SyncHookContract<
-  StopInput,
-  BlockOutput | SilentOutput,
-  TestObligationDeps
-> = {
+export const TestObligationEnforcer: SyncHookContract<StopInput, TestObligationDeps> = {
   name: "TestObligationEnforcer",
   event: "Stop",
 
@@ -27,19 +23,16 @@ export const TestObligationEnforcer: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: StopInput,
-    deps: TestObligationDeps,
-  ): Result<BlockOutput | SilentOutput, ResultError> {
+  execute(input: StopInput, deps: TestObligationDeps): Result<SyncHookJSONOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (!deps.fileExists(flagFile)) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const pending = deps.readPending(flagFile);
     if (pending.length === 0) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const countFile = blockCountPath(deps.stateDir, input.session_id);
@@ -54,7 +47,7 @@ export const TestObligationEnforcer: SyncHookContract<
       deps.stderr(
         `[TestObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`,
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const needsWriting: string[] = [];
@@ -88,7 +81,8 @@ export const TestObligationEnforcer: SyncHookContract<
       `[TestObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without tests`,
     );
 
-    return ok({ type: "block", decision: "block", reason });
+    // R5: Stop is a NonHookSpecificEvent — block via top-level decision/reason.
+    return ok({ decision: "block", reason });
   },
 
   defaultDeps,

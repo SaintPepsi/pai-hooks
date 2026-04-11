@@ -44,7 +44,9 @@ for (const file of pending) {
   }
 }
 const reason = `${opener}\n\n${sections.join("\n\n")}`;
-return ok({ type: "block", decision: "block", reason });
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason });
 ```
 
 ## Examples
@@ -68,3 +70,4 @@ return ok({ type: "block", decision: "block", reason });
 | `narrative-reader` | lib | Picks escalating narrative tone for block messages |
 | `TestObligationStateMachine.shared` | shared | Provides `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `hasTestFile` |
 | `result` | core | `ok` wrapper for Result type returns |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |
