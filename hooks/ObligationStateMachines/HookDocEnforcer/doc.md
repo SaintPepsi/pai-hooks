@@ -39,13 +39,17 @@ It does **not** fire when:
    - The required sections that each doc must contain
 
 ```typescript
-// Core enforcer flow (via generic obligation machine)
+// Core enforcer flow (R8 silent + R5 block via top-level decision/reason)
 const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
-if (result.action === "block") {
-  // Build reason with file list + required sections
-  return ok({ type: "block", decision: "block", reason });
+if (result.action === "silent" || result.action === "release") {
+  return ok({}); // R8 — bare empty object, SDK treats as silent skip
 }
+
+// Build reason with file list + required sections
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason });
 ```
 
 ## Examples
@@ -84,6 +88,7 @@ if (result.action === "block") {
 | `paths` | lib | Resolves settings.json path |
 | `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication |
 | `HookDocStateMachine.shared` | shared | Settings reader, config, doc suggestions builder |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |
 
 ## Configuration
 

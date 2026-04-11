@@ -1905,13 +1905,17 @@ At session end, check whether any automation source files were modified without 
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Core enforcer flow (via generic obligation machine)
+// Core enforcer flow (R8 silent + R5 block via top-level decision/reason)
 const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
-if (result.action === "block") {
-  // Build reason with file list + required sections
-  return ok({ type: "block", decision: "block", reason });
-}</div>
+if (result.action === "silent" || result.action === "release") {
+  return ok({}); // R8 — bare empty object, SDK treats as silent skip
+}
+
+// Build reason with file list + required sections
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason });</div>
         </div>
       </div>
     </div>
@@ -1974,6 +1978,7 @@ if (result.action === "block") {
           <tr><td><code>paths</code></td><td>lib</td><td>Resolves settings.json path</td></tr>
           <tr><td><code>DocObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>projectHasHook</code> for deduplication</td></tr>
           <tr><td><code>HookDocStateMachine.shared</code></td><td>shared</td><td>Settings reader, config, doc suggestions builder</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type. R5 block path uses top-level <code>decision: "block"</code> + <code>reason</code> because Stop is a NonHookSpecificEvent and has no <code>hookSpecificOutput</code> wrapping (contrast with PreToolUse where deny goes through <code>hookSpecificOutput.permissionDecision</code>). R8 silent path is a bare <code>{}</code>. Post-SDK-refactor migration.</td></tr>
         </tbody>
       </table>
     </div>
