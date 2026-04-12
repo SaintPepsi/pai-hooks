@@ -347,6 +347,9 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
             additionalContext: joined,
           },
         });
+      default:
+        // Unknown future event type — safe no-op fallback
+        return ok({});
     }
   },
 
