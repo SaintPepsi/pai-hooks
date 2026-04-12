@@ -23,12 +23,14 @@ Add **auto-detected pattern recognition** to the existing DuplicationDetection p
 Raw signatures use concrete types (`(Partial<SessionSummaryDeps>)→SessionSummaryDeps`) because the parser (`parser.ts:221-232`) resolves `Partial<T>` to concrete types via `serializeType()` (`parser.ts:131-155`). Identical patterns produce different sig strings. A normalizer resolves this:
 
 **Tier 1 — Full sig match (params + return, both normalized):**
+
 - `Partial<ConcreteType>` → `Partial<*>`
 - `Record<K,V>` → `Record<*,*>`
 - `*Deps` / `*Input` / `*Output` suffixes → wildcard
 - Catches: `makeDeps` (91%), `shortenPath` (88%), `blockCountPath` (88%)
 
 **Tier 2 — Return-only fallback (for domain types only):**
+
 - If tier 1 doesn't reach threshold, match on normalized return type alone
 - Only applies when return type is a **domain type** (not `string`, `void`, `number`, `boolean`)
 - Catches: `makeInput` (100%), `makeToolInput` (100%)
@@ -40,12 +42,12 @@ New field in `DuplicationIndex`:
 
 ```ts
 interface PatternEntry {
-  id: string;        // "makeDeps:(Partial<*>)→*Deps"
-  name: string;      // "makeDeps"
-  sig: string;       // normalized sig that matched
-  tier: 1 | 2;      // which tier matched
+  id: string; // "makeDeps:(Partial<*>)→*Deps"
+  name: string; // "makeDeps"
+  sig: string; // normalized sig that matched
+  tier: 1 | 2; // which tier matched
   fileCount: number; // 65
-  files: string[];   // first 5 example file paths
+  files: string[]; // first 5 example file paths
 }
 ```
 
@@ -54,6 +56,7 @@ interface PatternEntry {
 ### Builder Logic
 
 After building entries (existing flow):
+
 1. For each `nameGroup` with count >= `patternThreshold`:
 2. Count normalized sigs within the group — O(n) per group, O(total entries) overall
 3. If dominant sig covers >= `sigMatchPercent` of group → emit pattern (tier 1)
@@ -62,11 +65,13 @@ After building entries (existing flow):
 ### Checker Logic
 
 Before existing pair-wise check:
+
 1. Look up `index.patterns` for incoming function's name
 2. If found → inject `additionalContext` on the continue response (same mechanism used for derivation matches at `DuplicationChecker.contract.ts:197-206`)
 3. Proceed with normal pair-wise checking (independent concerns)
 
 Advisory message format:
+
 ```
 Pattern detected: "makeInput" (37 instances across 37 files)
 This function matches a recurring pattern. Consider extracting a shared factory.
@@ -91,15 +96,15 @@ All optional, via `hookConfig.duplicationChecker` (read by `readHookConfig()` fr
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `shared.ts` | Add `PatternEntry` type, `normalizeSig()`, `normalizeReturn()`, `isPrimitiveSig()` pure functions |
-| `DuplicationIndexBuilder.contract.ts` | Add pattern detection pass after building entries |
-| `DuplicationChecker.contract.ts` | Pattern lookup before pair-wise check, inject `additionalContext` |
-| `DuplicationChecker.test.ts` | Test pattern advisory path |
-| `DuplicationIndexBuilder.test.ts` | Test pattern detection with threshold/sig configs |
-| `shared.test.ts` | Test normalization functions and two-tier logic |
-| `checker.jsonl` | Add optional `patterns` field to log entries |
+| File                                  | Change                                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `shared.ts`                           | Add `PatternEntry` type, `normalizeSig()`, `normalizeReturn()`, `isPrimitiveSig()` pure functions |
+| `DuplicationIndexBuilder.contract.ts` | Add pattern detection pass after building entries                                                 |
+| `DuplicationChecker.contract.ts`      | Pattern lookup before pair-wise check, inject `additionalContext`                                 |
+| `DuplicationChecker.test.ts`          | Test pattern advisory path                                                                        |
+| `DuplicationIndexBuilder.test.ts`     | Test pattern detection with threshold/sig configs                                                 |
+| `shared.test.ts`                      | Test normalization functions and two-tier logic                                                   |
+| `checker.jsonl`                       | Add optional `patterns` field to log entries                                                      |
 
 No new files. No new dependencies. All within the DuplicationDetection hook group.
 
@@ -107,17 +112,17 @@ No new files. No new dependencies. All within the DuplicationDetection hook grou
 
 Tested against live index data (`/tmp/pai/duplication/685e053b/main/index.json` and `/tmp/pai/duplication/6ccd20e7/main/index.json`, 2026-04-06):
 
-| Pattern | Files | Tier | Match % | Detected? |
-|---------|-------|------|---------|-----------|
-| `makeDeps` | 65 | 1 (full sig) | 91% | Yes |
-| `makeInput` | 37 | 2 (return-only) | 100% | Yes |
-| `makeToolInput` | 7 | 2 (return-only) | 100% | Yes |
-| `shortenPath` | 8 | 1 (full sig) | 88% | Yes |
-| `blockCountPath` | 8 | 1 (full sig) | 88% | Yes |
-| `uniqueSessionId` | 6 | 1 (full sig) | 100% | Yes |
-| `main` | 6 | - | void return | Filtered |
-| `run` | 9 | - | void return | Filtered |
-| `getStateDir` | 7 | - | string return | Filtered |
+| Pattern           | Files | Tier            | Match %       | Detected? |
+| ----------------- | ----- | --------------- | ------------- | --------- |
+| `makeDeps`        | 65    | 1 (full sig)    | 91%           | Yes       |
+| `makeInput`       | 37    | 2 (return-only) | 100%          | Yes       |
+| `makeToolInput`   | 7     | 2 (return-only) | 100%          | Yes       |
+| `shortenPath`     | 8     | 1 (full sig)    | 88%           | Yes       |
+| `blockCountPath`  | 8     | 1 (full sig)    | 88%           | Yes       |
+| `uniqueSessionId` | 6     | 1 (full sig)    | 100%          | Yes       |
+| `main`            | 6     | -               | void return   | Filtered  |
+| `run`             | 9     | -               | void return   | Filtered  |
+| `getStateDir`     | 7     | -               | string return | Filtered  |
 
 ## Future Work
 

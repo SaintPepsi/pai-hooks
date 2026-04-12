@@ -15,6 +15,7 @@
 The contract base type (`core/contract.ts:32`) has `event: HookEventType` — a single string. Widen it to `HookEventType | HookEventType[]` so multi-event hooks can declare all their events.
 
 **Files:**
+
 - Modify: `core/contract.ts`
 - Modify: `core/runner.ts`
 
@@ -37,11 +38,15 @@ event: HookEventType | HookEventType[];
 In `core/runner.ts`, the runner reads `contract.event` for logging and `formatOutput`. Add a helper to resolve the actual event:
 
 ```typescript
-function resolveEvent(contract: { event: HookEventType | HookEventType[] }, input: HookInput): string {
+function resolveEvent(
+  contract: { event: HookEventType | HookEventType[] },
+  input: HookInput,
+): string {
   if (Array.isArray(contract.event)) {
     // Infer actual event from input shape
     if ("prompt" in input) return "UserPromptSubmit";
-    if ("tool_name" in input) return "tool_input" in input ? "PreToolUse" : "PostToolUse";
+    if ("tool_name" in input)
+      return "tool_input" in input ? "PreToolUse" : "PostToolUse";
     return contract.event[0];
   }
   return contract.event;
@@ -72,6 +77,7 @@ git commit -m "feat(core): widen event field to support HookEventType arrays"
 ### Task 1: Scaffold hook directory and metadata
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/hook.json`
 - Create: `hooks/SteeringRuleInjector/group.json`
 
@@ -81,9 +87,7 @@ git commit -m "feat(core): widen event field to support HookEventType arrays"
 {
   "name": "SteeringRuleInjector",
   "description": "Contextual steering rule injection based on event type and keyword matching",
-  "hooks": [
-    "SteeringRuleInjector"
-  ],
+  "hooks": ["SteeringRuleInjector"],
   "sharedFiles": []
 }
 ```
@@ -120,6 +124,7 @@ git commit -m "feat(SteeringRuleInjector): scaffold hook directory and metadata"
 ### Task 2: Write frontmatter parser tests
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.test.ts`
 
 **Step 1: Write failing tests for frontmatter parsing**
@@ -225,6 +230,7 @@ git commit -m "test(SteeringRuleInjector): add frontmatter parser tests"
 ### Task 3: Implement frontmatter parser
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.ts`
 
 **Step 1: Implement parseFrontmatter**
@@ -284,6 +290,7 @@ git commit -m "feat(SteeringRuleInjector): implement frontmatter parser"
 ### Task 4: Write keyword matching tests
 
 **Files:**
+
 - Modify: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.test.ts`
 
 **Step 1: Write failing tests for keyword matching**
@@ -295,7 +302,9 @@ import { matchesKeywords } from "./SteeringRuleInjector.contract";
 
 describe("matchesKeywords", () => {
   it("returns true when a keyword appears in prompt", () => {
-    expect(matchesKeywords("let's push to remote", ["push", "remote"])).toBe(true);
+    expect(matchesKeywords("let's push to remote", ["push", "remote"])).toBe(
+      true,
+    );
   });
 
   it("is case-insensitive", () => {
@@ -303,7 +312,9 @@ describe("matchesKeywords", () => {
   });
 
   it("returns false when no keywords match", () => {
-    expect(matchesKeywords("refactor the parser", ["push", "deploy"])).toBe(false);
+    expect(matchesKeywords("refactor the parser", ["push", "deploy"])).toBe(
+      false,
+    );
   });
 
   it("returns false for empty keywords", () => {
@@ -333,6 +344,7 @@ git commit -m "test(SteeringRuleInjector): add keyword matching tests"
 ### Task 5: Implement keyword matching
 
 **Files:**
+
 - Modify: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.ts`
 
 **Step 1: Implement matchesKeywords**
@@ -362,6 +374,7 @@ git commit -m "feat(SteeringRuleInjector): implement keyword matching"
 ### Task 6: Write contract execute tests
 
 **Files:**
+
 - Modify: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.test.ts`
 
 **Step 1: Write failing tests for the contract**
@@ -371,8 +384,14 @@ Append to the test file. The contract needs a deps interface for file I/O, confi
 ```typescript
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type {
+  SessionStartInput,
+  UserPromptSubmitInput,
+} from "@hooks/core/types/hook-inputs";
+import type {
+  ContextOutput,
+  SilentOutput,
+} from "@hooks/core/types/hook-outputs";
 import {
   SteeringRuleInjector,
   type SteeringRuleInjectorDeps,
@@ -403,7 +422,9 @@ keywords: [done, finished, complete]
 
 Verify before claiming completion.`;
 
-function makeDeps(overrides: Partial<SteeringRuleInjectorDeps> = {}): SteeringRuleInjectorDeps {
+function makeDeps(
+  overrides: Partial<SteeringRuleInjectorDeps> = {},
+): SteeringRuleInjectorDeps {
   return {
     resolveGlobs: () => ["/rules/identity.md", "/rules/git-safety.md"],
     readFile: (path: string) => {
@@ -443,10 +464,10 @@ describe("SteeringRuleInjector contract", () => {
 
   it("returns silent for subagents", () => {
     const deps = makeDeps({ isSubagent: () => true });
-    const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = SteeringRuleInjector.execute(
+      makeSessionStartInput(),
+      deps,
+    ) as Result<ContextOutput | SilentOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -456,10 +477,10 @@ describe("SteeringRuleInjector contract", () => {
     const deps = makeDeps({
       getConfig: () => ({ enabled: false, includes: [], trackerDir: "/tmp" }),
     });
-    const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = SteeringRuleInjector.execute(
+      makeSessionStartInput(),
+      deps,
+    ) as Result<ContextOutput | SilentOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -467,10 +488,10 @@ describe("SteeringRuleInjector contract", () => {
 
   it("injects always-rules on SessionStart", () => {
     const deps = makeDeps();
-    const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = SteeringRuleInjector.execute(
+      makeSessionStartInput(),
+      deps,
+    ) as Result<ContextOutput | SilentOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("context");
@@ -508,14 +529,17 @@ describe("SteeringRuleInjector contract", () => {
       readTracker: () => ({
         sessionId: "test-123",
         injected: {
-          identity: { event: "SessionStart", timestamp: "2026-04-09T00:00:00Z" },
+          identity: {
+            event: "SessionStart",
+            timestamp: "2026-04-09T00:00:00Z",
+          },
         },
       }),
     });
-    const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = SteeringRuleInjector.execute(
+      makeSessionStartInput(),
+      deps,
+    ) as Result<ContextOutput | SilentOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -535,10 +559,10 @@ describe("SteeringRuleInjector contract", () => {
 
   it("returns silent when no rule files found", () => {
     const deps = makeDeps({ resolveGlobs: () => [] });
-    const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps) as Result<
-      ContextOutput | SilentOutput,
-      ResultError
-    >;
+    const result = SteeringRuleInjector.execute(
+      makeSessionStartInput(),
+      deps,
+    ) as Result<ContextOutput | SilentOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -563,6 +587,7 @@ git commit -m "test(SteeringRuleInjector): add contract execute tests"
 ### Task 7: Implement the contract
 
 **Files:**
+
 - Modify: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.ts`
 
 **Step 1: Implement the full contract**
@@ -575,8 +600,14 @@ import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { SessionStartInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type {
+  SessionStartInput,
+  UserPromptSubmitInput,
+} from "@hooks/core/types/hook-inputs";
+import type {
+  ContextOutput,
+  SilentOutput,
+} from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -631,12 +662,14 @@ export const SteeringRuleInjector: SyncHookContract<
     const config = deps.getConfig();
     if (!config.enabled) return ok({ type: "silent" });
 
-    const event = "prompt" in input && input.prompt != null
-      ? "UserPromptSubmit"
-      : "SessionStart";
-    const prompt = event === "UserPromptSubmit"
-      ? (input as UserPromptSubmitInput).prompt ?? ""
-      : "";
+    const event =
+      "prompt" in input && input.prompt != null
+        ? "UserPromptSubmit"
+        : "SessionStart";
+    const prompt =
+      event === "UserPromptSubmit"
+        ? ((input as UserPromptSubmitInput).prompt ?? "")
+        : "";
 
     const filePaths = deps.resolveGlobs(config.includes);
     if (filePaths.length === 0) return ok({ type: "silent" });
@@ -650,7 +683,9 @@ export const SteeringRuleInjector: SyncHookContract<
 
       const parsed = parseFrontmatter(content);
       if (!parsed) {
-        deps.stderr(`[SteeringRuleInjector] Skipping ${path}: invalid frontmatter`);
+        deps.stderr(
+          `[SteeringRuleInjector] Skipping ${path}: invalid frontmatter`,
+        );
         continue;
       }
 
@@ -724,7 +759,11 @@ function buildDefaultDeps(): SteeringRuleInjectorDeps {
     },
 
     readTracker: (sessionId: string) => {
-      const trackerPath = join(paiDir, DEFAULT_CONFIG.trackerDir, `injections-${sessionId}.json`);
+      const trackerPath = join(
+        paiDir,
+        DEFAULT_CONFIG.trackerDir,
+        `injections-${sessionId}.json`,
+      );
       if (!fileExists(trackerPath)) {
         return { sessionId, injected: {} };
       }
@@ -749,7 +788,9 @@ function buildDefaultDeps(): SteeringRuleInjectorDeps {
     },
 
     getConfig: () => {
-      const cfg = readHookConfig<Partial<SteeringRuleConfig>>("steeringRuleInjector");
+      const cfg = readHookConfig<Partial<SteeringRuleConfig>>(
+        "steeringRuleInjector",
+      );
       return { ...DEFAULT_CONFIG, ...cfg };
     },
 
@@ -781,6 +822,7 @@ git commit -m "feat(SteeringRuleInjector): implement contract with deps and conf
 ### Task 8: Create the hook runner
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts`
 
 **Step 1: Create the runner**
@@ -792,7 +834,9 @@ import { SteeringRuleInjector } from "@hooks/hooks/SteeringRuleInjector/Steering
 
 if (import.meta.main) {
   runHook(SteeringRuleInjector).catch((e) => {
-    process.stderr.write(`[hook] fatal: ${e instanceof Error ? e.message : e}\n`);
+    process.stderr.write(
+      `[hook] fatal: ${e instanceof Error ? e.message : e}\n`,
+    );
     process.exit(0);
   });
 }
@@ -814,6 +858,7 @@ git commit -m "feat(SteeringRuleInjector): add hook runner"
 ### Task 9: Create a sample steering rule
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/minimize-output-tokens.md`
 
 **Step 1: Create the sample rule**
@@ -840,6 +885,7 @@ git commit -m "feat(SteeringRuleInjector): add sample steering rule"
 ### Task 10: Register hook in settings.hooks.json
 
 **Files:**
+
 - Modify: `settings.hooks.json`
 
 **Step 1: Add entries under both SessionStart and UserPromptSubmit**
@@ -874,6 +920,7 @@ git commit -m "feat(SteeringRuleInjector): register hook for SessionStart and Us
 ### Task 11: Add tracker directory to .gitignore
 
 **Files:**
+
 - Modify: `.gitignore`
 
 **Step 1: Add the tracker directory pattern**
@@ -919,11 +966,12 @@ Expected: No type errors
 ### Task 13: Write doc.md
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/doc.md`
 
 **Step 1: Write the documentation**
 
-```markdown
+````markdown
 ## Overview
 
 Injects individual steering rule files into context based on event type and keyword matching. Rules are `.md` files with YAML frontmatter declaring when they should fire. Each rule injects at most once per session.
@@ -952,6 +1000,7 @@ Injects individual steering rule files into context based on event type and keyw
 ## Examples
 
 > A rule that always injects at session start:
+>
 > ```yaml
 > name: identity
 > events: [SessionStart]
@@ -959,6 +1008,7 @@ Injects individual steering rule files into context based on event type and keyw
 > ```
 
 > A rule that injects when the user mentions pushing code:
+>
 > ```yaml
 > name: git-safety
 > events: [UserPromptSubmit]
@@ -971,7 +1021,7 @@ Injects individual steering rule files into context based on event type and keyw
 - `lib/environment` — `isSubagent()` to skip subagent sessions
 - `lib/paths` — `getPaiDir()` for tracker file location
 - `Bun.Glob` — resolves include patterns to file paths
-```
+````
 
 **Step 2: Commit**
 
@@ -985,6 +1035,7 @@ git commit -m "docs(SteeringRuleInjector): add hook documentation"
 ### Task 14: Write IDEA.md
 
 **Files:**
+
 - Create: `hooks/SteeringRuleInjector/SteeringRuleInjector/IDEA.md`
 - Create: `hooks/SteeringRuleInjector/IDEA.md`
 

@@ -12,9 +12,6 @@
  */
 
 import { readFile } from "@hooks/core/adapters/fs";
-import { } from "@hooks/core/error";
-import { } from "@hooks/core/result";
-import { } from "@hooks/lib/paths";
 import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -24,15 +21,6 @@ export interface KoordDaemonConfig {
   url: string | null;
   /** Absolute path to worker preprompt template (.md file) */
   prepromptPath: string | null;
-}
-
-interface SettingsJson {
-  hookConfig?: {
-    koordDaemon?: {
-      url?: string;
-      prepromptPath?: string;
-    };
-  };
 }
 
 /** Discord snowflake ID pattern (17-20 digits). */
@@ -56,7 +44,11 @@ export function readKoordConfig(
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
 ): KoordDaemonConfig {
-  const cfg = readHookConfig<{ url?: string; prepromptPath?: string }>("koordDaemon", readFileFn ?? undefined, settingsPath);
+  const cfg = readHookConfig<{ url?: string; prepromptPath?: string }>(
+    "koordDaemon",
+    readFileFn ?? undefined,
+    settingsPath,
+  );
   return {
     url: typeof cfg?.url === "string" ? cfg.url : null,
     prepromptPath: typeof cfg?.prepromptPath === "string" ? cfg.prepromptPath : null,

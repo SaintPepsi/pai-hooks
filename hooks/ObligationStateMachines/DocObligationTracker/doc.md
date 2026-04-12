@@ -43,7 +43,7 @@ if (isDocFile(filePath)) {
   const remaining = pending.filter((p) => !isRelatedDoc(filePath, p));
   if (remaining.length === 0) deps.removeFlag(flagFile);
   else deps.writePending(flagFile, remaining);
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 // Code file adds to pending
@@ -64,7 +64,7 @@ deps.writePending(flagFile, pending);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
+| Dependency                         | Type   | Purpose                                                                                                   |
+| ---------------------------------- | ------ | --------------------------------------------------------------------------------------------------------- |
 | `DocObligationStateMachine.shared` | shared | Provides `projectHasHook`, `isDocFile`, `isNonTestCodeFile`, `isRelatedDoc`, `getFilePath`, `pendingPath` |
-| `result` | core | `ok` wrapper for Result type returns |
+| `result`                           | core   | `ok` wrapper for Result type returns                                                                      |

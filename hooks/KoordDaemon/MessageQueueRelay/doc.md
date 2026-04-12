@@ -26,25 +26,28 @@ It does **not** fire when:
 
 1. Checks `accepts()`: only proceeds for `tool_name === "Bash"`
 2. Tests if the Bash command contains the `MQ_WATCHER_MARKER` string
-3. If the watcher output is empty (timeout), returns a `continueOk()` with a respawn directive
+3. If the watcher output is empty (timeout), returns `ok({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "..." } })` with a respawn directive
 4. If the watcher output contains a message, parses it as JSON (falling back to raw text)
 5. Extracts the session ID from the `--session` argument in the command
 6. Builds a message relay containing the message body and a respawn command
-7. Returns `continueOk()` with context instructing the agent to process the message and respawn the watcher
+7. Returns `ok({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "..." } })` instructing the agent to process the message and respawn the watcher
 
 ```typescript
 // Parse the message from watcher stdout
 const message = parseWatcherOutput(responseText);
 
-return ok(continueOk(
-  [
-    "## Message Queue: New Message Received",
-    `**Message${from}:**`,
-    message.body,
-    "**IMPORTANT: After processing this message, immediately respawn the watcher:**",
-    respawnCmd,
-  ].join("\n"),
-));
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: [
+      "## Message Queue: New Message Received",
+      `**Message${from}:**`,
+      message.body,
+      "**IMPORTANT: After processing this message, immediately respawn the watcher:**",
+      respawnCmd,
+    ].join("\n"),
+  },
+});
 ```
 
 ## Examples
@@ -62,5 +65,4 @@ return ok(continueOk(
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `result` | core | `ok()` for Result wrapping |
-| `types/hook-outputs` | core | `continueOk()` for continue output with context |
 | `KoordDaemon/shared` | shared | `MQ_WATCHER_MARKER` constant for command detection |

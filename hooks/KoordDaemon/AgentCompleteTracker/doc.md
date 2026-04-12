@@ -31,12 +31,12 @@ It does **not** fire when:
 3. Extracts `thread_id` from `tool_output` and top-level input fields using `extractThreadIdFromOutput`
 4. Resolves daemon URL from `KOORD_DAEMON_URL` env var, falling back to settings.json
 5. POSTs `{ thread_id }` to `{daemonUrl}/complete` with a 3-second timeout
-6. Returns `continueOk()` regardless of success or failure (never blocks)
+6. Returns `ok({})` regardless of success or failure (never blocks)
 
 ```typescript
 // Skip spawn events — those are handled by AgentSpawnTracker
 if (input.tool_input.run_in_background === true) {
-  return ok(continueOk());
+  return ok({});
 }
 
 const threadId = extractThreadIdFromOutput(record);
@@ -53,14 +53,13 @@ const body = JSON.stringify({ thread_id: threadId });
 
 ### Example 2: Agent spawn event (skipped)
 
-> The Agent tool is invoked with `run_in_background: true` to spawn a new background agent. AgentCompleteTracker detects the spawn flag and immediately returns `continueOk()`, leaving the notification to AgentSpawnTracker.
+> The Agent tool is invoked with `run_in_background: true` to spawn a new background agent. AgentCompleteTracker detects the spawn flag and immediately returns `ok({})`, leaving the notification to AgentSpawnTracker.
 
 ## Dependencies
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `result` | core | `ok()` for Result wrapping |
-| `types/hook-outputs` | core | `continueOk()` for non-blocking continue output |
 | `fetch` | adapter | `safeFetch` for HTTP POST with timeout |
 | `KoordDaemon/shared` | shared | `extractThreadIdFromOutput`, `readKoordConfig`, `defaultReadFileOrNull` |
 | `paths` | lib | Path resolution utilities |

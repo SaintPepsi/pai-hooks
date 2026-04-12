@@ -5,8 +5,8 @@
  * Used by SecurityValidator (load + validate) and hardening-mcp (read + write).
  */
 
-import { Schema } from "effect";
 import { safeJsonParse } from "@hooks/core/adapters/json";
+import { Schema } from "effect";
 
 // ─── Pattern entry ────────────────────────────────────────────────────────
 

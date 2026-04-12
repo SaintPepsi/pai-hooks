@@ -1,11 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { defaultDedupDeps, isDuplicate, stableHash, type DedupDeps } from "@hooks/core/dedup";
+import { type DedupDeps, defaultDedupDeps, isDuplicate, stableHash } from "@hooks/core/dedup";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
 function makeToolInput(toolName: string, toolInput: Record<string, string> = {}): ToolHookInput {
-  return { session_id: "test-sess", tool_name: toolName, tool_input: toolInput };
+  return {
+    session_id: "test-sess",
+    tool_name: toolName,
+    tool_input: toolInput,
+  };
 }
 
 const mockDeps = (overrides: Partial<DedupDeps> = {}): DedupDeps => ({
@@ -18,8 +22,16 @@ const mockDeps = (overrides: Partial<DedupDeps> = {}): DedupDeps => ({
 
 describe("stableHash", () => {
   it("produces same hash for same object regardless of key order", () => {
-    const a: ToolHookInput = { session_id: "s1", tool_name: "Bash", tool_input: { z: "1", a: "2" } };
-    const b: ToolHookInput = { session_id: "s1", tool_name: "Bash", tool_input: { a: "2", z: "1" } };
+    const a: ToolHookInput = {
+      session_id: "s1",
+      tool_name: "Bash",
+      tool_input: { z: "1", a: "2" },
+    };
+    const b: ToolHookInput = {
+      session_id: "s1",
+      tool_name: "Bash",
+      tool_input: { a: "2", z: "1" },
+    };
     expect(stableHash("hook", a)).toBe(stableHash("hook", b));
   });
 
@@ -35,8 +47,16 @@ describe("stableHash", () => {
   });
 
   it("handles nested objects with stable ordering", () => {
-    const a: ToolHookInput = { session_id: "s1", tool_name: "Write", tool_input: { file_path: "/a", content: "x" } };
-    const b: ToolHookInput = { session_id: "s1", tool_name: "Write", tool_input: { content: "x", file_path: "/a" } };
+    const a: ToolHookInput = {
+      session_id: "s1",
+      tool_name: "Write",
+      tool_input: { file_path: "/a", content: "x" },
+    };
+    const b: ToolHookInput = {
+      session_id: "s1",
+      tool_name: "Write",
+      tool_input: { content: "x", file_path: "/a" },
+    };
     expect(stableHash("Hook", a)).toBe(stableHash("Hook", b));
   });
 });
@@ -157,7 +177,7 @@ describe("defaultDedupDeps", () => {
     const lockPath = `/tmp/pai-dedup-test-${Date.now()}-${Math.random().toString(36).slice(2)}.lock`;
     expect(deps.tryClaimLock(lockPath)).toBe(true);
     // Cleanup
-    require("fs").unlinkSync(lockPath);
+    require("node:fs").unlinkSync(lockPath);
   });
 
   it("tryClaimLock returns false for an existing lock file", () => {
@@ -165,6 +185,6 @@ describe("defaultDedupDeps", () => {
     const lockPath = `/tmp/pai-dedup-test-dup-${Date.now()}.lock`;
     deps.tryClaimLock(lockPath); // first claim
     expect(deps.tryClaimLock(lockPath)).toBe(false); // duplicate
-    require("fs").unlinkSync(lockPath);
+    require("node:fs").unlinkSync(lockPath);
   });
 });

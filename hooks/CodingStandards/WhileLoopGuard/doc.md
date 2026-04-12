@@ -30,8 +30,8 @@ It does **not** fire when:
 4. For **Edit**: reads the existing file, simulates the edit (replacing `old_string` with `new_string`), and checks the resulting content
 5. Strips comments (single-line `//`, block `/* */`, hash `#`) and string literals (single, double, backtick) from the content
 6. Tests the stripped content for `\bwhile\b` regex match
-7. If a while loop is found, returns `block` with a reason explaining the violation and suggesting alternatives
-8. If no while loop is found, returns `continue`
+7. If a while loop is found, returns a `SyncHookJSONOutput` with `hookSpecificOutput.permissionDecision: "deny"` (R4 PreToolUse block) and a `permissionDecisionReason` explaining the violation and suggesting alternatives
+8. If no while loop is found, returns `{ continue: true }`
 
 ```typescript
 // Core detection (after stripping comments and strings)
@@ -56,7 +56,8 @@ function containsWhileLoop(strippedCode: string): boolean {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | `readFile` for reading existing file content during Edit state-checking |
-| `core/result` | core | `ok()` for Result-based returns |
+| Dependency                       | Type      | Purpose                                                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | `readFile` for reading existing file content during Edit state-checking                                                                                               |
+| `core/result`                    | core      | `ok()` for Result-based returns                                                                                                                                       |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

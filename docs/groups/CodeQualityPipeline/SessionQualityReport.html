@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1903,7 +1916,13 @@ At session end, read all stored baselines for the session, aggregate them into a
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
 // Report output path structure
-const qualityDir = join(deps.baseDir, "MEMORY", "LEARNING", "QUALITY", `${time.year}-${time.month}`);
+const qualityDir = join(
+  deps.baseDir,
+  "MEMORY",
+  "LEARNING",
+  "QUALITY",
+  `${time.year}-${time.month}`,
+);
 const filename = `quality-${time.year}${time.month}${time.day}-${time.hours}${time.minutes}.md`;
 deps.writeFile(join(qualityDir, filename), report);</div>
         </div>
@@ -1946,6 +1965,7 @@ deps.writeFile(join(qualityDir, filename), report);</div>
       <table class="tbl">
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> union type for execute return</td></tr>
           <tr><td><code>time</code></td><td>lib</td><td>Provides local date/time components for report filenames and timestamps</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td>Reads baseline store and writes the report file</td></tr>
         </tbody>

@@ -2,7 +2,7 @@
 
 **Event:** PostToolUse (matcher: `CronCreate`)
 **Contract:** `CronCreate.contract.ts`
-**Output:** Silent (no context added to conversation)
+**Output:** `SyncHookJSONOutput` — silent no-op (`ok({})`), no context added to conversation
 
 Persists new cron entries to `MEMORY/STATE/crons/{sessionId}.json` when `CronCreate` tool is called.
 Reads schedule from `tool_input.cron` (falls back to `tool_input.schedule`), cron ID from

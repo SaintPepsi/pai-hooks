@@ -16,7 +16,7 @@
  */
 
 import { join } from "node:path";
-import { fileExists, readFile, writeFile, appendFile, removeFile } from "@hooks/core/adapters/fs";
+import { appendFile, fileExists, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import { spawnBackground } from "@hooks/core/adapters/process";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -52,7 +52,11 @@ export interface SpawnAgentDeps {
   writeFile: (path: string, content: string) => Result<void, ResultError>;
   appendFile: (path: string, content: string) => Result<void, ResultError>;
   removeFile: (path: string) => Result<void, ResultError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
+  spawnBackground: (
+    cmd: string,
+    args: string[],
+    opts?: { cwd?: string },
+  ) => Result<void, ResultError>;
   runnerPath: string;
   stderr: (msg: string) => void;
 }
@@ -127,7 +131,7 @@ export function spawnAgent(
     source,
     reason,
   });
-  deps.appendFile(logPath, logEntry + "\n");
+  deps.appendFile(logPath, `${logEntry}\n`);
 
   // 4. Build runner config and spawn
   const runnerConfig = {

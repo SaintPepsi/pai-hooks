@@ -14,6 +14,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   ensureDir,
   fileExists,
@@ -26,11 +27,10 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { runArticleWriter } from "@hooks/hooks/WorkLifecycle/ArticleWriter/run-article-writer";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import { runArticleWriter } from "@hooks/hooks/WorkLifecycle/ArticleWriter/run-article-writer";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -297,7 +297,7 @@ const defaultDeps: ArticleWriterDeps = {
   stderr: defaultStderr,
 };
 
-export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, ArticleWriterDeps> = {
+export const ArticleWriter: SyncHookContract<SessionEndInput, ArticleWriterDeps> = {
   name: "ArticleWriter",
   event: "SessionEnd",
 
@@ -305,11 +305,14 @@ export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, Arti
     return !!input.session_id;
   },
 
-  execute(input: SessionEndInput, deps: ArticleWriterDeps): Result<SilentOutput, ResultError> {
+  execute(
+    input: SessionEndInput,
+    deps: ArticleWriterDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     // Gate 1: Website repo must exist on disk
     if (!hasWebsiteRepo(deps)) {
       deps.stderr("[ArticleWriter] Website repo not found, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const articlesDir = join(deps.baseDir, "MEMORY/ARTICLES");
@@ -319,7 +322,7 @@ export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, Arti
     if (deps.fileExists(lockPath)) {
       if (isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) {
         deps.stderr("[ArticleWriter] Agent already running (lock fresh), skipping");
-        return ok({ type: "silent" });
+        return ok({});
       }
       deps.stderr("[ArticleWriter] Cleaning up stale lock file");
       deps.removeFile(lockPath);
@@ -328,21 +331,21 @@ export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, Arti
     // Gate 3: Substance — session must have real work with checked criteria
     if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) {
       deps.stderr("[ArticleWriter] Session had no substantial work, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Ensure articles directory
     const ensureResult = deps.ensureDir(articlesDir);
     if (!ensureResult.ok) {
       deps.stderr(`[ArticleWriter] Failed to create articles dir: ${ensureResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Spawn agent via shared infrastructure (handles lock, log, background spawn)
     deps.runArticleWriter(input.session_id);
 
     deps.stderr("[ArticleWriter] Spawned article writing agent");
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

@@ -18,8 +18,8 @@ import { parseArgs } from "@hooks/cli/core/args";
 import type { PaihError } from "@hooks/cli/core/error";
 import { PaihErrorCode } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
-import { execSyncSafe } from "@hooks/core/adapters/process";
 import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
+import { execSyncSafe } from "@hooks/core/adapters/process";
 
 // ─── Version ────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,15 @@ Flags:
 
 // ─── Known Commands ─────────────────────────────────────────────────────────
 
-const KNOWN_COMMANDS = new Set(["install", "uninstall", "update", "verify", "list", "catalog", "inspect"]);
+const KNOWN_COMMANDS = new Set([
+  "install",
+  "uninstall",
+  "update",
+  "verify",
+  "list",
+  "catalog",
+  "inspect",
+]);
 
 // ─── Exit Code Mapping ──────────────────────────────────────────────────────
 
@@ -113,7 +121,11 @@ export function main(argv: string[]): {
 
   // Unknown command
   if (!KNOWN_COMMANDS.has(command)) {
-    return { exitCode: 1, output: `Unknown command: ${command}`, stream: "stderr" };
+    return {
+      exitCode: 1,
+      output: `Unknown command: ${command}`,
+      stream: "stderr",
+    };
   }
 
   // Route to subcommand
@@ -133,7 +145,11 @@ export function main(argv: string[]): {
 
 function routeCommand(
   command: string,
-  args: { command: string; names: string[]; flags: Record<string, boolean | string> },
+  args: {
+    command: string;
+    names: string[];
+    flags: Record<string, boolean | string>;
+  },
 ): Result<string, PaihError> {
   const deps = makeDefaultDeps();
   switch (command) {
@@ -151,11 +167,16 @@ function routeCommand(
       return catalog(args, deps, deps.cwd());
     case "inspect":
       return inspect(args, {
-        readFile: (p) => { const r = deps.readFile(p); return r.ok ? r.value : null; },
+        readFile: (p) => {
+          const r = deps.readFile(p);
+          return r.ok ? r.value : null;
+        },
         exists: (p) => deps.fileExists(p),
         cwd: () => deps.cwd(),
         getBranch: (dir) => {
-          const r = execSyncSafe("git rev-parse --abbrev-ref HEAD", { cwd: dir });
+          const r = execSyncSafe("git rev-parse --abbrev-ref HEAD", {
+            cwd: dir,
+          });
           return r.ok ? r.value.trim() || null : null;
         },
       });

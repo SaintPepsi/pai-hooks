@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  getPreToolUseDenyReason as denyReason,
+  isPreToolUseDeny as isDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import type { WhileLoopGuardDeps } from "@hooks/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.contract";
 import { WhileLoopGuard } from "@hooks/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.contract";
 
@@ -104,7 +108,7 @@ describe("WhileLoopGuard.execute — Write", () => {
     );
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("blocks while loop", () => {
@@ -112,10 +116,8 @@ describe("WhileLoopGuard.execute — Write", () => {
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("block");
-      if (result.value.type === "block") {
-        expect(result.value.reason).toContain("While loops are banned");
-      }
+      expect(isDeny(result.value)).toBe(true);
+      expect(denyReason(result.value)).toContain("While loops are banned");
     }
   });
 
@@ -123,77 +125,77 @@ describe("WhileLoopGuard.execute — Write", () => {
     const input = makeWriteInput("src/index.ts", "while(true) { break; }");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("blocks do...while loop", () => {
     const input = makeWriteInput("src/index.ts", "do { x++; } while (x < 10);");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("blocks Python while loop", () => {
     const input = makeWriteInput("script.py", "while True:\n    pass");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("blocks Rust while loop", () => {
     const input = makeWriteInput("main.rs", "while x > 0 {\n    x -= 1;\n}");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("continues when while is in a single-line comment", () => {
     const input = makeWriteInput("src/index.ts", "// while loops are bad\nconst x = 1;");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when while is in a multi-line comment", () => {
     const input = makeWriteInput("src/index.ts", "/* while (true) { } */\nconst x = 1;");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when while is in a string literal", () => {
     const input = makeWriteInput("src/index.ts", 'const msg = "wait a while";\nconst x = 1;');
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when while is in a template literal", () => {
     const input = makeWriteInput("src/index.ts", "const msg = `while loop`;\nconst x = 1;");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when while is in a Python # comment", () => {
     const input = makeWriteInput("script.py", "# while True:\nx = 1");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues for for loop", () => {
     const input = makeWriteInput("src/index.ts", "for (let i = 0; i < 10; i++) { process(i); }");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues for for...of loop", () => {
     const input = makeWriteInput("src/index.ts", "for (const item of items) { process(item); }");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });
 
@@ -206,7 +208,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     const input = makeEditInput("src/index.ts", "const y = 2", "const y = 3");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("blocks when edit introduces a while loop", () => {
@@ -215,7 +217,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     const input = makeEditInput("src/index.ts", "const y = 2", "while (true) { break; }");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("continues when edit removes while loop", () => {
@@ -228,7 +230,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     );
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when file has no while loops after edit", () => {
@@ -237,7 +239,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     const input = makeEditInput("src/index.ts", "const y = 2", "const y = 3");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("handles replace_all correctly", () => {
@@ -246,7 +248,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     const input = makeEditInput("src/index.ts", "while", "for", true);
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("fails open when file cannot be read (new file)", () => {
@@ -254,7 +256,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     const input = makeEditInput("src/new-file.ts", "placeholder", "const x = 1;");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("blocks when new file content (via Edit) contains while loop", () => {
@@ -262,7 +264,7 @@ describe("WhileLoopGuard.execute — Edit (state-check)", () => {
     const input = makeEditInput("src/new-file.ts", "placeholder", "while (true) { break; }");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 });
 
@@ -278,7 +280,7 @@ describe("WhileLoopGuard — edge cases", () => {
     );
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("blocks while inside a function body", () => {
@@ -290,22 +292,23 @@ describe("WhileLoopGuard — edge cases", () => {
     );
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   test("continues when while is only in single-quoted string", () => {
     const input = makeWriteInput("src/index.ts", "const msg = 'while we wait';");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("block reason includes file path", () => {
     const input = makeWriteInput("src/broken.ts", "while (true) {}");
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("src/broken.ts");
+    if (result.ok) {
+      expect(isDeny(result.value)).toBe(true);
+      expect(denyReason(result.value)).toContain("src/broken.ts");
     }
   });
 
@@ -317,7 +320,7 @@ describe("WhileLoopGuard — edge cases", () => {
     };
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when tool_input is null on Write", () => {
@@ -328,7 +331,7 @@ describe("WhileLoopGuard — edge cases", () => {
     };
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("continues when tool_input is a string on Write", () => {
@@ -339,7 +342,7 @@ describe("WhileLoopGuard — edge cases", () => {
     };
     const result = WhileLoopGuard.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });
 

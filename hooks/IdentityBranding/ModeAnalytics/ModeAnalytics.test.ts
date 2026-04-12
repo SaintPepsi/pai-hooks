@@ -4,6 +4,10 @@ import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ModeAnalytics, type ModeAnalyticsDeps } from "./ModeAnalytics.contract";
 
+function isSilent(output: Record<string, unknown>): boolean {
+  return Object.keys(output).length === 0;
+}
+
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
 const baseInput: SessionEndInput = {
@@ -47,7 +51,7 @@ describe("ModeAnalytics", () => {
       const deps = makeDeps();
       const result = ModeAnalytics.execute(baseInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(isSilent(result.value)).toBe(true);
     });
 
     test("calls CollectModeData.ts with correct path and timeout", () => {
@@ -112,7 +116,7 @@ describe("ModeAnalytics", () => {
       });
       const result = ModeAnalytics.execute(baseInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(isSilent(result.value)).toBe(true);
     });
 
     test("logs collection failure message", () => {
@@ -153,7 +157,7 @@ describe("ModeAnalytics", () => {
       });
       const result = ModeAnalytics.execute(baseInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(isSilent(result.value)).toBe(true);
     });
 
     test("logs dashboard failure message", () => {

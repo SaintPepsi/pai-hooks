@@ -132,7 +132,10 @@ function summarize(audits: FileAudit[]): AuditSummary {
     anyTypeTotal += audit.typeStrictness.violations.length;
 
     if (audit.qualityScore) {
-      scores.push({ path: audit.relativePath, score: audit.qualityScore.score });
+      scores.push({
+        path: audit.relativePath,
+        score: audit.qualityScore.score,
+      });
     }
   }
 

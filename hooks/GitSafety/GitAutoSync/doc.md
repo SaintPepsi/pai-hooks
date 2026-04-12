@@ -8,7 +8,7 @@ The hook includes safety measures: debouncing (skips if last auto-sync was withi
 
 ## Event
 
-`SessionEnd` — fires when a Claude Code session ends, performing a full git sync of the `~/.claude` directory. Always returns `silent` and never blocks session end.
+`SessionEnd` — fires when a Claude Code session ends, performing a full git sync of the `~/.claude` directory. Always returns a `SyncHookJSONOutput` silent no-op (`ok({})`) and never blocks session end.
 
 ## When It Fires
 
@@ -71,3 +71,4 @@ deps.spawnBackground("git", ["push", "origin", "main"], { cwd: deps.claudeDir })
 | `time` | lib | Provides local timestamps for commit messages |
 | `fs` | adapter | File operations for backups, lock detection, and stale file cleanup |
 | `process` | adapter | Executes git commands and spawns background push |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; SessionEnd silent no-op `ok({})` (R8 shape, post-SDK-refactor 1D) |

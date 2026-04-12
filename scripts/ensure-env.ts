@@ -19,7 +19,11 @@ import { addToZshrc } from "@hooks/install";
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
 export interface EnsureEnvDeps {
-  readFile: (path: string) => { ok: boolean; value?: string; error?: { message: string } };
+  readFile: (path: string) => {
+    ok: boolean;
+    value?: string;
+    error?: { message: string };
+  };
   writeFile: (path: string, content: string) => { ok: boolean };
   fileExists: (path: string) => boolean;
   stderr: (msg: string) => void;

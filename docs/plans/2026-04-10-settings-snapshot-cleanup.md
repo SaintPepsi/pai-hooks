@@ -10,15 +10,18 @@ SettingsGuard creates snapshot files in `/tmp/` before every Bash command but ne
 ## Changes Made
 
 ### SettingsRevert: snapshot lifecycle cleanup
+
 - Delete snapshot files after every comparison (revert or no-change)
 - Probabilistic sweep (1-in-20) removes orphaned snapshots from dead sessions
 - Added `removeFile` and `readDir` to deps
 
 ### SettingsGuard: write failure detection
+
 - Check `writeFile` result on snapshot writes (was silently discarded)
 - Warn on stderr if snapshot write fails
 
 ### Housekeeping
+
 - `.hardening-session` removed from git, added to `.gitignore`
 
 ## Future Considerations

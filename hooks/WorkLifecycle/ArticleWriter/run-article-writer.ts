@@ -9,15 +9,15 @@
  */
 
 import { join } from "node:path";
-import { buildArticlePrompt } from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
 import { ensureDir, fileExists } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
-import { spawnAgent, type SpawnAgentConfig, type SpawnAgentDeps } from "@hooks/lib/spawn-agent";
-import { err, ok, type Result } from "@hooks/core/result";
 import { processSpawnFailed, type ResultError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import { buildArticlePrompt } from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { getPaiDir } from "@hooks/lib/paths";
+import { type SpawnAgentConfig, type SpawnAgentDeps, spawnAgent } from "@hooks/lib/spawn-agent";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -53,10 +53,7 @@ const defaultDeps: RunArticleWriterDeps = {
 
 // ─── Repo Resolution ───────────────────────────────────────────────────────
 
-function resolveRepoDir(
-  repoSlug: string,
-  deps: RunArticleWriterDeps,
-): Result<string, ResultError> {
+function resolveRepoDir(repoSlug: string, deps: RunArticleWriterDeps): Result<string, ResultError> {
   const localPath = join(deps.cacheDir, repoSlug);
 
   if (deps.fileExists(localPath)) {

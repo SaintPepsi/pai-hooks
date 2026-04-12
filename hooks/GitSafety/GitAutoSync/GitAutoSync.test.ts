@@ -55,7 +55,7 @@ describe("GitAutoSync contract", () => {
     const result = GitAutoSync.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toBeDefined();
     }
     expect(stderrMessages.some((m) => m.includes("index.lock exists"))).toBe(true);
   });
@@ -98,7 +98,7 @@ describe("GitAutoSync contract", () => {
     const result = GitAutoSync.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toBeDefined();
     }
     expect(stderrMessages.some((m) => m.includes("index.lock exists"))).toBe(true);
   });
@@ -128,7 +128,7 @@ describe("GitAutoSync contract", () => {
     const result = GitAutoSync.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toBeDefined();
     }
   });
 });

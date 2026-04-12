@@ -1,6 +1,14 @@
 import { describe, expect, it } from "bun:test";
+import {
+  buildChildEnv,
+  exec,
+  execSyncSafe,
+  getEnv,
+  shellForPlatform,
+  spawnDetached,
+  spawnSyncSafe,
+} from "@hooks/core/adapters/process";
 import { ErrorCode } from "@hooks/core/error";
-import { exec, execSyncSafe, getEnv, shellForPlatform, spawnDetached, spawnSyncSafe } from "@hooks/core/adapters/process";
 
 // ─── shellForPlatform ────────────────────────────────────────────────────────
 
@@ -95,11 +103,18 @@ describe("execSyncSafe", () => {
 // ─── spawnSyncSafe ──────────────────────────────────────────────────────────
 
 describe("spawnSyncSafe", () => {
-  it("returns stdout and exit code", () => {
+  it("returns stdout, stderr, and exit code", () => {
     const r = spawnSyncSafe("echo", ["hello"]);
     expect(r.ok).toBe(true);
     expect(r.value!.stdout.trim()).toBe("hello");
+    expect(r.value!.stderr).toBe("");
     expect(r.value!.exitCode).toBe(0);
+  });
+
+  it("captures stderr from child", () => {
+    const r = spawnSyncSafe("sh", ["-c", "echo boom >&2"]);
+    expect(r.ok).toBe(true);
+    expect(r.value!.stderr.trim()).toBe("boom");
   });
 
   it("captures non-zero exit code", () => {
@@ -112,6 +127,123 @@ describe("spawnSyncSafe", () => {
     const r = spawnSyncSafe("pwd", [], { cwd: "/tmp" });
     expect(r.ok).toBe(true);
     expect(r.value!.stdout.trim()).toMatch(/\/tmp$/);
+  });
+
+  it("delivers stdin payload to child via input option", () => {
+    // `cat` echoes stdin to stdout — if `input` is plumbed through we
+    // should see the payload verbatim on stdout.
+    const r = spawnSyncSafe("cat", [], { input: "hello-stdin" });
+    expect(r.ok).toBe(true);
+    expect(r.value!.stdout).toBe("hello-stdin");
+  });
+
+  it("strips CLAUDECODE from child env by default", () => {
+    // spawnSyncSafe should route through buildChildEnv when the caller
+    // does not pass an explicit env override. Child should not see it.
+    const prior = process.env.CLAUDECODE;
+    process.env.CLAUDECODE = "1";
+    try {
+      const r = spawnSyncSafe("sh", ["-c", "echo CC=${CLAUDECODE:-unset}"]);
+      expect(r.ok).toBe(true);
+      expect(r.value!.stdout.trim()).toBe("CC=unset");
+    } finally {
+      if (prior === undefined) delete process.env.CLAUDECODE;
+      else process.env.CLAUDECODE = prior;
+    }
+  });
+
+  it("merges explicit env override on top of buildChildEnv stripping", () => {
+    // opts.env keys are merged on top of the sanitized env — custom keys
+    // come through, but CLAUDECODE vars are always stripped regardless.
+    const r = spawnSyncSafe("sh", ["-c", "echo CUSTOM=$PAI_TEST_KEY"], {
+      env: { PAI_TEST_KEY: "pai-value", PATH: process.env.PATH },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value!.stdout.trim()).toBe("CUSTOM=pai-value");
+  });
+
+  it("strips CLAUDECODE even when caller passes explicit env", () => {
+    // buildChildEnv always runs — re-injecting CLAUDECODE via opts.env
+    // is not possible because overrides are merged after stripping but
+    // the strip list applies to the base process.env, not the overrides.
+    // If the caller explicitly sets CLAUDECODE in overrides, it wins
+    // (that is intentional — see buildChildEnv semantics). But if it
+    // is only in process.env, it must be stripped.
+    const prior = process.env.CLAUDECODE;
+    process.env.CLAUDECODE = "1";
+    try {
+      const r = spawnSyncSafe("sh", ["-c", "echo CC=${CLAUDECODE:-unset}"], {
+        env: { PAI_TEST_KEY: "value", PATH: process.env.PATH },
+      });
+      expect(r.ok).toBe(true);
+      expect(r.value!.stdout.trim()).toBe("CC=unset");
+    } finally {
+      if (prior === undefined) delete process.env.CLAUDECODE;
+      else process.env.CLAUDECODE = prior;
+    }
+  });
+
+  it("returns err for nonexistent command (ENOENT)", () => {
+    // spawnSync sets result.error on ENOENT instead of throwing.
+    // spawnSyncSafe must detect and re-throw so tryCatch wraps it as err().
+    const r = spawnSyncSafe("pai-nonexistent-binary-xyz-abc", []);
+    expect(r.ok).toBe(false);
+    expect(r.error!.code).toBe(ErrorCode.ProcessSpawnFailed);
+  });
+});
+
+// ─── buildChildEnv ──────────────────────────────────────────────────────────
+
+describe("buildChildEnv", () => {
+  it("strips CLAUDECODE from the returned env", () => {
+    const prior = process.env.CLAUDECODE;
+    process.env.CLAUDECODE = "1";
+    try {
+      const env = buildChildEnv();
+      expect(env.CLAUDECODE).toBeUndefined();
+    } finally {
+      if (prior === undefined) delete process.env.CLAUDECODE;
+      else process.env.CLAUDECODE = prior;
+    }
+  });
+
+  it("strips CLAUDE_CODE and CLAUDE_AGENT_SDK too", () => {
+    const priorCc = process.env.CLAUDE_CODE;
+    const priorSdk = process.env.CLAUDE_AGENT_SDK;
+    process.env.CLAUDE_CODE = "x";
+    process.env.CLAUDE_AGENT_SDK = "y";
+    try {
+      const env = buildChildEnv();
+      expect(env.CLAUDE_CODE).toBeUndefined();
+      expect(env.CLAUDE_AGENT_SDK).toBeUndefined();
+    } finally {
+      if (priorCc === undefined) delete process.env.CLAUDE_CODE;
+      else process.env.CLAUDE_CODE = priorCc;
+      if (priorSdk === undefined) delete process.env.CLAUDE_AGENT_SDK;
+      else process.env.CLAUDE_AGENT_SDK = priorSdk;
+    }
+  });
+
+  it("preserves unrelated env vars like PATH", () => {
+    const env = buildChildEnv();
+    expect(env.PATH).toBe(process.env.PATH ?? "");
+  });
+
+  it("applies overrides on top of sanitized env", () => {
+    const env = buildChildEnv({ PAI_OVERRIDE_KEY: "override-value" });
+    expect(env.PAI_OVERRIDE_KEY).toBe("override-value");
+  });
+
+  it("removes keys explicitly set to undefined via overrides", () => {
+    const env = buildChildEnv({ PATH: undefined });
+    expect(env.PATH).toBeUndefined();
+  });
+
+  it("override CLAUDECODE wins if caller explicitly sets it", () => {
+    // Callers can still intentionally re-inject CLAUDECODE via overrides
+    // if they genuinely need it — the strip is a safe default, not a ban.
+    const env = buildChildEnv({ CLAUDECODE: "explicit" });
+    expect(env.CLAUDECODE).toBe("explicit");
   });
 });
 

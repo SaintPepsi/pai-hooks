@@ -36,15 +36,17 @@ It does **not** fire when:
 6. Increments the block count and returns a `block` decision
 
 ```typescript
-// Core enforcer flow
+// Core enforcer flow (R8 silent + R5 block via top-level decision/reason)
 const pending = deps.readPending(flagFile);
 if (blockCount >= MAX_BLOCKS) {
   deps.writeReview(reviewPath, buildBlockLimitReview(pending, blockCount));
   deps.removeFlag(flagFile);
-  return ok({ type: "silent" });
+  return ok({}); // R8 — bare empty object, SDK treats as silent skip
 }
 const reason = `${opener}\n\nModified files without documentation updates:\n${fileList}\n\n${suggestions}`;
-return ok({ type: "block", decision: "block", reason });
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason });
 ```
 
 ## Examples
@@ -59,8 +61,9 @@ return ok({ type: "block", decision: "block", reason });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `narrative-reader` | lib | Picks escalating narrative tone for block messages |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook`, `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `buildDocSuggestions` |
-| `result` | core | `ok` wrapper for Result type returns |
+| Dependency                         | Type      | Purpose                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `narrative-reader`                 | lib       | Picks escalating narrative tone for block messages                                                                                                                                                                                                                                                                                    |
+| `DocObligationStateMachine.shared` | shared    | Provides `projectHasHook`, `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `buildDocSuggestions`                                                                                                                                                                                                              |
+| `result`                           | core      | `ok` wrapper for Result type returns                                                                                                                                                                                                                                                                                                  |
+| `@anthropic-ai/claude-agent-sdk`   | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |

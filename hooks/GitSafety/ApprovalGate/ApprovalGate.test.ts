@@ -4,7 +4,11 @@ import { processExecFailed } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  getPreToolUseAdvisory,
+  getPreToolUseDenyReason,
+  isPreToolUseDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import { ApprovalGate, type ApprovalGateDeps } from "./ApprovalGate.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -40,8 +44,6 @@ function makeDeps(opts: { ciResponse?: string | "error" } = {}): ApprovalGateDep
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
-
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("ApprovalGate", () => {
@@ -67,77 +69,63 @@ describe("ApprovalGate", () => {
 
   it("continues on non-approve commands", () => {
     const deps = makeDeps();
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review 441 --comment -b 'lgtm'"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review 441 --comment -b 'lgtm'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on plain git commands", () => {
     const deps = makeDeps();
-    const result = ApprovalGate.execute(makeInput("git commit -m 'test'"), deps) as GateResult;
+    const result = ApprovalGate.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on gh pr merge commands (handled by MergeGate)", () => {
     const deps = makeDeps();
-    const result = ApprovalGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── CI passing ──
 
   it("continues with verification reminder when CI passing", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review 441 --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect(result.value.additionalContext).toContain("Before approving PR #441");
-    expect(result.value.additionalContext).toContain("bun test");
-    expect(result.value.additionalContext).toContain("delegated reviewer agent");
+    expect(isPreToolUseDeny(result.value)).toBe(false);
+    const advisory = getPreToolUseAdvisory(result.value);
+    expect(advisory).toContain("Before approving PR #441");
+    expect(advisory).toContain("bun test");
+    expect(advisory).toContain("delegated reviewer agent");
   });
 
   // ── CI failing ──
 
   it("blocks when CI has FAILURE checks", () => {
     const deps = makeDeps({ ciResponse: CI_ONE_FAILURE });
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review 441 --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("APPROVAL BLOCKED");
-    expect(result.value.reason).toContain("tests: FAILURE");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("APPROVAL BLOCKED");
+    expect(getPreToolUseDenyReason(result.value)).toContain("tests: FAILURE");
   });
 
   // ── CI pending ──
 
   it("continues with CI-pending warning when checks are PENDING", () => {
     const deps = makeDeps({ ciResponse: CI_ONE_PENDING });
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review 441 --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect(result.value.additionalContext).toContain("CI checks are still running");
+    expect(isPreToolUseDeny(result.value)).toBe(false);
+    expect(getPreToolUseAdvisory(result.value)).toContain("CI checks are still running");
   });
 
   // ── Fail-open ──
@@ -150,13 +138,10 @@ describe("ApprovalGate", () => {
         stderrMessages.push(msg);
       },
     };
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review 441 --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("WARNING"))).toBe(true);
   });
 
@@ -164,28 +149,18 @@ describe("ApprovalGate", () => {
 
   it("extracts PR number from `gh pr review 441 --approve`", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review 441 --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect(result.value.additionalContext).toContain("PR #441");
+    expect(getPreToolUseAdvisory(result.value)).toContain("PR #441");
   });
 
   it("extracts PR number from `gh pr review --approve 441`", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review --approve 441"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review --approve 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect(result.value.additionalContext).toContain("PR #441");
+    expect(getPreToolUseAdvisory(result.value)).toContain("PR #441");
   });
 
   it("falls back to gh pr view when no PR number in command", () => {
@@ -197,12 +172,10 @@ describe("ApprovalGate", () => {
       },
       stderr: () => {},
     };
-    const result = ApprovalGate.execute(makeInput("gh pr review --approve"), deps) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect(result.value.additionalContext).toContain("PR #441");
+    expect(getPreToolUseAdvisory(result.value)).toContain("PR #441");
   });
 
   // ── Logs to stderr ──
@@ -227,13 +200,10 @@ describe("ApprovalGate", () => {
         stderrMessages.push(msg);
       },
     };
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review --approve"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
   });
 });

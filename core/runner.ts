@@ -1,7 +1,7 @@
 /**
  * HookRunner — The shared pipeline that replaces 30+ lines of boilerplate per hook.
  *
- * Pipeline: stdin → parse → accepts → execute → format → exit
+ * Pipeline: stdin → parse → accepts → execute → validate → serialize → exit
  *
  * This file and the adapters are the ONLY boundary layers where
  * uncaught errors are handled. Everything above (contracts) uses pure Result pipelines.
@@ -10,12 +10,15 @@
 import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
 import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
+import { isDuplicate } from "@hooks/core/dedup";
 import { ErrorCode, jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
-import { isDuplicate } from "@hooks/core/dedup";
+import {
+  parseHookInput,
+  getEventType as schemaGetEventType,
+} from "@hooks/core/types/hook-input-schema";
 import type { HookEventType, HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
-import type { HookOutput } from "@hooks/core/types/hook-outputs";
-import { getEventType as schemaGetEventType, parseHookInput } from "@hooks/core/types/hook-input-schema";
+import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
 
 // ─── Event Resolution ──────────────────────────────────────────────────────
 
@@ -28,64 +31,6 @@ function resolveEvent(contractEvent: HookEventType | HookEventType[], input: Hoo
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right);
   return contractEvent[0];
-}
-
-// ─── Output Formatting ──────────────────────────────────────────────────────
-
-/**
- * Format a HookOutput to the stdout JSON that Claude Code expects.
- *
- * Claude Code reads additionalContext from hookSpecificOutput, not the top level.
- * See: https://code.claude.com/docs/en/hooks#posttooluse-decision-control
- *
- * Output shapes by type:
- * - continue (no context) → { continue: true }
- * - continue (with context) → { hookSpecificOutput: { hookEventName, additionalContext } }
- * - block (PreToolUse) → { hookSpecificOutput: { hookEventName, permissionDecision: "deny", permissionDecisionReason } }
- * - block (PostToolUse+) → { decision: "block", reason }
- * - ask → { decision: "ask", message }
- * - context → raw string (no JSON wrapper)
- * - silent → no output
- */
-function formatOutput(output: HookOutput, eventName: string): string | null {
-  switch (output.type) {
-    case "continue": {
-      if (output.additionalContext !== undefined) {
-        return JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: eventName,
-            additionalContext: output.additionalContext,
-          },
-        });
-      }
-      return JSON.stringify({ continue: true });
-    }
-    case "block": {
-      if (eventName === "PreToolUse") {
-        return JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: "PreToolUse",
-            permissionDecision: "deny",
-            permissionDecisionReason: output.reason,
-          },
-        });
-      }
-      return JSON.stringify({ decision: "block", reason: output.reason });
-    }
-    case "ask":
-      return JSON.stringify({ decision: "ask", message: output.message });
-    case "updatedInput":
-      return JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: eventName,
-          updatedInput: output.updatedInput,
-        },
-      });
-    case "context":
-      return output.content;
-    case "silent":
-      return null;
-  }
 }
 
 // ─── JSON Parsing ────────────────────────────────────────────────────────────
@@ -129,12 +74,20 @@ function makeEmitLog(
   contract: { name: string; event: HookEventType | HookEventType[] },
   sessionId: string | undefined,
   input?: HookInput,
-): (status: HookLogEntry["status"], outputType?: string, error?: string) => void {
-  return (status, outputType?, error?) => {
+): (
+  status: HookLogEntry["status"],
+  error?: string,
+  outputType?: HookLogEntry["output_type"],
+) => void {
+  return (status, error?, outputType?) => {
     io.log({
       ts: new Date().toISOString(),
       hook: contract.name,
-      event: input ? resolveEvent(contract.event, input) : (Array.isArray(contract.event) ? contract.event[0] : contract.event),
+      event: input
+        ? resolveEvent(contract.event, input)
+        : Array.isArray(contract.event)
+          ? contract.event[0]
+          : contract.event,
       status,
       duration_ms: Math.round(performance.now() - io.startTime),
       session_id: sessionId,
@@ -147,13 +100,12 @@ function makeEmitLog(
 // ─── Shared Execute Pipeline ────────────────────────────────────────────────
 
 /**
- * The shared post-parse pipeline: accepts → dedup → execute → format → output.
+ * The shared post-parse pipeline: accepts → dedup → execute → validate → serialize → output.
  *
  * Both runHook and runHookWith call this after obtaining a parsed input.
- * Returns true if the pipeline completed normally, false if it exited early.
  */
-async function executePipeline<I extends HookInput, O extends HookOutput, D>(
-  contract: HookContract<I, O, D>,
+async function executePipeline<I extends HookInput, D>(
+  contract: HookContract<I, D>,
   input: I,
   io: PipelineIO,
   safeExit: () => void,
@@ -178,7 +130,7 @@ async function executePipeline<I extends HookInput, O extends HookOutput, D>(
 
   if (!result.ok) {
     io.writeErr(`[${contract.name}] error: ${result.error.message}`);
-    emitLog("error", undefined, result.error.message);
+    emitLog("error", result.error.message);
 
     if (opts?.handleSecurityBlock && result.error.code === ErrorCode.SecurityBlock) {
       io.exit(2);
@@ -189,12 +141,25 @@ async function executePipeline<I extends HookInput, O extends HookOutput, D>(
     return;
   }
 
-  const eventName = resolveEvent(contract.event, input);
-  const formatted = formatOutput(result.value, eventName);
-  if (formatted !== null) {
-    io.write(formatted);
+  // Validate against SDK schema (fail-open safety net)
+  const validated = validateHookOutput(result.value);
+  if (validated._tag === "Left") {
+    io.writeErr(`[${contract.name}] output validation failed: ${validated.left.message}`);
+    emitLog("error", `output validation: ${validated.left.message}`);
+    io.write(JSON.stringify({ continue: true }));
+    io.exit(0);
+    return;
   }
-  emitLog("ok", result.value.type);
+
+  // Direct serialization — contracts return SyncHookJSONOutput, no mapping needed
+  // Invariant: "{}" is the canonical silent/no-op shape and never carries semantic
+  // meaning. Suppressing it avoids writing empty output to Claude Code's stdin.
+  const json = JSON.stringify(result.value);
+  const hasOutput = json !== "{}";
+  if (hasOutput) {
+    io.write(json);
+  }
+  emitLog("ok", undefined, hasOutput ? "output" : "silent");
   io.exit(0);
 }
 
@@ -219,13 +184,9 @@ export interface RunHookOptions {
 
 /**
  * Run a hook contract with a pre-built input, skipping stdin.
- *
- * Use this when the shell hook reads and enriches stdin before
- * passing to the contract (e.g., ResponseTabReset parses the
- * transcript and attaches parsed data to the input).
  */
-export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
-  contract: HookContract<I, O, D>,
+export async function runHookWith<I extends HookInput, D>(
+  contract: HookContract<I, D>,
   input: I,
   options: Omit<RunHookOptions, "stdinOverride" | "stdinTimeout"> = {},
 ): Promise<void> {
@@ -234,7 +195,7 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
 
   await executePipeline(contract, input, io, safeExit).catch((e) => {
     io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
-    makeEmitLog(io, contract, undefined)("error", undefined, e instanceof Error ? e.message : String(e));
+    makeEmitLog(io, contract, undefined)("error", e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }
@@ -245,8 +206,8 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
  * This is the ONLY entry point hooks need. The .hook.ts file becomes:
  *   runHook(MyContract);
  */
-export async function runHook<I extends HookInput, O extends HookOutput, D>(
-  contract: HookContract<I, O, D>,
+export async function runHook<I extends HookInput, D>(
+  contract: HookContract<I, D>,
   options: RunHookOptions = {},
 ): Promise<void> {
   const io = createPipelineIO(options);
@@ -254,13 +215,10 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   const events = Array.isArray(contract.event) ? contract.event : [contract.event];
   const contractHandlesToolEvents = events.includes("PreToolUse") || events.includes("PostToolUse");
 
-  // Track whether the current input is a tool event (set after parsing)
   let inputIsToolEvent = false;
   let inputParsed = false;
 
   const safeExit = () => {
-    // Emit continue:true for tool events so Claude Code doesn't block.
-    // After parsing, use actual input type; before parsing, fall back to contract declaration.
     if (inputIsToolEvent || (contractHandlesToolEvents && !inputParsed)) {
       io.write(JSON.stringify({ continue: true }));
     }
@@ -268,7 +226,6 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   };
 
   const runStdinPipeline = async (): Promise<void> => {
-    // Step 1: Read stdin
     let rawResult: Result<string, ResultError>;
     if (options.stdinOverride !== undefined) {
       rawResult = ok(options.stdinOverride);
@@ -278,16 +235,15 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
     if (!rawResult.ok) {
       io.writeErr(`[${contract.name}] stdin: ${rawResult.error.message}`);
-      makeEmitLog(io, contract, undefined)("error", undefined, rawResult.error.message);
+      makeEmitLog(io, contract, undefined)("error", rawResult.error.message);
       safeExit();
       return;
     }
 
-    // Step 2: Parse JSON
     const inputResult = parseJson(rawResult.value);
     if (!inputResult.ok) {
       io.writeErr(`[${contract.name}] parse: ${inputResult.error.message}`);
-      makeEmitLog(io, contract, undefined)("error", undefined, inputResult.error.message);
+      makeEmitLog(io, contract, undefined)("error", inputResult.error.message);
       safeExit();
       return;
     }
@@ -296,26 +252,29 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     inputParsed = true;
     inputIsToolEvent = "tool_name" in inputResult.value;
 
-    // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
-    // Only flag when a tool-only contract receives non-tool input (multi-event contracts legitimately receive both)
     if (contractHandlesToolEvents && !inputIsToolEvent && events.length === 1) {
       const resolvedEvent = resolveEvent(contract.event, input);
       io.writeErr(
         `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
       );
-      makeEmitLog(io, contract, (input as HookInputBase).session_id, input)("error", undefined, "input missing tool_name");
+      makeEmitLog(
+        io,
+        contract,
+        (input as HookInputBase).session_id,
+        input,
+      )("error", "input missing tool_name");
       safeExit();
       return;
     }
 
-    // Steps 3-5: Shared pipeline
-    await executePipeline(contract, input, io, safeExit, { handleSecurityBlock: true });
+    await executePipeline(contract, input, io, safeExit, {
+      handleSecurityBlock: true,
+    });
   };
 
   await runStdinPipeline().catch((e) => {
-    // Top-level safety net — should never reach here if contracts use Result
     io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
-    makeEmitLog(io, contract, undefined)("error", undefined, e instanceof Error ? e.message : String(e));
+    makeEmitLog(io, contract, undefined)("error", e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }

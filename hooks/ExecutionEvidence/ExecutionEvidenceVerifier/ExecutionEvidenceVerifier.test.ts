@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ExecutionEvidenceVerifier } from "@hooks/hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.contract";
 import {
   buildReminder,
@@ -430,13 +430,13 @@ describe("ExecutionEvidenceVerifier contract", () => {
   it("returns continue without context for read-only commands", () => {
     const input = makeInput("git log --oneline", "abc123 fix: typo\ndef456 feat: add auth");
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.continue).toBe(true);
-      expect(r.value.additionalContext).toBeUndefined();
+      expect(r.value.hookSpecificOutput).toBeUndefined();
     }
   });
 
@@ -444,53 +444,61 @@ describe("ExecutionEvidenceVerifier contract", () => {
     const output = "To github.com:user/repo.git\n   abc1234..def5678  main -> main\n";
     const input = makeInput("git push origin main", output);
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.continue).toBe(true);
-      expect(r.value.additionalContext).toBeUndefined();
+      expect(r.value.hookSpecificOutput).toBeUndefined();
     }
   });
 
   it("injects additionalContext for thin output on state-changing command", () => {
     const input = makeInput("git push origin main", "");
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.continue).toBe(true);
-      expect(r.value.additionalContext).toBeDefined();
-      expect(r.value.additionalContext).toContain("EXECUTION EVIDENCE REQUIRED");
-      expect(r.value.additionalContext).toContain("git push origin main");
+      const hso = r.value.hookSpecificOutput;
+      expect(hso).toBeDefined();
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toBeDefined();
+        expect(hso.additionalContext).toContain("EXECUTION EVIDENCE REQUIRED");
+        expect(hso.additionalContext).toContain("git push origin main");
+      }
     }
   });
 
   it("injects additionalContext for null response on state-changing command", () => {
     const input = makeInput("git merge feature/auth", null);
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.additionalContext).toBeDefined();
-      expect(r.value.additionalContext).toContain("EXECUTION EVIDENCE REQUIRED");
+      const hso = r.value.hookSpecificOutput;
+      expect(hso).toBeDefined();
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toBeDefined();
+        expect(hso.additionalContext).toContain("EXECUTION EVIDENCE REQUIRED");
+      }
     }
   });
 
   it("returns continue without context for --help on state-changing command", () => {
     const input = makeInput("git push --help", "Usage: git push ...");
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
-      ContinueOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.additionalContext).toBeUndefined();
+      expect(r.value.hookSpecificOutput).toBeUndefined();
     }
   });
 });

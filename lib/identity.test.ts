@@ -50,7 +50,10 @@ function emptyDeps(): IdentityDeps {
 function missingFileDeps(): IdentityDeps {
   return {
     settingsPath: "/tmp/missing-settings.json",
-    readJson: () => ({ ok: false as const, error: fileNotFound("/tmp/missing-settings.json") }),
+    readJson: () => ({
+      ok: false as const,
+      error: fileNotFound("/tmp/missing-settings.json"),
+    }),
     fileExists: () => false,
   };
 }
@@ -78,7 +81,10 @@ describe("getIdentity", () => {
   it("returns defaults when settings file exists but cannot be parsed", () => {
     const corruptDeps: IdentityDeps = {
       settingsPath: "/tmp/corrupt-settings.json",
-      readJson: () => ({ ok: false as const, error: fileNotFound("/tmp/corrupt-settings.json") }),
+      readJson: () => ({
+        ok: false as const,
+        error: fileNotFound("/tmp/corrupt-settings.json"),
+      }),
       fileExists: () => true,
     };
     const identity = getIdentity(corruptDeps);

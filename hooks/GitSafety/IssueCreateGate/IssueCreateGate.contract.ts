@@ -9,18 +9,13 @@
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
-import {
-  block,
-  type BlockOutput,
-  type ContinueOutput,
-  continueOk,
-} from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -63,11 +58,7 @@ const defaultDeps: IssueCreateGateDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const IssueCreateGate: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  IssueCreateGateDeps
-> = {
+export const IssueCreateGate: SyncHookContract<ToolHookInput, IssueCreateGateDeps> = {
   name: "IssueCreateGate",
   event: "PreToolUse",
 
@@ -78,16 +69,22 @@ export const IssueCreateGate: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: IssueCreateGateDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
 
     if (!isIssueCreate(command)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     deps.stderr(`[IssueCreateGate] BLOCK: gh issue create detected — use submit_issue instead`);
 
-    return ok(block(BLOCK_MESSAGE));
+    return ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: BLOCK_MESSAGE,
+      },
+    });
   },
 
   defaultDeps,

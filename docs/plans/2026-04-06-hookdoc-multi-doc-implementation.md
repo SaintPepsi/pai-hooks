@@ -15,6 +15,7 @@
 ### Task 1: Extend Settings Types and Reader
 
 **Files:**
+
 - Modify: `hooks/ObligationStateMachines/HookDocStateMachine.shared.ts:47-105`
 - Test: `hooks/ObligationStateMachines/HookDocTracker/HookDocStateMachine.test.ts`
 
@@ -28,15 +29,21 @@ it("parses additionalDocs from config", () => {
     hookConfig: {
       hookDocEnforcer: {
         additionalDocs: [
-          { fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] }
-        ]
-      }
-    }
+          {
+            fileName: "IDEA.md",
+            requiredSections: ["## Problem", "## Solution"],
+          },
+        ],
+      },
+    },
   });
   const settings = readHookDocSettings(() => json);
   expect(settings.additionalDocs).toHaveLength(1);
   expect(settings.additionalDocs[0].fileName).toBe("IDEA.md");
-  expect(settings.additionalDocs[0].requiredSections).toEqual(["## Problem", "## Solution"]);
+  expect(settings.additionalDocs[0].requiredSections).toEqual([
+    "## Problem",
+    "## Solution",
+  ]);
 });
 
 it("defaults additionalDocs to empty array", () => {
@@ -47,8 +54,8 @@ it("defaults additionalDocs to empty array", () => {
 it("parses mode from config", () => {
   const json = JSON.stringify({
     hookConfig: {
-      hookDocEnforcer: { mode: "linked" }
-    }
+      hookDocEnforcer: { mode: "linked" },
+    },
   });
   const settings = readHookDocSettings(() => json);
   expect(settings.mode).toBe("linked");
@@ -61,7 +68,7 @@ it("defaults mode to independent", () => {
 
 it("ignores invalid mode values", () => {
   const json = JSON.stringify({
-    hookConfig: { hookDocEnforcer: { mode: "bogus" } }
+    hookConfig: { hookDocEnforcer: { mode: "bogus" } },
   });
   const settings = readHookDocSettings(() => json);
   expect(settings.mode).toBe("independent");
@@ -149,6 +156,7 @@ git commit -m "feat(HookDocEnforcer): add additionalDocs and mode to settings"
 ### Task 2: Add Domain Helpers for Multi-Doc
 
 **Files:**
+
 - Modify: `hooks/ObligationStateMachines/HookDocStateMachine.shared.ts`
 - Test: `hooks/ObligationStateMachines/HookDocTracker/HookDocStateMachine.test.ts`
 
@@ -174,8 +182,9 @@ describe("allDocFileNames", () => {
 
 describe("tagPending / parseTag", () => {
   it("tags a source path with a doc file name", () => {
-    expect(tagPending("/hooks/G/H/H.contract.ts", "doc.md"))
-      .toBe("/hooks/G/H/H.contract.ts:doc.md");
+    expect(tagPending("/hooks/G/H/H.contract.ts", "doc.md")).toBe(
+      "/hooks/G/H/H.contract.ts:doc.md",
+    );
   });
 
   it("parses tag back to source and doc", () => {
@@ -239,7 +248,10 @@ Add to `HookDocStateMachine.shared.ts` in the Domain Helpers section:
 ```typescript
 /** Get all doc file names (primary + additional). */
 export function allDocFileNames(settings: HookDocEnforcerSettings): string[] {
-  return [settings.docFileName, ...settings.additionalDocs.map((d) => d.fileName)];
+  return [
+    settings.docFileName,
+    ...settings.additionalDocs.map((d) => d.fileName),
+  ];
 }
 
 /** Tag a source path with the doc file it owes. */
@@ -250,7 +262,11 @@ export function tagPending(sourcePath: string, docFileName: string): string {
 /** Parse a tagged pending entry back to source path and doc file name. */
 export function parseTag(entry: string): { source: string; docFile: string } {
   const lastColon = entry.lastIndexOf(":");
-  if (lastColon === -1 || entry.charAt(lastColon - 1) === "/" || entry.charAt(lastColon - 1) === "\\") {
+  if (
+    lastColon === -1 ||
+    entry.charAt(lastColon - 1) === "/" ||
+    entry.charAt(lastColon - 1) === "\\"
+  ) {
     return { source: entry, docFile: "doc.md" };
   }
   const suffix = entry.slice(lastColon + 1);
@@ -261,7 +277,10 @@ export function parseTag(entry: string): { source: string; docFile: string } {
 }
 
 /** Check if a file path matches any doc file name (primary or additional). */
-export function isAnyDocFile(filePath: string, settings: HookDocEnforcerSettings): boolean {
+export function isAnyDocFile(
+  filePath: string,
+  settings: HookDocEnforcerSettings,
+): boolean {
   return allDocFileNames(settings).some(
     (name) => filePath.endsWith(`/${name}`) || filePath === name,
   );
@@ -291,6 +310,7 @@ git commit -m "feat(HookDocEnforcer): add tagged pending entry helpers for multi
 ### Task 3: Update HookDocTracker for Multi-Doc Tracking
 
 **Files:**
+
 - Modify: `hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract.ts`
 - Test: `hooks/ObligationStateMachines/HookDocTracker/HookDocStateMachine.test.ts`
 
@@ -305,7 +325,9 @@ it("creates tagged pending entries for each doc file", () => {
   let written: string[] = [];
   const deps = makeDeps({
     readPending: () => [],
-    writePending: (_p, files) => { written = files; },
+    writePending: (_p, files) => {
+      written = files;
+    },
   });
 
   // Need settings with additionalDocs — use a custom settings reader
@@ -330,7 +352,9 @@ it("clears only matching doc tag when doc is written (independent mode)", () => 
       "/hooks/G/H/H.contract.ts:doc.md",
       "/hooks/G/H/H.contract.ts:IDEA.md",
     ],
-    writePending: (_p, files) => { written = files; },
+    writePending: (_p, files) => {
+      written = files;
+    },
   });
 
   HookDocTracker.execute(
@@ -346,7 +370,9 @@ it("clears IDEA.md tag when IDEA.md is written", () => {
   const deps = makeDeps({
     fileExists: () => true,
     readPending: () => ["/hooks/G/H/H.contract.ts:IDEA.md"],
-    removeFlag: () => { removed = true; },
+    removeFlag: () => {
+      removed = true;
+    },
   });
 
   HookDocTracker.execute(
@@ -454,6 +480,7 @@ git commit -m "feat(HookDocTracker): multi-doc tracking with tagged entries and 
 ### Task 4: Update HookDocEnforcer Block Messages
 
 **Files:**
+
 - Modify: `hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.contract.ts`
 - Modify: `hooks/ObligationStateMachines/HookDocStateMachine.shared.ts` (buildDocSuggestions)
 - Test: `hooks/ObligationStateMachines/HookDocTracker/HookDocStateMachine.test.ts`
@@ -489,7 +516,9 @@ it("shows per-doc required sections", () => {
     requiredSections: ["## Overview"],
     docFileName: "doc.md",
     watchPatterns: [],
-    additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] }],
+    additionalDocs: [
+      { fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] },
+    ],
     mode: "independent" as const,
   };
 
@@ -535,13 +564,14 @@ export function buildDocSuggestions(
 
   // Show required sections per doc type
   const allDocs = [
-    { fileName: settings.docFileName, requiredSections: settings.requiredSections },
+    {
+      fileName: settings.docFileName,
+      requiredSections: settings.requiredSections,
+    },
     ...settings.additionalDocs,
   ];
 
-  const mentionedDocs = new Set(
-    pendingFiles.map((e) => parseTag(e).docFile),
-  );
+  const mentionedDocs = new Set(pendingFiles.map((e) => parseTag(e).docFile));
 
   for (const doc of allDocs) {
     if (!mentionedDocs.has(doc.fileName)) continue;
@@ -574,6 +604,7 @@ git commit -m "feat(HookDocEnforcer): grouped block messages showing per-doc obl
 ### Task 5: Update Config and Documentation
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 - Modify: `hooks/ObligationStateMachines/HookDocEnforcer/doc.md`
 
@@ -588,12 +619,30 @@ Update the hookDocEnforcer JSON example in CLAUDE.md to show `additionalDocs`:
       "enabled": true,
       "blocking": true,
       "docFileName": "doc.md",
-      "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"],
-      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$", "shared\\.ts$", "README\\.md$"],
+      "requiredSections": [
+        "## Overview",
+        "## Event",
+        "## When It Fires",
+        "## What It Does",
+        "## Examples",
+        "## Dependencies"
+      ],
+      "watchPatterns": [
+        "\\.contract\\.ts$",
+        "hook\\.json$",
+        "group\\.json$",
+        "shared\\.ts$",
+        "README\\.md$"
+      ],
       "additionalDocs": [
         {
           "fileName": "IDEA.md",
-          "requiredSections": ["## Problem", "## Solution", "## How It Works", "## Signals"]
+          "requiredSections": [
+            "## Problem",
+            "## Solution",
+            "## How It Works",
+            "## Signals"
+          ]
         }
       ],
       "mode": "independent"

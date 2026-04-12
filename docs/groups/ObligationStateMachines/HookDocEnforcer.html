@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1905,13 +1918,17 @@ At session end, check whether any automation source files were modified without 
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Core enforcer flow (via generic obligation machine)
+// Core enforcer flow (R8 silent + R5 block via top-level decision/reason)
 const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
-if (result.action === "block") {
-  // Build reason with file list + required sections
-  return ok({ type: "block", decision: "block", reason });
-}</div>
+if (result.action === "silent" || result.action === "release") {
+  return ok({}); // R8 — bare empty object, SDK treats as silent skip
+}
+
+// Build reason with file list + required sections
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason });</div>
         </div>
       </div>
     </div>
@@ -1930,15 +1947,15 @@ if (result.action === "block") {
       <div class="uc-example">
         <div>You edit <code>FooBar/FooBar.contract.ts</code> during a session. When you try to end the session, HookDocEnforcer blocks with:</div>
         <div>"Hook source files modified without documentation:</div>
-        <div>  - /hooks/MyGroup/FooBar/FooBar.contract.ts</div>
+        <div>- /hooks/MyGroup/FooBar/FooBar.contract.ts</div>
         <div>Create or update <code>/hooks/MyGroup/FooBar/doc.md</code></div>
         <div>Required sections in <code>doc.md</code>:</div>
-        <div>  - ## Overview</div>
-        <div>  - ## Event</div>
-        <div>  - ## When It Fires</div>
-        <div>  - ## What It Does</div>
-        <div>  - ## Examples</div>
-        <div>  - ## Dependencies"</div>
+        <div>- ## Overview</div>
+        <div>- ## Event</div>
+        <div>- ## When It Fires</div>
+        <div>- ## What It Does</div>
+        <div>- ## Examples</div>
+        <div>- ## Dependencies"</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1974,6 +1991,7 @@ if (result.action === "block") {
           <tr><td><code>paths</code></td><td>lib</td><td>Resolves settings.json path</td></tr>
           <tr><td><code>DocObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>projectHasHook</code> for deduplication</td></tr>
           <tr><td><code>HookDocStateMachine.shared</code></td><td>shared</td><td>Settings reader, config, doc suggestions builder</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type. R5 block path uses top-level <code>decision: "block"</code> + <code>reason</code> because Stop is a NonHookSpecificEvent and has no <code>hookSpecificOutput</code> wrapping (contrast with PreToolUse where deny goes through <code>hookSpecificOutput.permissionDecision</code>). R8 silent path is a bare <code>{}</code>. Post-SDK-refactor migration.</td></tr>
         </tbody>
       </table>
     </div>

@@ -52,14 +52,20 @@ const STATE_CHANGING_PATTERNS: ReadonlyArray<{
   // Deployment and provisioning
   { pattern: /^(\.\/)?deploy\b/, category: "deploy" },
   { pattern: /^(bash|sh)\s+deploy/, category: "deploy" },
-  { pattern: /^kubectl\s+(apply|delete|create|scale|rollout)\b/, category: "deploy" },
+  {
+    pattern: /^kubectl\s+(apply|delete|create|scale|rollout)\b/,
+    category: "deploy",
+  },
   { pattern: /^helm\s+(install|upgrade|uninstall)\b/, category: "deploy" },
   { pattern: /^terraform\s+(apply|destroy)\b/, category: "deploy" },
   { pattern: /^docker\s+(push|build|run|stop|rm)\b/, category: "deploy" },
   { pattern: /^wrangler\s+(deploy|publish)\b/, category: "deploy" },
 
   // API mutations (curl/httpie with write methods)
-  { pattern: /^curl\b.*-X\s*(POST|PUT|PATCH|DELETE)\b/, category: "api-mutation" },
+  {
+    pattern: /^curl\b.*-X\s*(POST|PUT|PATCH|DELETE)\b/,
+    category: "api-mutation",
+  },
   { pattern: /^curl\b.*(-d|--data)\b/, category: "api-mutation" },
   { pattern: /^http\s+(POST|PUT|PATCH|DELETE)\b/, category: "api-mutation" },
 

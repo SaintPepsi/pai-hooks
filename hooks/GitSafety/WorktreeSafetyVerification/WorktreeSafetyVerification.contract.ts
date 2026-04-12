@@ -9,15 +9,14 @@
  */
 
 import { dirname, join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir, fileExists, writeFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { map, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -258,11 +257,7 @@ const defaultDeps: WorktreeSafetyDeps = {
   cwd: () => process.cwd(),
 };
 
-export const WorktreeSafetyVerification: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  WorktreeSafetyDeps
-> = {
+export const WorktreeSafetyVerification: SyncHookContract<ToolHookInput, WorktreeSafetyDeps> = {
   name: "WorktreeSafetyVerification",
   event: "PostToolUse",
 
@@ -270,21 +265,21 @@ export const WorktreeSafetyVerification: SyncHookContract<
     return input.tool_name === "EnterWorktree";
   },
 
-  execute(input: ToolHookInput, deps: WorktreeSafetyDeps): Result<ContinueOutput, ResultError> {
+  execute(input: ToolHookInput, deps: WorktreeSafetyDeps): Result<SyncHookJSONOutput, ResultError> {
     const worktreePath = extractWorktreePath(input);
 
     if (!worktreePath) {
       deps.stderr(
         "[WorktreeSafety] \u26a0\ufe0f  Could not determine worktree path from EnterWorktree response \u2014 skipping safety checks",
       );
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     if (!deps.existsSync(worktreePath)) {
       deps.stderr(
         `[WorktreeSafety] \u26a0\ufe0f  Worktree path does not exist: ${worktreePath} \u2014 skipping safety checks`,
       );
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     deps.stderr(
@@ -295,7 +290,7 @@ export const WorktreeSafetyVerification: SyncHookContract<
     installDependencies(worktreePath, deps);
     runBaselineTests(worktreePath, deps);
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

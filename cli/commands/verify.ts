@@ -286,7 +286,9 @@ function verifyInstalled(args: ParsedArgs, deps: CliDeps): Result<string, PaihEr
  * Check if a commandString exists in settings for a given event.
  */
 function checkCommandInSettings(
-  settings: { hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>> },
+  settings: {
+    hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+  },
   event: string,
   commandString: string,
 ): boolean {

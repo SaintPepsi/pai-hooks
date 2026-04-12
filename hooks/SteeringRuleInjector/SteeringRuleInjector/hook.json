@@ -1,7 +1,14 @@
 {
   "name": "SteeringRuleInjector",
   "group": "SteeringRuleInjector",
-  "event": ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "Stop"],
+  "event": [
+    "SessionStart",
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "SubagentStart",
+    "Stop"
+  ],
   "description": "Injects steering rules into context based on event type and keyword matching",
   "schemaVersion": 1,
   "tags": [],

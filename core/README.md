@@ -6,15 +6,21 @@ Shared types, patterns, and adapters for the PAI hook system.
 
 Three exported types for hook contracts:
 
-| Type | `execute()` returns | Use when |
-|------|-------------------|----------|
-| `SyncHookContract<I,O,D>` | `Result<O, E>` | Most hooks (34 of 40) |
-| `AsyncHookContract<I,O,D>` | `Promise<Result<O, E>>` | Hooks with async I/O (6 hooks) |
-| `HookContract<I,O,D>` | Union of both | Runner only — contracts should use the narrowed type |
+| Type                     | `execute()` returns                                | Use when                                             |
+| ------------------------ | -------------------------------------------------- | ---------------------------------------------------- |
+| `SyncHookContract<I,D>`  | `Result<SyncHookJSONOutput, ResultError>`          | Most hooks (34 of 40)                                |
+| `AsyncHookContract<I,D>` | `Promise<Result<SyncHookJSONOutput, ResultError>>` | Hooks with async I/O (6 hooks)                       |
+| `HookContract<I,D>`      | Union of both                                      | Runner only — contracts should use the narrowed type |
 
 All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
+The output type is always `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk` — no custom output types. The previous `O` generic parameter was dropped in the SDK type foundation refactor; contracts construct SDK-shaped return values directly.
+
 The `event` field accepts `HookEventType | HookEventType[]` — multi-event hooks declare an array (e.g., `event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "PreCompact", "Stop"]`). The runner resolves the actual event from the input shape for logging and output formatting.
+
+## Barrel Exports (`index.ts`)
+
+The barrel re-exports SDK types and validation directly rather than wrapping them: `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk`, the `HookSpecificEventName` / `NonHookSpecificEvent` type aliases from `types/hook-output-helpers.ts`, and `validateHookOutput` from `types/hook-output-schema.ts`. Contracts that want SDK types can import from `@hooks/core` and get SDK shapes directly — no translation layer.
 
 ## Result Pattern (`result.ts`)
 
@@ -26,10 +32,10 @@ The `event` field accepts `HookEventType | HookEventType[]` — multi-event hook
 
 ## Runner (`runner.ts`)
 
-`runHook(contract)` — full pipeline: stdin, parse, accepts, dedup, execute, format, exit.
+`runHook(contract)` — full pipeline: stdin → parse → accepts → dedup → execute → validate → serialize → exit.
 `runHookWith(contract, input)` — pre-built input, skips stdin.
 
-Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`. Both include a dedup guard after `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels. Running dedup after accepts avoids creating lock files for hooks that don't apply to the input.
+Both accept `HookContract<I, D>` (the 2-generic union) and normalize sync/async via `await Promise.resolve()`. Contracts return `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk` directly — the runner calls `validateHookOutput()` from `types/hook-output-schema.ts` and `JSON.stringify`s the result without any mapping layer. An empty object `{}` serializes to silent (no write); the runner logs `output_type: "output"` or `"silent"` to the hook log for observability. If validation fails, the runner writes `{ continue: true }` as a fail-open safety net rather than crashing. Both include a dedup guard after `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels. Running dedup after accepts avoids creating lock files for hooks that don't apply to the input.
 
 Multi-event contracts (e.g., SteeringRuleInjector handling 7 events) receive different input shapes per event. The runner determines whether the current input is a tool event after parsing, and uses this to decide the safe-exit output format (`{"continue":true}` for tool events, empty for others). The `resolveEvent()` function uses the Effect Schema from `types/hook-input-schema.ts` to discriminate on the `hook_type` field — no field-sniffing or type casts.
 
@@ -44,10 +50,13 @@ Exports: `isDuplicate(hookName, sessionId, input, deps?)`, `stableHash(hookName,
 ## Adapters (`adapters/`)
 
 Boundary layer wrapping Node builtins in `Result`:
+
 - `fs.ts` — readFile, writeFile, writeFileExclusive, readJson, writeJson, fileExists, stat, etc.
-- `process.ts` — exec, execSyncSafe, spawnBackground
+- `process.ts` — exec, execSyncSafe, spawnSyncSafe (now with `input`/`stderr` support), spawnBackground, spawnDetached, buildChildEnv
 - `stdin.ts` — readStdin with timeout
 - `log.ts` — appendHookLog for structured hook logging
+
+All spawn adapters in `process.ts` route their child environment through `buildChildEnv()` unconditionally, stripping the parent-session markers `CLAUDECODE`, `CLAUDE_CODE`, and `CLAUDE_AGENT_SDK`. This prevents hooks spawned by `spawnAgent` (or any other hook) from inheriting the parent Claude Code session flag and mis-detecting their runtime context. Explicit `env` options are merged on top of the sanitized base, so markers are always stripped. See `adapters/README.md §Child-process Environment Policy` for the full rationale and examples.
 
 ## Quality Scorer (`quality-scorer.ts`)
 
@@ -63,7 +72,7 @@ Contract-specific checks (missing-deps-interface, contract-pattern, adapter-bypa
 
 - `hook-inputs.ts` — ToolHookInput, SessionStartInput, UserPromptSubmitInput, SubagentStartInput, SubagentStopInput, etc.
 - `hook-input-schema.ts` — Effect Schema discriminated union for validated input parsing
-- `hook-outputs.ts` — ContinueOutput, BlockOutput, ContextOutput, UpdatedInputOutput, SilentOutput, AskOutput
-- `hook-output-schema.ts` — Effect Schema for Claude Code's output validation. Encodes the `hookSpecificOutput` discriminated union and provides `encodeHookOutput()` for schema-validated encoding. Events without hookSpecificOutput support (PreCompact, Stop, etc.) fall back to `systemMessage`.
+- `hook-output-schema.ts` — Effect Schema discriminated union covering all 15 SDK `hookSpecificOutput` variants. Exports `validateHookOutput(output)` for runtime validation against `SyncHookJSONOutput` — called by the runner as a fail-open safety net before serializing contract output to stdout. No encoding layer: contracts return `SyncHookJSONOutput` directly.
+- `hook-output-helpers.ts` — SDK-derived type aliases (`HookSpecificEventName`, `NonHookSpecificEvent`) for compile-time safety across contracts.
 
 **Source of truth:** `@anthropic-ai/claude-agent-sdk` (v0.2.98+) exports all hook input/output types. See `types/doc.md` for the full hookSpecificOutput support matrix.

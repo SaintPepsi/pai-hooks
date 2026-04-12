@@ -56,9 +56,13 @@ const defaultDeps: AgentRunnerDeps = {
 
 // ─── Logging ───────────────────────────────────────────────────────────────
 
-function logEvent(logPath: string, data: Record<string, string | number>, deps: AgentRunnerDeps): void {
+function logEvent(
+  logPath: string,
+  data: Record<string, string | number>,
+  deps: AgentRunnerDeps,
+): void {
   const entry = { ts: new Date().toISOString(), ...data };
-  deps.appendFile(logPath, JSON.stringify(entry) + "\n");
+  deps.appendFile(logPath, `${JSON.stringify(entry)}\n`);
 }
 
 // ─── Runner ────────────────────────────────────────────────────────────────
@@ -76,7 +80,11 @@ export function runAgent(
   }
 
   if (dryRun) {
-    logEvent(config.logPath, { event: "dry-run", source: config.source, model: config.model }, deps);
+    logEvent(
+      config.logPath,
+      { event: "dry-run", source: config.source, model: config.model },
+      deps,
+    );
     // Exercise cleanup path even in dry-run
     deps.removeFile(config.lockPath);
     return;
@@ -90,17 +98,28 @@ export function runAgent(
   }
 
   const baseArgs = [
-    "--max-turns", String(config.maxTurns),
-    "--model", config.model,
-    "--output-format", "json",
+    "--max-turns",
+    String(config.maxTurns),
+    "--model",
+    config.model,
+    "--output-format",
+    "json",
     ...(config.claudeArgs ?? []),
   ];
 
-  const spawnOpts = { cwd: config.cwd, timeout: config.timeout, stdio: "pipe" as const };
+  const spawnOpts = {
+    cwd: config.cwd,
+    timeout: config.timeout,
+    stdio: "pipe" as const,
+  };
 
   // Try resume if we have a previous session
   let result = previousSessionId
-    ? deps.spawnSyncSafe("claude", ["--resume", previousSessionId, "-p", config.prompt, ...baseArgs], spawnOpts)
+    ? deps.spawnSyncSafe(
+        "claude",
+        ["--resume", previousSessionId, "-p", config.prompt, ...baseArgs],
+        spawnOpts,
+      )
     : deps.spawnSyncSafe("claude", ["-p", config.prompt, ...baseArgs], spawnOpts);
 
   // Fallback to fresh session if resume failed
@@ -115,15 +134,33 @@ export function runAgent(
     sessionId = output.session_id ?? "";
   }
 
+  if (result.ok && result.value.stderr) {
+    deps.stderr(`[agent-runner] claude stderr: ${result.value.stderr}`);
+  }
+
   // Persist session ID for next run
   if (sessionId && config.sessionStatePath) {
     deps.writeFile(config.sessionStatePath, sessionId);
   }
 
   if (result.ok) {
-    logEvent(config.logPath, { event: "completed", source: config.source, exitCode: result.value.exitCode, session: sessionId, resumed: previousSessionId ? "true" : "false" }, deps);
+    logEvent(
+      config.logPath,
+      {
+        event: "completed",
+        source: config.source,
+        exitCode: result.value.exitCode,
+        session: sessionId,
+        resumed: previousSessionId ? "true" : "false",
+      },
+      deps,
+    );
   } else {
-    logEvent(config.logPath, { event: "failed", source: config.source, error: result.error.message }, deps);
+    logEvent(
+      config.logPath,
+      { event: "failed", source: config.source, error: result.error.message },
+      deps,
+    );
   }
 
   // Cleanup — always runs after sync call returns

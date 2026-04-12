@@ -11,15 +11,10 @@
 
 import { beforeAll, describe, expect, it } from "bun:test";
 import { join, relative } from "node:path";
-import {
-  fileExists,
-  readDir,
-  readFile,
-  stat as adapterStat,
-} from "@hooks/core/adapters/fs";
 import { install } from "@hooks/cli/commands/install";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
+import { fileExists, readDir, readFile } from "@hooks/core/adapters/fs";
 
 // ─── Source Tree Loader ────────────────────────────────────────────────────
 
@@ -108,7 +103,11 @@ function loadSourceTree(): SourceTree {
     }
   }
 
-  return { files, hookNames: hookNames.sort(), groupNames: [...groupNames].sort() };
+  return {
+    files,
+    hookNames: hookNames.sort(),
+    groupNames: [...groupNames].sort(),
+  };
 }
 
 // ─── Test Helpers ──────────────────────────────────────────────────────────

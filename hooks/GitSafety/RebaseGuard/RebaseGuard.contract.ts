@@ -11,18 +11,13 @@
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
-import {
-  type BlockOutput,
-  block,
-  type ContinueOutput,
-  continueOk,
-} from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -97,11 +92,7 @@ const defaultDeps: RebaseGuardDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const RebaseGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  RebaseGuardDeps
-> = {
+export const RebaseGuard: SyncHookContract<ToolHookInput, RebaseGuardDeps> = {
   name: "RebaseGuard",
   event: "PreToolUse",
 
@@ -109,18 +100,21 @@ export const RebaseGuard: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: RebaseGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput, deps: RebaseGuardDeps): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
 
     if (!isRebaseCommand(command)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     deps.stderr(`[RebaseGuard] BLOCK: rebase attempt detected — ${command.slice(0, 100)}`);
-    return ok(block(formatBlockMessage(command)));
+    return ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: formatBlockMessage(command),
+      },
+    });
   },
 
   defaultDeps,

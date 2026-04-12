@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { extractFunctions, defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import { defaultParserDeps, extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 
 // ─── serializeType via paramSig/returnType ──────────────────────────────────
 

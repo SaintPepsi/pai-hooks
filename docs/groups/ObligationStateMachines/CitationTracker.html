@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1890,8 +1903,10 @@ Watch for the use of web search tools, URL fetching, or research-oriented operat
 // Flag activation on research tool detection
 const flag = flagPath(deps.stateDir);
 deps.writeFlag(flag);
-deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
-return ok({ type: "continue", continue: true });</div>
+deps.stderr(
+  "[CitationTracker] Research tool detected — citation enforcement active",
+);
+return ok({ continue: true });</div>
         </div>
       </div>
     </div>

@@ -6,10 +6,10 @@
  */
 
 import { describe, expect, it } from "bun:test";
+import type { InspectDeps } from "@hooks/cli/commands/inspect";
 import { inspect } from "@hooks/cli/commands/inspect";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { PaihErrorCode } from "@hooks/cli/core/error";
-import type { InspectDeps } from "@hooks/cli/commands/inspect";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -30,20 +30,14 @@ const MOCK_INDEX = JSON.stringify({
   patterns: [],
 });
 
-function makeArgs(
-  names: string[] = [],
-  flags: Record<string, boolean | string> = {},
-): ParsedArgs {
+function makeArgs(names: string[] = [], flags: Record<string, boolean | string> = {}): ParsedArgs {
   return { command: "inspect", names, flags };
 }
 
 function makeDeps(overrides?: Partial<InspectDeps>): InspectDeps {
   return {
-    readFile:
-      overrides?.readFile ??
-      ((p: string) => (p === INDEX_PATH ? MOCK_INDEX : null)),
-    exists:
-      overrides?.exists ?? ((p: string) => p === INDEX_PATH),
+    readFile: overrides?.readFile ?? ((p: string) => (p === INDEX_PATH ? MOCK_INDEX : null)),
+    exists: overrides?.exists ?? ((p: string) => p === INDEX_PATH),
     cwd: overrides?.cwd ?? (() => "/tmp/proj"),
     getBranch: overrides?.getBranch ?? (() => "main"),
   };
@@ -88,10 +82,7 @@ describe("inspect command", () => {
       cwd: () => "/should/not/be/used",
     });
 
-    const result = inspect(
-      makeArgs(["DuplicationChecker"], { project: "/other/project" }),
-      deps,
-    );
+    const result = inspect(makeArgs(["DuplicationChecker"], { project: "/other/project" }), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -101,10 +92,7 @@ describe("inspect command", () => {
   });
 
   it("returns raw output with --raw flag", () => {
-    const result = inspect(
-      makeArgs(["DuplicationChecker"], { raw: true }),
-      makeDeps(),
-    );
+    const result = inspect(makeArgs(["DuplicationChecker"], { raw: true }), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -116,10 +104,7 @@ describe("inspect command", () => {
   });
 
   it("returns JSON with --json flag", () => {
-    const result = inspect(
-      makeArgs(["DuplicationChecker"], { json: true }),
-      makeDeps(),
-    );
+    const result = inspect(makeArgs(["DuplicationChecker"], { json: true }), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 

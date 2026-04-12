@@ -8,14 +8,13 @@
  */
 
 import { dirname, join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, fileExists, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 type FsReadJson = <T = unknown>(path: string) => Result<T, ResultError>;
 type FsWriteJson = (path: string, data: unknown) => Result<void, ResultError>;
@@ -122,11 +121,7 @@ const defaultDeps: ArchEscalationDeps = {
   ensureDir,
 };
 
-export const ArchitectureEscalation: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  ArchEscalationDeps
-> = {
+export const ArchitectureEscalation: SyncHookContract<ToolHookInput, ArchEscalationDeps> = {
   name: "ArchitectureEscalation",
   event: "PostToolUse",
 
@@ -134,17 +129,17 @@ export const ArchitectureEscalation: SyncHookContract<
     return input.tool_name === "TaskUpdate";
   },
 
-  execute(input: ToolHookInput, deps: ArchEscalationDeps): Result<ContinueOutput, ResultError> {
+  execute(input: ToolHookInput, deps: ArchEscalationDeps): Result<SyncHookJSONOutput, ResultError> {
     const { tool_input, session_id } = input;
     const taskId = tool_input.taskId;
     const status = tool_input.status;
 
     // Only track in_progress transitions
     if (typeof taskId !== "string" || taskId.trim() === "") {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
     if (status !== "in_progress") {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const criterionId = taskId.trim();
@@ -171,7 +166,13 @@ export const ArchitectureEscalation: SyncHookContract<
       deps.stderr(
         `[ArchEscalation] 🚨 STOP escalation for ${criterionId} (${failedAttempts} failures)`,
       );
-      return ok(continueOk(message));
+      return ok({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+          additionalContext: message,
+        },
+      });
     }
 
     if (failedAttempts >= WARN_THRESHOLD) {
@@ -179,10 +180,16 @@ export const ArchitectureEscalation: SyncHookContract<
       deps.stderr(
         `[ArchEscalation] ⚠️  Warning escalation for ${criterionId} (${failedAttempts} failures)`,
       );
-      return ok(continueOk(message));
+      return ok({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+          additionalContext: message,
+        },
+      });
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

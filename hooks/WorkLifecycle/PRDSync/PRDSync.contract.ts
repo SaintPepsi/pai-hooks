@@ -6,17 +6,16 @@
  * upserts an entry in work.json keyed by slug.
  *
  * Read-only from the PRD's perspective — never modifies the PRD file.
- * Always returns ContinueOutput — never blocks the tool result.
+ * Always returns continue — never blocks the tool result.
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -115,7 +114,10 @@ export function parseFrontmatter(content: string): PRDFrontmatter | null {
  * Count criteria checkboxes in the document body.
  * Matches lines of the form: `- [x] ...` (done) or `- [ ] ...` (todo).
  */
-export function parseCriteriaCounts(content: string): { total: number; done: number } {
+export function parseCriteriaCounts(content: string): {
+  total: number;
+  done: number;
+} {
   const checkedPattern = /^\s*-\s+\[x\]/gim;
   const uncheckedPattern = /^\s*-\s+\[ \]/gim;
 
@@ -217,7 +219,7 @@ const defaultDeps: PRDSyncDeps = {
   baseDir: getPaiDir(),
 };
 
-export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDeps> = {
+export const PRDSync: SyncHookContract<ToolHookInput, PRDSyncDeps> = {
   name: "PRDSync",
   event: "PostToolUse",
 
@@ -229,18 +231,18 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
     return filePath.includes("MEMORY/WORK/") && filePath.endsWith("PRD.md");
   },
 
-  execute(input: ToolHookInput, deps: PRDSyncDeps): Result<ContinueOutput, ResultError> {
+  execute(input: ToolHookInput, deps: PRDSyncDeps): Result<SyncHookJSONOutput, ResultError> {
     const filePath = (input.tool_input?.file_path as string) ?? "";
 
     if (!deps.fileExists(filePath)) {
       deps.stderr(`[PRDSync] PRD file not found on disk: ${filePath}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const readResult = deps.readFile(filePath);
     if (!readResult.ok) {
       deps.stderr(`[PRDSync] Failed to read PRD: ${readResult.error.message}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const content = readResult.value;
@@ -248,13 +250,13 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
 
     if (!fm) {
       deps.stderr(`[PRDSync] No frontmatter found in: ${filePath}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const slug = fm.slug;
     if (!slug) {
       deps.stderr(`[PRDSync] Frontmatter missing slug, skipping: ${filePath}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const { total, done } = parseCriteriaCounts(content);
@@ -287,7 +289,7 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
       syncSessionState(input.session_id, sessionDir, filePath, deps);
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

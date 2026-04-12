@@ -57,12 +57,21 @@ export function stripStringLiterals(line: string): string {
 // ─── Patterns ────────────────────────────────────────────────────────────────
 
 // node:path is intentionally exempt — pure functions, no I/O side effects
-export const RAW_BUILTIN_PATTERNS: ReadonlyArray<{ regex: RegExp; module: string }> = [
+export const RAW_BUILTIN_PATTERNS: ReadonlyArray<{
+  regex: RegExp;
+  module: string;
+}> = [
   { regex: /^\s*import\b.*from\s+["']fs["']/, module: "fs" },
   { regex: /^\s*import\b.*from\s+["']node:fs["']/, module: "node:fs" },
   { regex: /^\s*import\b.*from\s+["']fs\/promises["']/, module: "fs/promises" },
-  { regex: /^\s*import\b.*from\s+["']child_process["']/, module: "child_process" },
-  { regex: /^\s*import\b.*from\s+["']node:child_process["']/, module: "node:child_process" },
+  {
+    regex: /^\s*import\b.*from\s+["']child_process["']/,
+    module: "child_process",
+  },
+  {
+    regex: /^\s*import\b.*from\s+["']node:child_process["']/,
+    module: "node:child_process",
+  },
   { regex: /^\s*import\b.*from\s+["']http["']/, module: "http" },
   { regex: /^\s*import\b.*from\s+["']https["']/, module: "https" },
   { regex: /^\s*import\b.*from\s+["']crypto["']/, module: "crypto" },

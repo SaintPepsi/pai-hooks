@@ -44,12 +44,12 @@ With `--raw`: prints the full `index.json` to stdout.
 
 ### Files
 
-| File | Purpose |
-|------|---------|
-| `cli/commands/inspect.ts` | Command handler — resolves project path, dispatches to hook inspector |
-| `hooks/DuplicationDetection/DuplicationChecker/inspector.ts` | Reads duplication index, formats summary or raw output |
-| `cli/bin/paih.ts` | Wire inspect into router, usage text, KNOWN_COMMANDS |
-| `cli/commands/status.ts` | **Delete** — unused stub |
+| File                                                         | Purpose                                                               |
+| ------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `cli/commands/inspect.ts`                                    | Command handler — resolves project path, dispatches to hook inspector |
+| `hooks/DuplicationDetection/DuplicationChecker/inspector.ts` | Reads duplication index, formats summary or raw output                |
+| `cli/bin/paih.ts`                                            | Wire inspect into router, usage text, KNOWN_COMMANDS                  |
+| `cli/commands/status.ts`                                     | **Delete** — unused stub                                              |
 
 ### Flow
 
@@ -64,9 +64,9 @@ With `--raw`: prints the full `index.json` to stdout.
 
 ```typescript
 interface InspectResult {
-  statePath: string;        // always present
-  summary: string;          // formatted summary text
-  raw: string;              // full file contents
+  statePath: string; // always present
+  summary: string; // formatted summary text
+  raw: string; // full file contents
   json: Record<string, unknown>; // structured data for --json
 }
 

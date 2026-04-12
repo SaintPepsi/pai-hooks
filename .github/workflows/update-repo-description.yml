@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'hooks/**/hook.json'
+      - "hooks/**/hook.json"
   workflow_dispatch:
 
 permissions:

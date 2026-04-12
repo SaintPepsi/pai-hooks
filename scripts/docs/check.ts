@@ -57,7 +57,9 @@ function loadRequiredSections(deps: CheckDeps = defaultDeps): string[] {
 
   if (!fileExists(settingsPath)) return REQUIRED_SECTIONS;
 
-  const result = readJson<{ hookConfig?: { hookDocEnforcer?: { requiredSections?: string[] } } }>(settingsPath);
+  const result = readJson<{
+    hookConfig?: { hookDocEnforcer?: { requiredSections?: string[] } };
+  }>(settingsPath);
   if (!result.ok) return REQUIRED_SECTIONS;
 
   const sections = result.value?.hookConfig?.hookDocEnforcer?.requiredSections;
@@ -105,7 +107,9 @@ for (const groupName of groupDirs) {
 
     const contentResult = readFile(docPath);
     if (!contentResult.ok) continue;
-    const missing = requiredSections.filter((s) => !contentResult.value.includes(s));
+    const missing = requiredSections.filter(
+      (s) => !contentResult.value.includes(s),
+    );
 
     if (missing.length > 0) {
       issues.push({
@@ -121,7 +125,9 @@ for (const groupName of groupDirs) {
 // ─── Report ───────────────────────────────────────────────────────────────────
 
 const valid = total - issues.length;
-process.stdout.write(`docs:check — ${valid}/${total} hooks have valid ${docFileName}\n\n`);
+process.stdout.write(
+  `docs:check — ${valid}/${total} hooks have valid ${docFileName}\n\n`,
+);
 
 if (issues.length === 0) {
   process.stdout.write("All hooks documented.\n");

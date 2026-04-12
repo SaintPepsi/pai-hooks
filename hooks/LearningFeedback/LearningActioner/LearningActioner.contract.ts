@@ -14,6 +14,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   ensureDir,
   fileExists,
@@ -27,10 +28,9 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { getISOTimestamp } from "@hooks/lib/time";
 import { runLearningAgent } from "@hooks/hooks/LearningFeedback/LearningActioner/run-learning-agent";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getISOTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -354,11 +354,7 @@ const defaultDeps: LearningActionerDeps = {
   stderr: defaultStderr,
 };
 
-export const LearningActioner: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  LearningActionerDeps
-> = {
+export const LearningActioner: SyncHookContract<SessionEndInput, LearningActionerDeps> = {
   name: "LearningActioner",
   event: "SessionEnd",
 
@@ -366,7 +362,10 @@ export const LearningActioner: SyncHookContract<
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: LearningActionerDeps): Result<SilentOutput, ResultError> {
+  execute(
+    _input: SessionEndInput,
+    deps: LearningActionerDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const proposalsDir = join(deps.baseDir, "MEMORY/LEARNING/PROPOSALS");
     const lockPath = join(proposalsDir, ".analyzing");
 
@@ -374,7 +373,7 @@ export const LearningActioner: SyncHookContract<
     if (deps.fileExists(lockPath)) {
       if (isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) {
         deps.stderr("[LearningActioner] Agent already running (lock file fresh), skipping");
-        return ok({ type: "silent" });
+        return ok({});
       }
       // Stale lock — clean up
       deps.stderr("[LearningActioner] Cleaning up stale lock file");
@@ -395,7 +394,10 @@ export const LearningActioner: SyncHookContract<
       deps.writeFile(
         creditPath,
         JSON.stringify(
-          { credit: creditResult.newCredit, last_updated: deps.getISOTimestamp() },
+          {
+            credit: creditResult.newCredit,
+            last_updated: deps.getISOTimestamp(),
+          },
           null,
           2,
         ),
@@ -404,7 +406,7 @@ export const LearningActioner: SyncHookContract<
 
     if (!creditResult.shouldSpawn) {
       deps.stderr(`[LearningActioner] ${creditResult.reason}, skipping`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr(`[LearningActioner] ${creditResult.reason}, spawning agent`);
@@ -412,7 +414,7 @@ export const LearningActioner: SyncHookContract<
     // Check if any learning sources exist
     if (!hasLearningSources(deps.baseDir, deps)) {
       deps.stderr("[LearningActioner] No learning sources found, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Ensure proposals directories exist
@@ -420,7 +422,7 @@ export const LearningActioner: SyncHookContract<
       const result = deps.ensureDir(join(proposalsDir, sub));
       if (!result.ok) {
         deps.stderr(`[LearningActioner] Failed to create ${sub} dir: ${result.error.message}`);
-        return ok({ type: "silent" });
+        return ok({});
       }
     }
 
@@ -428,7 +430,7 @@ export const LearningActioner: SyncHookContract<
     deps.runLearningAgent();
 
     deps.stderr("[LearningActioner] Spawned learning agent via spawnAgent infrastructure");
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

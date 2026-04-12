@@ -107,7 +107,10 @@ describe("resolver", () => {
     const safetyGroup = makeGroup("Safety", ["HookA"]);
     const qualityGroup = makeGroup("Quality", ["HookB"]);
     const index = makeIndex([hookA, hookB], [safetyGroup, qualityGroup], {
-      standard: { description: "Standard preset", groups: ["Safety", "Quality"] },
+      standard: {
+        description: "Standard preset",
+        groups: ["Safety", "Quality"],
+      },
     });
 
     const result = resolve(["standard"], index);
@@ -170,7 +173,10 @@ describe("resolver", () => {
     const hookA = makeHookDef("HookA", "Safety");
     const safetyGroup = makeGroup("Safety", ["HookA"]);
     const index = makeIndex([hookA], [safetyGroup], {
-      partial: { description: "Partial", groups: ["Safety", "NonExistentGroup"] },
+      partial: {
+        description: "Partial",
+        groups: ["Safety", "NonExistentGroup"],
+      },
     });
 
     const result = resolve(["partial"], index);

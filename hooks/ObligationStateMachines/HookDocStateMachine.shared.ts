@@ -108,7 +108,12 @@ export function readHookDocSettings(
       ? cfg.watchPatterns.map((p: string) => new RegExp(p))
       : [...DEFAULT_WATCH_PATTERNS],
     additionalDocs: Array.isArray(cfg.additionalDocs)
-      ? (cfg.additionalDocs as Array<{ fileName?: unknown; requiredSections?: unknown }>)
+      ? (
+          cfg.additionalDocs as Array<{
+            fileName?: unknown;
+            requiredSections?: unknown;
+          }>
+        )
           .filter((d) => typeof d.fileName === "string")
           .map((d) => ({
             fileName: d.fileName as string,
@@ -209,7 +214,10 @@ export function buildDocSuggestions(
 
   // Show required sections per doc type that appears in pending
   const allDocs = [
-    { fileName: settings.docFileName, requiredSections: settings.requiredSections },
+    {
+      fileName: settings.docFileName,
+      requiredSections: settings.requiredSections,
+    },
     ...settings.additionalDocs,
   ];
 

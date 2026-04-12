@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ErrorCode, ResultError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { snapshotPath } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
 import {
   SettingsRevert,
   type SettingsRevertDeps,
 } from "@hooks/hooks/SecurityValidator/SettingsRevert/SettingsRevert.contract";
-import { snapshotPath } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
 
 const HOME = "/Users/testuser";
 const SESSION = "test-session-abc";
@@ -27,11 +27,18 @@ function postDeps(fs: FakeFS, overrides: Partial<SettingsRevertDeps> = {}): Sett
     fileExists: (p) => fs.has(p),
     readFile: (p) => {
       const content = fs.get(p);
-      if (content === undefined) return { ok: false, error: new ResultError(ErrorCode.FileNotFound, p) };
+      if (content === undefined)
+        return { ok: false, error: new ResultError(ErrorCode.FileNotFound, p) };
       return ok(content);
     },
-    writeFile: (p, c) => { fs.set(p, c); return ok(undefined as void); },
-    removeFile: (p) => { fs.delete(p); return ok(undefined as void); },
+    writeFile: (p, c) => {
+      fs.set(p, c);
+      return ok(undefined as undefined);
+    },
+    removeFile: (p) => {
+      fs.delete(p);
+      return ok(undefined as undefined);
+    },
     readDir: (dir) => {
       // Return keys that look like they're in /tmp
       const names = [...fs.keys()]
@@ -39,10 +46,14 @@ function postDeps(fs: FakeFS, overrides: Partial<SettingsRevertDeps> = {}): Sett
         .map((k) => k.slice(dir.length + 1));
       return ok(names);
     },
-    appendFile: (p, c) => { const prev = fs.get(p) || ""; fs.set(p, prev + c); return ok(undefined as void); },
-    ensureDir: () => ok(undefined as void),
+    appendFile: (p, c) => {
+      const prev = fs.get(p) || "";
+      fs.set(p, prev + c);
+      return ok(undefined as undefined);
+    },
+    ensureDir: () => ok(undefined as undefined),
     baseDir: "/fake/pai",
-    runHardening: () => ok(undefined as void),
+    runHardening: () => ok(undefined as undefined),
     ...overrides,
   };
 }
@@ -64,7 +75,11 @@ describe("SettingsRevert.accepts", () => {
   });
 
   it("rejects non-Bash tools", () => {
-    const input: ToolHookInput = { session_id: SESSION, tool_name: "Edit", tool_input: {} };
+    const input: ToolHookInput = {
+      session_id: SESSION,
+      tool_name: "Edit",
+      tool_input: {},
+    };
     expect(SettingsRevert.accepts(input)).toBe(false);
   });
 });
@@ -76,7 +91,7 @@ describe("SettingsRevert.execute — no change", () => {
     const fs: FakeFS = new Map([[SETTINGS_PATH, ORIGINAL]]);
     const result = SettingsRevert.execute(bashInput("ls"), postDeps(fs));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 
   it("returns silent when settings unchanged", () => {
@@ -86,7 +101,7 @@ describe("SettingsRevert.execute — no change", () => {
     ]);
     const result = SettingsRevert.execute(bashInput("git status"), postDeps(fs));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 });
 
@@ -102,10 +117,13 @@ describe("SettingsRevert.execute — revert", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      if (result.value.type === "continue") {
-        expect(result.value.additionalContext).toContain("SECURITY");
-        expect(result.value.additionalContext).toContain("reverted");
+      expect(result.value.continue).toBe(true);
+      const hs = result.value.hookSpecificOutput;
+      if (hs && hs.hookEventName === "PostToolUse") {
+        expect(hs.additionalContext).toContain("SECURITY");
+        expect(hs.additionalContext).toContain("reverted");
+      } else {
+        throw new Error("expected PostToolUse hookSpecificOutput");
       }
     }
     // Verify the file was actually restored
@@ -120,7 +138,7 @@ describe("SettingsRevert.execute — revert", () => {
     const result = SettingsRevert.execute(bashInput("node -e '...'"), postDeps(fs));
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
     expect(fs.get(LOCAL_SETTINGS_PATH)).toBe(ORIGINAL);
   });
 
@@ -146,7 +164,7 @@ describe("SettingsRevert.execute — revert", () => {
     const result = SettingsRevert.execute(bashInput("rm ..."), postDeps(fs));
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
     expect(fs.get(SETTINGS_PATH)).toBe(ORIGINAL);
   });
 
@@ -201,9 +219,14 @@ describe("SettingsRevert.execute — revert", () => {
     const result = SettingsRevert.execute(bashInput("..."), postDeps(fs));
 
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "continue") {
-      expect(result.value.additionalContext).toContain("Do NOT attempt");
-      expect(result.value.additionalContext).toContain("shell escapes");
+    if (result.ok) {
+      const hs = result.value.hookSpecificOutput;
+      if (hs && hs.hookEventName === "PostToolUse") {
+        expect(hs.additionalContext).toContain("Do NOT attempt");
+        expect(hs.additionalContext).toContain("shell escapes");
+      } else {
+        throw new Error("expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 });
@@ -218,7 +241,10 @@ describe("SettingsRevert.execute — runHardening", () => {
       [SNAP_MAIN, ORIGINAL],
     ]);
     const deps = postDeps(fs, {
-      runHardening: (cmd: string) => { calls.push(cmd); return ok(undefined as void); },
+      runHardening: (cmd: string) => {
+        calls.push(cmd);
+        return ok(undefined as undefined);
+      },
     });
 
     SettingsRevert.execute(bashInput("python3 -c 'bypass'"), deps);
@@ -234,7 +260,10 @@ describe("SettingsRevert.execute — runHardening", () => {
       [SNAP_MAIN, ORIGINAL],
     ]);
     const deps = postDeps(fs, {
-      runHardening: (cmd: string) => { calls.push(cmd); return ok(undefined as void); },
+      runHardening: (cmd: string) => {
+        calls.push(cmd);
+        return ok(undefined as undefined);
+      },
     });
 
     SettingsRevert.execute(bashInput("git status"), deps);
@@ -249,7 +278,10 @@ describe("SettingsRevert.execute — runHardening", () => {
       [SNAP_MAIN, ORIGINAL],
     ]);
     const deps = postDeps(fs, {
-      runHardening: (cmd: string) => { calls.push(cmd); return ok(undefined as void); },
+      runHardening: (cmd: string) => {
+        calls.push(cmd);
+        return ok(undefined as undefined);
+      },
     });
 
     const bypassCmd = "jq '.hooks.enabled = false' ~/.claude/settings.json";
@@ -315,7 +347,7 @@ describe("SettingsRevert.execute — snapshot cleanup", () => {
     // Second command: no snapshot exists → silent (no false revert)
     const result = SettingsRevert.execute(bashInput("rm docs/plans/foo.md"), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
 
     // Settings NOT reverted — the change was legitimate
     expect(fs.get(SETTINGS_PATH)).toBe(MODIFIED);

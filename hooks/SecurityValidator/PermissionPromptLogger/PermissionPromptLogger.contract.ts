@@ -13,13 +13,13 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { PermissionRequestInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -67,7 +67,6 @@ const defaultDeps: PermissionPromptLoggerDeps = {
 
 export const PermissionPromptLogger: SyncHookContract<
   PermissionRequestInput,
-  SilentOutput,
   PermissionPromptLoggerDeps
 > = {
   name: "PermissionPromptLogger",
@@ -80,7 +79,7 @@ export const PermissionPromptLogger: SyncHookContract<
   execute(
     input: PermissionRequestInput,
     deps: PermissionPromptLoggerDeps,
-  ): Result<SilentOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const logDir = join(deps.baseDir, "MEMORY", "SECURITY");
     deps.ensureDir(logDir);
 
@@ -105,7 +104,7 @@ export const PermissionPromptLogger: SyncHookContract<
       `[PermissionPromptLogger] ${input.tool_name}: ${summarizeToolInput(input.tool_input || {}).slice(0, 80)}`,
     );
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+import { getReasonFromBlock, isBareNoOp } from "@hooks/hooks/ObligationStateMachines/test-helpers";
 import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
 
 const mockInput: StopInput = {
@@ -37,29 +38,34 @@ describe("TestObligationEnforcer", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
   });
 
   test("returns silent when pending list is empty", () => {
     const deps = makeDeps({ readPending: () => [] });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
   });
 
   test("blocks with 'write tests' for files without test files", () => {
     const deps = makeDeps({
       readPending: () => ["src/new-module.ts"],
       fileExists: (path) => {
-        if (path.includes("test")) return false;
-        return true; // flag file exists
+        // Flag file exists, but no test file for src/new-module.ts
+        if (path.endsWith(".test.ts") || path.endsWith(".spec.ts")) return false;
+        if (path.endsWith("Test.php") || path.endsWith(".test.tsx")) return false;
+        if (path.endsWith(".test.js") || path.endsWith(".spec.js")) return false;
+        return true;
       },
     });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("Write and run tests");
-      expect(result.value.reason).toContain("src/new-module.ts");
+    if (result.ok) {
+      const reason = getReasonFromBlock(result.value);
+      expect(reason).toBeDefined();
+      expect(reason ?? "").toContain("Write and run tests");
+      expect(reason ?? "").toContain("src/new-module.ts");
     }
   });
 
@@ -70,8 +76,10 @@ describe("TestObligationEnforcer", () => {
     });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("Run existing tests");
+    if (result.ok) {
+      const reason = getReasonFromBlock(result.value);
+      expect(reason).toBeDefined();
+      expect(reason ?? "").toContain("Run existing tests");
     }
   });
 
@@ -100,7 +108,7 @@ describe("TestObligationEnforcer", () => {
     });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
     expect(reviewWritten).toBe(true);
     expect(flagRemoved).toBe(true);
   });

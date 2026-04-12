@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1896,11 +1909,16 @@ for (const cron of parsed.value.crons) {
   const intervalMs = cronIntervalMs(cron.schedule);
   if (intervalMs &gt; longestCronMs) longestCronMs = intervalMs;
 }
-const pruneThreshold = longestCronMs &gt; 0 ? longestCronMs * 2 : DEFAULT_PRUNE_THRESHOLD_MS;
+const pruneThreshold =
+  longestCronMs &gt; 0 ? longestCronMs * 2 : DEFAULT_PRUNE_THRESHOLD_MS;
 
 if (ageMs &gt; pruneThreshold) {
   deps.removeFile(filePath);
-  appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_dead" }, deps, deps);
+  appendCronLog(
+    { type: "pruned", sessionId, cronCount, reason: "session_dead" },
+    deps,
+    deps,
+  );
 }</div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-LastResponseCache is a **sync Stop** hook that caches the last assistant response from the session transcript for use by other hooks. On session stop, it reads the transcript JSONL file, extracts the final assistant message, and writes it (truncated to 2000 characters) to `MEMORY/STATE/last-response.txt`.
+LastResponseCache is a **sync Stop** hook that caches the last assistant response from the session transcript for use by other hooks. On session stop, it reads the transcript JSONL file, extracts the final assistant message, and writes it (truncated to 2000 characters) to `MEMORY/STATE/last-response.txt`. Returns a `SyncHookJSONOutput` silent no-op (`ok({})`); never blocks or delays the Stop event.
 
 This cached response provides context for downstream hooks like RatingCapture (UserPromptSubmit), which reads the file to understand what the previous assistant response was about.
 
@@ -28,7 +28,7 @@ It does **not** fire when:
 3. Parses each line as JSON, looking for entries with `type: "assistant"` and a `message.content` field
 4. Extracts plain text from the last assistant message (handles both string and `ContentBlock[]` formats)
 5. Writes the text (truncated to 2000 characters) to `{baseDir}/MEMORY/STATE/last-response.txt`
-6. Always returns `{ type: "silent" }` — never blocks or delays the Stop event
+6. Always returns `ok({})` — never blocks or delays the Stop event
 
 ```typescript
 // Extract last assistant message from transcript JSONL
@@ -47,11 +47,11 @@ deps.writeFile(cachePath, lastResponse.slice(0, 2000));
 
 ### Example 2: Empty or missing transcript
 
-> A session ends but the transcript file is missing or contains only user messages with no assistant responses. LastResponseCache logs a warning and returns `{ type: "silent" }` without writing anything, leaving the previous cache file intact.
+> A session ends but the transcript file is missing or contains only user messages with no assistant responses. LastResponseCache logs a warning and returns `ok({})` without writing anything, leaving the previous cache file intact.
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()`, `tryCatch()` for Result wrapping and safe JSON parsing |
-| `fs` | adapter | `readFile`, `writeFile` for transcript reading and cache writing |
+| Dependency | Type    | Purpose                                                          |
+| ---------- | ------- | ---------------------------------------------------------------- |
+| `result`   | core    | `ok()`, `tryCatch()` for Result wrapping and safe JSON parsing   |
+| `fs`       | adapter | `readFile`, `writeFile` for transcript reading and cache writing |

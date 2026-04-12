@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  getPreToolUseDenyReason as denyReason,
+  isPreToolUseDeny as isDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import { BashWriteGuard } from "./BashWriteGuard.contract";
 
 function makeInput(command: string): ToolHookInput {
@@ -13,11 +17,8 @@ function makeInput(command: string): ToolHookInput {
   };
 }
 
-function result(input: ToolHookInput): Result<ContinueOutput | BlockOutput, ResultError> {
-  return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps) as Result<
-    ContinueOutput | BlockOutput,
-    ResultError
-  >;
+function result(input: ToolHookInput): Result<SyncHookJSONOutput, ResultError> {
+  return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps);
 }
 
 describe("BashWriteGuard", () => {
@@ -29,7 +30,11 @@ describe("BashWriteGuard", () => {
   // ─── accepts() ──────────────────────────────────────────────────────────
 
   it("rejects non-Bash tools", () => {
-    const input: ToolHookInput = { session_id: "s", tool_name: "Edit", tool_input: {} };
+    const input: ToolHookInput = {
+      session_id: "s",
+      tool_name: "Edit",
+      tool_input: {},
+    };
     expect(BashWriteGuard.accepts(input)).toBe(false);
   });
 
@@ -51,7 +56,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("echo 'const x = 1' > file.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -59,7 +64,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("echo 'export {}' >> module.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -67,7 +72,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("cat <<'EOF' > component.tsx\nimport React from 'react'\nEOF"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -77,7 +82,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("sed -i '' 's/old/new/g' agent.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -85,7 +90,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("sed -i 's/foo/bar/' component.tsx"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -95,7 +100,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("echo 'code' | tee output.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -103,7 +108,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("echo 'code' | tee -a output.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -113,7 +118,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("cp template.txt new-file.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -121,7 +126,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("mv draft.txt final.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
+      expect(isDeny(r.value)).toBe(true);
     }
   });
 
@@ -131,7 +136,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("cat file.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -139,7 +144,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("grep -n 'function' utils.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -147,7 +152,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("wc -l file.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -155,7 +160,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("bun test hooks/contracts/BashWriteGuard.test.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -163,7 +168,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("bun run script.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -171,7 +176,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("tsc --noEmit"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -179,7 +184,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("git diff file.ts"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -189,7 +194,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("echo 'code' > output.js"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -197,7 +202,7 @@ describe("BashWriteGuard", () => {
     const r = result(makeInput("echo '{}' > config.json"));
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("continue");
+      expect(r.value.continue).toBe(true);
     }
   });
 
@@ -206,8 +211,9 @@ describe("BashWriteGuard", () => {
   it("block message tells AI to use Edit/Write tools", () => {
     const r = result(makeInput("sed -i '' 's/foo/bar/' file.ts"));
     expect(r.ok).toBe(true);
-    if (r.ok && r.value.type === "block") {
-      const reason = (r.value as BlockOutput).reason;
+    if (r.ok) {
+      expect(isDeny(r.value)).toBe(true);
+      const reason = denyReason(r.value) ?? "";
       expect(reason).toContain("Edit");
       expect(reason).toContain("Write");
     }

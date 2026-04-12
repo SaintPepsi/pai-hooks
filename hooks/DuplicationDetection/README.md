@@ -4,13 +4,17 @@ Detects duplicated functions across the codebase and warns before writing code t
 
 ## Hooks
 
-### DuplicationIndexBuilder (PostToolUse)
+### DuplicationIndexBuilder (PostToolUse / SessionStart)
 
-Fires after any Write or Edit to a `.ts` file. Scans the project root and builds `index.json` — a compact lookup structure of all functions with their body hashes, names, parameter signatures, and fingerprints. Skips rebuild if the index was written within the last 30 minutes.
+**Output:** `SyncHookJSONOutput` — silent continue (`ok({ continue: true })`).
+
+Fires after any Write or Edit to a `.ts` file, and eagerly on SessionStart. Scans the project root and builds `index.json` — a compact lookup structure of all functions with their body hashes, names, parameter signatures, and fingerprints. Skips rebuild if the index was written within the last 30 minutes.
 
 See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for details.
 
 ### DuplicationChecker (PreToolUse)
+
+**Output:** `SyncHookJSONOutput` — tiered response via `hookSpecificOutput`: advisory via `additionalContext` (pattern + derivation) or block via `permissionDecision: "deny"` (R4 shape) for 4/4 or hash matches.
 
 Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. Tiered response: 2-3/4 signal matches are logged silently, 4/4 matches or hash matches block the operation (configurable via `hookConfig.duplicationChecker.blocking`).
 

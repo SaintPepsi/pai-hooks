@@ -1,9 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "mcp__hardening__get_blocked_patterns",
-      "mcp__hardening__insert_blocked_pattern"
-    ],
+    "allow": ["mcp__hardening__get_blocked_patterns", "mcp__hardening__insert_blocked_pattern"],
     "deny": []
   },
   "hooks": {}

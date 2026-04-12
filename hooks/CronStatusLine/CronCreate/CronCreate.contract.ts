@@ -8,6 +8,7 @@
  * Runner: @hooks/core/runner.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile,
   ensureDir,
@@ -21,8 +22,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   appendCronLog,
   type CronEntry,
@@ -32,6 +31,7 @@ import {
   readCronFile,
   writeCronFile,
 } from "@hooks/hooks/CronStatusLine/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -87,7 +87,7 @@ const defaultDeps: CronCreateDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronCreateContract: SyncHookContract<ToolHookInput, SilentOutput, CronCreateDeps> = {
+export const CronCreateContract: SyncHookContract<ToolHookInput, CronCreateDeps> = {
   name: "CronCreate",
   event: "PostToolUse",
 
@@ -95,7 +95,7 @@ export const CronCreateContract: SyncHookContract<ToolHookInput, SilentOutput, C
     return input.tool_name === "CronCreate";
   },
 
-  execute(input: ToolHookInput, deps: CronCreateDeps): Result<SilentOutput, ResultError> {
+  execute(input: ToolHookInput, deps: CronCreateDeps): Result<SyncHookJSONOutput, ResultError> {
     const sessionId = input.session_id;
     const now = deps.now();
 
@@ -139,7 +139,7 @@ export const CronCreateContract: SyncHookContract<ToolHookInput, SilentOutput, C
     // Append log event
     appendCronLog({ type: "created", cronId, name, schedule, sessionId }, deps, deps);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

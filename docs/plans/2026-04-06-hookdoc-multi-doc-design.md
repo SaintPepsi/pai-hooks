@@ -16,12 +16,24 @@ Extend HookDocEnforcer to enforce multiple doc files per hook (e.g., `doc.md` + 
       "enabled": true,
       "blocking": true,
       "docFileName": "doc.md",
-      "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"],
+      "requiredSections": [
+        "## Overview",
+        "## Event",
+        "## When It Fires",
+        "## What It Does",
+        "## Examples",
+        "## Dependencies"
+      ],
       "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$"],
       "additionalDocs": [
         {
           "fileName": "IDEA.md",
-          "requiredSections": ["## Problem", "## Solution", "## How It Works", "## Signals"]
+          "requiredSections": [
+            "## Problem",
+            "## Solution",
+            "## How It Works",
+            "## Signals"
+          ]
         }
       ],
       "mode": "independent"
@@ -52,10 +64,12 @@ Entries without `:` suffix are treated as primary doc obligation (backwards comp
 ## Tracker Behavior (PostToolUse)
 
 **Source file modified** (matches `watchPatterns`):
+
 1. Create pending entry `sourcePath:doc.md` for the primary doc.
 2. For each entry in `additionalDocs`, create pending entry `sourcePath:fileName`.
 
 **Doc file written:**
+
 - **independent mode:** Clear all pending entries where the tag matches the written doc's file name AND the directory matches.
 - **linked mode:** When a doc file is written, check if ALL required doc files exist in that hook directory. If yes, clear all pending entries for that directory. If no, leave pending.
 
@@ -73,14 +87,14 @@ Hook source files modified without documentation:
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `HookDocStateMachine.shared.ts` | Add `AdditionalDoc` type, `additionalDocs`/`mode` to settings type, reader, defaults |
-| `HookDocTracker.contract.ts` | Create tagged pending entries; clear by doc file name + mode |
-| `HookDocEnforcer.contract.ts` | Parse tagged entries, group by directory, build structured block message |
-| `HookDocStateMachine.shared.test.ts` | Test settings parsing with additionalDocs/mode |
-| `HookDocTracker.test.ts` | Test multi-doc tracking, independent clearing, linked clearing |
-| `HookDocEnforcer.test.ts` | Test grouped block messages |
+| File                                 | Change                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| `HookDocStateMachine.shared.ts`      | Add `AdditionalDoc` type, `additionalDocs`/`mode` to settings type, reader, defaults |
+| `HookDocTracker.contract.ts`         | Create tagged pending entries; clear by doc file name + mode                         |
+| `HookDocEnforcer.contract.ts`        | Parse tagged entries, group by directory, build structured block message             |
+| `HookDocStateMachine.shared.test.ts` | Test settings parsing with additionalDocs/mode                                       |
+| `HookDocTracker.test.ts`             | Test multi-doc tracking, independent clearing, linked clearing                       |
+| `HookDocEnforcer.test.ts`            | Test grouped block messages                                                          |
 
 ## Backwards Compatibility
 

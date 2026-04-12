@@ -4,8 +4,8 @@
  * Adapter files are excluded from CodingStandardsEnforcer.
  */
 
-import { ok, err, type Result } from "@hooks/core/result";
-import { type ResultError, invalidInput } from "@hooks/core/error";
+import { invalidInput, type ResultError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
 
 /**
  * Parse a JSON string, returning a Result instead of throwing.

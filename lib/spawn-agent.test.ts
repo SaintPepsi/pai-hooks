@@ -8,8 +8,8 @@
 import { describe, expect, it } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
-import { spawnAgent } from "@hooks/lib/spawn-agent";
 import type { SpawnAgentConfig, SpawnAgentDeps } from "@hooks/lib/spawn-agent";
+import { spawnAgent } from "@hooks/lib/spawn-agent";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -45,7 +45,10 @@ function makeFakeDeps(overrides: Partial<SpawnAgentDeps> = {}): SpawnAgentDeps {
     _files: files,
     _stderrMessages: stderrMessages,
     ...overrides,
-  } as SpawnAgentDeps & { _files: Map<string, string>; _stderrMessages: string[] };
+  } as SpawnAgentDeps & {
+    _files: Map<string, string>;
+    _stderrMessages: string[];
+  };
 }
 
 function makeConfig(overrides: Partial<SpawnAgentConfig> = {}): SpawnAgentConfig {
@@ -63,7 +66,11 @@ function makeConfig(overrides: Partial<SpawnAgentConfig> = {}): SpawnAgentConfig
 
 describe("spawnAgent", () => {
   it("spawns background process with correct args (bun, runnerPath, JSON config)", () => {
-    const spawnCalls: Array<{ cmd: string; args: string[]; opts?: { cwd?: string } }> = [];
+    const spawnCalls: Array<{
+      cmd: string;
+      args: string[];
+      opts?: { cwd?: string };
+    }> = [];
     const deps = makeFakeDeps({
       spawnBackground: (cmd, args, opts) => {
         spawnCalls.push({ cmd, args, opts });
@@ -271,7 +278,11 @@ describe("spawnAgent", () => {
         return ok(undefined);
       },
     });
-    const config = makeConfig({ model: "sonnet", maxTurns: 10, timeout: 600_000 });
+    const config = makeConfig({
+      model: "sonnet",
+      maxTurns: 10,
+      timeout: 600_000,
+    });
 
     spawnAgent(config, deps);
 

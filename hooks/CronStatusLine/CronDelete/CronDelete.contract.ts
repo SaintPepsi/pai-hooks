@@ -9,6 +9,7 @@
  * Runner: @hooks/core/runner.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile,
   ensureDir,
@@ -22,8 +23,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   appendCronLog,
   type CronFileDeps,
@@ -32,6 +31,7 @@ import {
   readCronFile,
   writeCronFile,
 } from "@hooks/hooks/CronStatusLine/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ const defaultDeps: CronDeleteDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronDeleteContract: SyncHookContract<ToolHookInput, SilentOutput, CronDeleteDeps> = {
+export const CronDeleteContract: SyncHookContract<ToolHookInput, CronDeleteDeps> = {
   name: "CronDelete",
   event: "PostToolUse",
 
@@ -61,7 +61,7 @@ export const CronDeleteContract: SyncHookContract<ToolHookInput, SilentOutput, C
     return input.tool_name === "CronDelete";
   },
 
-  execute(input: ToolHookInput, deps: CronDeleteDeps): Result<SilentOutput, ResultError> {
+  execute(input: ToolHookInput, deps: CronDeleteDeps): Result<SyncHookJSONOutput, ResultError> {
     const sessionId = input.session_id;
     const cronId = String(input.tool_input.id ?? "");
 
@@ -70,11 +70,11 @@ export const CronDeleteContract: SyncHookContract<ToolHookInput, SilentOutput, C
     if (!readResult.ok) return readResult;
 
     const session = readResult.value;
-    if (session === null) return ok({ type: "silent" });
+    if (session === null) return ok({});
 
     // Find the cron to delete
     const targetIndex = session.crons.findIndex((c) => c.id === cronId);
-    if (targetIndex === -1) return ok({ type: "silent" });
+    if (targetIndex === -1) return ok({});
 
     const removedCron = session.crons[targetIndex];
     session.crons.splice(targetIndex, 1);
@@ -93,7 +93,7 @@ export const CronDeleteContract: SyncHookContract<ToolHookInput, SilentOutput, C
     // Append "deleted" event to JSONL log
     appendCronLog({ type: "deleted", cronId, name: removedCron.name, sessionId }, deps, deps);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

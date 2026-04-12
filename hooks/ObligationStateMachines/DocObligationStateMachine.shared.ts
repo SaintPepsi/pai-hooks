@@ -11,14 +11,12 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
-import { type ResultError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
-import { type Result } from "@hooks/core/result";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import { getFilePath } from "@hooks/lib/tool-input";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import type { Result } from "@hooks/core/result";
 import { readHookConfig } from "@hooks/lib/hook-config";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
 
@@ -136,7 +134,11 @@ export function buildDocSuggestions(pending: string[], deps: DocObligationDeps):
 
 /** Read excludePatterns from settings.json hookConfig.docObligation.excludePatterns. */
 export function readDocExcludePatterns(settingsPath?: string): string[] {
-  const cfg = readHookConfig<{ excludePatterns?: string[] }>("docObligation", undefined, settingsPath);
+  const cfg = readHookConfig<{ excludePatterns?: string[] }>(
+    "docObligation",
+    undefined,
+    settingsPath,
+  );
   return Array.isArray(cfg?.excludePatterns) ? cfg.excludePatterns : [];
 }
 

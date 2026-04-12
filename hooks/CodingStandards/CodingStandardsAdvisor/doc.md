@@ -33,8 +33,8 @@ It does **not** fire when:
 2. Reads the file content from disk
 3. For Svelte files, extracts only the `<script lang="ts">` block
 4. Runs `findAllViolations()` against the content to detect raw Node imports, try-catch flow control, direct `process.env` access, and other violations
-5. If no violations are found, logs "clean" to stderr and returns `continue` silently
-6. If violations are found, formats a violation summary and returns it as `additionalContext`
+5. If no violations are found, logs "clean" to stderr and returns `{ continue: true }` silently
+6. If violations are found, formats a violation summary and returns it as `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"` (R2 PostToolUse context-injection channel)
 
 ```typescript
 // Core advisory flow
@@ -43,7 +43,13 @@ const violations = findAllViolations(content, filePath);
 
 if (violations.length > 0) {
   const advisory = formatViolationSummary(violations, filePath);
-  return ok({ type: "continue", continue: true, additionalContext: advisory });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: advisory,
+    },
+  });
 }
 ```
 
@@ -59,9 +65,10 @@ if (violations.length > 0) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `fs` | adapter | `readFile` for reading file content |
-| `coding-standards-checks` | lib | `findAllViolations`, `formatViolationSummary`, file classification helpers |
-| `svelte-utils` | lib | `isSvelteFile`, `extractSvelteScript` for Svelte support |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                                                                                                                                                                                                                                                                   |
+| `fs`                             | adapter   | `readFile` for reading file content                                                                                                                                                                                                                                                                                                                                                                               |
+| `coding-standards-checks`        | lib       | `findAllViolations`, `formatViolationSummary`, file classification helpers                                                                                                                                                                                                                                                                                                                                        |
+| `svelte-utils`                   | lib       | `isSvelteFile`, `extractSvelteScript` for Svelte support                                                                                                                                                                                                                                                                                                                                                          |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"` is the PostToolUse-compatible context injection channel (post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from `continueOk(advisory)` was silently dropped for PostToolUse events — same bug class as PreCompactStatePersist 1A fix, applied here via R2 instead of R3) |

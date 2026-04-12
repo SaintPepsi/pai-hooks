@@ -1,11 +1,11 @@
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ const defaultDeps: CanaryHookDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CanaryHook: SyncHookContract<SessionStartInput, ContinueOutput, CanaryHookDeps> = {
+export const CanaryHook: SyncHookContract<SessionStartInput, CanaryHookDeps> = {
   name: "CanaryHook",
   event: "SessionStart",
 
@@ -33,14 +33,17 @@ export const CanaryHook: SyncHookContract<SessionStartInput, ContinueOutput, Can
     return true;
   },
 
-  execute(_input: SessionStartInput, deps: CanaryHookDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    _input: SessionStartInput,
+    deps: CanaryHookDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const logDir = join(deps.baseDir, "MEMORY", "STATE", "logs");
     const logFile = join(logDir, "canary-hook.log");
 
     deps.ensureDir(logDir);
     deps.appendFile(logFile, `${new Date().toISOString()}\n`);
 
-    return ok({ type: "continue" as const, continue: true as const });
+    return ok({ continue: true });
   },
 
   defaultDeps,

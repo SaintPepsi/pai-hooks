@@ -5,14 +5,13 @@
  * Subagents are blocked to prevent duplicate TTS notifications.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists } from "@hooks/core/adapters/fs";
-import { isSubagent } from "@hooks/lib/environment";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { isSubagent } from "@hooks/lib/environment";
 
 export interface VoiceGateDeps {
   existsSync: (path: string) => boolean;
@@ -24,11 +23,7 @@ const defaultDeps: VoiceGateDeps = {
   getIsSubagent: () => isSubagent((k) => process.env[k]),
 };
 
-export const VoiceGate: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  VoiceGateDeps
-> = {
+export const VoiceGate: SyncHookContract<ToolHookInput, VoiceGateDeps> = {
   name: "VoiceGate",
   event: "PreToolUse",
 
@@ -37,19 +32,20 @@ export const VoiceGate: SyncHookContract<
     return command.includes("localhost:8888");
   },
 
-  execute(
-    _input: ToolHookInput,
-    deps: VoiceGateDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(_input: ToolHookInput, deps: VoiceGateDeps): Result<SyncHookJSONOutput, ResultError> {
     if (!deps.getIsSubagent()) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
+    // L14 tombstone: bug #11 (R4-vs-R5 class) — top-level `decision:"block"` shape
+    // is silently dropped on PreToolUse; block MUST use hookSpecificOutput.permissionDecision.
     return ok({
-      type: "block",
-      decision: "block",
-      reason:
-        "Voice server access is restricted to the main session. Subagent requests are suppressed to prevent duplicate TTS notifications.",
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason:
+          "Voice server access is restricted to the main session. Subagent requests are suppressed to prevent duplicate TTS notifications.",
+      },
     });
   },
 

@@ -53,11 +53,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     expect(ctxResult.ok).toBe(true);
     if (!ctxResult.ok) return;
 
-    const hookDef = makeHookDef(
-      "GitSafety",
-      "MergeGate",
-      "/source/hooks/GitSafety/MergeGate",
-    );
+    const hookDef = makeHookDef("GitSafety", "MergeGate", "/source/hooks/GitSafety/MergeGate");
     const result = stageHook(ctxResult.value, hookDef, [], deps);
 
     expect(result.ok).toBe(true);
@@ -124,11 +120,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     expect(ctxResult.ok).toBe(true);
     if (!ctxResult.ok) return;
 
-    const hookDef = makeHookDef(
-      "GitSafety",
-      "MergeGate",
-      "/source/hooks/GitSafety/MergeGate",
-    );
+    const hookDef = makeHookDef("GitSafety", "MergeGate", "/source/hooks/GitSafety/MergeGate");
     const result = stageHook(ctxResult.value, hookDef, [], deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;

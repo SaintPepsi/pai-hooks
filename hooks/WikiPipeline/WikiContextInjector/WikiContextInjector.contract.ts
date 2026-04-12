@@ -10,13 +10,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, readDir, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -54,7 +53,11 @@ export function buildDomainIndex(
 ): DomainIndex {
   const index: DomainIndex = {};
   for (const [path, meta] of Object.entries(pages)) {
-    const entry: WikiPageMeta = { title: meta.title, path, summary: meta.summary };
+    const entry: WikiPageMeta = {
+      title: meta.title,
+      path,
+      summary: meta.summary,
+    };
     const addedKeys = new Set<string>();
     for (const domain of meta.domain) {
       const key = domain.toLowerCase();
@@ -240,11 +243,7 @@ const defaultDeps: WikiContextInjectorDeps = {
   stderr: defaultStderr,
 };
 
-export const WikiContextInjector: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  WikiContextInjectorDeps
-> = {
+export const WikiContextInjector: SyncHookContract<ToolHookInput, WikiContextInjectorDeps> = {
   name: "WikiContextInjector",
   event: "PreToolUse",
 
@@ -255,21 +254,21 @@ export const WikiContextInjector: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: WikiContextInjectorDeps,
-  ): Result<ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const filePath =
       typeof input.tool_input === "string"
         ? input.tool_input
         : (input.tool_input?.file_path as string) || "";
 
-    if (!filePath) return ok(continueOk());
+    if (!filePath) return ok({ continue: true });
 
     // Dedup: skip if we already injected context for this exact file path
-    if (injectedPaths.has(filePath)) return ok(continueOk());
+    if (injectedPaths.has(filePath)) return ok({ continue: true });
 
     const index = loadDomainIndex(deps);
     const matches = matchDomain(filePath, index);
 
-    if (!matches || matches.length === 0) return ok(continueOk());
+    if (!matches || matches.length === 0) return ok({ continue: true });
 
     // Mark as injected to prevent duplicate injection on same file
     injectedPaths.add(filePath);
@@ -285,7 +284,13 @@ export const WikiContextInjector: SyncHookContract<
       matches.map((m) => m.path),
     );
 
-    return ok(continueOk(contextText));
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        additionalContext: contextText,
+      },
+    });
   },
 
   defaultDeps,

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { uniqueSessionId, runHookScript } from "@hooks/lib/test-helpers";
+import { runHookScript, uniqueSessionId } from "@hooks/lib/test-helpers";
 
 const HOOK_PATH = join(import.meta.dir, "RatingCapture.hook.ts");
 
 describe("RatingCapture hook shell", () => {
   it("exits 0 and produces context output for a rating prompt", async () => {
     // accepts() always returns true for UserPromptSubmitInput.
-    // execute() parses "7" as an explicit rating and returns ContextOutput
+    // execute() parses "7" as an explicit rating and returns additionalContext
     // containing the algorithm format reminder (raw string, not JSON).
     // See: contracts/RatingCapture.ts accepts(), parseExplicitRating(), execute()
     const result = await runHookScript(HOOK_PATH, {
@@ -15,7 +15,7 @@ describe("RatingCapture hook shell", () => {
       prompt: "7",
     });
     expect(result.exitCode).toBe(0);
-    // ContextOutput is a raw string containing the algorithm reminder
+    // additionalContext is a raw string containing the algorithm reminder
     expect(result.stdout.length).toBeGreaterThan(0);
     expect(result.stdout).toContain("ALGORITHM");
   }, 15000);

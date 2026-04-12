@@ -21,20 +21,19 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/AgentCompleteTracker.hook.js
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import {
   defaultReadFileOrNull,
   extractThreadIdFromOutput,
   readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -59,11 +58,7 @@ const defaultDeps: AgentCompleteTrackerDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const AgentCompleteTracker: AsyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  AgentCompleteTrackerDeps
-> = {
+export const AgentCompleteTracker: AsyncHookContract<ToolHookInput, AgentCompleteTrackerDeps> = {
   name: "AgentCompleteTracker",
   event: "PostToolUse",
 
@@ -74,10 +69,10 @@ export const AgentCompleteTracker: AsyncHookContract<
   async execute(
     input: ToolHookInput,
     deps: AgentCompleteTrackerDeps,
-  ): Promise<Result<ContinueOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     // Skip spawn events — those are handled by AgentSpawnTracker
     if (input.tool_input.run_in_background === true) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Extract thread_id from output and top-level only (NOT tool_input).
@@ -91,7 +86,7 @@ export const AgentCompleteTracker: AsyncHookContract<
     }
     const threadId = extractThreadIdFromOutput(record);
     if (!threadId) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Resolve daemon URL: env var first, then settings.json fallback
@@ -99,7 +94,7 @@ export const AgentCompleteTracker: AsyncHookContract<
     const daemonUrl = envUrl ?? deps.getKoordConfig().url;
     if (!daemonUrl) {
       deps.stderr("[AgentCompleteTracker] No daemon URL found (env or settings.json)");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const baseUrl = daemonUrl.replace(/\/+$/, "");
@@ -121,7 +116,7 @@ export const AgentCompleteTracker: AsyncHookContract<
       );
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

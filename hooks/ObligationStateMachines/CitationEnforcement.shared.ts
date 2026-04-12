@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

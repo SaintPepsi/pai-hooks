@@ -7,18 +7,17 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
 import type { SyncHookContract } from "@hooks/core/contract";
 import { type ResultError, securityBlock as securityBlockError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
+import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,7 +34,10 @@ interface SecurityEvent {
 }
 
 type PathAction = "read" | "write" | "delete";
-type ValidationResult = { action: "allow" | "block" | "confirm" | "alert"; reason?: string };
+type ValidationResult = {
+  action: "allow" | "block" | "confirm" | "alert";
+  reason?: string;
+};
 
 export interface SecurityValidatorDeps {
   fileExists: (path: string) => boolean;
@@ -53,7 +55,10 @@ export interface SecurityValidatorDeps {
 
 const EMPTY_PATTERNS: PatternsConfig = {
   version: "0.0",
-  philosophy: { mode: "permissive", principle: "No patterns loaded - fail open" },
+  philosophy: {
+    mode: "permissive",
+    principle: "No patterns loaded - fail open",
+  },
   bash: { blocked: [], confirm: [], alert: [] },
   paths: { zeroAccess: [], readOnly: [], confirmWrite: [], noDelete: [] },
   projects: {},
@@ -259,13 +264,17 @@ function loadPatterns(deps: SecurityValidatorDeps): PatternsConfig {
   const patternsPath = join(import.meta.dir, "..", "patterns.json");
   const result = deps.readFile(patternsPath);
   if (!result.ok) {
-    deps.stderr(`[SecurityValidator] WARNING: Failed to read ${patternsPath} — all validation bypassed`);
+    deps.stderr(
+      `[SecurityValidator] WARNING: Failed to read ${patternsPath} — all validation bypassed`,
+    );
     return EMPTY_PATTERNS;
   }
 
   const config = decodePatternsConfig(result.value);
   if (!config) {
-    deps.stderr(`[SecurityValidator] WARNING: Failed to parse ${patternsPath} — all validation bypassed`);
+    deps.stderr(
+      `[SecurityValidator] WARNING: Failed to parse ${patternsPath} — all validation bypassed`,
+    );
     return EMPTY_PATTERNS;
   }
   return config;
@@ -320,7 +329,10 @@ function validatePath(
   if (action === "delete") {
     for (const p of patterns.paths.noDelete) {
       if (matchesPathPattern(filePath, p, home, deps))
-        return { action: "block", reason: `Cannot delete protected path: ${p}` };
+        return {
+          action: "block",
+          reason: `Cannot delete protected path: ${p}`,
+        };
     }
   }
 
@@ -381,11 +393,7 @@ const defaultDeps: SecurityValidatorDeps = {
   stderr: defaultStderr,
 };
 
-export const SecurityValidator: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | AskOutput | BlockOutput,
-  SecurityValidatorDeps
-> = {
+export const SecurityValidator: SyncHookContract<ToolHookInput, SecurityValidatorDeps> = {
   name: "SecurityValidator",
   event: "PreToolUse",
 
@@ -396,7 +404,7 @@ export const SecurityValidator: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: SecurityValidatorDeps,
-  ): Result<ContinueOutput | AskOutput | BlockOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const { tool_name, session_id } = input;
     const patterns = loadPatterns(deps);
     const home = deps.homedir();
@@ -408,7 +416,7 @@ export const SecurityValidator: SyncHookContract<
           ? input.tool_input
           : (input.tool_input?.command as string) || "";
 
-      if (!rawCommand) return ok(continueOk());
+      if (!rawCommand) return ok({ continue: true });
 
       const command = stripEnvVarPrefix(rawCommand);
       const result = validateBashCommand(command, patterns, deps);
@@ -479,7 +487,11 @@ export const SecurityValidator: SyncHookContract<
       for (const target of writeTargets) {
         const pathResult = validatePath(target, "write", patterns, home, deps);
         if (pathResult.action === "block" || pathResult.action === "confirm") {
-          const opener = pickNarrative("SecurityValidator", countViolations(pathResult), import.meta.dir);
+          const opener = pickNarrative(
+            "SecurityValidator",
+            countViolations(pathResult),
+            import.meta.dir,
+          );
           logSecurityEvent(
             {
               timestamp: new Date().toISOString(),
@@ -503,7 +515,7 @@ export const SecurityValidator: SyncHookContract<
         }
       }
 
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // File path validation (Edit, MultiEdit, Write, Read)
@@ -512,7 +524,7 @@ export const SecurityValidator: SyncHookContract<
         ? input.tool_input
         : (input.tool_input?.file_path as string) || "";
 
-    if (!filePath) return ok(continueOk());
+    if (!filePath) return ok({ continue: true });
 
     const action: PathAction = tool_name === "Read" ? "read" : "write";
     const result = validatePath(filePath, action, patterns, home, deps);
@@ -559,7 +571,7 @@ export const SecurityValidator: SyncHookContract<
       );
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

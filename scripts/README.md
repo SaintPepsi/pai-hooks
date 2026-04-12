@@ -3,6 +3,7 @@
 Automation scripts for the pai-hooks settings sync workflow.
 
 See also the root-level scripts:
+
 - `install.ts` — Merges hooks into `~/.claude/settings.json` (user-facing entry point)
 - `uninstall.ts` — Removes all pai-hooks entries from `~/.claude/settings.json`
 
@@ -41,3 +42,65 @@ manifest, not passed as a separate argument.
 ```bash
 bun run scripts/import-hooks.ts
 ```
+
+## analyze-sessions.py
+
+Parses Claude Code session JSONL files and outputs per-session quality metrics as CSV.
+Designed to surface time-of-day patterns in response quality, with a focus on the
+**2pm AEST degradation hypothesis** — evidence collection for GitHub issues and consumer complaints.
+
+```bash
+# Analyze all projects under ~/.claude/projects/
+python3 scripts/analyze-sessions.py --all-projects -o scripts/session-analysis.csv
+
+# Combine multiple sources (e.g. personal + work machine)
+python3 scripts/analyze-sessions.py \
+  --project-dir ~/.claude/projects/ \
+  --project-dir ~/Downloads/claude-work/projects/ \
+  --all-projects -o scripts/session-analysis.csv
+
+# Disable PII scrubbing (default: session IDs hashed, user paths removed)
+python3 scripts/analyze-sessions.py --all-projects --no-scrub -o raw.csv
+
+# Filter to sessions with at least 10 entries
+python3 scripts/analyze-sessions.py --all-projects --min-entries 10 -o scripts/session-analysis.csv
+```
+
+**PII scrubbing** is on by default — session IDs are SHA-256 hashed, usernames and home
+directory paths are stripped from project names and all string fields.
+
+### Key degradation metrics
+
+| Metric | Description |
+|--------|-------------|
+| `is_after_2pm` | Binary flag: 1 if session started at 14:00 AEST or later |
+| `thinking_depth_ratio` | `avg_thinking_length / avg_output_length` — lower = shallower reasoning |
+| `empty_responses` | Assistant turns with <50 chars text |
+| `abandoned_frustrated` | Session ended frustrated (short + frustration signals) |
+| `tool_success_rate` | `tool_results / tool_uses` — lower = more failures |
+| `tool_loops` | Repeated identical tool calls (model spinning) |
+| `consecutive_corrections` | Correction signals back-to-back (model not learning) |
+| `is_subagent` | Session spawned by parent session (Agent tool), not user-initiated |
+
+### Output columns
+
+Session timing (UTC + local), duration, `is_after_2pm`, token usage (input/output/cache),
+model and service tier, inference geo, speed mode, user message lengths, correction and
+frustration signal counts, thinking depth ratio, tool success rate, tool loops,
+empty responses, abandoned frustrated flag, advisor calls, session fragmentation indicators,
+and derived rates (turns/minute, tokens/minute, output tokens per user message).
+
+## session-dashboard.html
+
+Interactive Plotly dashboard for visualizing the 2pm AEST degradation analysis.
+Drop the `session-analysis.csv` file onto the page to render charts.
+
+**Charts include:**
+- Frustration signals by hour (with 2pm threshold marker)
+- Corrections per user message by hour
+- Output tokens per session by hour
+- Thinking depth ratio by hour
+- Abandoned frustrated sessions by hour
+- Tool loops + consecutive corrections by hour
+- Model comparison (frustration by hour, per model)
+- Timeline scatter (date vs duration, colored by frustration)

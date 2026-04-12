@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1868,7 +1881,7 @@ This is the primary session bootstrap mechanism. It replaces manual context-sett
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Checks if the session is a subagent; if so, returns <code>silent</code> immediately</p></div>
+          <div class="step-content"><p>Checks if the session is a subagent; if so, returns silent (<code>{}</code>) immediately</p></div>
         </div>
 
         <div class="flow-step">
@@ -1918,7 +1931,7 @@ This is the primary session bootstrap mechanism. It replaces manual context-sett
 
         <div class="flow-step">
           <div class="step-dot">11</div>
-          <div class="step-content"><p>Combines all parts and returns as <code>ContextOutput</code></p></div>
+          <div class="step-content"><p>Combines all parts and returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> carrying the full context payload</p></div>
         </div>
 </div>
       
@@ -1935,7 +1948,17 @@ const contextContent = loadContextFiles(deps.baseDir, settings, deps);
 const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
 const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
 const proposals = loadPendingProposals(deps.baseDir, deps);
-const wikiPointer = loadWikiPointer(deps.baseDir, deps);</div>
+const wikiPointer = loadWikiPointer(deps.baseDir, deps);
+const parts = [message, activeWork, proposals, wikiPointer].filter(Boolean);
+const fullContent = parts.join("\n\n");
+
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: fullContent,
+  },
+});</div>
         </div>
       </div>
     </div>
@@ -1983,6 +2006,7 @@ const wikiPointer = loadWikiPointer(deps.baseDir, deps);</div>
           <tr><td><code>error</code></td><td>core</td><td>Provides <code>unknownError</code> for wrapping unexpected errors</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code>, <code>Result</code>, and <code>tryCatch</code> for error handling</td></tr>
           <tr><td><code>MEMORY/WIKI/</code></td><td>data</td><td>Wiki knowledge pages; <code>loadWikiPointer</code> counts pages across entities/concepts/sources</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "SessionStart"</code> is the SessionStart-compatible context-injection channel (post-SDK-refactor, replaces legacy <code>ContextOutput</code>/<code>SilentOutput</code> — this is the LARGEST injection in pai-hooks, carrying the multi-KB PAI context payload assembled from <code><system-reminder></code> block + identity rules + context files + relationship + active work + proposals + wiki pointer)</td></tr>
         </tbody>
       </table>
     </div>

@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { resolve } from "node:path";
 import {
   readDir as adapterReadDir,
   readFile as adapterReadFile,
@@ -58,7 +57,12 @@ describe("updateIndexForFile", () => {
     ]);
 
     const newContent = "export function fnC(): string { return 'c'; }";
-    const result = updateIndexForFile(seed, "/project/src/c.ts", newContent, makeRealIndexBuilderDeps());
+    const result = updateIndexForFile(
+      seed,
+      "/project/src/c.ts",
+      newContent,
+      makeRealIndexBuilderDeps(),
+    );
 
     expect(result.fileCount).toBe(3);
     expect(result.entries.some((e) => e.f === "src/c.ts")).toBe(true);
@@ -70,7 +74,12 @@ describe("updateIndexForFile", () => {
       { f: "src/b.ts", n: "fnB", l: 1, h: "h2", p: "()", r: "void", fp: "fp2", s: 0 },
     ]);
 
-    const result = updateIndexForFile(seed, "/project/src/b.ts", "const x = 1;", makeRealIndexBuilderDeps());
+    const result = updateIndexForFile(
+      seed,
+      "/project/src/b.ts",
+      "const x = 1;",
+      makeRealIndexBuilderDeps(),
+    );
 
     expect(result.fileCount).toBe(1);
     expect(result.entries.every((e) => e.f !== "src/b.ts")).toBe(true);
@@ -83,7 +92,12 @@ describe("updateIndexForFile", () => {
     ]);
 
     const newContent = "export function fnBv2(): number { return 42; }";
-    const result = updateIndexForFile(seed, "/project/src/b.ts", newContent, makeRealIndexBuilderDeps());
+    const result = updateIndexForFile(
+      seed,
+      "/project/src/b.ts",
+      newContent,
+      makeRealIndexBuilderDeps(),
+    );
 
     expect(result.fileCount).toBe(2);
     expect(result.entries.some((e) => e.n === "fnBv2")).toBe(true);

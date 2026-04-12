@@ -35,8 +35,8 @@ PreToolUse (fires before Bash commands execute)
 
 ## Dependencies
 
-- `@hooks/core/contract` — SyncHookContract type
+- `@hooks/core/contract` — SyncHookContract type (2-param `<I, D>` post-SDK-refactor)
 - `@hooks/core/adapters/fs` — readFile, writeFile, ensureDir, removeFile for session state
 - `@hooks/core/result` — Result type and ok() constructor
 - `@hooks/core/types/hook-inputs` — ToolHookInput type
-- `@hooks/core/types/hook-outputs` — block() and continueOk() constructors
+- `@anthropic-ai/claude-agent-sdk` — `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4 shape, post-SDK-refactor 1D migration)

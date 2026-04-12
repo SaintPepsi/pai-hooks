@@ -8,25 +8,20 @@
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
-import {
-  type BlockOutput,
-  block,
-  type ContinueOutput,
-  continueOk,
-} from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   checkCiStatus,
   extractPrNumber,
   resolvePrFromBranch,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
+import { defaultStderr } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -75,11 +70,7 @@ const defaultDeps: ApprovalGateDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const ApprovalGate: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  ApprovalGateDeps
-> = {
+export const ApprovalGate: SyncHookContract<ToolHookInput, ApprovalGateDeps> = {
   name: "ApprovalGate",
   event: "PreToolUse",
 
@@ -87,45 +78,58 @@ export const ApprovalGate: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: ApprovalGateDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput, deps: ApprovalGateDeps): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
 
     // Only intercept gh pr review --approve commands
     if (!APPROVE_PATTERN.test(command)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Extract PR number from command or resolve from current branch
     const prNumber = extractPrNumber(command) ?? resolvePrFromBranch(deps);
     if (prNumber === null) {
       deps.stderr("[ApprovalGate] WARNING: Could not determine PR number. Allowing approval.");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Check CI status
     const ciStatus = checkCiStatus(prNumber, deps);
     if (ciStatus === null) {
       deps.stderr("[ApprovalGate] WARNING: Could not check CI status. Allowing approval.");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Block on CI failure
     if (ciStatus.failing.length > 0) {
       deps.stderr(`[ApprovalGate] BLOCK: CI failing on PR #${prNumber}`);
-      return ok(block(formatCiBlockMessage(prNumber, ciStatus.failing)));
+      return ok({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: formatCiBlockMessage(prNumber, ciStatus.failing),
+        },
+      });
     }
 
     // Warn on CI pending
     if (ciStatus.pending.length > 0) {
       deps.stderr(`[ApprovalGate] WARN: CI pending on PR #${prNumber}`);
-      return ok(continueOk(formatPendingWarning(prNumber)));
+      return ok({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          additionalContext: formatPendingWarning(prNumber),
+        },
+      });
     }
 
     // CI passing — inject verification reminder
-    return ok(continueOk(formatVerificationReminder(prNumber)));
+    return ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        additionalContext: formatVerificationReminder(prNumber),
+      },
+    });
   },
 
   defaultDeps,

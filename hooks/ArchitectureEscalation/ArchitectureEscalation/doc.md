@@ -35,11 +35,23 @@ It does **not** fire when:
 ```typescript
 if (failedAttempts >= STOP_THRESHOLD) {
   // "STOP CURRENT APPROACH" — recommends FirstPrinciples + Council skills
-  return ok({ type: "continue", continue: true, additionalContext: message });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: message,
+    },
+  });
 }
 if (failedAttempts >= WARN_THRESHOLD) {
   // "WARNING" — suggests pausing and questioning the approach
-  return ok({ type: "continue", continue: true, additionalContext: message });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: message,
+    },
+  });
 }
 ```
 
@@ -55,6 +67,10 @@ if (failedAttempts >= WARN_THRESHOLD) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | Reads and writes per-session escalation state JSON |
+| Dependency | Type    | Purpose                                            |
+| ---------- | ------- | -------------------------------------------------- |
+| `fs`       | adapter | Reads and writes per-session escalation state JSON |
+
+## History
+
+> **2026-04-11 — SDK Type Foundation (1M):** Both warning (`ArchitectureEscalation.contract.ts:174`) and STOP escalation (`ArchitectureEscalation.contract.ts:182`) paths were returning `continueOk(message)` which routed `additionalContext` at the top level of the hook output. Claude Code's SDK silently dropped this field on PostToolUse. 8th instance of the same bug class found in this refactor. The fix routes both messages through `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"`. Behaviour change: repeated in-progress transitions past WARN_THRESHOLD/STOP_THRESHOLD now actually surface the escalation warning/stop message to the model.

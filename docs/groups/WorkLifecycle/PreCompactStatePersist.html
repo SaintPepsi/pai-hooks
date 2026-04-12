@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1822,7 +1835,7 @@ Before compaction occurs, find the most recently modified requirements document,
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>PreCompactStatePersist preserves active PRD state before Claude Code compacts the conversation context. When the context window fills up and compaction occurs, the AI loses awareness of what task it was working on. This hook finds the most recently modified PRD.md under MEMORY/WORK/, reads its frontmatter, and injects a summary into the compacted context via <code>additionalContext</code> so the AI retains task, phase, and progress awareness after the reset.</p>
+      <p>PreCompactStatePersist preserves active PRD state before Claude Code compacts the conversation context. When the context window fills up and compaction occurs, the AI loses awareness of what task it was working on. This hook finds the most recently modified PRD.md under MEMORY/WORK/, reads its frontmatter, and injects a summary into the compacted context via <code>systemMessage</code> so the AI retains task, phase, and progress awareness after the reset.</p>
       <p>The hook always returns <code>continue</code> and never blocks compaction. Any read errors fail open with no context injection.</p>
     </div>
   </section>
@@ -1886,7 +1899,7 @@ Before compaction occurs, find the most recently modified requirements document,
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Returns <code>continue</code> with <code>additionalContext</code> containing the summary</p></div>
+          <div class="step-content"><p>Returns <code>continue</code> with <code>systemMessage</code> containing the summary</p></div>
         </div>
 </div>
       
@@ -1901,7 +1914,7 @@ Before compaction occurs, find the most recently modified requirements document,
 const prdPath = findMostRecentPrd(workDir, deps);
 const fm = parseFrontmatter(readResult.value);
 const summary = buildContextSummary({ task, phase, progress, slug });
-return ok({ type: "continue", continue: true, additionalContext: summary });</div>
+return ok({ continue: true, systemMessage: summary });</div>
         </div>
       </div>
     </div>
@@ -1944,6 +1957,7 @@ return ok({ type: "continue", continue: true, additionalContext: summary });</di
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>Directory listing, file reading, stat for modification times</td></tr>
           <tr><td><code>core/result</code></td><td>core</td><td>Result type for error handling</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; <code>systemMessage</code> is the PreCompact-compatible context injection channel (post-SDK-refactor, fixes a bug where <code>additionalContext</code> was silently dropped for non-hookSpecificOutput events)</td></tr>
         </tbody>
       </table>
     </div>

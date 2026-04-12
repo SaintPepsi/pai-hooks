@@ -20,24 +20,41 @@ describe("hook input types", () => {
   });
 
   it("UserPromptSubmitInput accepts prompt and transcript_path", () => {
-    const input: UserPromptSubmitInput = { session_id: "s1", prompt: "hello", transcript_path: "/tmp/t.jsonl" };
+    const input: UserPromptSubmitInput = {
+      session_id: "s1",
+      prompt: "hello",
+      transcript_path: "/tmp/t.jsonl",
+    };
     expect(input.prompt).toBe("hello");
     expect(input.transcript_path).toBe("/tmp/t.jsonl");
   });
 
   it("ToolHookInput requires tool_name and tool_input", () => {
-    const input: ToolHookInput = { session_id: "s1", tool_name: "Edit", tool_input: { file_path: "foo.ts" } };
+    const input: ToolHookInput = {
+      session_id: "s1",
+      tool_name: "Edit",
+      tool_input: { file_path: "foo.ts" },
+    };
     expect(input.tool_name).toBe("Edit");
-    expect(input.tool_input["file_path"]).toBe("foo.ts");
+    expect(input.tool_input.file_path).toBe("foo.ts");
   });
 
   it("ToolHookInput accepts optional tool_response for PostToolUse", () => {
-    const input: ToolHookInput = { session_id: "s1", tool_name: "Read", tool_input: {}, tool_response: "content" };
+    const input: ToolHookInput = {
+      session_id: "s1",
+      tool_name: "Read",
+      tool_input: {},
+      tool_response: "content",
+    };
     expect(input.tool_response).toBe("content");
   });
 
   it("StopInput accepts last_assistant_message and stop_hook_active", () => {
-    const input: StopInput = { session_id: "s1", last_assistant_message: "Done.", stop_hook_active: true };
+    const input: StopInput = {
+      session_id: "s1",
+      last_assistant_message: "Done.",
+      stop_hook_active: true,
+    };
     expect(input.last_assistant_message).toBe("Done.");
     expect(input.stop_hook_active).toBe(true);
   });
@@ -49,7 +66,10 @@ describe("hook input types", () => {
   });
 
   it("SubagentStartInput accepts transcript_path", () => {
-    const input: SubagentStartInput = { session_id: "s1", transcript_path: "/tmp/sub.jsonl" };
+    const input: SubagentStartInput = {
+      session_id: "s1",
+      transcript_path: "/tmp/sub.jsonl",
+    };
     expect(input.transcript_path).toBe("/tmp/sub.jsonl");
   });
 
@@ -63,7 +83,11 @@ describe("hook input types", () => {
       { session_id: "s1" },
       { session_id: "s1", prompt: "test" },
       { session_id: "s1", tool_name: "Edit", tool_input: {} },
-      { session_id: "s1", last_assistant_message: "done", stop_hook_active: true },
+      {
+        session_id: "s1",
+        last_assistant_message: "done",
+        stop_hook_active: true,
+      },
       { session_id: "s1", transcript_path: "/tmp/t.jsonl" },
       { session_id: "s1", trigger: "auto" },
     ];

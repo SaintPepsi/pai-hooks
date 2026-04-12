@@ -1,12 +1,16 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   SpotCheckReview,
   type SpotCheckReviewDeps,
 } from "@hooks/hooks/ObligationStateMachines/SpotCheckReview/SpotCheckReview.contract";
+import {
+  getReasonFromBlock,
+  isBareNoOp,
+  buildStopInput as makeStopInput,
+} from "@hooks/hooks/ObligationStateMachines/test-helpers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,12 +28,6 @@ function makeDeps(overrides: Partial<SpotCheckReviewDeps> = {}): SpotCheckReview
     removeFlag: () => {},
     stderr: () => {},
     ...overrides,
-  };
-}
-
-function makeStopInput(sessionId = "test-session"): StopInput {
-  return {
-    session_id: sessionId,
   };
 }
 
@@ -59,13 +57,13 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({ getChangedFiles: () => [] });
 
     const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isBareNoOp(result.value)).toBe(true);
   });
 
   // ── unpushed changes → block ──
@@ -76,13 +74,13 @@ describe("SpotCheckReview", () => {
     });
 
     const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
   it("block reason includes changed file paths", () => {
@@ -90,12 +88,16 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/daemon/router.ts", "src/shared/types.ts"],
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("src/daemon/router.ts");
-    expect(result.value.reason).toContain("src/shared/types.ts");
+    const reason = getReasonFromBlock(result.value) ?? "";
+    expect(reason).toContain("src/daemon/router.ts");
+    expect(reason).toContain("src/shared/types.ts");
   });
 
   it("block reason mentions sonnet", () => {
@@ -103,11 +105,14 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/index.ts"],
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason.toLowerCase()).toContain("sonnet");
+    expect((getReasonFromBlock(result.value) ?? "").toLowerCase()).toContain("sonnet");
   });
 
   it("block reason mentions review", () => {
@@ -115,21 +120,27 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/index.ts"],
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason.toLowerCase()).toContain("review");
+    expect((getReasonFromBlock(result.value) ?? "").toLowerCase()).toContain("review");
   });
 
   it("block reason mentions CLAUDE.md", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/app.ts"],
     });
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("CLAUDE.md");
+    expect(getReasonFromBlock(result.value) ?? "").toContain("CLAUDE.md");
   });
 
   // ── block count ──
@@ -158,13 +169,13 @@ describe("SpotCheckReview", () => {
     });
 
     const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isBareNoOp(result.value)).toBe(true);
   });
 
   it("cleans up state files when block limit reached", () => {
@@ -218,7 +229,7 @@ describe("SpotCheckReview", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isBareNoOp(result.value)).toBe(true);
   });
 
   it("blocks only unreviewed files when some are already reviewed", () => {
@@ -236,14 +247,18 @@ describe("SpotCheckReview", () => {
       }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    expect(result.value.reason).toContain("src/new.ts");
-    expect(result.value.reason).not.toContain("src/index.ts");
-    expect(result.value.reason).not.toContain("src/app.ts");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("src/new.ts");
+    expect(reason ?? "").not.toContain("src/index.ts");
+    expect(reason ?? "").not.toContain("src/app.ts");
   });
 
   it("blocks file when its hash changed since last review", () => {
@@ -253,12 +268,16 @@ describe("SpotCheckReview", () => {
       readReviewedHashes: () => ({ "src/index.ts": "hash-old" }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    expect(result.value.reason).toContain("src/index.ts");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("src/index.ts");
   });
 
   it("treats files with no hash as unreviewed", () => {
@@ -268,11 +287,14 @@ describe("SpotCheckReview", () => {
       readReviewedHashes: () => ({ "src/index.ts": "hash-aaa" }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
   // ── escape valve writes reviewed hashes ──
@@ -327,7 +349,10 @@ describe("SpotCheckReview", () => {
           ["src/new.ts", "hash-new"],
         ]),
       readBlockCount: () => 1,
-      readReviewedHashes: () => ({ "src/kept.ts": "hash-kept", "src/gone.ts": "hash-gone" }),
+      readReviewedHashes: () => ({
+        "src/kept.ts": "hash-kept",
+        "src/gone.ts": "hash-gone",
+      }),
       writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
         writtenHashes = hashes;
       },
@@ -413,17 +438,19 @@ describe("SpotCheckReview defaultDeps", () => {
   it("defaultDeps.writeReviewedHashes writes without throwing", () => {
     const tmpPath = `/tmp/pai-test-rh-${Date.now()}.json`;
     expect(() =>
-      SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, { "test.ts": "abc" }),
+      SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, {
+        "test.ts": "abc",
+      }),
     ).not.toThrow();
   });
 
   it("defaultDeps.getFileHashes returns hashes for existing files", () => {
     const tmpPath = `/tmp/pai-test-hash-${Date.now()}.ts`;
-    require("fs").writeFileSync(tmpPath, "test content");
+    require("node:fs").writeFileSync(tmpPath, "test content");
     const hashes = SpotCheckReview.defaultDeps.getFileHashes([tmpPath]);
     expect(hashes.has(tmpPath)).toBe(true);
     expect(hashes.get(tmpPath)!.length).toBeGreaterThan(0);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("defaultDeps.getFileHashes skips missing files", () => {

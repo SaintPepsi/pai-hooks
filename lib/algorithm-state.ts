@@ -385,7 +385,12 @@ export function criteriaAdd(
       agents: [],
       capabilities: ["Task Tool"],
       phaseHistory: [
-        { phase: "OBSERVE" as AlgorithmPhase, startedAt: now, criteriaCount: 0, agentCount: 0 },
+        {
+          phase: "OBSERVE" as AlgorithmPhase,
+          startedAt: now,
+          criteriaCount: 0,
+          agentCount: 0,
+        },
       ],
     };
   }
@@ -488,7 +493,12 @@ export function effortLevelUpdate(
  */
 export function agentAdd(
   sessionId: string,
-  agent: { name: string; agentType: string; task?: string; criteriaIds?: string[] },
+  agent: {
+    name: string;
+    agentType: string;
+    task?: string;
+    criteriaIds?: string[];
+  },
   deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
 ): void {
   const state = readState(sessionId, deps);
@@ -678,7 +688,6 @@ export function sweepStaleActive(
       `[sweep] deactivated ${sid} (phase was ${state.currentPhase}, age ${Math.round(age / 60000)}min)`,
     );
   }
-
 }
 
 /**

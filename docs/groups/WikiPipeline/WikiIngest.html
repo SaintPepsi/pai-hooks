@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1804,10 +1817,12 @@ An automatic post-session hook that runs a three-stage knowledge pipeline (Filte
 ## Signals
 
 **Input:**
+
 - Session ID and transcript path from the SessionEnd hook event
 - Raw session JSONL file (varies from 1KB to 500KB+)
 
 **Output:**
+
 - Silent hook output (no visible effect on session end)
 - Digest file in `.pipeline/digests/` (compressed session summary)
 - Extraction JSON in `.pipeline/extractions/haiku/` (structured entities, decisions, concepts)
@@ -1946,7 +1961,7 @@ An automatic post-session hook that runs a three-stage knowledge pipeline (Filte
           <div class="code-block">
 Pipeline flow:
   Session JSONL (50KB) -&gt; Filter -&gt; Digest (2KB) -&gt; Extract -&gt; Extraction JSON -&gt; Seed -&gt; Wiki Pages
-  
+
 Audit entry (audit.jsonl):
   {"session_id":"abc123","timestamp":"2026-04-06T15:00:00","classification":"standard","extractionCost":0.001,"pagesCreated":2}
 

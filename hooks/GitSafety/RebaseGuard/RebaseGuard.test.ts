@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  getPreToolUseDenyReason,
+  isPreToolUseDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import { RebaseGuard, type RebaseGuardDeps } from "./RebaseGuard.contract";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -43,49 +47,49 @@ describe("RebaseGuard", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git rebase --onto", () => {
     const result = RebaseGuard.execute(makeInput("git rebase --onto main feature"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git rebase -i (interactive)", () => {
     const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git rebase --continue", () => {
     const result = RebaseGuard.execute(makeInput("git rebase --continue"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git rebase --abort", () => {
     const result = RebaseGuard.execute(makeInput("git rebase --abort"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git pull --rebase", () => {
     const result = RebaseGuard.execute(makeInput("git pull --rebase origin main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git pull -r", () => {
     const result = RebaseGuard.execute(makeInput("git pull -r origin main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git pull --rebase=interactive", () => {
@@ -95,7 +99,7 @@ describe("RebaseGuard", () => {
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git rebase chained with &&", () => {
@@ -105,7 +109,7 @@ describe("RebaseGuard", () => {
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Block message content ──
@@ -114,16 +118,14 @@ describe("RebaseGuard", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("git merge");
+    expect(getPreToolUseDenyReason(result.value)).toContain("git merge");
   });
 
   it("block message states rebase is permanently prohibited", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("permanently prohibited");
+    expect(getPreToolUseDenyReason(result.value)).toContain("permanently prohibited");
   });
 
   // ── Continues on non-rebase commands ──
@@ -132,44 +134,44 @@ describe("RebaseGuard", () => {
     const result = RebaseGuard.execute(makeInput("git commit -m 'test'"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on git push", () => {
     const result = RebaseGuard.execute(makeInput("git push origin feature"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on git merge", () => {
     const result = RebaseGuard.execute(makeInput("git merge origin/main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on git pull without rebase flag", () => {
     const result = RebaseGuard.execute(makeInput("git pull origin main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on git pull --no-rebase", () => {
     const result = RebaseGuard.execute(makeInput("git pull --no-rebase origin main"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues when rebase appears only in heredoc body", () => {
     const cmd =
-      'git add file.ts && git commit -m "$(cat <<\'EOF\'\nfeat: block git rebase\nEOF\n)"';
+      "git add file.ts && git commit -m \"$(cat <<'EOF'\nfeat: block git rebase\nEOF\n)\"";
     const result = RebaseGuard.execute(makeInput(cmd), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues when rebase appears only in commit message string", () => {
@@ -179,24 +181,21 @@ describe("RebaseGuard", () => {
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on git log mentioning rebase in grep", () => {
-    const result = RebaseGuard.execute(
-      makeInput('git log --grep="rebase" --oneline'),
-      makeDeps(),
-    );
+    const result = RebaseGuard.execute(makeInput('git log --grep="rebase" --oneline'), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on non-git commands", () => {
     const result = RebaseGuard.execute(makeInput("ls -la"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── Always blocks, even on repeated attempts ──
@@ -209,7 +208,7 @@ describe("RebaseGuard", () => {
       const result = RebaseGuard.execute(makeInput(cmd), deps);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.value.type).toBe("block");
+      expect(isPreToolUseDeny(result.value)).toBe(true);
     }
   });
 

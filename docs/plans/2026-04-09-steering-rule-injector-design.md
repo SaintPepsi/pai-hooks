@@ -62,9 +62,10 @@ hooks/SteeringRuleInjector/SteeringRuleInjector/
 ### Event Type Detection
 
 ```typescript
-const event = "prompt" in input && input.prompt != null
-  ? "UserPromptSubmit"
-  : "SessionStart";
+const event =
+  "prompt" in input && input.prompt != null
+    ? "UserPromptSubmit"
+    : "SessionStart";
 ```
 
 ### Injection Tracking
@@ -120,18 +121,26 @@ The same hook file registered under two events:
 
 ```json
 {
-  "SessionStart": [{
-    "hooks": [{
-      "type": "command",
-      "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-    }]
-  }],
-  "UserPromptSubmit": [{
-    "hooks": [{
-      "type": "command",
-      "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-    }]
-  }]
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+        }
+      ]
+    }
+  ]
 }
 ```
 

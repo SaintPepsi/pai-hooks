@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ErrorCode, ResultError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
+  isSettingsPath,
   SettingsGuard,
   type SettingsGuardDeps,
-  isSettingsPath,
   snapshotPath,
 } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
 
@@ -22,12 +22,20 @@ function protectorDeps(fs: FakeFS, overrides: Partial<SettingsGuardDeps> = {}): 
     fileExists: (p) => fs.has(p),
     readFile: (p) => {
       const content = fs.get(p);
-      if (content === undefined) return { ok: false, error: new ResultError(ErrorCode.FileNotFound, p) };
+      if (content === undefined)
+        return { ok: false, error: new ResultError(ErrorCode.FileNotFound, p) };
       return ok(content);
     },
-    writeFile: (p, c) => { fs.set(p, c); return ok(undefined as void); },
-    appendFile: (p, c) => { const prev = fs.get(p) || ""; fs.set(p, prev + c); return ok(undefined as void); },
-    ensureDir: () => ok(undefined as void),
+    writeFile: (p, c) => {
+      fs.set(p, c);
+      return ok(undefined as undefined);
+    },
+    appendFile: (p, c) => {
+      const prev = fs.get(p) || "";
+      fs.set(p, prev + c);
+      return ok(undefined as undefined);
+    },
+    ensureDir: () => ok(undefined as undefined),
     baseDir: "/fake/pai",
     ...overrides,
   };
@@ -100,27 +108,31 @@ describe("SettingsGuard.accepts", () => {
   });
 
   it("accepts Edit targeting settings.json", () => {
-    expect(SettingsGuard.accepts(
-      settingsInput("Edit", { file_path: `${HOME}/.claude/settings.json` }),
-    )).toBe(true);
+    expect(
+      SettingsGuard.accepts(settingsInput("Edit", { file_path: `${HOME}/.claude/settings.json` })),
+    ).toBe(true);
   });
 
   it("accepts Write targeting settings.local.json", () => {
-    expect(SettingsGuard.accepts(
-      settingsInput("Write", { file_path: `${HOME}/.claude/settings.local.json` }),
-    )).toBe(true);
+    expect(
+      SettingsGuard.accepts(
+        settingsInput("Write", {
+          file_path: `${HOME}/.claude/settings.local.json`,
+        }),
+      ),
+    ).toBe(true);
   });
 
   it("rejects Read tool", () => {
-    expect(SettingsGuard.accepts(
-      settingsInput("Read", { file_path: `${HOME}/.claude/settings.json` }),
-    )).toBe(false);
+    expect(
+      SettingsGuard.accepts(settingsInput("Read", { file_path: `${HOME}/.claude/settings.json` })),
+    ).toBe(false);
   });
 
   it("rejects Edit to unrelated files", () => {
-    expect(SettingsGuard.accepts(
-      settingsInput("Edit", { file_path: `${HOME}/project/src/index.ts` }),
-    )).toBe(false);
+    expect(
+      SettingsGuard.accepts(settingsInput("Edit", { file_path: `${HOME}/project/src/index.ts` })),
+    ).toBe(false);
   });
 
   it("rejects Glob and other tools", () => {
@@ -139,10 +151,12 @@ describe("SettingsGuard.execute — Edit/Write", () => {
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("ask");
-      if (result.value.type === "ask") {
-        expect(result.value.message).toContain("Settings Protection");
-        expect(result.value.message).toContain("do NOT suggest workarounds");
+      const hs = result.value.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("ask");
+        expect(hs.permissionDecisionReason).toContain("Settings Protection");
+        expect(hs.permissionDecisionReason).toContain("do NOT suggest workarounds");
       }
     }
   });
@@ -150,21 +164,32 @@ describe("SettingsGuard.execute — Edit/Write", () => {
   it("returns ask for Write targeting ~/.claude/settings.local.json", () => {
     const fs: FakeFS = new Map();
     const result = SettingsGuard.execute(
-      settingsInput("Write", { file_path: `${HOME}/.claude/settings.local.json` }),
+      settingsInput("Write", {
+        file_path: `${HOME}/.claude/settings.local.json`,
+      }),
       protectorDeps(fs),
     );
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("ask");
+    if (result.ok) {
+      const hs = result.value.hookSpecificOutput;
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("ask");
+      } else {
+        throw new Error("expected PreToolUse ask permissionDecision");
+      }
+    }
   });
 
   it("returns continue for Edit targeting project-level settings.json", () => {
     const fs: FakeFS = new Map();
     const result = SettingsGuard.execute(
-      settingsInput("Edit", { file_path: "/some/project/.claude/settings.json" }),
+      settingsInput("Edit", {
+        file_path: "/some/project/.claude/settings.json",
+      }),
       protectorDeps(fs),
     );
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });
 
@@ -172,15 +197,13 @@ describe("SettingsGuard.execute — Edit/Write", () => {
 
 describe("SettingsGuard.execute — Bash snapshot", () => {
   it("snapshots settings.json before Bash command", () => {
-    const fs: FakeFS = new Map([
-      [`${HOME}/.claude/settings.json`, ORIGINAL],
-    ]);
+    const fs: FakeFS = new Map([[`${HOME}/.claude/settings.json`, ORIGINAL]]);
     const result = SettingsGuard.execute(
       settingsInput("Bash", { command: "python3 -c '...'" }),
       protectorDeps(fs),
     );
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
 
     // Verify snapshot was written
     const snap = fs.get(snapshotPath(SESSION, "settings.json"));
@@ -193,10 +216,7 @@ describe("SettingsGuard.execute — Bash snapshot", () => {
       [`${HOME}/.claude/settings.json`, ORIGINAL],
       [`${HOME}/.claude/settings.local.json`, localContent],
     ]);
-    SettingsGuard.execute(
-      settingsInput("Bash", { command: "ls" }),
-      protectorDeps(fs),
-    );
+    SettingsGuard.execute(settingsInput("Bash", { command: "ls" }), protectorDeps(fs));
 
     expect(fs.get(snapshotPath(SESSION, "settings.json"))).toBe(ORIGINAL);
     expect(fs.get(snapshotPath(SESSION, "settings.local.json"))).toBe(localContent);
@@ -204,18 +224,13 @@ describe("SettingsGuard.execute — Bash snapshot", () => {
 
   it("skips snapshot for files that dont exist", () => {
     const fs: FakeFS = new Map();
-    SettingsGuard.execute(
-      settingsInput("Bash", { command: "echo test" }),
-      protectorDeps(fs),
-    );
+    SettingsGuard.execute(settingsInput("Bash", { command: "echo test" }), protectorDeps(fs));
 
     expect(fs.has(snapshotPath(SESSION, "settings.json"))).toBe(false);
   });
 
   it("writes audit log entry on snapshot", () => {
-    const fs: FakeFS = new Map([
-      [`${HOME}/.claude/settings.json`, ORIGINAL],
-    ]);
+    const fs: FakeFS = new Map([[`${HOME}/.claude/settings.json`, ORIGINAL]]);
     SettingsGuard.execute(
       settingsInput("Bash", { command: "python3 -c '...'" }),
       protectorDeps(fs),
@@ -246,27 +261,26 @@ describe("SettingsGuard.execute — Bash snapshot", () => {
   });
 
   it("always returns continue for Bash (never blocks)", () => {
-    const fs: FakeFS = new Map([
-      [`${HOME}/.claude/settings.json`, ORIGINAL],
-    ]);
+    const fs: FakeFS = new Map([[`${HOME}/.claude/settings.json`, ORIGINAL]]);
     const result = SettingsGuard.execute(
       settingsInput("Bash", { command: "some dangerous command" }),
       protectorDeps(fs),
     );
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   it("warns on stderr when snapshot write fails", () => {
     const messages: string[] = [];
-    const fs: FakeFS = new Map([
-      [`${HOME}/.claude/settings.json`, ORIGINAL],
-    ]);
+    const fs: FakeFS = new Map([[`${HOME}/.claude/settings.json`, ORIGINAL]]);
     SettingsGuard.execute(
       settingsInput("Bash", { command: "echo test" }),
       protectorDeps(fs, {
         stderr: (msg: string) => messages.push(msg),
-        writeFile: () => ({ ok: false, error: new ResultError(ErrorCode.FileWriteFailed, "/tmp/snap") }),
+        writeFile: () => ({
+          ok: false,
+          error: new ResultError(ErrorCode.FileWriteFailed, "/tmp/snap"),
+        }),
       }),
     );
 

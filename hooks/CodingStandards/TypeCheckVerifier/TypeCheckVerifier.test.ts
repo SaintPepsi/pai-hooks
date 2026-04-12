@@ -7,6 +7,7 @@ import {
   parseTypeErrors,
   TypeCheckVerifier,
 } from "@hooks/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract";
+import { getPostToolUseAdvisory as getAdvisory } from "@hooks/hooks/CodingStandards/test-helpers";
 
 // ─── Discovery Tests ────────────────────────────────────────────────────────
 
@@ -164,7 +165,12 @@ describe("TypeCheckVerifier contract", () => {
     const deps: TypeCheckVerifierDeps = {
       fileExists: () => false,
       readFile: () => null,
-      execWithTimeout: () => ({ stdout: "", stderr: "", exitCode: 0, timedOut: false }),
+      execWithTimeout: () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+        timedOut: false,
+      }),
       signal: {
         baseDir: "/tmp",
         ensureDir: () => ({ ok: true, value: undefined }) as const,
@@ -175,7 +181,7 @@ describe("TypeCheckVerifier contract", () => {
 
     const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("returns advisory context when type errors found", () => {
@@ -201,13 +207,10 @@ describe("TypeCheckVerifier contract", () => {
     const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
-        "TYPE ERRORS",
-      );
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
-        "not assignable",
-      );
+      expect(result.value.continue).toBe(true);
+      const advisory = getAdvisory(result.value) ?? "";
+      expect(advisory).toContain("TYPE ERRORS");
+      expect(advisory).toContain("not assignable");
     }
   });
 
@@ -233,8 +236,8 @@ describe("TypeCheckVerifier contract", () => {
     const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect((result.value as { additionalContext?: string }).additionalContext).toBeUndefined();
+      expect(result.value.continue).toBe(true);
+      expect(getAdvisory(result.value)).toBeUndefined();
     }
   });
 
@@ -259,7 +262,7 @@ describe("TypeCheckVerifier contract", () => {
 
     const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });
 
@@ -279,7 +282,6 @@ describe("discoverTypeCheck — standalone tsconfig", () => {
     expect(result!.args).toContain("tsc");
     expect(result!.cwd).toBe("/project");
   });
-
 });
 
 describe("TypeCheckVerifier — debounce", () => {
@@ -289,7 +291,12 @@ describe("TypeCheckVerifier — debounce", () => {
     const deps: TypeCheckVerifierDeps = {
       fileExists: (p: string) => p === "/project/tsconfig.json",
       readFile: () => null,
-      execWithTimeout: () => ({ stdout: "", stderr: "", exitCode: 0, timedOut: false }),
+      execWithTimeout: () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+        timedOut: false,
+      }),
       signal: {
         baseDir: "/tmp/test",
         ensureDir: () => ({ ok: true, value: undefined }) as const,
@@ -310,7 +317,7 @@ describe("TypeCheckVerifier — debounce", () => {
     // Second call within debounce — skips check, returns continue
     const result2 = TypeCheckVerifier.execute(input, deps);
     expect(result2.ok).toBe(true);
-    if (result2.ok) expect(result2.value.type).toBe("continue");
+    if (result2.ok) expect(result2.value.continue).toBe(true);
   });
 });
 
@@ -320,9 +327,7 @@ describe("TypeCheckVerifier defaultDeps", () => {
   });
 
   test("defaultDeps.execWithTimeout returns exitCode 1 on failure", () => {
-    const result = TypeCheckVerifier.defaultDeps.execWithTimeout(
-      "false", [], "/tmp", 5000,
-    );
+    const result = TypeCheckVerifier.defaultDeps.execWithTimeout("false", [], "/tmp", 5000);
     expect(result.exitCode).not.toBe(0);
   });
 

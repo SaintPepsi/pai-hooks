@@ -40,23 +40,41 @@ It does **not** fire when:
    - Blocks with guidance to use safe adapter functions
 
 ```typescript
-// Bash destructive delete detection
-if (detectsDestructiveDelete(command)) {
+// Bash: artifact dirs prompt the user (ask), all others are denied
+if (isArtifactDirCleanup(command)) {
   return ok({
-    type: "block",
-    decision: "block",
-    reason: "Destructive delete pattern detected. Use removeDir() adapter.",
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "ask",
+      permissionDecisionReason: `Destructive delete on artifact directory: ${command}. Proceed?`,
+    },
   });
 }
-// Code content destructive delete detection
-if (detectsDestructiveDeleteInCode(content)) {
-  return ok({
-    type: "block",
-    decision: "block",
-    reason: "Code contains a destructive delete pattern. Use safe adapter functions.",
-  });
-}
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "deny",
+    permissionDecisionReason: "Destructive delete pattern detected. Use removeDir() adapter.",
+  },
+});
+// Code content: always deny
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "deny",
+    permissionDecisionReason: "Code contains a destructive delete pattern. Use safe adapter functions.",
+  },
+});
 ```
+
+> **L14 tombstone — Bug #11 (fixed 2026-04-11):** The original implementation returned
+> `ok({ type: "ask", decision: "ask", message: "..." })` for artifact-directory cleanups. The
+> top-level `decision` field only accepts `"approve"` or `"block"` in the SDK schema; `"ask"` is
+> only valid inside `hookSpecificOutput.permissionDecision` for PreToolUse events. Passing an
+> invalid top-level `decision` caused `validateHookOutput()` to reject the output, the runner
+> silently fell back to `{ continue: true }`, and the user was never prompted — the destructive
+> command ran unguarded. Fixed by routing through
+> `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", ... }`.
 
 ## Examples
 

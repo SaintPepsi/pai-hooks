@@ -31,10 +31,12 @@ export function readHookConfig<T = Record<string, unknown>>(
   settingsPath?: string,
 ): T | null {
   const path = settingsPath ?? getSettingsPath();
-  const reader = readFileFn ?? ((p: string) => {
-    const r = readFile(p);
-    return r.ok ? r.value : null;
-  });
+  const reader =
+    readFileFn ??
+    ((p: string) => {
+      const r = readFile(p);
+      return r.ok ? r.value : null;
+    });
   const raw = reader(path);
   if (!raw) return null;
 

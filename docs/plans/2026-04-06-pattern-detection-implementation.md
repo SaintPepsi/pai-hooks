@@ -15,6 +15,7 @@
 ### Task 1: Add PatternEntry type and normalization functions to shared.ts
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/shared.ts:15-39` (types section)
 - Test: `hooks/DuplicationDetection/shared.test.ts`
 
@@ -158,7 +159,15 @@ export function normalizeReturn(ret: string): string {
   return r;
 }
 
-const PRIMITIVE_RETURNS = new Set(["string", "number", "boolean", "void", "{object}", "", "string|null"]);
+const PRIMITIVE_RETURNS = new Set([
+  "string",
+  "number",
+  "boolean",
+  "void",
+  "{object}",
+  "",
+  "string|null",
+]);
 
 export function isPrimitiveReturn(normalizedReturn: string): boolean {
   return PRIMITIVE_RETURNS.has(normalizedReturn);
@@ -188,6 +197,7 @@ git commit -m "feat(DuplicationDetection): add PatternEntry type and sig normali
 ### Task 2: Add pattern detection to index builder logic
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/index-builder-logic.ts:104-124` (buildResult function)
 - Test: `hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts`
 
@@ -196,91 +206,103 @@ git commit -m "feat(DuplicationDetection): add PatternEntry type and sig normali
 Add to `DuplicationIndexBuilder.test.ts`, inside the `describe("execute()")` block, after the existing tests:
 
 ```ts
-    test("built index contains patterns array", () => {
-      let capturedContent = "";
+test("built index contains patterns array", () => {
+  let capturedContent = "";
 
-      const deps = makeMockDeps({
-        writeFile: (_path: string, content: string): boolean => {
-          capturedContent = content;
-          return true;
-        },
-        exists: (): boolean => false,
-        stat: (): null => null,
-        findProjectRoot: (): string => PAI_HOOKS_ROOT,
-      });
+  const deps = makeMockDeps({
+    writeFile: (_path: string, content: string): boolean => {
+      capturedContent = content;
+      return true;
+    },
+    exists: (): boolean => false,
+    stat: (): null => null,
+    findProjectRoot: (): string => PAI_HOOKS_ROOT,
+  });
 
-      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
-      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+  const input = makeWriteInput(
+    `${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`,
+    "",
+  );
+  unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
-      const index = JSON.parse(capturedContent) as DuplicationIndex;
-      expect(Array.isArray(index.patterns)).toBe(true);
-    });
+  const index = JSON.parse(capturedContent) as DuplicationIndex;
+  expect(Array.isArray(index.patterns)).toBe(true);
+});
 
-    test("detects makeDeps as a pattern (threshold 5, tier 1)", () => {
-      let capturedContent = "";
+test("detects makeDeps as a pattern (threshold 5, tier 1)", () => {
+  let capturedContent = "";
 
-      const deps = makeMockDeps({
-        writeFile: (_path: string, content: string): boolean => {
-          capturedContent = content;
-          return true;
-        },
-        exists: (): boolean => false,
-        stat: (): null => null,
-        findProjectRoot: (): string => PAI_HOOKS_ROOT,
-      });
+  const deps = makeMockDeps({
+    writeFile: (_path: string, content: string): boolean => {
+      capturedContent = content;
+      return true;
+    },
+    exists: (): boolean => false,
+    stat: (): null => null,
+    findProjectRoot: (): string => PAI_HOOKS_ROOT,
+  });
 
-      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
-      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+  const input = makeWriteInput(
+    `${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`,
+    "",
+  );
+  unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
-      const index = JSON.parse(capturedContent) as DuplicationIndex;
-      const makeDepsPattern = index.patterns?.find((p) => p.name === "makeDeps");
-      expect(makeDepsPattern).toBeDefined();
-      expect(makeDepsPattern!.tier).toBe(1);
-      expect(makeDepsPattern!.fileCount).toBeGreaterThanOrEqual(5);
-    });
+  const index = JSON.parse(capturedContent) as DuplicationIndex;
+  const makeDepsPattern = index.patterns?.find((p) => p.name === "makeDeps");
+  expect(makeDepsPattern).toBeDefined();
+  expect(makeDepsPattern!.tier).toBe(1);
+  expect(makeDepsPattern!.fileCount).toBeGreaterThanOrEqual(5);
+});
 
-    test("detects makeInput as a pattern (tier 2, return-only fallback)", () => {
-      let capturedContent = "";
+test("detects makeInput as a pattern (tier 2, return-only fallback)", () => {
+  let capturedContent = "";
 
-      const deps = makeMockDeps({
-        writeFile: (_path: string, content: string): boolean => {
-          capturedContent = content;
-          return true;
-        },
-        exists: (): boolean => false,
-        stat: (): null => null,
-        findProjectRoot: (): string => PAI_HOOKS_ROOT,
-      });
+  const deps = makeMockDeps({
+    writeFile: (_path: string, content: string): boolean => {
+      capturedContent = content;
+      return true;
+    },
+    exists: (): boolean => false,
+    stat: (): null => null,
+    findProjectRoot: (): string => PAI_HOOKS_ROOT,
+  });
 
-      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
-      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+  const input = makeWriteInput(
+    `${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`,
+    "",
+  );
+  unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
-      const index = JSON.parse(capturedContent) as DuplicationIndex;
-      const makeInputPattern = index.patterns?.find((p) => p.name === "makeInput");
-      expect(makeInputPattern).toBeDefined();
-      expect(makeInputPattern!.tier).toBe(2);
-    });
+  const index = JSON.parse(capturedContent) as DuplicationIndex;
+  const makeInputPattern = index.patterns?.find((p) => p.name === "makeInput");
+  expect(makeInputPattern).toBeDefined();
+  expect(makeInputPattern!.tier).toBe(2);
+});
 
-    test("does not detect 'main' as a pattern (primitive return filtered)", () => {
-      let capturedContent = "";
+test("does not detect 'main' as a pattern (primitive return filtered)", () => {
+  let capturedContent = "";
 
-      const deps = makeMockDeps({
-        writeFile: (_path: string, content: string): boolean => {
-          capturedContent = content;
-          return true;
-        },
-        exists: (): boolean => false,
-        stat: (): null => null,
-        findProjectRoot: (): string => PAI_HOOKS_ROOT,
-      });
+  const deps = makeMockDeps({
+    writeFile: (_path: string, content: string): boolean => {
+      capturedContent = content;
+      return true;
+    },
+    exists: (): boolean => false,
+    stat: (): null => null,
+    findProjectRoot: (): string => PAI_HOOKS_ROOT,
+  });
 
-      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
-      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+  const input = makeWriteInput(
+    `${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`,
+    "",
+  );
+  unwrap(DuplicationIndexBuilderContract.execute(input, deps));
 
-      const index = JSON.parse(capturedContent) as DuplicationIndex;
-      const mainPattern = index.patterns?.find((p) => p.name === "main");
-      expect(mainPattern).toBeUndefined();
-    });
+  const index = JSON.parse(capturedContent) as DuplicationIndex;
+  const mainPattern = index.patterns?.find((p) => p.name === "main");
+  expect(mainPattern).toBeUndefined();
+});
 ```
 
 Also add `import type { DuplicationIndex }` to the imports if not already present (it's already imported on line 21).
@@ -382,7 +404,10 @@ function detectPatterns(
       }
     }
 
-    if (topRetCount / indices.length >= minRatio && !isPrimitiveReturn(topRet)) {
+    if (
+      topRetCount / indices.length >= minRatio &&
+      !isPrimitiveReturn(topRet)
+    ) {
       const files = filesByRet.get(topRet) ?? [];
       const uniqueFiles = [...new Set(files)];
       patterns.push({
@@ -409,7 +434,9 @@ function buildResult(
   fileCount: number,
   branch: string | null,
 ): DuplicationIndex {
-  const nameGroups = groupByField(entries, (e) => e.n).filter(([_, idxs]) => idxs.length >= 2);
+  const nameGroups = groupByField(entries, (e) => e.n).filter(
+    ([_, idxs]) => idxs.length >= 2,
+  );
 
   return {
     version: 1,
@@ -419,7 +446,9 @@ function buildResult(
     fileCount,
     functionCount: entries.length,
     entries,
-    hashGroups: groupByField(entries, (e) => e.h).filter(([_, idxs]) => idxs.length >= 2),
+    hashGroups: groupByField(entries, (e) => e.h).filter(
+      ([_, idxs]) => idxs.length >= 2,
+    ),
     nameGroups,
     sigGroups: groupByField(entries, (e) => `(${e.p})→${e.r}`).filter(
       ([_, idxs]) => idxs.length >= 3,
@@ -452,6 +481,7 @@ git commit -m "feat(DuplicationDetection): add pattern detection to index builde
 ### Task 3: Add pattern config reading to DuplicationChecker
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts:44-60` (deps and config)
 
 **Step 1: Extend config reading to include pattern settings**
@@ -546,6 +576,7 @@ git commit -m "feat(DuplicationChecker): add pattern config to deps and config r
 ### Task 4: Add pattern advisory to DuplicationChecker execute()
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts:98-165` (execute function)
 - Test: `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
 
@@ -554,51 +585,51 @@ git commit -m "feat(DuplicationChecker): add pattern config to deps and config r
 Add to `DuplicationChecker.test.ts`, inside `describe("execute()")`:
 
 ```ts
-    test("injects additionalContext when function matches a known pattern", () => {
-      // Write a new makeDeps function — should match the makeDeps pattern in the index
-      const patternContent = `
+test("injects additionalContext when function matches a known pattern", () => {
+  // Write a new makeDeps function — should match the makeDeps pattern in the index
+  const patternContent = `
 function makeDeps(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   return { stderr: () => {}, now: () => Date.now(), ...overrides };
 }
       `.trim();
 
-      const stderrMessages: string[] = [];
-      const deps: DuplicationCheckerDeps = {
-        ...mockDeps,
-        stderr: (msg) => stderrMessages.push(msg),
-      };
+  const stderrMessages: string[] = [];
+  const deps: DuplicationCheckerDeps = {
+    ...mockDeps,
+    stderr: (msg) => stderrMessages.push(msg),
+  };
 
-      const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
-        patternContent,
-      );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
-      if (output.type === "continue") {
-        expect(output.additionalContext).toBeDefined();
-        expect(output.additionalContext).toContain("Pattern detected");
-        expect(output.additionalContext).toContain("makeDeps");
-      }
-    });
+  const input = makeWriteInput(
+    `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+    patternContent,
+  );
+  const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+  expect(output.type).toBe("continue");
+  if (output.type === "continue") {
+    expect(output.additionalContext).toBeDefined();
+    expect(output.additionalContext).toContain("Pattern detected");
+    expect(output.additionalContext).toContain("makeDeps");
+  }
+});
 
-    test("no pattern advisory for unique function names", () => {
-      const uniqueContent = `
+test("no pattern advisory for unique function names", () => {
+  const uniqueContent = `
 function superUniqueSpecialFunction123(): string {
   return "unique";
 }
       `.trim();
 
-      const deps: DuplicationCheckerDeps = { ...mockDeps };
-      const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
-        uniqueContent,
-      );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
-      if (output.type === "continue") {
-        expect(output.additionalContext).toBeUndefined();
-      }
-    });
+  const deps: DuplicationCheckerDeps = { ...mockDeps };
+  const input = makeWriteInput(
+    `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+    uniqueContent,
+  );
+  const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+  expect(output.type).toBe("continue");
+  if (output.type === "continue") {
+    expect(output.additionalContext).toBeUndefined();
+  }
+});
 ```
 
 **Step 2: Run tests to verify they fail**
@@ -628,23 +659,23 @@ import {
 In the `execute` function, after extracting functions (`DuplicationChecker.contract.ts:130-135`) and before the pair-wise `checkFunctions` call (`DuplicationChecker.contract.ts:141`), add pattern lookup:
 
 ```ts
-    // ─── Pattern advisory ───────────────────────────────────────────────
-    const patternAdvisories: string[] = [];
-    if (index.patterns && index.patterns.length > 0) {
-      const patternMap = new Map<string, PatternEntry>(
-        index.patterns.map((p) => [p.name, p]),
-      );
-      for (const fn of functions) {
-        const pattern = patternMap.get(fn.name);
-        if (!pattern) continue;
-        const examples = pattern.files.slice(0, 3).join(", ");
-        patternAdvisories.push(
-          `Pattern detected: "${pattern.name}" (${pattern.fileCount} instances across ${pattern.fileCount} files)\n` +
-          `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
-          `  Examples: ${examples}`,
-        );
-      }
-    }
+// ─── Pattern advisory ───────────────────────────────────────────────
+const patternAdvisories: string[] = [];
+if (index.patterns && index.patterns.length > 0) {
+  const patternMap = new Map<string, PatternEntry>(
+    index.patterns.map((p) => [p.name, p]),
+  );
+  for (const fn of functions) {
+    const pattern = patternMap.get(fn.name);
+    if (!pattern) continue;
+    const examples = pattern.files.slice(0, 3).join(", ");
+    patternAdvisories.push(
+      `Pattern detected: "${pattern.name}" (${pattern.fileCount} instances across ${pattern.fileCount} files)\n` +
+        `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
+        `  Examples: ${examples}`,
+    );
+  }
+}
 ```
 
 Then, when returning the result, merge pattern advisories with any existing `additionalContext`. Modify the final return paths:
@@ -654,12 +685,12 @@ After the derivation match return (`DuplicationChecker.contract.ts:197-206`), an
 The cleanest approach: collect pattern advisories at the top, then at each `continueOk()` return point, attach them if present. Add a helper at the top of `execute`:
 
 ```ts
-    function continueWithPatterns(extra?: string): ContinueOutput {
-      const parts = [...patternAdvisories];
-      if (extra) parts.push(extra);
-      if (parts.length === 0) return continueOk();
-      return { ...continueOk(), additionalContext: parts.join("\n\n") };
-    }
+function continueWithPatterns(extra?: string): ContinueOutput {
+  const parts = [...patternAdvisories];
+  if (extra) parts.push(extra);
+  if (parts.length === 0) return continueOk();
+  return { ...continueOk(), additionalContext: parts.join("\n\n") };
+}
 ```
 
 Then replace each `return ok(continueOk())` in execute with `return ok(continueWithPatterns())`, and the derivation return with `return ok(continueWithPatterns(advisory))`.
@@ -669,26 +700,27 @@ Then replace each `return ok(continueOk())` in execute with `return ok(continueW
 Also update the log entry to include patterns:
 
 ```ts
-    const logEntry = {
-      ts: new Date(deps.now()).toISOString(),
-      branch,
-      file: relPath,
-      functions: functions.length,
-      matches: matches.map((m) => ({
-        fn: m.functionName,
-        target: `${m.targetFile}:${m.targetName}`,
-        signals: m.signals,
-        score: Math.round(m.topScore * 100),
-      })),
-      patterns: patternAdvisories.length > 0
-        ? functions
-            .filter((fn) => index.patterns?.some((p) => p.name === fn.name))
-            .map((fn) => {
-              const p = index.patterns!.find((pat) => pat.name === fn.name)!;
-              return { fn: fn.name, patternId: p.id, instances: p.fileCount };
-            })
-        : undefined,
-    };
+const logEntry = {
+  ts: new Date(deps.now()).toISOString(),
+  branch,
+  file: relPath,
+  functions: functions.length,
+  matches: matches.map((m) => ({
+    fn: m.functionName,
+    target: `${m.targetFile}:${m.targetName}`,
+    signals: m.signals,
+    score: Math.round(m.topScore * 100),
+  })),
+  patterns:
+    patternAdvisories.length > 0
+      ? functions
+          .filter((fn) => index.patterns?.some((p) => p.name === fn.name))
+          .map((fn) => {
+            const p = index.patterns!.find((pat) => pat.name === fn.name)!;
+            return { fn: fn.name, patternId: p.id, instances: p.fileCount };
+          })
+      : undefined,
+};
 ```
 
 **Step 4: Run tests to verify they pass**
@@ -714,6 +746,7 @@ git commit -m "feat(DuplicationChecker): add pattern advisory via additionalCont
 ### Task 5: Type check, full test suite, integration verification
 
 **Files:**
+
 - All modified files from Tasks 1-4
 
 **Step 1: Run type checker**
@@ -760,6 +793,7 @@ git commit -m "fix(DuplicationDetection): integration test adjustments for patte
 ### Task 6: Update documentation
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/DuplicationChecker/doc.md`
 - Modify: `hooks/DuplicationDetection/DuplicationChecker/IDEA.md`
 - Modify: `hooks/DuplicationDetection/README.md`
@@ -767,6 +801,7 @@ git commit -m "fix(DuplicationDetection): integration test adjustments for patte
 **Step 1: Update doc.md**
 
 Add a section about pattern detection to `DuplicationChecker/doc.md`, after the existing "What It Does" section. Include:
+
 - Pattern detection as a new capability
 - Two-tier sig matching explanation
 - Config options (`patternThreshold`, `requireSigMatch`, `sigMatchPercent`)

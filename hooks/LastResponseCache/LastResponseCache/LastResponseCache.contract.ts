@@ -9,13 +9,13 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -93,7 +93,7 @@ const defaultDeps: LastResponseCacheDeps = {
   baseDir: getPaiDir(),
 };
 
-export const LastResponseCache: SyncHookContract<StopInput, SilentOutput, LastResponseCacheDeps> = {
+export const LastResponseCache: SyncHookContract<StopInput, LastResponseCacheDeps> = {
   name: "LastResponseCache",
   event: "Stop",
 
@@ -101,12 +101,12 @@ export const LastResponseCache: SyncHookContract<StopInput, SilentOutput, LastRe
     return !!input.transcript_path;
   },
 
-  execute(input: StopInput, deps: LastResponseCacheDeps): Result<SilentOutput, ResultError> {
+  execute(input: StopInput, deps: LastResponseCacheDeps): Result<SyncHookJSONOutput, ResultError> {
     const lastResponse = extractLastAssistantMessage(input.transcript_path!, deps);
 
     if (!lastResponse) {
       deps.stderr("[LastResponseCache] No assistant message found in transcript");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const cachePath = join(deps.baseDir, "MEMORY", "STATE", "last-response.txt");
@@ -116,7 +116,7 @@ export const LastResponseCache: SyncHookContract<StopInput, SilentOutput, LastRe
       deps.stderr(`[LastResponseCache] Failed to write cache: ${writeResult.error.message}`);
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

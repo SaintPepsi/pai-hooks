@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { ok } from "@hooks/core/result";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { fileWriteFailed } from "@hooks/core/error";
-import { err } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import {
   type ArticlePromptContext,
   ArticleWriter,
@@ -57,14 +56,12 @@ describe("ArticleWriter", () => {
     const deps = makeDeps({ websiteRepo: "/nonexistent/repo" });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
   test("skips when website repo is empty string", () => {
     const deps = makeDeps({ websiteRepo: "" });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
   // ─── Gate 2: Lock file ────────────────────────────────────────────────
@@ -76,7 +73,6 @@ describe("ArticleWriter", () => {
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
   test("cleans stale lock and continues", () => {
@@ -104,7 +100,6 @@ describe("ArticleWriter", () => {
     const deps = makeDeps();
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
   test("skips when PRD has fewer than 4 checked criteria", () => {
@@ -120,7 +115,6 @@ describe("ArticleWriter", () => {
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
   test("detects substantial work from PRD with 4+ checked criteria", () => {
@@ -273,13 +267,19 @@ describe("buildArticlePrompt", () => {
   });
 
   test("uses principal name from context", () => {
-    const ctx: ArticlePromptContext = { ...defaultCtx, principalName: "Jane Doe" };
+    const ctx: ArticlePromptContext = {
+      ...defaultCtx,
+      principalName: "Jane Doe",
+    };
     const prompt = buildArticlePrompt(ctx, "test-1");
     expect(prompt).toContain("Jane Doe's AI collaborator");
   });
 
   test("uses website repo path from context", () => {
-    const ctx: ArticlePromptContext = { ...defaultCtx, websiteRepo: "/custom/repo" };
+    const ctx: ArticlePromptContext = {
+      ...defaultCtx,
+      websiteRepo: "/custom/repo",
+    };
     const prompt = buildArticlePrompt(ctx, "test-1");
     expect(prompt).toContain("WORKING DIRECTORY: /custom/repo");
   });
@@ -326,7 +326,6 @@ describe("ArticleWriter error paths after gates pass", () => {
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
     expect(stderrMessages.some((m) => m.includes("Failed to create articles dir"))).toBe(true);
   });
 });

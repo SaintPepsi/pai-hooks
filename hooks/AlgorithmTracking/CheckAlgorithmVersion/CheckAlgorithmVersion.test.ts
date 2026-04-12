@@ -53,7 +53,7 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({ isSubagent: () => true });
       const result = await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("does not call getLocalVersion when isSubagent", async () => {
@@ -106,7 +106,7 @@ describe("CheckAlgorithmVersion", () => {
       });
       const result = await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
   });
 

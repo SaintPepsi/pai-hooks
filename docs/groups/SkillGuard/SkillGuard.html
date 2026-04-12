@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1891,15 +1904,18 @@ Intercept every skill invocation before it executes. Compare the target skill na
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
 if (BLOCKED_SKILLS.includes(skillName)) {
-  const opener = pickNarrative("SkillGuard", 1);
+  const opener = pickNarrative("SkillGuard", 1, import.meta.dir);
   return ok({
-    type: "block",
-    decision: "block",
-    reason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias.`,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias.`,
+    },
   });
 }</div>
         </div>
       </div>
+      <p><!-- L12 tombstone: bug #12 (R4-vs-R5 class) — legacy <code>{ type: "block", decision: "block", reason }</code> shape was a silent-drop on PreToolUse; replaced with <code>hookSpecificOutput.permissionDecision: "deny"</code> via R4 migration (feat/sdk-type-foundation). --></p>
     </div>
   </section>
 
@@ -1939,6 +1955,7 @@ if (BLOCKED_SKILLS.includes(skillName)) {
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td>Picks contextual narrative openers for block messages</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> return type; PreToolUse block via <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 shape, post-SDK-refactor bug #12 fix)</td></tr>
         </tbody>
       </table>
     </div>

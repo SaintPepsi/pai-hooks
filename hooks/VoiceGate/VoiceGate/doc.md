@@ -45,9 +45,18 @@ accepts(input: ToolHookInput): boolean {
 
 > The main session sends a request to `localhost:8888/notify`. VoiceGate confirms the session is not a subagent and returns `continue`, allowing the request to proceed.
 
+## Bug History
+
+<!-- L14 tombstone: bug #11 (R4-vs-R5 class) — the block return on PreToolUse used top-level
+`decision:"block"` (R5 shape), which is silently dropped by the SDK on PreToolUse events.
+Fixed in sdk-type-foundation migration: now uses `hookSpecificOutput.permissionDecision:"deny"`
+(R4 shape), which is the correct PreToolUse block mechanism. Subagent voice requests are now
+actually suppressed rather than silently passing through. -->
+
 ## Dependencies
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `fs` | adapter | Provides `fileExists` for dependency injection |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4 shape, bug #11 fix) |

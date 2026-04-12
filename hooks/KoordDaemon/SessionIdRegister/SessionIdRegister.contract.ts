@@ -16,15 +16,15 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/SessionIdRegister.hook.js
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import { defaultReadFileOrNull, readKoordConfig } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,11 +49,7 @@ const defaultDeps: SessionIdRegisterDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const SessionIdRegister: AsyncHookContract<
-  SessionStartInput,
-  SilentOutput,
-  SessionIdRegisterDeps
-> = {
+export const SessionIdRegister: AsyncHookContract<SessionStartInput, SessionIdRegisterDeps> = {
   name: "SessionIdRegister",
   event: "SessionStart",
 
@@ -64,18 +60,18 @@ export const SessionIdRegister: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: SessionIdRegisterDeps,
-  ): Promise<Result<SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     const sessionId = input.session_id;
     if (!sessionId) {
       deps.stderr("[SessionIdRegister] No session_id in hook input");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Read thread ID from env var
     const threadId = deps.getEnv("KOORD_THREAD_ID");
     if (!threadId) {
       deps.stderr("[SessionIdRegister] No KOORD_THREAD_ID env var — not a Koord thread agent");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Resolve daemon URL: env var first, then settings.json fallback
@@ -83,7 +79,7 @@ export const SessionIdRegister: AsyncHookContract<
     const daemonUrl = envUrl ?? deps.getKoordConfig().url;
     if (!daemonUrl) {
       deps.stderr("[SessionIdRegister] No daemon URL found (env or settings.json)");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const baseUrl = daemonUrl.replace(/\/+$/, "");
@@ -107,7 +103,7 @@ export const SessionIdRegister: AsyncHookContract<
       );
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

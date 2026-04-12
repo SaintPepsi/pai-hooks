@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { makeWriteInput, makeEditInput, makeToolInput } from "@hooks/lib/test-helpers";
+import { makeEditInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-helpers";
 
 describe("makeWriteInput", () => {
   test("returns Write input with file_path and content", () => {

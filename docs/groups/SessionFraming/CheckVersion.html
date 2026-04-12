@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1863,7 +1876,7 @@ At session start, compare the locally installed version against the latest publi
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Checks if the session is a subagent; if so, returns <code>silent</code></p></div>
+          <div class="step-content"><p>Checks if the session is a subagent; if so, returns silent (<code>{}</code>)</p></div>
         </div>
 
         <div class="flow-step">
@@ -1876,7 +1889,7 @@ At session start, compare the locally installed version against the latest publi
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>If either lookup fails, returns <code>silent</code> without notification</p></div>
+          <div class="step-content"><p>If either lookup fails, returns silent without notification</p></div>
         </div>
 
         <div class="flow-step">
@@ -1886,7 +1899,7 @@ At session start, compare the locally installed version against the latest publi
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Always returns <code>silent</code> output (never injects context)</p></div>
+          <div class="step-content"><p>Always returns silent <code>SyncHookJSONOutput</code> (<code>{}</code>) — never injects context</p></div>
         </div>
 </div>
       
@@ -1902,12 +1915,15 @@ const [currentResult, latestResult] = await Promise.all([
   deps.getLatestVersion(),
 ]);
 
-if (currentVersion !== "unknown" &amp;&amp; latestVersion !== "unknown" &amp;&amp;
-    currentVersion !== latestVersion) {
+if (
+  currentVersion !== "unknown" &amp;&amp;
+  latestVersion !== "unknown" &amp;&amp;
+  currentVersion !== latestVersion
+) {
   deps.stderr(`Update available: CC ${currentVersion} -&gt; ${latestVersion}`);
 }
 
-return ok({ type: "silent" });</div>
+return ok({});</div>
         </div>
       </div>
     </div>
@@ -1950,6 +1966,7 @@ return ok({ type: "silent" });</div>
         <tbody>
           <tr><td><code>process</code></td><td>adapter</td><td>Provides <code>exec</code> for running <code>claude --version</code> and <code>npm view</code> commands</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code> and <code>Result</code> type for error handling</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; CheckVersion always returns <code>{}</code> (no <code>hookSpecificOutput</code>, no <code>continue</code> override) — stderr is the only user-facing channel</td></tr>
         </tbody>
       </table>
     </div>

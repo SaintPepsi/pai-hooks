@@ -35,8 +35,10 @@ It does **not** fire when:
 
 ```typescript
 // Match prompt against session crons
-const matchIndex = sessionFile.crons.findIndex((cron) => prompt.includes(cron.prompt));
-if (matchIndex === -1) return ok(silent());
+const matchIndex = sessionFile.crons.findIndex((cron) =>
+  prompt.includes(cron.prompt),
+);
+if (matchIndex === -1) return ok({});
 
 const updatedCron = {
   ...matched,
@@ -44,7 +46,16 @@ const updatedCron = {
   lastFired: deps.now(),
 };
 writeCronFile(sessionId, { ...sessionFile, crons: updatedCrons }, deps, deps);
-appendCronLog({ type: "fired", cronId: updatedCron.id, name: updatedCron.name, fireCount: updatedCron.fireCount }, deps, deps);
+appendCronLog(
+  {
+    type: "fired",
+    cronId: updatedCron.id,
+    name: updatedCron.name,
+    fireCount: updatedCron.fireCount,
+  },
+  deps,
+  deps,
+);
 ```
 
 ## Examples
@@ -59,8 +70,8 @@ appendCronLog({ type: "fired", cronId: updatedCron.id, name: updatedCron.name, f
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File I/O operations for reading/writing cron state |
-| `shared` | shared | `readCronFile`, `writeCronFile`, `appendCronLog` for cron state management |
-| `result` | core | `ok` wrapper and `silent` output helper |
+| Dependency | Type    | Purpose                                                                    |
+| ---------- | ------- | -------------------------------------------------------------------------- |
+| `fs`       | adapter | File I/O operations for reading/writing cron state                         |
+| `shared`   | shared  | `readCronFile`, `writeCronFile`, `appendCronLog` for cron state management |
+| `result`   | core    | `ok` wrapper and `silent` output helper                                    |

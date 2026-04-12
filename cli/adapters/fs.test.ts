@@ -10,12 +10,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   chmod,
+  removeDir as cliRemoveDir,
   deleteFile,
   ensureDir,
   fileExists,
   readDir,
   readFile,
-  removeDir as cliRemoveDir,
   stat,
   writeFile,
 } from "@hooks/cli/adapters/fs";

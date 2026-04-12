@@ -1,15 +1,19 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { TestObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
-import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import { readTestExcludePatterns } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import {
   TestObligationTracker,
   type TestTrackerDeps,
 } from "@hooks/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.contract";
+import {
+  getReasonFromBlock,
+  isSilentNoOp,
+  buildStopInput as makeStopInput,
+  buildToolInput as makeToolInput,
+} from "@hooks/hooks/ObligationStateMachines/test-helpers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -26,20 +30,6 @@ function makeTrackerDeps(overrides: Partial<TestTrackerDeps> = {}): TestTrackerD
     stderr: () => {},
     getExcludePatterns: () => [],
     ...overrides,
-  };
-}
-
-function makeToolInput(toolName: string, toolInput: Record<string, unknown> = {}): ToolHookInput {
-  return {
-    session_id: "test-session",
-    tool_name: toolName,
-    tool_input: toolInput,
-  };
-}
-
-function makeStopInput(): StopInput {
-  return {
-    session_id: "test-session",
   };
 }
 
@@ -132,7 +122,9 @@ describe("TestObligationTracker", () => {
   it("accepts Edit with PHP production file (not a test)", () => {
     expect(
       TestObligationTracker.accepts(
-        makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php" }),
+        makeToolInput("Edit", {
+          file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php",
+        }),
       ),
     ).toBe(true);
   });
@@ -151,7 +143,7 @@ describe("TestObligationTracker", () => {
     const result = TestObligationTracker.execute(
       makeToolInput("Edit", { file_path: "/src/handler.ts" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/handler.ts");
@@ -169,7 +161,7 @@ describe("TestObligationTracker", () => {
     const result = TestObligationTracker.execute(
       makeToolInput("Write", { file_path: "/src/utils.ts" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/utils.ts");
@@ -203,7 +195,7 @@ describe("TestObligationTracker", () => {
     const result = TestObligationTracker.execute(
       makeToolInput("Bash", { command: "bun test" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(removed).toBe(true);
@@ -249,7 +241,9 @@ describe("TestObligationTracker", () => {
     });
 
     TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "sail phpunit --filter SeedTestIneligibleMatterTest" }),
+      makeToolInput("Bash", {
+        command: "sail phpunit --filter SeedTestIneligibleMatterTest",
+      }),
       deps,
     );
 
@@ -438,11 +432,19 @@ describe("TestObligationTracker", () => {
     });
 
     TestObligationTracker.execute(
-      { session_id: "session-aaa", tool_name: "Edit", tool_input: { file_path: "/src/a.ts" } },
+      {
+        session_id: "session-aaa",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/a.ts" },
+      },
       deps,
     );
     TestObligationTracker.execute(
-      { session_id: "session-bbb", tool_name: "Edit", tool_input: { file_path: "/src/b.ts" } },
+      {
+        session_id: "session-bbb",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/b.ts" },
+      },
       deps,
     );
 
@@ -482,13 +484,13 @@ describe("TestObligationEnforcer", () => {
     const deps = makeTrackerDeps({ fileExists: () => false });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilentNoOp(result.value)).toBe(true);
   });
 
   it("returns block when pending flag exists", () => {
@@ -498,13 +500,13 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
   it("block reason includes file paths", () => {
@@ -514,13 +516,15 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("/src/handler.ts");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("/src/handler.ts");
   });
 
   it("block reason mentions tests", () => {
@@ -530,13 +534,15 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason.toLowerCase()).toContain("test");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect((reason ?? "").toLowerCase()).toContain("test");
   });
 
   // ── Differentiated messages: write vs run ──
@@ -549,14 +555,16 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason.toLowerCase()).toContain("write");
-    expect(result.value.reason).toContain("/src/handler.ts");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect((reason ?? "").toLowerCase()).toContain("write");
+    expect(reason ?? "").toContain("/src/handler.ts");
   });
 
   it("says 'run' for files with existing test files", () => {
@@ -571,15 +579,17 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason.toLowerCase()).toContain("run");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect((reason ?? "").toLowerCase()).toContain("run");
     // Should NOT say write for this file
-    expect(result.value.reason.toLowerCase()).not.toMatch(/write.*handler/);
+    expect((reason ?? "").toLowerCase()).not.toMatch(/write.*handler/);
   });
 
   it("matches PHP Test variant (FooTest.php) as existing test file", () => {
@@ -594,14 +604,16 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
     // Has a test (FooTest.php), so should say run, not write
-    expect(result.value.reason.toLowerCase()).not.toMatch(/write.*seedtest/i);
+    expect((reason ?? "").toLowerCase()).not.toMatch(/write.*seedtest/i);
   });
 
   it("matches .spec. variant as existing test file", () => {
@@ -616,14 +628,16 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
     // Has a test (.spec.), so should say run, not write
-    expect(result.value.reason.toLowerCase()).not.toMatch(/write.*handler/);
+    expect((reason ?? "").toLowerCase()).not.toMatch(/write.*handler/);
   });
 
   it("separates write and run instructions in mixed scenario", () => {
@@ -638,13 +652,14 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const reason = result.value.reason;
+    const reason = getReasonFromBlock(result.value) ?? "";
+    expect(reason).not.toBe("");
     // handler.ts has a test → run instruction
     // utils.ts has no test → write instruction
     expect(reason).toContain("/src/handler.ts");
@@ -665,13 +680,13 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
   it("blocks on second stop attempt (blockCount=1)", () => {
@@ -684,13 +699,13 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
   it("returns silent on third stop attempt (blockCount=2)", () => {
@@ -704,13 +719,13 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilentNoOp(result.value)).toBe(true);
   });
 
   it("increments block count when blocking", () => {
@@ -778,13 +793,13 @@ describe("TestObligationEnforcer", () => {
     });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilentNoOp(result.value)).toBe(true);
   });
 });
 
@@ -837,10 +852,7 @@ describe("TestObligationTracker excludePatterns", () => {
       getExcludePatterns: () => [],
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Edit", { file_path: "/src/app.ts" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Edit", { file_path: "/src/app.ts" }), deps);
 
     expect(writtenFiles).toContain("/src/app.ts");
   });
@@ -870,15 +882,11 @@ describe("TestObligationTracker edge cases", () => {
   it("returns continue when Edit has no file_path in tool_input", () => {
     const deps = makeTrackerDeps();
     // Bypass accepts() by calling execute directly with Edit but no file_path
-    const input: ToolHookInput = {
-      session_id: "test-session",
-      tool_name: "Edit",
-      tool_input: {},
-    };
+    const input = makeToolInput("Edit", {});
     const result = TestObligationTracker.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -939,26 +947,26 @@ describe("TestObligationTracker defaultDeps", () => {
 
   it("defaultDeps.readPending handles corrupt state file", () => {
     const tmpPath = `/tmp/pai-test-tosm-corrupt-${Date.now()}.json`;
-    require("fs").writeFileSync(tmpPath, "{ broken json !!!");
+    require("node:fs").writeFileSync(tmpPath, "{ broken json !!!");
     const result = TestObligationTracker.defaultDeps.readPending(tmpPath);
     expect(result).toEqual([]);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("defaultDeps.readPending returns parsed array for valid file", () => {
     const tmpPath = `/tmp/pai-test-tosm-rp-${Date.now()}.json`;
-    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
+    require("node:fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
     const result = TestObligationTracker.defaultDeps.readPending(tmpPath);
     expect(result).toEqual(["/src/a.ts"]);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("defaultDeps.readBlockCount parses numeric content", () => {
     const tmpPath = `/tmp/pai-test-tosm-bc-${Date.now()}.txt`;
-    require("fs").writeFileSync(tmpPath, "42");
+    require("node:fs").writeFileSync(tmpPath, "42");
     const result = TestObligationTracker.defaultDeps.readBlockCount(tmpPath);
     expect(result).toBe(42);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 });
 
@@ -971,28 +979,28 @@ describe("readTestExcludePatterns", () => {
 
   it("returns empty array for malformed JSON", () => {
     const tmpPath = `/tmp/pai-test-tosm-excl-bad-${Date.now()}.json`;
-    require("fs").writeFileSync(tmpPath, "{ broken !!!");
+    require("node:fs").writeFileSync(tmpPath, "{ broken !!!");
     expect(readTestExcludePatterns(tmpPath)).toEqual([]);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("returns patterns when present", () => {
     const tmpPath = `/tmp/pai-test-tosm-excl-${Date.now()}.json`;
-    require("fs").writeFileSync(
+    require("node:fs").writeFileSync(
       tmpPath,
       JSON.stringify({
         hookConfig: { testObligation: { excludePatterns: ["**/vendor/**"] } },
       }),
     );
     expect(readTestExcludePatterns(tmpPath)).toEqual(["**/vendor/**"]);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("returns empty array when no testObligation config", () => {
     const tmpPath = `/tmp/pai-test-tosm-excl-none-${Date.now()}.json`;
-    require("fs").writeFileSync(tmpPath, JSON.stringify({ hookConfig: {} }));
+    require("node:fs").writeFileSync(tmpPath, JSON.stringify({ hookConfig: {} }));
     expect(readTestExcludePatterns(tmpPath)).toEqual([]);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 });
 
@@ -1010,5 +1018,53 @@ describe("TestObligationTracker defaultDeps — write failures", () => {
     expect(() =>
       TestObligationTracker.defaultDeps.writeBlockCount("/proc/pai-test-bc-fail.txt", 1),
     ).not.toThrow();
+  });
+});
+
+describe("deriveTestPaths", () => {
+  it("derives .test.ts and .spec.ts for a plain .ts source", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Foo.ts");
+    expect(paths).toContain("/abs/path/Foo.test.ts");
+    expect(paths).toContain("/abs/path/Foo.spec.ts");
+  });
+
+  it("derives both conventions for a .contract.ts source", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Foo.contract.ts");
+    // "strip .contract" convention (pai-hooks majority)
+    expect(paths).toContain("/abs/path/Foo.test.ts");
+    expect(paths).toContain("/abs/path/Foo.spec.ts");
+    expect(paths).toContain("/abs/path/Foo.coverage.test.ts");
+    // "keep .contract" convention
+    expect(paths).toContain("/abs/path/Foo.contract.test.ts");
+    expect(paths).toContain("/abs/path/Foo.contract.spec.ts");
+  });
+
+  it("derives coverage test sidecar", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Bar.ts");
+    expect(paths).toContain("/abs/path/Bar.coverage.test.ts");
+  });
+
+  it("derives FooTest.php for PHP sources", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Foo.php");
+    expect(paths).toContain("/abs/path/FooTest.php");
+  });
+
+  it("returns empty array for files without extension", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    expect(deriveTestPaths("/abs/path/README")).toEqual([]);
   });
 });

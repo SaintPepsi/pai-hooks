@@ -1,8 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, writeFile } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   DuplicationCheckerContract,
   type DuplicationCheckerDeps,
@@ -20,7 +21,7 @@ import { makeEditInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-he
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const PAI_HOOKS_ROOT = "/Users/ian.hogers/.claude/pai-hooks";
+const PAI_HOOKS_ROOT = resolve(import.meta.dir, "../../..");
 const BRANCH = getCurrentBranch(PAI_HOOKS_ROOT) ?? "default";
 const INDEX_DIR = getArtifactsDir(PAI_HOOKS_ROOT, BRANCH);
 const INDEX_PATH = `${INDEX_DIR}/index.json`;
@@ -50,9 +51,7 @@ const mockDeps: DuplicationCheckerDeps = {
   blocking: true,
 };
 
-function unwrap(
-  result: Result<ContinueOutput | BlockOutput, ResultError>,
-): ContinueOutput | BlockOutput {
+function unwrap(result: Result<SyncHookJSONOutput, ResultError>): SyncHookJSONOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }
@@ -99,10 +98,8 @@ describe("DuplicationCheckerContract", () => {
         "export function foo() { return 1; }",
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
-      if (output.type === "continue") {
-        expect(output.additionalContext).toBeUndefined();
-      }
+      expect(output.continue).toBe(true);
+      expect(output.hookSpecificOutput).toBeUndefined();
     });
 
     test("blocks when writing content with 4/4 signal match (exact duplicate)", () => {
@@ -127,9 +124,11 @@ describe("DuplicationCheckerContract", () => {
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("block");
-      if (output.type === "block") {
-        expect(output.reason).toContain("duplicates");
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+        expect(hs.permissionDecisionReason).toContain("duplicates");
       }
     });
 
@@ -155,7 +154,7 @@ export function makeDeps(x: string): Record<string, unknown> {
         partialMatchContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
+      expect(output.continue).toBe(true);
     });
 
     test("returns continue for genuinely unique content", () => {
@@ -179,7 +178,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         uniqueContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
+      expect(output.continue).toBe(true);
     });
 
     test("block reason lists duplicate targets", () => {
@@ -200,10 +199,12 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("block");
-      if (output.type === "block") {
-        expect(output.reason).toContain("duplicates");
-        expect(output.reason).toContain("Reuse the existing function");
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+        expect(hs.permissionDecisionReason).toContain("duplicates");
+        expect(hs.permissionDecisionReason).toContain("Reuse the existing function");
       }
     });
 
@@ -218,7 +219,11 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
-      expect(output.type).toBe("block");
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+      }
     });
     test("injects additionalContext when function matches a known pattern", () => {
       const patternContent = `
@@ -264,11 +269,13 @@ function makeDeps(overrides: Partial<Record<string, unknown>> = {}): Record<stri
         patternContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
-      if (output.type === "continue") {
-        expect(output.additionalContext).toBeDefined();
-        expect(output.additionalContext).toContain("Pattern detected");
-        expect(output.additionalContext).toContain("makeDeps");
+      expect(output.continue).toBe(true);
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.additionalContext).toBeDefined();
+        expect(hs.additionalContext).toContain("Pattern detected");
+        expect(hs.additionalContext).toContain("makeDeps");
       }
     });
 
@@ -313,10 +320,8 @@ function superUniqueSpecialFunction123(): string {
         uniqueContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
-      if (output.type === "continue") {
-        expect(output.additionalContext).toBeUndefined();
-      }
+      expect(output.continue).toBe(true);
+      expect(output.hookSpecificOutput).toBeUndefined();
     });
 
     test("continues instead of blocking when blocking config is false", () => {
@@ -335,7 +340,7 @@ function superUniqueSpecialFunction123(): string {
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.type).toBe("continue");
+      expect(output.continue).toBe(true);
     });
   });
 });

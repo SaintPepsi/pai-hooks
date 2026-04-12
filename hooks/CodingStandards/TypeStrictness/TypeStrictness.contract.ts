@@ -9,21 +9,20 @@
  * then matches type annotation patterns (`: any`, `as any`, generic `<any>`, `any[]`).
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
   defaultSignalLoggerDeps,
   logSignal,
   type SignalLoggerDeps,
 } from "@hooks/lib/signal-logger";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -84,7 +83,10 @@ const ANY_TYPE_PATTERNS: Array<{ regex: RegExp; description: string }> = [
 ];
 
 /** Scan a single line (already stripped of comments/strings) for any-type usage. */
-export function detectAnyOnLine(strippedLine: string): { found: boolean; pattern: string } {
+export function detectAnyOnLine(strippedLine: string): {
+  found: boolean;
+  pattern: string;
+} {
   for (const p of ANY_TYPE_PATTERNS) {
     if (p.regex.test(strippedLine)) {
       return { found: true, pattern: p.description };
@@ -252,11 +254,7 @@ const defaultDeps: TypeStrictnessDeps = {
   stderr: defaultStderr,
 };
 
-export const TypeStrictness: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  TypeStrictnessDeps
-> = {
+export const TypeStrictness: SyncHookContract<ToolHookInput, TypeStrictnessDeps> = {
   name: "TypeStrictness",
   event: "PreToolUse",
 
@@ -267,22 +265,19 @@ export const TypeStrictness: SyncHookContract<
     return isTypeScriptFile(filePath);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: TypeStrictnessDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput, deps: TypeStrictnessDeps): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
     let content = getNewContent(input);
 
     if (!content) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // For Svelte files, only scan the <script lang="ts"> block
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(content);
       if (!scriptContent) {
-        return ok(continueOk());
+        return ok({ continue: true });
       }
       content = scriptContent;
     }
@@ -326,20 +321,31 @@ export const TypeStrictness: SyncHookContract<
           lazy_unknown_count: unknownWarnings.length,
         });
 
-        return ok(continueOk(advisory));
+        // R2: PreToolUse advisory context injection via hookSpecificOutput.additionalContext.
+        // Post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from
+        // `continueOk(advisory)` was silently dropped for PreToolUse events.
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            additionalContext: advisory,
+          },
+        });
       }
 
       deps.stderr(`[TypeStrictness] ${filePath}: clean`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const message = formatBlockMessage(violations, filePath);
     deps.stderr(message);
 
     return ok({
-      type: "block",
-      decision: "block",
-      reason: message,
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: message,
+      },
     });
   },
 

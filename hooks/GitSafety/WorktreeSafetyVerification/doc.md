@@ -4,7 +4,7 @@
 
 WorktreeSafetyVerification is a **PostToolUse** hook that runs safety checks after an `EnterWorktree` tool operation. It performs three tasks: ensuring the worktree directory is in the parent repository's `.gitignore` (to prevent cross-worktree contamination), installing dependencies in the background based on detected package managers, and running baseline tests in the background to identify pre-existing issues.
 
-The hook always returns `continue` and never blocks worktree creation. All safety checks are best-effort and log warnings on failure.
+The hook always returns a `SyncHookJSONOutput` continue (`ok({ continue: true })`) and never blocks worktree creation. All safety checks are best-effort and log warnings on failure.
 
 ## Event
 
@@ -58,3 +58,4 @@ return ok({ type: "continue", continue: true });
 | --- | --- | --- |
 | `fs` | adapter | Checks file existence, appends to `.gitignore`, creates directories |
 | `process` | adapter | Executes git commands, spawns background dependency installs and test runs |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PostToolUse continue (R1 shape, post-SDK-refactor 1D) |

@@ -145,7 +145,6 @@ export function install(
     "core/adapters/fs",
     "core/adapters/process",
     "core/types/hook-inputs",
-    "core/types/hook-outputs",
     "core/language-profiles",
     "core/quality-scorer",
     "lib/paths",
@@ -211,7 +210,11 @@ export function install(
   }
 
   // Step 9: Compile hooks if in compiled mode
-  const installedEntries: Array<{ hookDef: HookDef; commandString: string; files: string[] }> = [];
+  const installedEntries: Array<{
+    hookDef: HookDef;
+    commandString: string;
+    files: string[];
+  }> = [];
 
   if (outputMode !== "source") {
     const compilerDeps = deps as CompilerDeps;
@@ -236,11 +239,19 @@ export function install(
       // Make compiled output executable
       const compiledPath = `${outputDir}/${hookDef.manifest.name}${ext}`;
       deps.chmod(compiledPath, 0o755);
-      installedEntries.push({ hookDef, commandString: cmdString, files: staged.files });
+      installedEntries.push({
+        hookDef,
+        commandString: cmdString,
+        files: staged.files,
+      });
     }
   } else {
     for (const { hookDef, staged } of stagedHooks) {
-      installedEntries.push({ hookDef, commandString: staged.commandString, files: staged.files });
+      installedEntries.push({
+        hookDef,
+        commandString: staged.commandString,
+        files: staged.files,
+      });
     }
   }
 

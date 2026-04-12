@@ -53,7 +53,7 @@ describe("GitAutoSync pipeline", () => {
 
     const result = GitAutoSync.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toBeDefined();
   });
 
   it("commits and pushes when status is dirty", () => {
@@ -97,7 +97,7 @@ describe("GitAutoSync pipeline", () => {
 
     const result = GitAutoSync.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toBeDefined();
   });
 
   it("prints debounce message to stderr", () => {

@@ -56,9 +56,10 @@ deps.writeFile(filepath, content);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | File system operations (read, write, exists, ensureDir) |
-| `lib/time` | lib | ISO timestamp and local date generation |
-| `lib/learning-utils` | lib | Categorizes learnings as SYSTEM or ALGORITHM |
-| `core/result` | core | Result type for error handling |
+| Dependency                       | Type      | Purpose                                                 |
+| -------------------------------- | --------- | ------------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | File system operations (read, write, exists, ensureDir) |
+| `lib/time`                       | lib       | ISO timestamp and local date generation                 |
+| `lib/learning-utils`             | lib       | Categorizes learnings as SYSTEM or ALGORITHM            |
+| `core/result`                    | core      | Result type for error handling                          |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor)    |

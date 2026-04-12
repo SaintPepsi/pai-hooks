@@ -108,7 +108,7 @@ describe("CronSessionEnd execute", () => {
     const result = CronSessionEnd.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toEqual({});
     }
     expect(removed.length).toBe(0);
   });
@@ -138,7 +138,7 @@ describe("CronSessionEnd execute", () => {
     const result = CronSessionEnd.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toEqual({});
     }
   });
 
@@ -154,7 +154,7 @@ describe("CronSessionEnd execute", () => {
     const result = CronSessionEnd.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("silent");
+      expect(result.value).toEqual({});
     }
     expect(stderrOutput.length).toBe(1);
     expect(stderrOutput[0]).toContain("permission denied");

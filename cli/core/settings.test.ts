@@ -95,7 +95,11 @@ describe("mergeHookEntry", () => {
   it("is idempotent — does not duplicate existing command", () => {
     const settings: SettingsJson = {
       hooks: {
-        PreToolUse: [{ hooks: [{ type: "command", command: "./hooks/Test/Test.hook.ts" }] }],
+        PreToolUse: [
+          {
+            hooks: [{ type: "command", command: "./hooks/Test/Test.hook.ts" }],
+          },
+        ],
       },
     };
     const result = mergeHookEntry(settings, "PreToolUse", undefined, "./hooks/Test/Test.hook.ts");
@@ -124,7 +128,12 @@ describe("mergeHookEntry", () => {
     const settings: SettingsJson = {
       hooks: {
         SessionStart: [{ hooks: [{ type: "command", command: "./foreign.ts" }] }],
-        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "./bash-hook.ts" }] }],
+        PreToolUse: [
+          {
+            matcher: "Bash",
+            hooks: [{ type: "command", command: "./bash-hook.ts" }],
+          },
+        ],
       },
     };
     const result = mergeHookEntry(settings, "PreToolUse", undefined, "./hooks/New/New.hook.ts");

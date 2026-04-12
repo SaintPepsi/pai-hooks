@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
-import { ok } from "@hooks/core/result";
 import { fileReadFailed } from "@hooks/core/error";
-import { err } from "@hooks/core/result";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 import type { PRDSyncDeps } from "@hooks/hooks/WorkLifecycle/PRDSync/PRDSync.contract";
 import {
   extractSessionDir,
@@ -265,31 +264,50 @@ describe("parseCriteriaCounts", () => {
 
 describe("PRDSync.accepts", () => {
   test("accepts Write to a PRD.md in MEMORY/WORK/", () => {
-    expect(PRDSync.accepts({
-      session_id: "s", tool_name: "Write",
-      tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md", content: "" },
-    })).toBe(true);
+    expect(
+      PRDSync.accepts({
+        session_id: "s",
+        tool_name: "Write",
+        tool_input: {
+          file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md",
+          content: "",
+        },
+      }),
+    ).toBe(true);
   });
 
   test("accepts Edit to a PRD.md in MEMORY/WORK/", () => {
-    expect(PRDSync.accepts({
-      session_id: "s", tool_name: "Edit",
-      tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md", old_string: "", new_string: "" },
-    })).toBe(true);
+    expect(
+      PRDSync.accepts({
+        session_id: "s",
+        tool_name: "Edit",
+        tool_input: {
+          file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md",
+          old_string: "",
+          new_string: "",
+        },
+      }),
+    ).toBe(true);
   });
 
   test("rejects non-Write/Edit tools", () => {
-    expect(PRDSync.accepts({
-      session_id: "s", tool_name: "Read",
-      tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md" },
-    })).toBe(false);
+    expect(
+      PRDSync.accepts({
+        session_id: "s",
+        tool_name: "Read",
+        tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md" },
+      }),
+    ).toBe(false);
   });
 
   test("rejects files not in MEMORY/WORK/", () => {
-    expect(PRDSync.accepts({
-      session_id: "s", tool_name: "Write",
-      tool_input: { file_path: "/tmp/other/PRD.md", content: "" },
-    })).toBe(false);
+    expect(
+      PRDSync.accepts({
+        session_id: "s",
+        tool_name: "Write",
+        tool_input: { file_path: "/tmp/other/PRD.md", content: "" },
+      }),
+    ).toBe(false);
   });
 });
 
@@ -341,7 +359,6 @@ updated: 2026-01-01
     });
     const result = PRDSync.execute(makeExecInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
     expect(stderrMsgs.some((m) => m.includes("not found on disk"))).toBe(true);
   });
 
@@ -403,7 +420,8 @@ phase: observe
       readJson: (() => ok({ session_id: "s" })) as PRDSyncDeps["readJson"],
       writeFile: (path: string) => {
         // Fail on session state write, succeed on work.json
-        if (path.includes("current-work-")) return err(fileReadFailed(path, new Error("disk full")));
+        if (path.includes("current-work-"))
+          return err(fileReadFailed(path, new Error("disk full")));
         return ok(undefined);
       },
       stderr: (m) => stderrMsgs.push(m),

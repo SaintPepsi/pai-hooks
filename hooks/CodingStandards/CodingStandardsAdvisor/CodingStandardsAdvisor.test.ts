@@ -1,12 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   CodingStandardsAdvisor,
   type CodingStandardsAdvisorDeps,
 } from "@hooks/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract";
+import { getPostToolUseAdvisory as getAdvisory } from "@hooks/hooks/CodingStandards/test-helpers";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ function makeEditInput(filePath: string): ToolHookInput {
   };
 }
 
-function unwrap(result: Result<ContinueOutput, ResultError>): ContinueOutput {
+function unwrap(result: Result<SyncHookJSONOutput, ResultError>): SyncHookJSONOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }
@@ -119,8 +120,8 @@ describe("CodingStandardsAdvisor", () => {
         readFile: () => "export function add(a: number, b: number) { return a + b; }",
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/math.ts"), deps));
-      expect(result.type).toBe("continue");
-      expect(result.additionalContext).toBeUndefined();
+      expect(result.continue).toBe(true);
+      expect(getAdvisory(result)).toBeUndefined();
     });
 
     it("returns additionalContext for file with raw imports", () => {
@@ -128,9 +129,10 @@ describe("CodingStandardsAdvisor", () => {
         readFile: () => 'import { readFileSync } from "fs";\nconst x = 1;',
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/reader.ts"), deps));
-      expect(result.type).toBe("continue");
-      expect(result.additionalContext).toContain("CODING STANDARDS");
-      expect(result.additionalContext).toContain("raw Node builtin");
+      expect(result.continue).toBe(true);
+      const advisory = getAdvisory(result) ?? "";
+      expect(advisory).toContain("CODING STANDARDS");
+      expect(advisory).toContain("raw Node builtin");
     });
 
     it("returns additionalContext for file with try-catch", () => {
@@ -139,7 +141,7 @@ describe("CodingStandardsAdvisor", () => {
           "export function go() {\n  try {\n    doThing();\n  } catch (e) {\n    return null;\n  }\n}",
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/handler.ts"), deps));
-      expect(result.additionalContext).toContain("try-catch");
+      expect(getAdvisory(result) ?? "").toContain("try-catch");
     });
 
     it("returns additionalContext for file with process.env", () => {
@@ -147,7 +149,7 @@ describe("CodingStandardsAdvisor", () => {
         readFile: () => "export const port = process.env.PORT;",
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/config.ts"), deps));
-      expect(result.additionalContext).toContain("process.env");
+      expect(getAdvisory(result) ?? "").toContain("process.env");
     });
 
     it("returns additionalContext for file with as any", () => {
@@ -155,20 +157,20 @@ describe("CodingStandardsAdvisor", () => {
         readFile: () => "const x = data as any;",
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/util.ts"), deps));
-      expect(result.additionalContext).toContain("unsafe type cast");
+      expect(getAdvisory(result) ?? "").toContain("unsafe type cast");
     });
 
     it("returns additionalContext for file with relative imports", () => {
       const deps = makeDeps({ readFile: () => REL_IMPORT });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/index.ts"), deps));
-      expect(result.additionalContext).toContain("relative import");
+      expect(getAdvisory(result) ?? "").toContain("relative import");
     });
 
     it("continues silently when file cannot be read", () => {
       const deps = makeDeps({ readFile: () => null });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/missing.ts"), deps));
-      expect(result.type).toBe("continue");
-      expect(result.additionalContext).toBeUndefined();
+      expect(result.continue).toBe(true);
+      expect(getAdvisory(result)).toBeUndefined();
     });
 
     it("includes violation count in advisory", () => {
@@ -177,27 +179,29 @@ describe("CodingStandardsAdvisor", () => {
           'import { readFileSync } from "fs";\nconst x = data as any;\nconst y = thing as any;',
       });
       const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/bad.ts"), deps));
-      expect(result.additionalContext).toContain("3 violations");
+      expect(getAdvisory(result) ?? "").toContain("3 violations");
     });
   });
 
   describe("Svelte file handling", () => {
     it("continues when .svelte file has no script block", () => {
       const deps = makeDeps({ readFile: () => "<div>Just HTML</div>" });
-      const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/Comp.svelte"), deps));
-      expect(result.type).toBe("continue");
-      expect(result.additionalContext).toBeUndefined();
+      const result = unwrap(
+        CodingStandardsAdvisor.execute(makeReadInput("/src/Comp.svelte"), deps),
+      );
+      expect(result.continue).toBe(true);
+      expect(getAdvisory(result)).toBeUndefined();
     });
 
     it("checks violations in .svelte script block", () => {
-      const svelteContent = [
-        '<script lang="ts">',
-        "const x = data as any;",
-        "</script>",
-      ].join("\n");
+      const svelteContent = ['<script lang="ts">', "const x = data as any;", "</script>"].join(
+        "\n",
+      );
       const deps = makeDeps({ readFile: () => svelteContent });
-      const result = unwrap(CodingStandardsAdvisor.execute(makeReadInput("/src/Comp.svelte"), deps));
-      expect(result.additionalContext).toBeDefined();
+      const result = unwrap(
+        CodingStandardsAdvisor.execute(makeReadInput("/src/Comp.svelte"), deps),
+      );
+      expect(getAdvisory(result)).toBeDefined();
     });
   });
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-PreCompactStatePersist preserves active PRD state before Claude Code compacts the conversation context. When the context window fills up and compaction occurs, the AI loses awareness of what task it was working on. This hook finds the most recently modified PRD.md under MEMORY/WORK/, reads its frontmatter, and injects a summary into the compacted context via `additionalContext` so the AI retains task, phase, and progress awareness after the reset.
+PreCompactStatePersist preserves active PRD state before Claude Code compacts the conversation context. When the context window fills up and compaction occurs, the AI loses awareness of what task it was working on. This hook finds the most recently modified PRD.md under MEMORY/WORK/, reads its frontmatter, and injects a summary into the compacted context via `systemMessage` so the AI retains task, phase, and progress awareness after the reset.
 
 The hook always returns `continue` and never blocks compaction. Any read errors fail open with no context injection.
 
@@ -29,14 +29,14 @@ It does **not** fire when:
 2. Finds the most recently modified PRD.md by comparing file modification times
 3. Reads the file and parses YAML frontmatter for task, phase, progress, and slug
 4. Builds a context summary string with the active PRD state
-5. Returns `continue` with `additionalContext` containing the summary
+5. Returns `continue` with `systemMessage` containing the summary
 
 ```typescript
 // Find most recent PRD, inject its state into compacted context
 const prdPath = findMostRecentPrd(workDir, deps);
 const fm = parseFrontmatter(readResult.value);
 const summary = buildContextSummary({ task, phase, progress, slug });
-return ok({ type: "continue", continue: true, additionalContext: summary });
+return ok({ continue: true, systemMessage: summary });
 ```
 
 ## Examples
@@ -51,7 +51,8 @@ return ok({ type: "continue", continue: true, additionalContext: summary });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | Directory listing, file reading, stat for modification times |
-| `core/result` | core | Result type for error handling |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                    |
+| -------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | Directory listing, file reading, stat for modification times                                                                                                                                                               |
+| `core/result`                    | core      | Result type for error handling                                                                                                                                                                                             |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `systemMessage` is the PreCompact-compatible context injection channel (post-SDK-refactor, fixes a bug where `additionalContext` was silently dropped for non-hookSpecificOutput events) |

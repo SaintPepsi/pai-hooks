@@ -4,12 +4,6 @@ import { invalidInput } from "./error";
 import { err, ok } from "./result";
 import { type RunHookOptions, runHook } from "./runner";
 import type { ToolHookInput } from "./types/hook-inputs";
-import type {
-  BlockOutput,
-  ContextOutput,
-  ContinueOutput,
-  SilentOutput,
-} from "./types/hook-outputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -46,43 +40,62 @@ function createMockIO(): MockIO & RunHookOptions {
 }
 
 // Simple contract that always continues
-const alwaysContinue: HookContract<ToolHookInput, ContinueOutput, {}> = {
+const alwaysContinue: HookContract<ToolHookInput, {}> = {
   name: "TestContinue",
   event: "PostToolUse",
   accepts: () => true,
-  execute: () => ok({ type: "continue", continue: true as const }),
+  execute: () => ok({ continue: true }),
   defaultDeps: {},
 };
 
-// Contract that adds context
-const withContext: HookContract<ToolHookInput, ContinueOutput, {}> = {
+// Contract that adds context via hookSpecificOutput
+const withContext: HookContract<ToolHookInput, {}> = {
   name: "TestContext",
   event: "PostToolUse",
   accepts: (input) => input.tool_name === "TaskUpdate",
-  execute: () => ok({ type: "continue", continue: true as const, additionalContext: "extra info" }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "extra info",
+      },
+    }),
   defaultDeps: {},
 };
 
-// Contract that returns empty-string context (regression: must not be dropped)
-const withEmptyContext: HookContract<ToolHookInput, ContinueOutput, {}> = {
+// Contract that returns empty-string context (regression test)
+const withEmptyContext: HookContract<ToolHookInput, {}> = {
   name: "TestEmptyContext",
   event: "PostToolUse",
   accepts: () => true,
-  execute: () => ok({ type: "continue", continue: true as const, additionalContext: "" }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "",
+      },
+    }),
   defaultDeps: {},
 };
 
-// Contract that blocks
-const blocker: HookContract<ToolHookInput, BlockOutput, {}> = {
+// Contract that blocks via hookSpecificOutput permissionDecision
+const blocker: HookContract<ToolHookInput, {}> = {
   name: "TestBlocker",
   event: "PreToolUse",
   accepts: () => true,
-  execute: () => ok({ type: "block", decision: "block" as const, reason: "not allowed" }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse" as const,
+        permissionDecision: "deny" as const,
+        permissionDecisionReason: "not allowed",
+      },
+    }),
   defaultDeps: {},
 };
 
 // Contract that returns error
-const failing: HookContract<ToolHookInput, ContinueOutput, {}> = {
+const failing: HookContract<ToolHookInput, {}> = {
   name: "TestFailing",
   event: "PostToolUse",
   accepts: () => true,
@@ -91,39 +104,41 @@ const failing: HookContract<ToolHookInput, ContinueOutput, {}> = {
 };
 
 // Contract that rejects via accepts()
-const selective: HookContract<ToolHookInput, ContinueOutput, {}> = {
+const selective: HookContract<ToolHookInput, {}> = {
   name: "TestSelective",
   event: "PostToolUse",
   accepts: (input) => input.tool_name === "SpecificTool",
-  execute: () => ok({ type: "continue", continue: true as const, additionalContext: "accepted" }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "accepted",
+      },
+    }),
   defaultDeps: {},
 };
 
 // Async contract
-const asyncContract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+const asyncContract: HookContract<ToolHookInput, {}> = {
   name: "TestAsync",
   event: "PostToolUse",
   accepts: () => true,
   execute: async () =>
-    ok({ type: "continue", continue: true as const, additionalContext: "async done" }),
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "async done",
+      },
+    }),
   defaultDeps: {},
 };
 
-// Context output contract (raw string, not JSON)
-const contextOutput: HookContract<ToolHookInput, ContextOutput, {}> = {
-  name: "TestContextOutput",
-  event: "SessionStart",
-  accepts: () => true,
-  execute: () => ok({ type: "context", content: "Hello from hook" }),
-  defaultDeps: {},
-};
-
-// Silent output contract
-const silentOutput: HookContract<ToolHookInput, SilentOutput, {}> = {
-  name: "TestSilent",
+// Empty output contract (previously "silent")
+const emptyOutput: HookContract<ToolHookInput, {}> = {
+  name: "TestEmpty",
   event: "Stop",
   accepts: () => true,
-  execute: () => ok({ type: "silent" }),
+  execute: () => ok({}),
   defaultDeps: {},
 };
 
@@ -189,7 +204,7 @@ describe("runHook — accepts() gate", () => {
     await runHook(selective, { ...io, stdinOverride: input });
     const output = JSON.parse(io.stdoutLines[0]);
     expect(output.continue).toBe(true);
-    expect(output.additionalContext).toBeUndefined();
+    expect(output.hookSpecificOutput).toBeUndefined();
   });
 
   it("runs execution when accepts returns true", async () => {
@@ -209,7 +224,6 @@ describe("runHook — input handling", () => {
   it("handles empty stdin gracefully", async () => {
     const io = createMockIO();
     await runHook(alwaysContinue, { ...io, stdinOverride: "" });
-    // Empty string will fail JSON parse, should fall back to safe continue
     const output = JSON.parse(io.stdoutLines[0]);
     expect(output.continue).toBe(true);
   });
@@ -231,15 +245,9 @@ describe("runHook — output types", () => {
     expect(output.hookSpecificOutput.additionalContext).toBe("async done");
   });
 
-  it("context output produces raw string (not JSON)", async () => {
+  it("empty output produces no stdout", async () => {
     const io = createMockIO();
-    await runHook(contextOutput, { ...io, stdinOverride: validToolInput });
-    expect(io.stdoutLines[0]).toBe("Hello from hook");
-  });
-
-  it("silent output produces no stdout", async () => {
-    const io = createMockIO();
-    await runHook(silentOutput, { ...io, stdinOverride: validToolInput });
+    await runHook(emptyOutput, { ...io, stdinOverride: validToolInput });
     expect(io.stdoutLines.length).toBe(0);
     expect(io.exitCode).toBe(0);
   });
@@ -247,7 +255,7 @@ describe("runHook — output types", () => {
 
 describe("runHook — error safety", () => {
   it("catches thrown exceptions in execute", async () => {
-    const throwing: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const throwing: HookContract<ToolHookInput, {}> = {
       name: "TestThrowing",
       event: "PostToolUse",
       accepts: () => true,

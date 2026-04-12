@@ -2,18 +2,19 @@
  * LoadContext Contract — Inject PAI context at session start.
  *
  * Rebuilds SKILL.md if components changed, loads context files,
- * loads relationship context, scans active work, and outputs
- * everything as a <system-reminder> ContextOutput.
+ * loads relationship context, scans active work, and returns a
+ * SyncHookJSONOutput with hookSpecificOutput.additionalContext
+ * carrying the full <system-reminder> payload.
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readDir, readFile, readJson, stat } from "@hooks/core/adapters/fs";
 import { exec, execSyncSafe } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
@@ -52,7 +53,11 @@ export interface LoadContextDeps {
   stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
   execSyncSafe: (
     cmd: string,
-    opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined },
+    opts?: {
+      cwd?: string;
+      timeout?: number;
+      stdio?: "pipe" | "ignore" | "inherit" | undefined;
+    },
   ) => Result<string, ResultError>;
   getDAName: typeof getDAName;
   recordSessionStart: typeof recordSessionStart;
@@ -75,7 +80,7 @@ function loadSettings(baseDir: string, deps: LoadContextDeps): Settings {
 }
 
 function loadContextFiles(baseDir: string, settings: Settings, deps: LoadContextDeps): string {
-  const defaultFiles = ["PAI/SKILL.md", "PAI/AISTEERINGRULES.md", "PAI/USER/AISTEERINGRULES.md"];
+  const defaultFiles = ["PAI/SKILL.md"];
 
   const contextFiles = settings.contextFiles || defaultFiles;
   let combined = "";
@@ -423,11 +428,7 @@ const defaultDeps: LoadContextDeps = {
   stderr: defaultStderr,
 };
 
-export const LoadContext: AsyncHookContract<
-  SessionStartInput,
-  ContextOutput | SilentOutput,
-  LoadContextDeps
-> = {
+export const LoadContext: AsyncHookContract<SessionStartInput, LoadContextDeps> = {
   name: "LoadContext",
   event: "SessionStart",
 
@@ -438,11 +439,11 @@ export const LoadContext: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: LoadContextDeps,
-  ): Promise<Result<ContextOutput | SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     // Skip for subagents
     if (deps.isSubagent()) {
       deps.stderr("Subagent session - skipping PAI context loading");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.recordSessionStart();
@@ -467,7 +468,7 @@ export const LoadContext: AsyncHookContract<
 
     if (!contextContent) {
       deps.stderr("No context files loaded");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const currentDate = await deps.getCurrentDate();
@@ -511,7 +512,13 @@ This context is now active. Additional context loads dynamically as needed.
     const fullContent = parts.join("\n\n");
 
     deps.stderr("PAI context injected into session");
-    return ok({ type: "context", content: fullContent });
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: fullContent,
+      },
+    });
   },
 
   defaultDeps,

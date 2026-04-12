@@ -144,7 +144,11 @@ export class InMemoryDeps implements CliDeps {
     if (this.dirs.has(path)) {
       return ok({ isDirectory: true });
     }
-    return err(new PaihError(PaihErrorCode.ManifestMissing, `Not found: ${path}`, { path }));
+    return err(
+      new PaihError(PaihErrorCode.ManifestMissing, `Not found: ${path}`, {
+        path,
+      }),
+    );
   }
 
   chmod(_path: string, _mode: number): Result<void, PaihError> {

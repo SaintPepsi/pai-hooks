@@ -35,7 +35,7 @@ It does **not** fire when:
 ```typescript
 // Remove cron entry by ID
 const targetIndex = session.crons.findIndex((c) => c.id === cronId);
-if (targetIndex === -1) return ok({ type: "silent" });
+if (targetIndex === -1) return ok({});
 
 session.crons.splice(targetIndex, 1);
 
@@ -44,7 +44,11 @@ if (session.crons.length === 0) {
 } else {
   writeCronFile(sessionId, session, deps, deps);
 }
-appendCronLog({ type: "deleted", cronId, name: removedCron.name, sessionId }, deps, deps);
+appendCronLog(
+  { type: "deleted", cronId, name: removedCron.name, sessionId },
+  deps,
+  deps,
+);
 ```
 
 ## Examples
@@ -59,8 +63,8 @@ appendCronLog({ type: "deleted", cronId, name: removedCron.name, sessionId }, de
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File I/O operations including `removeFile` for session file cleanup |
-| `shared` | shared | `readCronFile`, `writeCronFile`, `appendCronLog`, `cronFilePath` for cron state management |
-| `result` | core | `ok` wrapper for Result type returns |
+| Dependency | Type    | Purpose                                                                                    |
+| ---------- | ------- | ------------------------------------------------------------------------------------------ |
+| `fs`       | adapter | File I/O operations including `removeFile` for session file cleanup                        |
+| `shared`   | shared  | `readCronFile`, `writeCronFile`, `appendCronLog`, `cronFilePath` for cron state management |
+| `result`   | core    | `ok` wrapper for Result type returns                                                       |

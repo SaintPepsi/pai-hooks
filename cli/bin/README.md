@@ -4,9 +4,9 @@ Entry point for the `paih` CLI.
 
 ## Files
 
-| File | Purpose | Added in |
-|------|---------|----------|
-| `paih.ts` | CLI entry point: argv parsing, command routing, exit code mapping (0=success, 1=user error, 2=internal) | #6 |
+| File      | Purpose                                                                                                 | Added in |
+| --------- | ------------------------------------------------------------------------------------------------------- | -------- |
+| `paih.ts` | CLI entry point: argv parsing, command routing, exit code mapping (0=success, 1=user error, 2=internal) | #6       |
 
 ## Usage
 

@@ -39,8 +39,10 @@ const result = deps.spawnDetached("bun", ["run", scriptPath, "--session", sessio
 
 // Return context instructing agent to start the watcher
 return ok({
-  type: "context",
-  content: "## Message Queue Active\n..."
+  hookSpecificOutput: {
+    hookEventName: "SessionStart",
+    additionalContext: "## Message Queue Active\n...",
+  },
 });
 ```
 

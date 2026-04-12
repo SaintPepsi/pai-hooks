@@ -10,6 +10,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile, readJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
@@ -22,16 +23,14 @@ import {
 } from "@hooks/core/quality-scorer";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { getFilePath } from "@hooks/lib/tool-input";
 import {
   defaultSignalLoggerDeps,
   logSignal,
   type SignalLoggerDeps,
 } from "@hooks/lib/signal-logger";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Violation Dedup Cache ────────────────────────────────────────────────────
 
@@ -120,11 +119,7 @@ const defaultDeps: CodeQualityGuardDeps = {
   stderr: defaultStderr,
 };
 
-export const CodeQualityGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  CodeQualityGuardDeps
-> = {
+export const CodeQualityGuard: SyncHookContract<ToolHookInput, CodeQualityGuardDeps> = {
   name: "CodeQualityGuard",
   event: "PostToolUse",
 
@@ -135,19 +130,22 @@ export const CodeQualityGuard: SyncHookContract<
     return isScorableFile(filePath);
   },
 
-  execute(input: ToolHookInput, deps: CodeQualityGuardDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    input: ToolHookInput,
+    deps: CodeQualityGuardDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Read the file content after the edit
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) {
       deps.stderr(`[CodeQualityGuard] Could not read ${filePath}, skipping`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const profile = deps.getLanguageProfile(filePath);
     if (!profile) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // For Svelte files, only score the <script lang="ts"> block
@@ -155,7 +153,7 @@ export const CodeQualityGuard: SyncHookContract<
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(contentToScore);
       if (!scriptContent) {
-        return ok(continueOk());
+        return ok({ continue: true });
       }
       contentToScore = scriptContent;
     }
@@ -189,7 +187,7 @@ export const CodeQualityGuard: SyncHookContract<
         score: result.score,
         deduplicated: true,
       });
-      return ok(continueOk());
+      return ok({ continue: true });
     }
     reportedViolations.set(filePath, hash);
 
@@ -227,14 +225,20 @@ export const CodeQualityGuard: SyncHookContract<
     });
 
     if (!hasAdvisory) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const parts: string[] = [];
     if (deltaMessage) parts.push(deltaMessage);
     if (advisory) parts.push(advisory);
 
-    return ok(continueOk(parts.join("\n")));
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: parts.join("\n"),
+      },
+    });
   },
 
   defaultDeps,

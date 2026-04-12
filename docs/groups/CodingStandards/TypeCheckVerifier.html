@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1899,7 +1912,7 @@ This guard never blocks writes — it provides feedback after the fact. The key 
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>If errors are found, formats an advisory with line numbers and error messages</p></div>
+          <div class="step-content"><p>If errors are found, formats an advisory with line numbers and error messages, injected via <code>hookSpecificOutput.additionalContext</code> (R2 PostToolUse channel)</p></div>
         </div>
 
         <div class="flow-step">
@@ -1917,12 +1930,23 @@ This guard never blocks writes — it provides feedback after the fact. The key 
           <div class="code-block"><span class="code-lang">typescript</span>
 // Core type-check flow
 const typeCheck = discoverTypeCheck(filePath, deps);
-const result = deps.execWithTimeout(typeCheck.cmd, typeCheck.args, typeCheck.cwd, 10_000);
+const result = deps.execWithTimeout(
+  typeCheck.cmd,
+  typeCheck.args,
+  typeCheck.cwd,
+  10_000,
+);
 markChecked(filePath);
 
 const errors = parseTypeErrors(combinedOutput, filePath);
 if (errors.length &gt; 0) {
-  return ok({ type: "continue", continue: true, additionalContext: formatAdvisory(errors, filePath) });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: formatAdvisory(errors, filePath),
+    },
+  });
 }</div>
         </div>
       </div>
@@ -1976,6 +2000,7 @@ if (errors.length &gt; 0) {
           <tr><td><code>process</code></td><td>adapter</td><td><code>spawnSyncSafe</code> for running type-check commands</td></tr>
           <tr><td><code>signal-logger</code></td><td>lib</td><td>Logs execution outcomes to JSONL for analysis</td></tr>
           <tr><td><code>svelte-utils</code></td><td>lib</td><td><code>isSvelteFile</code> for Svelte file detection</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "PostToolUse"</code> is the PostToolUse-compatible advisory channel (post-SDK-refactor, fixes a bug where the legacy top-level <code>additionalContext</code> from <code>continueOk(advisory)</code> was silently dropped for PostToolUse events)</td></tr>
         </tbody>
       </table>
     </div>

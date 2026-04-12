@@ -16,15 +16,12 @@
  * which legitimately wrap builtins.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   findAllViolations,
   formatViolationSummary,
@@ -33,7 +30,9 @@ import {
   isSkippedFilename,
   isTypeScriptFile,
 } from "@hooks/lib/coding-standards-checks";
+import { defaultStderr } from "@hooks/lib/paths";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -54,11 +53,7 @@ const defaultDeps: CodingStandardsAdvisorDeps = {
   stderr: defaultStderr,
 };
 
-export const CodingStandardsAdvisor: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  CodingStandardsAdvisorDeps
-> = {
+export const CodingStandardsAdvisor: SyncHookContract<ToolHookInput, CodingStandardsAdvisorDeps> = {
   name: "CodingStandardsAdvisor",
   event: "PostToolUse",
 
@@ -76,20 +71,20 @@ export const CodingStandardsAdvisor: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: CodingStandardsAdvisorDeps,
-  ): Result<ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     let content = deps.readFile(filePath);
     if (!content) {
       // File doesn't exist or can't be read — fail open, no advisory
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // For Svelte files, only check the <script lang="ts"> block
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(content);
       if (!scriptContent) {
-        return ok(continueOk());
+        return ok({ continue: true });
       }
       content = scriptContent;
     }
@@ -98,13 +93,23 @@ export const CodingStandardsAdvisor: SyncHookContract<
 
     if (violations.length === 0) {
       deps.stderr(`[CodingStandardsAdvisor] ${filePath}: clean`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const advisory = formatViolationSummary(violations, filePath);
     deps.stderr(`[CodingStandardsAdvisor] ${filePath}: ${violations.length} violations found`);
 
-    return ok(continueOk(advisory));
+    // R2: PostToolUse advisory context injection via hookSpecificOutput.additionalContext.
+    // Post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from
+    // `continueOk(advisory)` was silently dropped for PostToolUse events — the SDK canonical
+    // channel for PostToolUse context injection is hookSpecificOutput.additionalContext.
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: advisory,
+      },
+    });
   },
 
   defaultDeps,

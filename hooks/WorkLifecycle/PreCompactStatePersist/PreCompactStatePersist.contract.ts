@@ -2,7 +2,7 @@
  * PreCompactStatePersist Contract — Persist active PRD state before context compaction.
  *
  * Fires on PreCompact. Finds the most recently modified PRD.md under MEMORY/WORK/,
- * reads its frontmatter, and returns an additionalContext summary so the AI retains
+ * reads its frontmatter, and returns a systemMessage summary so the AI retains
  * task/phase/progress awareness after the compaction window resets.
  *
  * Always returns continue — never blocks compaction.
@@ -10,13 +10,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { readDir, readFile, stat } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -142,61 +141,56 @@ const defaultDeps: PreCompactStatePersistDeps = {
   baseDir: getPaiDir(),
 };
 
-const CONTINUE_SILENT: ContinueOutput = { type: "continue", continue: true };
+export const PreCompactStatePersist: SyncHookContract<PreCompactInput, PreCompactStatePersistDeps> =
+  {
+    name: "PreCompactStatePersist",
+    event: "PreCompact",
 
-export const PreCompactStatePersist: SyncHookContract<
-  PreCompactInput,
-  ContinueOutput,
-  PreCompactStatePersistDeps
-> = {
-  name: "PreCompactStatePersist",
-  event: "PreCompact",
+    accepts(_input: PreCompactInput): boolean {
+      return true;
+    },
 
-  accepts(_input: PreCompactInput): boolean {
-    return true;
-  },
+    execute(
+      _input: PreCompactInput,
+      deps: PreCompactStatePersistDeps,
+    ): Result<SyncHookJSONOutput, ResultError> {
+      const workDir = join(deps.baseDir, "MEMORY", "WORK");
 
-  execute(
-    _input: PreCompactInput,
-    deps: PreCompactStatePersistDeps,
-  ): Result<ContinueOutput, ResultError> {
-    const workDir = join(deps.baseDir, "MEMORY", "WORK");
+      const prdPath = findMostRecentPrd(workDir, deps);
+      if (!prdPath) {
+        deps.stderr("[PreCompactStatePersist] No PRD.md found — skipping context injection");
+        return ok({ continue: true });
+      }
 
-    const prdPath = findMostRecentPrd(workDir, deps);
-    if (!prdPath) {
-      deps.stderr("[PreCompactStatePersist] No PRD.md found — skipping context injection");
-      return ok(CONTINUE_SILENT);
-    }
+      const readResult = deps.readFile(prdPath);
+      if (!readResult.ok) {
+        deps.stderr(`[PreCompactStatePersist] Failed to read PRD: ${readResult.error.message}`);
+        return ok({ continue: true });
+      }
 
-    const readResult = deps.readFile(prdPath);
-    if (!readResult.ok) {
-      deps.stderr(`[PreCompactStatePersist] Failed to read PRD: ${readResult.error.message}`);
-      return ok(CONTINUE_SILENT);
-    }
+      const fm = parseFrontmatter(readResult.value);
+      if (!fm) {
+        deps.stderr(`[PreCompactStatePersist] No frontmatter in: ${prdPath}`);
+        return ok({ continue: true });
+      }
 
-    const fm = parseFrontmatter(readResult.value);
-    if (!fm) {
-      deps.stderr(`[PreCompactStatePersist] No frontmatter in: ${prdPath}`);
-      return ok(CONTINUE_SILENT);
-    }
+      const task = fm.task ?? "";
+      const phase = fm.phase ?? "";
+      const progress = fm.progress ?? "";
+      const slug = fm.slug ?? "";
 
-    const task = fm.task ?? "";
-    const phase = fm.phase ?? "";
-    const progress = fm.progress ?? "";
-    const slug = fm.slug ?? "";
+      if (!task && !slug) {
+        deps.stderr("[PreCompactStatePersist] Frontmatter missing task and slug — skipping");
+        return ok({ continue: true });
+      }
 
-    if (!task && !slug) {
-      deps.stderr("[PreCompactStatePersist] Frontmatter missing task and slug — skipping");
-      return ok(CONTINUE_SILENT);
-    }
+      const state: PRDState = { task, phase, progress, slug };
+      const summary = buildContextSummary(state);
 
-    const state: PRDState = { task, phase, progress, slug };
-    const summary = buildContextSummary(state);
+      deps.stderr(`[PreCompactStatePersist] Injecting PRD context: slug=${slug} phase=${phase}`);
 
-    deps.stderr(`[PreCompactStatePersist] Injecting PRD context: slug=${slug} phase=${phase}`);
+      return ok({ continue: true, systemMessage: summary });
+    },
 
-    return ok(continueOk(summary));
-  },
-
-  defaultDeps,
-};
+    defaultDeps,
+  };

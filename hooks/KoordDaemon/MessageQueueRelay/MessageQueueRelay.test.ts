@@ -43,8 +43,8 @@ describe("MessageQueueRelay", () => {
       const result = MessageQueueRelay.execute(makeInput("git status"), mockDeps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.continue).toBe(true);
+        expect(result.value.hookSpecificOutput).toBeUndefined();
       }
     });
 
@@ -55,9 +55,13 @@ describe("MessageQueueRelay", () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toContain("Watcher Timeout");
-        expect(result.value.additionalContext).toContain("abc123");
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PostToolUse") {
+          expect(hso.additionalContext).toContain("Watcher Timeout");
+          expect(hso.additionalContext).toContain("abc123");
+        } else {
+          throw new Error("Expected PostToolUse hookSpecificOutput");
+        }
       }
     });
 
@@ -68,9 +72,14 @@ describe("MessageQueueRelay", () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toContain("New Message Received");
-        expect(result.value.additionalContext).toContain("hello from another agent");
-        expect(result.value.additionalContext).toContain("respawn the watcher");
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PostToolUse") {
+          expect(hso.additionalContext).toContain("New Message Received");
+          expect(hso.additionalContext).toContain("hello from another agent");
+          expect(hso.additionalContext).toContain("respawn the watcher");
+        } else {
+          throw new Error("Expected PostToolUse hookSpecificOutput");
+        }
       }
     });
 
@@ -82,8 +91,13 @@ describe("MessageQueueRelay", () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toContain("from Ren");
-        expect(result.value.additionalContext).toContain("PR ready for review");
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PostToolUse") {
+          expect(hso.additionalContext).toContain("from Ren");
+          expect(hso.additionalContext).toContain("PR ready for review");
+        } else {
+          throw new Error("Expected PostToolUse hookSpecificOutput");
+        }
       }
     });
 
@@ -94,7 +108,12 @@ describe("MessageQueueRelay", () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toContain("--session my-session-id");
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PostToolUse") {
+          expect(hso.additionalContext).toContain("--session my-session-id");
+        } else {
+          throw new Error("Expected PostToolUse hookSpecificOutput");
+        }
       }
     });
 
@@ -105,7 +124,12 @@ describe("MessageQueueRelay", () => {
       );
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toContain("<session_id>");
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PostToolUse") {
+          expect(hso.additionalContext).toContain("<session_id>");
+        } else {
+          throw new Error("Expected PostToolUse hookSpecificOutput");
+        }
       }
     });
   });

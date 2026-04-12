@@ -19,15 +19,13 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/AgentSpawnTracker.hook.js
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import {
   defaultReadFileOrNull,
   extractAgentName,
@@ -35,6 +33,7 @@ import {
   extractThreadId,
   readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -59,11 +58,7 @@ const defaultDeps: AgentSpawnTrackerDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const AgentSpawnTracker: AsyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  AgentSpawnTrackerDeps
-> = {
+export const AgentSpawnTracker: AsyncHookContract<ToolHookInput, AgentSpawnTrackerDeps> = {
   name: "AgentSpawnTracker",
   event: "PostToolUse",
 
@@ -74,19 +69,19 @@ export const AgentSpawnTracker: AsyncHookContract<
   async execute(
     input: ToolHookInput,
     deps: AgentSpawnTrackerDeps,
-  ): Promise<Result<ContinueOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     const toolInput = input.tool_input;
 
     // Only fire for background agents
     if (!toolInput.run_in_background) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Extract thread_id — require a valid Discord snowflake
     const threadId = extractThreadId(toolInput);
     if (!threadId) {
       deps.stderr("[AgentSpawnTracker] No valid thread_id found — skipping /spawn");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Extract agent_name (fallback "background-agent") and task
@@ -98,7 +93,7 @@ export const AgentSpawnTracker: AsyncHookContract<
     const daemonUrl = envUrl ?? deps.getKoordConfig().url;
     if (!daemonUrl) {
       deps.stderr("[AgentSpawnTracker] No daemon URL found (env or settings.json)");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // POST to daemon /spawn endpoint
@@ -122,7 +117,7 @@ export const AgentSpawnTracker: AsyncHookContract<
       );
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

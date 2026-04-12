@@ -16,6 +16,7 @@ Two classes of hook output validation failures:
 ## Source of Truth
 
 The `@anthropic-ai/claude-agent-sdk` TypeScript package defines the exact output schema.
+
 - Hooks reference: https://code.claude.com/docs/en/agent-sdk/hooks
 - SDK reference: https://code.claude.com/docs/en/agent-sdk/typescript
 - GitHub: https://github.com/anthropics/claude-agent-sdk-typescript
@@ -24,17 +25,17 @@ The `@anthropic-ai/claude-agent-sdk` TypeScript package defines the exact output
 
 `hookSpecificOutput` is a discriminated union keyed on `hookEventName`. Only these events appear in the union:
 
-| hookEventName | Fields | Notes |
-|---|---|---|
-| `PreToolUse` | `permissionDecision`, `permissionDecisionReason`, `updatedInput`, `additionalContext` | Most complex variant |
-| `PostToolUse` | `additionalContext`, `updatedMCPToolOutput` | MCP output replacement |
-| `PostToolUseFailure` | `additionalContext` | Context only |
-| `UserPromptSubmit` | `additionalContext` | Context only |
-| `SessionStart` | `additionalContext` | Context only |
-| `Setup` | `additionalContext` | Context only |
-| `SubagentStart` | `additionalContext` | Context only |
-| `Notification` | `additionalContext` | Context only |
-| `PermissionRequest` | `decision: { behavior: "allow" \| "deny", ... }` | Nested discriminated union |
+| hookEventName        | Fields                                                                                | Notes                      |
+| -------------------- | ------------------------------------------------------------------------------------- | -------------------------- |
+| `PreToolUse`         | `permissionDecision`, `permissionDecisionReason`, `updatedInput`, `additionalContext` | Most complex variant       |
+| `PostToolUse`        | `additionalContext`, `updatedMCPToolOutput`                                           | MCP output replacement     |
+| `PostToolUseFailure` | `additionalContext`                                                                   | Context only               |
+| `UserPromptSubmit`   | `additionalContext`                                                                   | Context only               |
+| `SessionStart`       | `additionalContext`                                                                   | Context only               |
+| `Setup`              | `additionalContext`                                                                   | Context only               |
+| `SubagentStart`      | `additionalContext`                                                                   | Context only               |
+| `Notification`       | `additionalContext`                                                                   | Context only               |
+| `PermissionRequest`  | `decision: { behavior: "allow" \| "deny", ... }`                                      | Nested discriminated union |
 
 Source: https://code.claude.com/docs/en/agent-sdk/hooks
 
@@ -77,6 +78,7 @@ Source: https://code.claude.com/docs/en/agent-sdk/hooks — SyncHookJSONOutput t
 **Current behavior:** Returns `continueOk(summary)` which the runner formats as `{ hookSpecificOutput: { hookEventName: "PreCompact", additionalContext: "..." } }`. This fails validation because `PreCompact` is not in the union.
 
 **Fix options:**
+
 1. Use `systemMessage` at top level: `{ continue: true, systemMessage: "..." }` — untested
 2. Use `ContextOutput` (raw text) — may not be supported for PreCompact
 3. Accept that PreCompact can't inject context; persist to file and pick up on next UserPromptSubmit
@@ -131,9 +133,9 @@ SilentOutput → null (bypasses schema)
 
 ## Files Changed
 
-| File | Change |
-|---|---|
-| `core/types/hook-output-schema.ts` | **New** — Effect Schema + encoder |
-| `core/runner.ts` | Replace `formatOutput` with `encodeHookOutput` |
-| `core/runner.test.ts` | Update tests for new encoder |
-| `core/types/hook-output-schema.test.ts` | **New** — Schema validation tests |
+| File                                    | Change                                         |
+| --------------------------------------- | ---------------------------------------------- |
+| `core/types/hook-output-schema.ts`      | **New** — Effect Schema + encoder              |
+| `core/runner.ts`                        | Replace `formatOutput` with `encodeHookOutput` |
+| `core/runner.test.ts`                   | Update tests for new encoder                   |
+| `core/types/hook-output-schema.test.ts` | **New** — Schema validation tests              |

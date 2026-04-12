@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "bun:test";
 import { dirname, resolve } from "node:path";
+import { type ValidationReport, type ValidatorDeps, validate } from "@hooks/cli/core/validator";
 import {
   fileExists as adapterFileExists,
   readFile as adapterReadFile,
@@ -15,7 +16,6 @@ import {
 } from "@hooks/core/adapters/fs";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
-import { type ValidationReport, type ValidatorDeps, validate } from "@hooks/cli/core/validator";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -99,16 +99,17 @@ describe("validate", () => {
     it("reports CONTRACT_MISSING when contract file does not exist", () => {
       const deps = makeDeps({
         fileExists: (path: string) => !path.endsWith(".contract.ts"),
-        readJson: () => ok({
-          name: "TestHook",
-          group: "TestGroup",
-          event: "PreToolUse",
-          description: "test",
-          schemaVersion: 1,
-          tags: [],
-          presets: [],
-          deps: [],
-        }),
+        readJson: () =>
+          ok({
+            name: "TestHook",
+            group: "TestGroup",
+            event: "PreToolUse",
+            description: "test",
+            schemaVersion: 1,
+            tags: [],
+            presets: [],
+            deps: [],
+          }),
         readFile: () => ok('import { ok } from "@hooks/core/result";'),
       });
 
@@ -123,7 +124,8 @@ describe("validate", () => {
     it("returns err when manifest file cannot be read", () => {
       const deps = makeDeps({
         readFile: (_path: string) => ok('import { ok } from "@hooks/core/result";'),
-        readJson: (path: string) => err(new ResultError(ErrorCode.FileNotFound, `Not found: ${path}`)),
+        readJson: (path: string) =>
+          err(new ResultError(ErrorCode.FileNotFound, `Not found: ${path}`)),
       });
 
       const result = validate("/fake/contract.ts", "/fake/missing.json", deps);

@@ -19,11 +19,11 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Returns `{ type: "silent" }` immediately
+1. Returns `ok({})` immediately (silent no-op)
 
 ```typescript
-execute(_input, _deps): Result<SilentOutput, E> {
-  return ok({ type: "silent" });
+execute(_input, _deps): Result<SyncHookJSONOutput, E> {
+  return ok({});
 }
 ```
 
@@ -35,6 +35,6 @@ execute(_input, _deps): Result<SilentOutput, E> {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | Provides `ok` and `Result` type for error handling |
+| Dependency | Type | Purpose                                            |
+| ---------- | ---- | -------------------------------------------------- |
+| `result`   | core | Provides `ok` and `Result` type for error handling |

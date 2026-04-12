@@ -9,6 +9,7 @@ Diagnostic hook that logs every Claude Code permission prompt to a JSONL file. D
 ## When It Fires
 
 Every time Claude Code determines a tool call needs user approval (based on deny > ask > allow precedence from `settings.json`). This includes:
+
 - Tools not in the allow list
 - Tools matching an ask-list pattern (e.g., `Bash(kill *)`)
 - Operations on sensitive paths (e.g., `~/.claude/` directory)
@@ -21,19 +22,30 @@ Every time Claude Code determines a tool call needs user approval (based on deny
 4. Returns silent — the permission prompt shows normally to the user
 
 > **Example:** A `Bash(kill -0 1234)` command triggers the `Bash(kill *)` ask pattern. The hook logs:
+>
 > ```json
-> {"timestamp":"2026-03-29T08:30:00Z","session_id":"abc","tool_name":"Bash","tool_input_summary":"kill -0 1234","permission_mode":"default","suggestions":"[...]"}
+> {
+>   "timestamp": "2026-03-29T08:30:00Z",
+>   "session_id": "abc",
+>   "tool_name": "Bash",
+>   "tool_input_summary": "kill -0 1234",
+>   "permission_mode": "default",
+>   "suggestions": "[...]"
+> }
 > ```
+>
 > The user still sees the normal "Allow Bash?" prompt.
 
 ## Examples
 
 **Viewing the log after a session:**
+
 ```bash
 cat ~/.claude/MEMORY/SECURITY/permission-prompts.jsonl | python3 -m json.tool
 ```
 
 **Counting prompts by tool:**
+
 ```bash
 cat ~/.claude/MEMORY/SECURITY/permission-prompts.jsonl | jq -r '.tool_name' | sort | uniq -c | sort -rn
 ```

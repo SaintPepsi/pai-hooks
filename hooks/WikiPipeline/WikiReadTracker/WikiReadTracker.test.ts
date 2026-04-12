@@ -100,9 +100,8 @@ describe("WikiReadTracker.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
       expect(result.value.continue).toBe(true);
-      expect(result.value.additionalContext).toBeUndefined();
+      expect(result.value.hookSpecificOutput).toBeUndefined();
     }
 
     expect(appendedPath).toBe("/tmp/test-wiki/.pipeline/metrics.jsonl");
@@ -144,7 +143,7 @@ describe("WikiReadTracker.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -171,13 +170,15 @@ describe("WikiReadTracker.execute()", () => {
     const input: ToolHookInput = {
       session_id: "",
       tool_name: "Read",
-      tool_input: { file_path: "/Users/hogers/.claude/MEMORY/WIKI/entities/koord.md" },
+      tool_input: {
+        file_path: "/Users/hogers/.claude/MEMORY/WIKI/entities/koord.md",
+      },
     };
     const result = WikiReadTracker.execute(input, deps);
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });

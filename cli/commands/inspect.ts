@@ -5,12 +5,12 @@
  */
 
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import { PaihError, PaihErrorCode, invalidArgs } from "@hooks/cli/core/error";
+import { invalidArgs, PaihError, PaihErrorCode } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { err } from "@hooks/cli/core/result";
 import {
-  inspect as inspectDuplicationChecker,
   type InspectorDeps,
+  inspect as inspectDuplicationChecker,
 } from "@hooks/hooks/DuplicationDetection/DuplicationChecker/inspector";
 
 const INSPECTABLE_HOOKS = new Set(["DuplicationChecker"]);

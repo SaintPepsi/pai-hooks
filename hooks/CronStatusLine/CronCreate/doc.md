@@ -32,13 +32,23 @@ It does **not** fire when:
 ```typescript
 // Build and persist new cron entry
 const entry: CronEntry = {
-  id: cronId, name, schedule, recurring, prompt,
-  createdAt: now, fireCount: 0, lastFired: null,
+  id: cronId,
+  name,
+  schedule,
+  recurring,
+  prompt,
+  createdAt: now,
+  fireCount: 0,
+  lastFired: null,
 };
 const session = readResult.value ?? { sessionId, crons: [] };
 session.crons.push(entry);
 writeCronFile(sessionId, session, deps, deps);
-appendCronLog({ type: "created", cronId, name, schedule, sessionId }, deps, deps);
+appendCronLog(
+  { type: "created", cronId, name, schedule, sessionId },
+  deps,
+  deps,
+);
 ```
 
 ## Examples
@@ -53,8 +63,8 @@ appendCronLog({ type: "created", cronId, name, schedule, sessionId }, deps, deps
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File I/O operations for reading/writing cron state |
-| `shared` | shared | `readCronFile`, `writeCronFile`, `appendCronLog`, `CronEntry`, `CronSessionFile` types |
-| `result` | core | `ok` wrapper for Result type returns |
+| Dependency | Type    | Purpose                                                                                |
+| ---------- | ------- | -------------------------------------------------------------------------------------- |
+| `fs`       | adapter | File I/O operations for reading/writing cron state                                     |
+| `shared`   | shared  | `readCronFile`, `writeCronFile`, `appendCronLog`, `CronEntry`, `CronSessionFile` types |
+| `result`   | core    | `ok` wrapper for Result type returns                                                   |

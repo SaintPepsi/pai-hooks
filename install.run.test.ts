@@ -60,7 +60,10 @@ const validExported = JSON.stringify({
       {
         matcher: "Edit",
         hooks: [
-          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" },
+          {
+            type: "command",
+            command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts",
+          },
         ],
       },
     ],
@@ -68,8 +71,14 @@ const validExported = JSON.stringify({
       {
         matcher: "Bash",
         hooks: [
-          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/BashAudit.hook.ts" },
-          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/BashLog.hook.ts" },
+          {
+            type: "command",
+            command: "${SAINTPEPSI_PAI_HOOKS_DIR}/BashAudit.hook.ts",
+          },
+          {
+            type: "command",
+            command: "${SAINTPEPSI_PAI_HOOKS_DIR}/BashLog.hook.ts",
+          },
         ],
       },
     ],
@@ -264,7 +273,12 @@ describe("detectConflicts", () => {
       PreToolUse: [
         {
           matcher: "Bash",
-          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/MyCustomHook.hook.ts" }],
+          hooks: [
+            {
+              type: "command",
+              command: "${PAI_DIR}/hooks/MyCustomHook.hook.ts",
+            },
+          ],
         },
       ],
     };
@@ -289,7 +303,12 @@ describe("detectConflicts", () => {
       PreToolUse: [
         {
           matcher: "Edit",
-          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+          hooks: [
+            {
+              type: "command",
+              command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
         },
       ],
     };
@@ -375,13 +394,23 @@ describe("detectConflicts", () => {
       PreToolUse: [
         {
           matcher: "Bash",
-          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+          hooks: [
+            {
+              type: "command",
+              command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
         },
       ],
       PostToolUse: [
         {
           matcher: "Bash",
-          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+          hooks: [
+            {
+              type: "command",
+              command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
         },
       ],
     };
@@ -405,7 +434,14 @@ describe("detectConflicts", () => {
   it("handles matcher groups without matcher field (SessionEnd style)", () => {
     const existing = {
       SessionEnd: [
-        { hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SessionSummary.hook.ts" }] },
+        {
+          hooks: [
+            {
+              type: "command",
+              command: "${PAI_DIR}/hooks/SessionSummary.hook.ts",
+            },
+          ],
+        },
       ],
     };
     const incoming = {
@@ -455,7 +491,12 @@ describe("install run() — conflict resolution", () => {
       PreToolUse: [
         {
           matcher: "Edit",
-          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/CodingStandards.hook.ts" }],
+          hooks: [
+            {
+              type: "command",
+              command: "${PAI_DIR}/hooks/CodingStandards.hook.ts",
+            },
+          ],
         },
       ],
     },

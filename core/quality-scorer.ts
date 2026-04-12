@@ -218,15 +218,18 @@ function maxParameterCount(content: string, profile: LanguageProfile): number {
     const parenStart = content.indexOf("(", start);
     if (parenStart === -1) continue;
 
+    // Find matching close paren with bounded iteration
     let depth = 1;
-    let pos = parenStart + 1;
-    while (pos < content.length && depth > 0) {
+    let closePos = parenStart + 1;
+    const maxScan = content.length - parenStart - 1;
+    for (let i = 0; i < maxScan && depth > 0; i++) {
+      const pos = parenStart + 1 + i;
       if (content[pos] === "(") depth++;
       if (content[pos] === ")") depth--;
-      pos++;
+      closePos = pos + 1;
     }
 
-    const params = content.slice(parenStart + 1, pos - 1).trim();
+    const params = content.slice(parenStart + 1, closePos - 1).trim();
     if (!params) continue;
 
     let commaCount = 0;

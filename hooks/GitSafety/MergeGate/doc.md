@@ -68,3 +68,4 @@ return ok(continueOk());
 | --- | --- | --- |
 | `shared` | shared | Provides `extractPrNumber`, `resolvePrFromBranch`, `checkCiStatus`, and `checkReviewStatus` |
 | `process` | adapter | Executes `gh` CLI commands for CI and review status checks |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4 shape, post-SDK-refactor 1D) |

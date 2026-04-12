@@ -1,13 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { ok, err } from "@hooks/core/result";
 import { processSpawnFailed } from "@hooks/core/error";
-import { runLearningAgent, type RunLearningAgentDeps } from "./run-learning-agent";
+import { err, ok } from "@hooks/core/result";
 import type { SpawnAgentConfig } from "@hooks/lib/spawn-agent";
+import { type RunLearningAgentDeps, runLearningAgent } from "./run-learning-agent";
 
-function fakeDeps(overrides: Partial<RunLearningAgentDeps> = {}): RunLearningAgentDeps & { _captured: SpawnAgentConfig[] } {
+function fakeDeps(
+  overrides: Partial<RunLearningAgentDeps> = {},
+): RunLearningAgentDeps & { _captured: SpawnAgentConfig[] } {
   const captured: SpawnAgentConfig[] = [];
   return {
-    spawnAgent: (config) => { captured.push(config); return ok(undefined as void); },
+    spawnAgent: (config) => {
+      captured.push(config);
+      return ok(undefined as undefined);
+    },
     stderr: () => {},
     baseDir: "/fake/pai",
     _captured: captured,

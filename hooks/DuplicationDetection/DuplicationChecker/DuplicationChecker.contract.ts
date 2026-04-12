@@ -11,6 +11,7 @@
  *   - parser.ts: SWC function extraction
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile as adapterAppendFile,
   ensureDir as adapterEnsureDir,
@@ -21,8 +22,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import {
   BLOCK_THRESHOLD,
@@ -78,11 +77,7 @@ const defaultDeps: DuplicationCheckerDeps = {
   blocking: readBlockingConfig(),
 };
 
-export const DuplicationCheckerContract: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  DuplicationCheckerDeps
-> = {
+export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, DuplicationCheckerDeps> = {
   name: "DuplicationChecker",
   event: "PreToolUse",
 
@@ -98,19 +93,19 @@ export const DuplicationCheckerContract: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: DuplicationCheckerDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
     if (!indexPath) {
       deps.stderr("[DuplicationChecker] No index found — skipping");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const index = loadIndex(indexPath, deps);
     if (!index) {
       deps.stderr("[DuplicationChecker] Failed to load index — skipping");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Get content: Write has it directly, Edit needs simulation
@@ -128,14 +123,14 @@ export const DuplicationCheckerContract: SyncHookContract<
       }
     }
 
-    if (!content) return ok(continueOk());
+    if (!content) return ok({ continue: true });
 
     const allFunctions = extractFunctions(content, filePath.endsWith(".tsx"));
     // For edits, exclude functions whose body was already present before the edit
     const functions = preEditHashes
       ? allFunctions.filter((f) => !preEditHashes!.has(f.bodyHash))
       : allFunctions;
-    if (functions.length === 0) return ok(continueOk());
+    if (functions.length === 0) return ok({ continue: true });
 
     // ─── Pattern advisory ───────────────────────────────────────────────
     const patternAdvisories: string[] = [];
@@ -153,11 +148,17 @@ export const DuplicationCheckerContract: SyncHookContract<
       }
     }
 
-    function continueWithPatterns(extra?: string): ContinueOutput {
+    function continueWithPatterns(extra?: string): SyncHookJSONOutput {
       const parts = [...patternAdvisories];
       if (extra) parts.push(extra);
-      if (parts.length === 0) return continueOk();
-      return { ...continueOk(), additionalContext: parts.join("\n\n") };
+      if (parts.length === 0) return { continue: true };
+      return {
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          additionalContext: parts.join("\n\n"),
+        },
+      };
     }
 
     const relPath = filePath.startsWith(index.root)
@@ -225,7 +226,14 @@ export const DuplicationCheckerContract: SyncHookContract<
         deps.stderr(
           `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
         );
-        return ok({ type: "block", decision: "block", reason });
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+            permissionDecisionReason: reason,
+          },
+        });
       }
 
       deps.stderr(

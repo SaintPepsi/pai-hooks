@@ -54,3 +54,4 @@ return ok({ type: "continue", continue: true });
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `process` | adapter | Executes `chmod +x` to set the execute permission bit |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PostToolUse continue (R1 shape, post-SDK-refactor 1D) |

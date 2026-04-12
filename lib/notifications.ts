@@ -155,7 +155,10 @@ export function getNotificationConfig(
   return {
     ...DEFAULT_CONFIG,
     ntfy: { ...DEFAULT_CONFIG.ntfy, ...settings.notifications.ntfy },
-    thresholds: { ...DEFAULT_CONFIG.thresholds, ...settings.notifications.thresholds },
+    thresholds: {
+      ...DEFAULT_CONFIG.thresholds,
+      ...settings.notifications.thresholds,
+    },
     routing: { ...DEFAULT_CONFIG.routing, ...settings.notifications.routing },
   };
 }

@@ -48,7 +48,7 @@ function getGitBranch(): string {
 // --- New violation categories ---
 
 // Inline import type violation
-function processOptions(opts: import('./config').ConfigOptions): void {
+function processOptions(opts: import("./config").ConfigOptions): void {
   console.log(opts);
 }
 

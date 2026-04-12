@@ -25,7 +25,12 @@ describe("isAlreadyInstalled", () => {
       hooks: {
         PreToolUse: [
           {
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/Foo.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/Foo.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -36,7 +41,10 @@ describe("isAlreadyInstalled", () => {
 
 describe("mergeHooksIntoSettings", () => {
   it("removes legacy env var from settings", () => {
-    const settings = { env: { SAINTPEPSI_PAI_HOOKS_DIR: "/old/path" }, hooks: {} };
+    const settings = {
+      env: { SAINTPEPSI_PAI_HOOKS_DIR: "/old/path" },
+      hooks: {},
+    };
     const exported = {
       envVar: "SAINTPEPSI_PAI_HOOKS_DIR",
       hooks: {},
@@ -51,7 +59,10 @@ describe("mergeHooksIntoSettings", () => {
       env: {},
       hooks: {
         PreToolUse: [
-          { matcher: "Bash", hooks: [{ type: "command", command: "/existing/hook.ts" }] },
+          {
+            matcher: "Bash",
+            hooks: [{ type: "command", command: "/existing/hook.ts" }],
+          },
         ],
       },
     };
@@ -88,7 +99,10 @@ describe("mergeHooksIntoSettings", () => {
           {
             matcher: "*",
             hooks: [
-              { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/StartupGreeting.hook.ts" },
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/StartupGreeting.hook.ts",
+              },
             ],
           },
         ],

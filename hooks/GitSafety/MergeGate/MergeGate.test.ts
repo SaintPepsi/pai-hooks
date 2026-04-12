@@ -4,7 +4,10 @@ import { processExecFailed } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  getPreToolUseDenyReason,
+  isPreToolUseDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import { MergeGate, type MergeGateDeps } from "./MergeGate.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -65,8 +68,6 @@ function makeDeps(
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
-
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("MergeGate", () => {
@@ -92,18 +93,18 @@ describe("MergeGate", () => {
 
   it("continues on non-merge commands", () => {
     const deps = makeDeps();
-    const result = MergeGate.execute(makeInput("gh pr list"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr list"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("continues on plain git commands", () => {
     const deps = makeDeps();
-    const result = MergeGate.execute(makeInput("git commit -m 'test'"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── Happy path ──
@@ -113,10 +114,10 @@ describe("MergeGate", () => {
       ciResponse: CI_ALL_PASSING,
       reviewResponse: REVIEWS_ONE_APPROVED,
     });
-    const result = MergeGate.execute(makeInput("gh pr merge 441 --squash"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441 --squash"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── CI failing ──
@@ -126,13 +127,12 @@ describe("MergeGate", () => {
       ciResponse: CI_ONE_FAILURE,
       reviewResponse: REVIEWS_ONE_APPROVED,
     });
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("CI checks are not passing");
-    expect(result.value.reason).toContain("tests: FAILURE");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("CI checks are not passing");
+    expect(getPreToolUseDenyReason(result.value)).toContain("tests: FAILURE");
   });
 
   // ── CI pending ──
@@ -142,13 +142,12 @@ describe("MergeGate", () => {
       ciResponse: CI_ONE_PENDING,
       reviewResponse: REVIEWS_ONE_APPROVED,
     });
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("CI checks are not passing");
-    expect(result.value.reason).toContain("build: PENDING");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("CI checks are not passing");
+    expect(getPreToolUseDenyReason(result.value)).toContain("build: PENDING");
   });
 
   // ── No approved review ──
@@ -158,13 +157,12 @@ describe("MergeGate", () => {
       ciResponse: CI_ALL_PASSING,
       reviewResponse: REVIEWS_ONLY_COMMENTED,
     });
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("No approving review found");
-    expect(result.value.reason).toContain("COMMENTED reviews do not count");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("No approving review found");
+    expect(getPreToolUseDenyReason(result.value)).toContain("COMMENTED reviews do not count");
   });
 
   it("blocks when zero reviews exist", () => {
@@ -172,12 +170,11 @@ describe("MergeGate", () => {
       ciResponse: CI_ALL_PASSING,
       reviewResponse: REVIEWS_NONE,
     });
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("No approving review found");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("No approving review found");
   });
 
   // ── Both bad ──
@@ -187,13 +184,12 @@ describe("MergeGate", () => {
       ciResponse: CI_ONE_FAILURE,
       reviewResponse: REVIEWS_ONLY_COMMENTED,
     });
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("CI checks are not passing");
-    expect(result.value.reason).toContain("No approving review found");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("CI checks are not passing");
+    expect(getPreToolUseDenyReason(result.value)).toContain("No approving review found");
   });
 
   // ── Fail-open ──
@@ -206,10 +202,10 @@ describe("MergeGate", () => {
         stderrMessages.push(msg);
       },
     };
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("WARNING"))).toBe(true);
   });
 
@@ -224,10 +220,10 @@ describe("MergeGate", () => {
         stderrMessages.push(msg);
       },
     };
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("WARNING"))).toBe(true);
   });
 
@@ -235,18 +231,18 @@ describe("MergeGate", () => {
 
   it("extracts PR number from `gh pr merge 441`", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING, reviewResponse: REVIEWS_ONE_APPROVED });
-    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("extracts PR number from `gh pr merge --squash 441`", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING, reviewResponse: REVIEWS_ONE_APPROVED });
-    const result = MergeGate.execute(makeInput("gh pr merge --squash 441"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge --squash 441"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("falls back to gh pr view when no PR number in command", () => {
@@ -259,10 +255,10 @@ describe("MergeGate", () => {
       },
       stderr: () => {},
     };
-    const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows merge with warning when PR number cannot be determined", () => {
@@ -273,10 +269,10 @@ describe("MergeGate", () => {
         stderrMessages.push(msg);
       },
     };
-    const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps) as GateResult;
+    const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
   });
 

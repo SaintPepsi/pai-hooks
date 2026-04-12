@@ -36,18 +36,20 @@ It does **not** fire when:
 const classification = classifyCommand(command);
 
 if (!classification.isStateChanging) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 if (hasSubstantiveOutput(input.tool_response)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 const reminder = buildReminder(command, classification);
 return ok({
-  type: "continue",
   continue: true,
-  additionalContext: reminder,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: reminder,
+  },
 });
 ```
 
@@ -63,7 +65,8 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `execution-classification` | lib | Provides `classifyCommand`, `hasSubstantiveOutput`, and `buildReminder` |
-| `result` | core | Provides `ok` and `Result` type for error handling |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `execution-classification`       | lib       | Provides `classifyCommand`, `hasSubstantiveOutput`, and `buildReminder`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `result`                         | core      | Provides `ok` and `Result` type for error handling                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type. Post-SDK Type Foundation refactor (1R, bug #10 fix), the reminder injection channel is `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"`. The pre-refactor legacy form `continueOk(reminder)` placed `additionalContext` at top level, which the SDK silently dropped for PostToolUse events — same bug class as PreCompactStatePersist (1A), CodingStandards advisories (1C×3), CitationEnforcement (1E-1), SettingsRevert (1B), WikiContextInjector (1X), and ArchitectureEscalation+SonnetDelegation (1M×2). |

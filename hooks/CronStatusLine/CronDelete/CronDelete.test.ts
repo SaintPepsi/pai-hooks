@@ -140,7 +140,7 @@ describe("CronDeleteContract.execute() -- removes cron by ID", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
 
     // Session file should still exist with only cron-b
     const sessionPath = "/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json";
@@ -181,7 +181,7 @@ describe("CronDeleteContract.execute() -- deletes file when last cron removed", 
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
 
     // removeFile should have been called
     expect(deps._removed).toHaveLength(1);
@@ -204,7 +204,7 @@ describe("CronDeleteContract.execute() -- no-op when session file missing", () =
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
 
     // No writes, no removes, no log
     expect(Object.keys(deps._files)).toHaveLength(0);
@@ -274,7 +274,7 @@ describe("CronDeleteContract.execute() -- JSONL logging", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(result.value).toEqual({});
 
     // No log because nothing was deleted
     expect(deps._appendLog).toHaveLength(0);

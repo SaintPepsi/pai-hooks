@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { GroupMeta, HookMeta } from "./template";
-import { markdownToHtml, renderGroupPage, renderHookPage, renderIndexPage } from "./template";
+import {
+  markdownToHtml,
+  renderGroupPage,
+  renderHookPage,
+  renderIndexPage,
+} from "./template";
 
 // ─── markdownToHtml (body renderer) ───────────────────────────────────────────
 
@@ -14,7 +19,9 @@ describe("markdownToHtml", () => {
   });
 
   it("converts bold text", () => {
-    expect(markdownToHtml("This is **bold**")).toContain("<strong>bold</strong>");
+    expect(markdownToHtml("This is **bold**")).toContain(
+      "<strong>bold</strong>",
+    );
   });
 
   it("converts links", () => {
@@ -119,7 +126,8 @@ describe("renderHookPage", () => {
   });
 
   it("builds sidebar when enough sections", () => {
-    const md = "## Overview\nA\n\n## Event\nB\n\n## When It Fires\nC\n\n## What It Does\nD";
+    const md =
+      "## Overview\nA\n\n## Event\nB\n\n## When It Fires\nC\n\n## What It Does\nD";
     const html = renderHookPage(hook, md, "TestGroup");
     expect(html).toContain('id="wikiNav"');
   });
@@ -149,13 +157,15 @@ describe("renderHookPage", () => {
   });
 
   it("renders blockquotes as use-case examples", () => {
-    const md = "## Examples\n\n### Example 1\n\n> User does something\n> Agent responds";
+    const md =
+      "## Examples\n\n### Example 1\n\n> User does something\n> Agent responds";
     const html = renderHookPage(hook, md, "TestGroup");
     expect(html).toContain("uc-example");
   });
 
   it("renders tables as .tbl", () => {
-    const md = "## Dependencies\n\n| Dep | Type |\n| --- | --- |\n| fs | adapter |";
+    const md =
+      "## Dependencies\n\n| Dep | Type |\n| --- | --- |\n| fs | adapter |";
     const html = renderHookPage(hook, md, "TestGroup");
     expect(html).toContain('class="tbl"');
   });
@@ -211,8 +221,18 @@ describe("renderGroupPage", () => {
     name: "TestGroup",
     description: "A test group",
     hooks: [
-      { name: "HookA", group: "TestGroup", event: "PreToolUse", description: "First hook" },
-      { name: "HookB", group: "TestGroup", event: "Stop", description: "Second hook" },
+      {
+        name: "HookA",
+        group: "TestGroup",
+        event: "PreToolUse",
+        description: "First hook",
+      },
+      {
+        name: "HookB",
+        group: "TestGroup",
+        event: "Stop",
+        description: "Second hook",
+      },
     ],
   };
 

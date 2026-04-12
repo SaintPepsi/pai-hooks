@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const SCRIPT_PATH = import.meta.dir + "/cooccurrence.ts";
-const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
+const SCRIPT_PATH = `${import.meta.dir}/cooccurrence.ts`;
+const PAI_HOOKS_DIR = `${import.meta.dir}/../../../..`;
 
 async function runCLI(
   args: string[],
@@ -12,7 +12,8 @@ async function runCLI(
   const stdoutPath = `/tmp/cooccurrence-test-${id}.txt`;
   const stderrPath = `/tmp/cooccurrence-test-stderr-${id}.txt`;
 
-  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+  const bunPath = Bun.which("bun") ?? "bun";
+  const proc = Bun.spawn([bunPath, SCRIPT_PATH, ...args], {
     cwd: import.meta.dir,
     stdout: Bun.file(stdoutPath),
     stderr: Bun.file(stderrPath),

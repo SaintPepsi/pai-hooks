@@ -16,14 +16,13 @@
  * Message: Read from tool_response (watcher's stdout output).
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { MQ_WATCHER_MARKER } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +51,10 @@ function extractSessionFromCommand(command: string): string | null {
 
 /** Parse message JSON from watcher stdout, with fallback to raw text. */
 function parseWatcherOutput(raw: string): { from?: string; body: string; [key: string]: unknown } {
-  const result = tryCatch(() => JSON.parse(raw) as Record<string, unknown>, () => null);
+  const result = tryCatch(
+    () => JSON.parse(raw) as Record<string, unknown>,
+    () => null,
+  );
   if (!result.ok) return { body: raw.trim() };
   const parsed = result.value;
   return {
@@ -63,11 +65,7 @@ function parseWatcherOutput(raw: string): { from?: string; body: string; [key: s
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const MessageQueueRelay: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  MessageQueueRelayDeps
-> = {
+export const MessageQueueRelay: SyncHookContract<ToolHookInput, MessageQueueRelayDeps> = {
   name: "MessageQueueRelay",
   event: "PostToolUse",
 
@@ -75,12 +73,15 @@ export const MessageQueueRelay: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(input: ToolHookInput, deps: MessageQueueRelayDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    input: ToolHookInput,
+    deps: MessageQueueRelayDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const command = input.tool_input.command;
 
     // Only intercept mq-watcher completions
     if (!isWatcherCommand(command)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const response = input.tool_response;
@@ -93,9 +94,10 @@ export const MessageQueueRelay: SyncHookContract<
       const respawnCmd = sessionId
         ? `bun scripts/mq-watcher.ts --session ${sessionId}`
         : "bun scripts/mq-watcher.ts --session <session_id>";
-      return ok(
-        continueOk(
-          [
+      return ok({
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+          additionalContext: [
             "## Message Queue: Watcher Timeout",
             "",
             "The message queue watcher timed out with no new messages.",
@@ -104,8 +106,8 @@ export const MessageQueueRelay: SyncHookContract<
             respawnCmd,
             "```",
           ].join("\n"),
-        ),
-      );
+        },
+      });
     }
 
     // Parse the message
@@ -119,9 +121,10 @@ export const MessageQueueRelay: SyncHookContract<
       ? `bun scripts/mq-watcher.ts --session ${sessionId}`
       : "bun scripts/mq-watcher.ts --session <session_id>";
 
-    return ok(
-      continueOk(
-        [
+    return ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: [
           "## Message Queue: New Message Received",
           "",
           `**Message${from}:**`,
@@ -134,8 +137,8 @@ export const MessageQueueRelay: SyncHookContract<
           respawnCmd,
           "```",
         ].join("\n"),
-      ),
-    );
+      },
+    });
   },
 
   defaultDeps,

@@ -41,7 +41,7 @@ if (input.tool_name === "Bash") {
   if (command && isTestCommand(command) && deps.fileExists(flagFile)) {
     const testedSources = extractTestedSourceFiles(command);
     if (testedSources === null) {
-      deps.removeFlag(flagFile);  // Full suite — clear all
+      deps.removeFlag(flagFile); // Full suite — clear all
     } else {
       const remaining = pending.filter(
         (p) => !testedSources.some((s) => pendingMatchesSource(p, s)),
@@ -72,7 +72,7 @@ deps.writePending(flagFile, pending);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
+| Dependency                          | Type   | Purpose                                                                                                                                       |
+| ----------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TestObligationStateMachine.shared` | shared | Provides `isNonTestCodeFile`, `isTestCommand`, `extractTestedSourceFiles`, `pendingMatchesSource`, `getFilePath`, `getCommand`, `pendingPath` |
-| `result` | core | `ok` wrapper for Result type returns |
+| `result`                            | core   | `ok` wrapper for Result type returns                                                                                                          |

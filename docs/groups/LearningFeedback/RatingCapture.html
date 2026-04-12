@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1742,6 +1755,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#history"><span class="nav-num">07</span> History</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1901,7 +1915,13 @@ const explicitResult = parseExplicitRating(prompt);
 if (explicitResult) {
   writeRating(entry, signalsDir, ratingsFile, deps);
   if (explicitResult.rating &lt; 5) captureLowRatingLearning(...);
-  return ok({ type: "context", content: reminder });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "UserPromptSubmit",
+      additionalContext: reminder,
+    },
+  });
 }
 
 // Implicit: inference-based sentiment analysis
@@ -1964,6 +1984,20 @@ if (sentiment.rating !== null &amp;&amp; sentiment.confidence &gt;= MIN_CONFIDEN
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File read/write/append for ratings and learning files</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="history">
+    <div class="section-label accent">History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>History</h3>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>2026-04-11 — SDK Type Foundation (1J):</strong> All 5 return sites in <code>RatingCapture.contract.ts</code> (lines 334, 339, 365, 372, 414) were using <code>ok({ type: "context", content: reminder })</code>. This shape is not part of <code>SyncHookJSONOutput</code>. After Phase 0 Task 0C deleted the runner's <code>formatOutput()</code> adapter at commit <code>3705810</code>, the runner passes the contract result verbatim to stdout, where <code>validateHookOutput</code> fail-opens on the unknown shape and drops it. The algorithm format reminder (ALGORITHM FORMAT REQUIRED text, version string, <code><user-prompt-submit-hook></code> wrapping) has not been reaching users since commit <code>3705810</code>. Bugs #17-21 (one per site) — same bug class as 1A/1C/1E-1/1B/1X/1M. Fix applied via R7 at all 5 sites: context now routes through <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "UserPromptSubmit"</code>. Behaviour change: every user prompt now receives the algorithm reminder again as originally intended.</div>
+      </div>
     </div>
   </section>
 

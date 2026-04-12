@@ -298,7 +298,12 @@ describe("findDirectEnvAccess", () => {
 describe("formatViolationSummary", () => {
   it("includes inline-import-type in summary", () => {
     const violations: Violation[] = [
-      { line: 5, content: "type Foo = import('./types').Bar;", category: "inline-import-type", message: "Use import type" },
+      {
+        line: 5,
+        content: "type Foo = import('./types').Bar;",
+        category: "inline-import-type",
+        message: "Use import type",
+      },
     ];
     const summary = formatViolationSummary(violations, "test.ts");
     expect(summary).toContain("1x inline import type");
@@ -306,13 +311,48 @@ describe("formatViolationSummary", () => {
 
   it("includes all violation categories in summary", () => {
     const violations: Violation[] = [
-      { line: 1, content: "import { readFileSync } from 'fs';", category: "raw-import", message: "m" },
-      { line: 2, content: "try {} catch (e) {}", category: "try-catch", message: "m" },
-      { line: 3, content: "const x = process.env.HOME;", category: "process-env", message: "m" },
-      { line: 4, content: "type Foo = import('./t').Bar;", category: "inline-import-type", message: "m" },
-      { line: 5, content: "const x = data as any;", category: "as-any", message: "m" },
-      { line: 6, content: "import { x } from '../utils';", category: "relative-import", message: "m" },
-      { line: 7, content: "export default function foo() {}", category: "export-default", message: "m" },
+      {
+        line: 1,
+        content: "import { readFileSync } from 'fs';",
+        category: "raw-import",
+        message: "m",
+      },
+      {
+        line: 2,
+        content: "try {} catch (e) {}",
+        category: "try-catch",
+        message: "m",
+      },
+      {
+        line: 3,
+        content: "const x = process.env.HOME;",
+        category: "process-env",
+        message: "m",
+      },
+      {
+        line: 4,
+        content: "type Foo = import('./t').Bar;",
+        category: "inline-import-type",
+        message: "m",
+      },
+      {
+        line: 5,
+        content: "const x = data as any;",
+        category: "as-any",
+        message: "m",
+      },
+      {
+        line: 6,
+        content: "import { x } from '../utils';",
+        category: "relative-import",
+        message: "m",
+      },
+      {
+        line: 7,
+        content: "export default function foo() {}",
+        category: "export-default",
+        message: "m",
+      },
     ];
     const summary = formatViolationSummary(violations, "test.ts");
     expect(summary).toContain("raw Node builtin");

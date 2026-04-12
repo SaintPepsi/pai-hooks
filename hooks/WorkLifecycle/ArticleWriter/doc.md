@@ -34,9 +34,14 @@ It does **not** fire when:
 
 ```typescript
 // Three gates, then spawn
-if (!hasWebsiteRepo(deps)) return ok({ type: "silent" });
-if (deps.fileExists(lockPath) && isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) return ok({ type: "silent" });
-if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) return ok({ type: "silent" });
+if (!hasWebsiteRepo(deps)) return ok({});
+if (
+  deps.fileExists(lockPath) &&
+  isTimestampFresh(lockPath, LOCK_STALE_MS, deps)
+)
+  return ok({});
+if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps))
+  return ok({});
 
 deps.runArticleWriter(input.session_id);
 ```
@@ -57,11 +62,11 @@ deps.runArticleWriter(input.session_id);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | File operations (read, write, exists, stat, remove, ensureDir) |
-| `run-article-writer.ts` | wrapper | Resolves repo, builds prompt, calls `spawnAgent()` |
-| `lib/spawn-agent` | lib | Shared agent spawning with lock/log/traceability |
-| `runners/agent-runner.ts` | runner | Generic background runner for all hook agents |
-| `lib/identity` | lib | Reads DA name and principal name |
-| `lib/hook-config` | lib | Reads `hookConfig.articleWriter` for repo path |
+| Dependency                | Type    | Purpose                                                        |
+| ------------------------- | ------- | -------------------------------------------------------------- |
+| `core/adapters/fs`        | adapter | File operations (read, write, exists, stat, remove, ensureDir) |
+| `run-article-writer.ts`   | wrapper | Resolves repo, builds prompt, calls `spawnAgent()`             |
+| `lib/spawn-agent`         | lib     | Shared agent spawning with lock/log/traceability               |
+| `runners/agent-runner.ts` | runner  | Generic background runner for all hook agents                  |
+| `lib/identity`            | lib     | Reads DA name and principal name                               |
+| `lib/hook-config`         | lib     | Reads `hookConfig.articleWriter` for repo path                 |

@@ -50,7 +50,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ResultError } from "@hooks/core/error";
 import { readFile } from "@hooks/core/adapters/fs";
 
-export const TestHook: SyncHookContract<ToolHookInput, any, any> = {
+export const TestHook: SyncHookContract<ToolHookInput,  any> = {
   name: "TestHook",
   event: "PreToolUse",
   accepts(input) { return true; },

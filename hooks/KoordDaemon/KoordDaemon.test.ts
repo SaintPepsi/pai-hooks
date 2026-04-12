@@ -143,10 +143,10 @@ describe("KoordDaemon shared", () => {
   describe("defaultReadFileOrNull", () => {
     test("returns file content for an existing file", () => {
       const tmpPath = `/tmp/pai-test-readornull-${Date.now()}.txt`;
-      require("fs").writeFileSync(tmpPath, "hello");
+      require("node:fs").writeFileSync(tmpPath, "hello");
       const result = defaultReadFileOrNull(tmpPath);
       expect(result).toBe("hello");
-      require("fs").unlinkSync(tmpPath);
+      require("node:fs").unlinkSync(tmpPath);
     });
 
     test("returns null for a missing file", () => {
@@ -178,7 +178,7 @@ describe("SessionIdRegister", () => {
   test("skips when no KOORD_THREAD_ID env var", async () => {
     const deps = makeDeps({ getEnv: () => undefined });
     const result = await SessionIdRegister.execute(baseInput, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 
   test("uses KOORD_DAEMON_URL env var for daemon URL", async () => {
@@ -227,7 +227,7 @@ describe("SessionIdRegister", () => {
     });
 
     const result = await SessionIdRegister.execute(baseInput, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 
   test("sends correct JSON body to /register-session", async () => {
@@ -261,7 +261,7 @@ describe("SessionIdRegister", () => {
     });
 
     const result = await SessionIdRegister.execute(baseInput, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 });
 
@@ -305,7 +305,7 @@ describe("AgentPrepromptInjector", () => {
       stderr: () => {},
     };
     const result = AgentPrepromptInjector.execute(input, deps);
-    expect(result.ok && result.value.type).toBe("continue");
+    expect(result.ok && result.value.continue).toBe(true);
   });
 
   test("injects preprompt into prompt when template found", async () => {
@@ -322,14 +322,17 @@ describe("AgentPrepromptInjector", () => {
     };
     const result = AgentPrepromptInjector.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "updatedInput") {
-      const prompt = result.value.updatedInput.prompt as string;
-      expect(prompt).toContain("Do some work");
-      expect(prompt).toContain("Hello worker-1");
-      expect(prompt).toContain("thread 12345678901234567");
-      expect(prompt).toContain("task: Do some work");
-    } else {
-      throw new Error("Expected updatedInput output");
+    if (result.ok) {
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PreToolUse") {
+        const prompt = hso.updatedInput?.prompt as string;
+        expect(prompt).toContain("Do some work");
+        expect(prompt).toContain("Hello worker-1");
+        expect(prompt).toContain("thread 12345678901234567");
+        expect(prompt).toContain("task: Do some work");
+      } else {
+        throw new Error("Expected updatedInput output");
+      }
     }
   });
 
@@ -394,7 +397,7 @@ describe("AgentSpawnTracker", () => {
     );
     const input = makeToolInput({ run_in_background: false });
     const result = await AgentSpawnTracker.execute(input, makeDeps());
-    expect(result.ok && result.value.type).toBe("continue");
+    expect(result.ok && result.value.continue).toBe(true);
   });
 
   test("skips when no thread_id", async () => {
@@ -403,7 +406,7 @@ describe("AgentSpawnTracker", () => {
     );
     const input = makeToolInput({ thread_id: undefined, prompt: "no ids" });
     const result = await AgentSpawnTracker.execute(input, makeDeps());
-    expect(result.ok && result.value.type).toBe("continue");
+    expect(result.ok && result.value.continue).toBe(true);
   });
 
   test("posts to daemon /spawn with correct body", async () => {
@@ -463,7 +466,7 @@ describe("AgentCompleteTracker", () => {
     );
     const input = makeToolInput({ tool_input: { run_in_background: true } });
     const result = await AgentCompleteTracker.execute(input, makeDeps());
-    expect(result.ok && result.value.type).toBe("continue");
+    expect(result.ok && result.value.continue).toBe(true);
   });
 
   test("extracts thread_id from tool_output", async () => {
@@ -502,6 +505,6 @@ describe("AgentCompleteTracker", () => {
       tool_response: "Completed some generic task",
     };
     const result = await AgentCompleteTracker.execute(input, makeDeps());
-    expect(result.ok && result.value.type).toBe("continue");
+    expect(result.ok && result.value.continue).toBe(true);
   });
 });

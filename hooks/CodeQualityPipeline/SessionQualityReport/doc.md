@@ -37,7 +37,13 @@ It does **not** fire when:
 
 ```typescript
 // Report output path structure
-const qualityDir = join(deps.baseDir, "MEMORY", "LEARNING", "QUALITY", `${time.year}-${time.month}`);
+const qualityDir = join(
+  deps.baseDir,
+  "MEMORY",
+  "LEARNING",
+  "QUALITY",
+  `${time.year}-${time.month}`,
+);
 const filename = `quality-${time.year}${time.month}${time.day}-${time.hours}${time.minutes}.md`;
 deps.writeFile(join(qualityDir, filename), report);
 ```
@@ -54,7 +60,8 @@ deps.writeFile(join(qualityDir, filename), report);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `time` | lib | Provides local date/time components for report filenames and timestamps |
-| `fs` | adapter | Reads baseline store and writes the report file |
+| Dependency                       | Type    | Purpose                                                                 |
+| -------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `@anthropic-ai/claude-agent-sdk` | SDK     | `SyncHookJSONOutput` union type for execute return                      |
+| `time`                           | lib     | Provides local date/time components for report filenames and timestamps |
+| `fs`                             | adapter | Reads baseline store and writes the report file                         |

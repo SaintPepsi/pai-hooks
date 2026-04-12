@@ -8,7 +8,9 @@ const TEST_DIR = join(import.meta.dir, "__test-load-context-proposals__");
 
 describe("Proposal format parsing", () => {
   beforeEach(() => {
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), { recursive: true });
+    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), {
+      recursive: true,
+    });
   });
 
   afterEach(() => {
@@ -108,7 +110,9 @@ function makeProposalDeps(
 
 describe("LoadContext proposals integration", () => {
   beforeEach(() => {
-    mkdirSync(join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), { recursive: true });
+    mkdirSync(join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), {
+      recursive: true,
+    });
   });
 
   afterEach(() => {

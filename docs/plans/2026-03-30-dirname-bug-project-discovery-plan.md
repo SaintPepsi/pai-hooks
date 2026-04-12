@@ -13,6 +13,7 @@
 ### Task 1: Add PROJECT_MARKERS constant and update getArtifactsDir signature
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/shared.ts:94-110`
 - Test: `hooks/DuplicationDetection/shared.test.ts`
 
@@ -21,7 +22,11 @@
 Add to `hooks/DuplicationDetection/shared.test.ts`:
 
 ```typescript
-import { getArtifactsDir, projectHash, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  getArtifactsDir,
+  projectHash,
+  PROJECT_MARKERS,
+} from "@hooks/hooks/DuplicationDetection/shared";
 
 describe("PROJECT_MARKERS", () => {
   test("includes .git as first entry", () => {
@@ -92,7 +97,10 @@ function sanitizeBranch(branch: string): string {
 }
 
 /** Returns the artifacts directory: /tmp/pai/duplication/{hash}/{branch}/ */
-export function getArtifactsDir(projectRoot: string, branch?: string | null): string {
+export function getArtifactsDir(
+  projectRoot: string,
+  branch?: string | null,
+): string {
   const branchDir = sanitizeBranch(branch || "default");
   return `${ARTIFACTS_BASE}/${projectHash(projectRoot)}/${branchDir}`;
 }
@@ -115,6 +123,7 @@ git commit -m "feat: add PROJECT_MARKERS and branch-aware getArtifactsDir"
 ### Task 2: Fix dirname bug in defaultFindProjectRoot
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract.ts:49-61`
 - Test: `hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts`
 
@@ -184,7 +193,11 @@ function defaultFindProjectRoot(filePath: string): string | null {
 Add the import at the top of the file:
 
 ```typescript
-import { getArtifactsDir, getFilePath, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  getArtifactsDir,
+  getFilePath,
+  PROJECT_MARKERS,
+} from "@hooks/hooks/DuplicationDetection/shared";
 ```
 
 **Step 4: Run tests**
@@ -204,6 +217,7 @@ git commit -m "fix: defaultFindProjectRoot handles directory inputs and uses PRO
 ### Task 3: Fix dirname bug in findIndexPath
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/shared.ts:140-155`
 
 **Step 1: Write failing test**
@@ -255,7 +269,10 @@ Expected: FAIL — directory input test fails because dirname skips it.
 In `shared.ts`, update `findIndexPath`:
 
 ```typescript
-export function findIndexPath(filePath: string, deps: SharedDeps): string | null {
+export function findIndexPath(
+  filePath: string,
+  deps: SharedDeps,
+): string | null {
   const { dirname } = require("node:path");
   const branch = getCurrentBranch() ?? "default";
 
@@ -296,6 +313,7 @@ git commit -m "fix: findIndexPath handles directory inputs and uses branch-aware
 ### Task 4: Pass branch to artifact paths in Builder and Checker
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract.ts`
 - Modify: `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts`
 
@@ -315,7 +333,12 @@ const indexDir = getArtifactsDir(projectRoot, branch);
 Add `getCurrentBranch` to the import from shared:
 
 ```typescript
-import { getArtifactsDir, getCurrentBranch, getFilePath, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  getArtifactsDir,
+  getCurrentBranch,
+  getFilePath,
+  PROJECT_MARKERS,
+} from "@hooks/hooks/DuplicationDetection/shared";
 ```
 
 **Step 2: Update DuplicationChecker to pass branch**
@@ -337,11 +360,11 @@ In `shared.ts`, remove lines 124-128 from `loadIndex`:
 
 ```typescript
 // REMOVE this block — branch isolation now handled by directory structure:
-  // Discard index if it was built on a different branch
-  if (parsed.branch) {
-    const currentBranch = getCurrentBranch();
-    if (currentBranch && parsed.branch !== currentBranch) return null;
-  }
+// Discard index if it was built on a different branch
+if (parsed.branch) {
+  const currentBranch = getCurrentBranch();
+  if (currentBranch && parsed.branch !== currentBranch) return null;
+}
 ```
 
 **Step 4: Run all DuplicationDetection tests**
@@ -365,6 +388,7 @@ git commit -m "feat: branch-aware artifact directories, remove redundant loadInd
 ### Task 5: Update documentation
 
 **Files:**
+
 - Modify: `hooks/DuplicationDetection/README.md`
 - Modify: `hooks/DuplicationDetection/DuplicationIndexBuilder/doc.md`
 - Modify: `hooks/DuplicationDetection/DuplicationChecker/doc.md`

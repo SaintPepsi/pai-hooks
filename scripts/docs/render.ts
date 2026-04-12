@@ -17,7 +17,11 @@ import {
 } from "@hooks/core/adapters/fs";
 import { join, resolve } from "node:path";
 import type { GroupMeta, HookMeta } from "@hooks/scripts/docs/template";
-import { renderGroupPage, renderHookPage, renderIndexPage } from "@hooks/scripts/docs/template";
+import {
+  renderGroupPage,
+  renderHookPage,
+  renderIndexPage,
+} from "@hooks/scripts/docs/template";
 import { getArg } from "@hooks/scripts/docs/cli-utils";
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
@@ -123,5 +127,7 @@ for (const group of groups) {
 const total = groups.reduce((n, g) => n + g.hooks.length, 0);
 process.stdout.write(`docs:render complete\n`);
 process.stdout.write(`  ${groups.length} groups, ${total} hooks total\n`);
-process.stdout.write(`  ${generated} pages generated, ${skipped} skipped (no ${docFileName})\n`);
+process.stdout.write(
+  `  ${generated} pages generated, ${skipped} skipped (no ${docFileName})\n`,
+);
 process.stdout.write(`  Output: ${outDir}\n`);

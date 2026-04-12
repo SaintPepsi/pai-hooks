@@ -68,8 +68,8 @@ if (criterion) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result wrapping |
-| `algorithm-state` | lib | `readState`, `writeState`, `phaseTransition`, `criteriaAdd`, `criteriaUpdate`, `agentAdd`, `effortLevelUpdate` |
-| `fs` | adapter | `fileExists`, `readJson` for state and session name access |
+| Dependency        | Type    | Purpose                                                                                                        |
+| ----------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `result`          | core    | `ok()` for Result wrapping                                                                                     |
+| `algorithm-state` | lib     | `readState`, `writeState`, `phaseTransition`, `criteriaAdd`, `criteriaUpdate`, `agentAdd`, `effortLevelUpdate` |
+| `fs`              | adapter | `fileExists`, `readJson` for state and session name access                                                     |

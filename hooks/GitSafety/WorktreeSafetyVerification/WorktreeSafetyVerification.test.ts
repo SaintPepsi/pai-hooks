@@ -1,8 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { type ResultError, processExecFailed } from "@hooks/core/error";
+import { processExecFailed, type ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   DEP_CONFIGS,
   ensureGitignore,
@@ -61,13 +60,9 @@ describe("WorktreeSafetyVerification contract", () => {
 
   it("returns continue output (never blocks)", () => {
     const deps = makeDeps();
-    const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<
-      ContinueOutput,
-      ResultError
-    >;
+    const result = WorktreeSafetyVerification.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
       expect(result.value.continue).toBe(true);
     }
   });
@@ -75,25 +70,19 @@ describe("WorktreeSafetyVerification contract", () => {
   it("returns continue when worktree path not found", () => {
     const input = makeInput({ tool_response: "Success", tool_input: {} });
     const deps = makeDeps();
-    const result = WorktreeSafetyVerification.execute(input, deps) as Result<
-      ContinueOutput,
-      ResultError
-    >;
+    const result = WorktreeSafetyVerification.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
   it("returns continue when worktree path does not exist on disk", () => {
     const deps = makeDeps({ existsSync: () => false });
-    const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<
-      ContinueOutput,
-      ResultError
-    >;
+    const result = WorktreeSafetyVerification.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 

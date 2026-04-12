@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1951,6 +1964,7 @@ await Promise.allSettled(handlers);</div>
           <tr><td><code>handlers/VoiceNotification</code></td><td>handler</td><td>TTS announcement of completion summaries</td></tr>
           <tr><td><code>handlers/RebuildSkill</code></td><td>handler</td><td>Checks and rebuilds stale skills</td></tr>
           <tr><td><code>handlers/AlgorithmEnrichment</code></td><td>handler</td><td>Enriches algorithm state from responses</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> return type; Stop silent no-op via <code>ok({})</code> (R8 shape, post-SDK-refactor 1V, replaces legacy <code>SilentOutput</code>)</td></tr>
         </tbody>
       </table>
     </div>

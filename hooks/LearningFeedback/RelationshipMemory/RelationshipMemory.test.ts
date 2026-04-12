@@ -33,7 +33,10 @@ function makeInput(overrides: Partial<StopInput> = {}): StopInput {
 function makeDeps(
   entries: TranscriptEntry[],
   overrides: Partial<RelationshipMemoryDeps> = {},
-): RelationshipMemoryDeps & { capturedNotes: RelationshipNote[]; stderrLines: string[] } {
+): RelationshipMemoryDeps & {
+  capturedNotes: RelationshipNote[];
+  stderrLines: string[];
+} {
   const capturedNotes: RelationshipNote[] = [];
   const stderrLines: string[] = [];
   return {
@@ -79,7 +82,7 @@ describe("RelationshipMemory", () => {
       const result = RelationshipMemory.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
 
@@ -103,7 +106,7 @@ describe("RelationshipMemory", () => {
       const result = RelationshipMemory.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
 
@@ -172,7 +175,10 @@ describe("RelationshipMemory", () => {
   describe("execute — with SUMMARY entries (B type)", () => {
     test("writeNotes is called with B-type note for summaries", () => {
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: Completed refactor of auth module" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Completed refactor of auth module" },
+        },
       ];
       const summaryNote: RelationshipNote = {
         type: "B",
@@ -190,8 +196,14 @@ describe("RelationshipMemory", () => {
 
     test("captures multiple B-type notes from multiple summaries", () => {
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: Fixed the database bug" } },
-        { type: "assistant", message: { content: "SUMMARY: Deployed to production" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Fixed the database bug" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Deployed to production" },
+        },
       ];
       const notes: RelationshipNote[] = [
         { type: "B", entities: ["@TestDA"], content: "Fixed the database bug" },
@@ -209,8 +221,14 @@ describe("RelationshipMemory", () => {
   describe("execute — defaultAnalyzeForRelationship integration", () => {
     test("produces O note when user text has 2+ positive patterns", () => {
       const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "That is great work you did there" } },
-        { type: "user", message: { content: "awesome job, that is perfect output" } },
+        {
+          type: "user",
+          message: { content: "That is great work you did there" },
+        },
+        {
+          type: "user",
+          message: { content: "awesome job, that is perfect output" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       // Use real defaultDeps.analyzeForRelationship by running through defaultDeps
@@ -229,7 +247,10 @@ describe("RelationshipMemory", () => {
     test("produces O note when user text has 2+ frustration patterns", () => {
       const entries: TranscriptEntry[] = [
         { type: "user", message: { content: "This is frustrating me a lot" } },
-        { type: "user", message: { content: "I am so frustrated with this behavior" } },
+        {
+          type: "user",
+          message: { content: "I am so frustrated with this behavior" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -247,7 +268,9 @@ describe("RelationshipMemory", () => {
       const entries: TranscriptEntry[] = [
         {
           type: "assistant",
-          message: { content: "SUMMARY: Implemented the new caching layer successfully" },
+          message: {
+            content: "SUMMARY: Implemented the new caching layer successfully",
+          },
         },
       ];
       const capturedNotes: RelationshipNote[] = [];
@@ -281,8 +304,14 @@ describe("RelationshipMemory", () => {
   describe("extractText integration — via defaultAnalyzeForRelationship", () => {
     test("handles string content", () => {
       const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "great work, that was awesome and excellent!" } },
-        { type: "user", message: { content: "this is really good job well done nicely done" } },
+        {
+          type: "user",
+          message: { content: "great work, that was awesome and excellent!" },
+        },
+        {
+          type: "user",
+          message: { content: "this is really good job well done nicely done" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -328,7 +357,10 @@ describe("RelationshipMemory", () => {
     test("handles missing message content gracefully", () => {
       const entries: TranscriptEntry[] = [
         { type: "user" }, // no message
-        { type: "assistant", message: { content: "SUMMARY: Handled missing content" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Handled missing content" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       expect(() => {
@@ -386,10 +418,7 @@ describe("RelationshipMemory", () => {
         {
           type: "user",
           message: {
-            content: [
-              { type: "image" },
-              { type: "tool_result" },
-            ],
+            content: [{ type: "image" }, { type: "tool_result" }],
           },
         },
       ];
@@ -410,7 +439,9 @@ describe("RelationshipMemory", () => {
       const entries: TranscriptEntry[] = [
         {
           type: "assistant",
-          message: { content: "This is the first time we have completed this task correctly" },
+          message: {
+            content: "This is the first time we have completed this task correctly",
+          },
         },
       ];
       const capturedNotes: RelationshipNote[] = [];
@@ -429,7 +460,9 @@ describe("RelationshipMemory", () => {
       const entries: TranscriptEntry[] = [
         {
           type: "assistant",
-          message: { content: "We finally got the authentication system working end to end" },
+          message: {
+            content: "We finally got the authentication system working end to end",
+          },
         },
       ];
       const capturedNotes: RelationshipNote[] = [];
@@ -448,7 +481,9 @@ describe("RelationshipMemory", () => {
       const entries: TranscriptEntry[] = [
         {
           type: "assistant",
-          message: { content: "Major breakthrough on the performance bottleneck investigation" },
+          message: {
+            content: "Major breakthrough on the performance bottleneck investigation",
+          },
         },
       ];
       const capturedNotes: RelationshipNote[] = [];
@@ -467,7 +502,9 @@ describe("RelationshipMemory", () => {
       const entries: TranscriptEntry[] = [
         {
           type: "assistant",
-          message: { content: "The migration was a success and all data transferred cleanly" },
+          message: {
+            content: "The migration was a success and all data transferred cleanly",
+          },
         },
       ];
       const capturedNotes: RelationshipNote[] = [];
@@ -488,8 +525,7 @@ describe("RelationshipMemory", () => {
         {
           type: "assistant",
           message: {
-            content:
-              "All tests passed. Finally the CI pipeline is green. We can ship now.",
+            content: "All tests passed. Finally the CI pipeline is green. We can ship now.",
           },
         },
       ];
@@ -513,7 +549,10 @@ describe("RelationshipMemory", () => {
       // Preference patterns are tracked but do not produce notes directly.
       // A single frustration/positive hit is below the >= 2 threshold.
       const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "I prefer when you explain each step in detail" } },
+        {
+          type: "user",
+          message: { content: "I prefer when you explain each step in detail" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       expect(() => {
@@ -529,7 +568,12 @@ describe("RelationshipMemory", () => {
 
     test("appreciate when phrasing does not crash", () => {
       const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "I appreciate when you ask before making changes" } },
+        {
+          type: "user",
+          message: {
+            content: "I appreciate when you ask before making changes",
+          },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       expect(() => {
@@ -544,7 +588,10 @@ describe("RelationshipMemory", () => {
 
     test("like when phrasing does not crash", () => {
       const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "I like when you summarize at the end" } },
+        {
+          type: "user",
+          message: { content: "I like when you summarize at the end" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       expect(() => {
@@ -562,9 +609,18 @@ describe("RelationshipMemory", () => {
     test("identical SUMMARY texts produce only one B note", () => {
       // [...new Set(sessionSummary)] deduplicates before slicing
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: Refactored the logging module" } },
-        { type: "assistant", message: { content: "SUMMARY: Refactored the logging module" } },
-        { type: "assistant", message: { content: "SUMMARY: Refactored the logging module" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Refactored the logging module" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Refactored the logging module" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Refactored the logging module" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -580,9 +636,18 @@ describe("RelationshipMemory", () => {
 
     test("two distinct SUMMARY texts each produce a separate B note", () => {
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: Wrote unit tests for the parser" } },
-        { type: "assistant", message: { content: "SUMMARY: Wrote unit tests for the parser" } },
-        { type: "assistant", message: { content: "SUMMARY: Deployed the service to staging" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Wrote unit tests for the parser" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Wrote unit tests for the parser" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Deployed the service to staging" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -603,11 +668,26 @@ describe("RelationshipMemory", () => {
     test("more than 3 unique SUMMARY entries produce at most 3 B notes", () => {
       // .slice(0, 3) caps the output at 3 notes
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: Completed task alpha successfully" } },
-        { type: "assistant", message: { content: "SUMMARY: Completed task beta successfully" } },
-        { type: "assistant", message: { content: "SUMMARY: Completed task gamma successfully" } },
-        { type: "assistant", message: { content: "SUMMARY: Completed task delta successfully" } },
-        { type: "assistant", message: { content: "SUMMARY: Completed task epsilon successfully" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Completed task alpha successfully" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Completed task beta successfully" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Completed task gamma successfully" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Completed task delta successfully" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Completed task epsilon successfully" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -623,9 +703,18 @@ describe("RelationshipMemory", () => {
 
     test("exactly 3 unique summaries produce exactly 3 B notes", () => {
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: Fixed the cache invalidation bug" } },
-        { type: "assistant", message: { content: "SUMMARY: Added retry logic to the API client" } },
-        { type: "assistant", message: { content: "SUMMARY: Updated the schema migration script" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Fixed the cache invalidation bug" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Added retry logic to the API client" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Updated the schema migration script" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -640,10 +729,22 @@ describe("RelationshipMemory", () => {
 
     test("B notes from slice are the first 3 unique summaries in order", () => {
       const entries: TranscriptEntry[] = [
-        { type: "assistant", message: { content: "SUMMARY: First unique summary here" } },
-        { type: "assistant", message: { content: "SUMMARY: Second unique summary here" } },
-        { type: "assistant", message: { content: "SUMMARY: Third unique summary here" } },
-        { type: "assistant", message: { content: "SUMMARY: Fourth unique summary here" } },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: First unique summary here" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Second unique summary here" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Third unique summary here" },
+        },
+        {
+          type: "assistant",
+          message: { content: "SUMMARY: Fourth unique summary here" },
+        },
       ];
       const capturedNotes: RelationshipNote[] = [];
       RelationshipMemory.execute(makeInput(), {
@@ -665,14 +766,20 @@ describe("RelationshipMemory", () => {
 
 describe("safeParseTranscriptLine", () => {
   test("parses valid user entry", () => {
-    const line = JSON.stringify({ type: "user", message: { content: "hello" } });
+    const line = JSON.stringify({
+      type: "user",
+      message: { content: "hello" },
+    });
     const result = safeParseTranscriptLine(line);
     expect(result).not.toBeNull();
     expect(result!.type).toBe("user");
   });
 
   test("parses valid assistant entry", () => {
-    const line = JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Done" } });
+    const line = JSON.stringify({
+      type: "assistant",
+      message: { content: "SUMMARY: Done" },
+    });
     const result = safeParseTranscriptLine(line);
     expect(result).not.toBeNull();
     expect(result!.type).toBe("assistant");
@@ -699,7 +806,10 @@ describe("safeParseTranscriptLine", () => {
   });
 
   test("returns null for type that is not user or assistant", () => {
-    const line = JSON.stringify({ type: "system", message: { content: "sys" } });
+    const line = JSON.stringify({
+      type: "system",
+      message: { content: "sys" },
+    });
     expect(safeParseTranscriptLine(line)).toBeNull();
   });
 

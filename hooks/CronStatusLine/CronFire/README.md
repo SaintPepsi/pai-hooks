@@ -2,7 +2,7 @@
 
 **Event:** UserPromptSubmit (no matcher — fires on every prompt)
 **Contract:** `CronFire.contract.ts`
-**Output:** Silent
+**Output:** `SyncHookJSONOutput` — silent no-op (`ok({})`)
 
 Detects cron fires by matching the submitted prompt against stored cron prompts in the current
 session's file at `MEMORY/STATE/crons/{sessionId}.json`. Uses `prompt.includes(cron.prompt)`.

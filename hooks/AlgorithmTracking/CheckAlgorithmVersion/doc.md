@@ -62,8 +62,8 @@ if (isNewer(upstreamVersion, localVersion)) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()`, `err()` for Result wrapping |
-| `error` | core | `ResultError` type, `ErrorCode` for typed errors |
-| `fs` | adapter | `fileExists`, `readFile`, `writeFile`, `ensureDir` for file operations |
+| Dependency | Type    | Purpose                                                                |
+| ---------- | ------- | ---------------------------------------------------------------------- |
+| `result`   | core    | `ok()`, `err()` for Result wrapping                                    |
+| `error`    | core    | `ResultError` type, `ErrorCode` for typed errors                       |
+| `fs`       | adapter | `fileExists`, `readFile`, `writeFile`, `ensureDir` for file operations |

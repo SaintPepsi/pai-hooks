@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1919,7 +1932,9 @@ for (const file of pending) {
   }
 }
 const reason = `${opener}\n\n${sections.join("\n\n")}`;
-return ok({ type: "block", decision: "block", reason });</div>
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason });</div>
         </div>
       </div>
     </div>
@@ -1970,6 +1985,7 @@ return ok({ type: "block", decision: "block", reason });</div>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td>Picks escalating narrative tone for block messages</td></tr>
           <tr><td><code>TestObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>pendingPath</code>, <code>blockCountPath</code>, <code>MAX_BLOCKS</code>, <code>buildBlockLimitReview</code>, <code>hasTestFile</code></td></tr>
           <tr><td><code>result</code></td><td>core</td><td><code>ok</code> wrapper for Result type returns</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type. R5 block path uses top-level <code>decision: "block"</code> + <code>reason</code> because Stop is a NonHookSpecificEvent and has no <code>hookSpecificOutput</code> wrapping (contrast with PreToolUse where deny goes through <code>hookSpecificOutput.permissionDecision</code>). R8 silent path is a bare <code>{}</code>. Post-SDK-refactor migration.</td></tr>
         </tbody>
       </table>
     </div>

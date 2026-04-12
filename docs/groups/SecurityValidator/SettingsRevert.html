@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1744,6 +1757,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#audit-log"><span class="nav-num">06</span> Audit Log</a></li>
     <li class="wiki-nav-item"><a href="#hardening-loop"><span class="nav-num">07</span> Hardening Loop</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">08</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#history"><span class="nav-num">09</span> History</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1807,10 +1821,12 @@ Instead of trying to predict what a command will do, observe what it actually di
 ## Signals
 
 **Input:**
+
 - Tool name (only processes Bash)
 - Session ID (to locate the correct snapshot)
 
 **Output:**
+
 - `silent` when no change detected (most common path)
 - `continue` with warning context when a change was reverted
 </script>
@@ -1993,6 +2009,20 @@ PostToolUse { tool_name: "Edit", ... }
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getCommand</code> for extracting Bash commands</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
 <div class="reason"><span class="ri">&#x2022;</span> Requires <code>SettingsGuard</code> (PreToolUse) to have run first to create snapshots</div>
+    </div>
+  </section>
+
+  <section id="history">
+    <div class="section-label accent">History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>History</h3>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>2026-04-11 — SDK Type Foundation (1B):</strong> The revert context (<code>REVERT_CONTEXT</code>) was being built correctly but silently dropped by Claude Code. The legacy helper <code>continueOk(text)</code> returned a top-level <code>additionalContext</code> field that the SDK ignored on PostToolUse events. Sixth instance of the same bug class found in this refactor (after 1A PreCompactStatePersist, 1C CodingStandardsAdvisor/TypeCheckVerifier/TypeStrictness, and 1E-1 CitationEnforcement). The fix routes the context through <code>hookSpecificOutput.additionalContext</code> on PostToolUse, matching the SDK contract. Behaviour change: the AI now actually receives the <code>[SECURITY] ... reverted ...</code> warning after a bypass attempt. Previously, a bypassed <code>python3 -c '...'</code> would be reverted silently and the AI would retry indefinitely. Recipe R2 applied at line 189 of <code>SettingsRevert.contract.ts</code>; test assertions updated to read <code>result.value.hookSpecificOutput?.additionalContext</code> instead of <code>result.value.additionalContext</code>.</div>
+      </div>
     </div>
   </section>
 

@@ -56,3 +56,4 @@ const HTML_IMG_SIGNOFF = /<img\s[^>]*alt="🍁"[^>]*>\s*Maple/;
 | --- | --- | --- |
 | `narrative-reader` | lib | Provides `pickNarrative` for selecting block message tone |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse R1 continue and R4×2 denies via `hookSpecificOutput.permissionDecision: "deny"` (post-SDK-refactor 1I, replaces legacy `BlockOutput | ContinueOutput`) |

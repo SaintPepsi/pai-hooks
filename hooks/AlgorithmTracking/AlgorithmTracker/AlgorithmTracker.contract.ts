@@ -9,14 +9,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type {
   AlgorithmCriterion,
   AlgorithmPhase,
@@ -31,6 +29,7 @@ import {
   readState,
   writeState,
 } from "@hooks/lib/algorithm-state";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -166,11 +165,7 @@ const defaultDeps: AlgorithmTrackerDeps = {
   stderr: defaultStderr,
 };
 
-export const AlgorithmTracker: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  AlgorithmTrackerDeps
-> = {
+export const AlgorithmTracker: SyncHookContract<ToolHookInput, AlgorithmTrackerDeps> = {
   name: "AlgorithmTracker",
   event: "PostToolUse",
 
@@ -178,10 +173,13 @@ export const AlgorithmTracker: SyncHookContract<
     return ["Bash", "TaskCreate", "TaskUpdate", "Task"].includes(input.tool_name);
   },
 
-  execute(input: ToolHookInput, deps: AlgorithmTrackerDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    input: ToolHookInput,
+    deps: AlgorithmTrackerDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const { tool_name, tool_input, session_id } = input;
     const tool_result = (input as unknown as Record<string, unknown>).tool_result;
-    if (!session_id) return ok(continueOk());
+    if (!session_id) return ok({ continue: true });
 
     // 1. Bash → Phase detection from voice curls
     if (tool_name === "Bash" && tool_input?.command) {
@@ -297,7 +295,7 @@ export const AlgorithmTracker: SyncHookContract<
       deps.stderr(`[AlgorithmTracker] agent spawned: ${agentName} (${agentType})`);
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

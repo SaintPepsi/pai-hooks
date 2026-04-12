@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1895,12 +1908,12 @@ Intercept file writes and edits, simulate the resulting file content, strip comm
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>If a while loop is found, returns <code>block</code> with a reason explaining the violation and suggesting alternatives</p></div>
+          <div class="step-content"><p>If a while loop is found, returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 PreToolUse block) and a <code>permissionDecisionReason</code> explaining the violation and suggesting alternatives</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">8</div>
-          <div class="step-content"><p>If no while loop is found, returns <code>continue</code></p></div>
+          <div class="step-content"><p>If no while loop is found, returns <code>{ continue: true }</code></p></div>
         </div>
 </div>
       
@@ -1964,6 +1977,7 @@ function containsWhileLoop(strippedCode: string): boolean {
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td><code>readFile</code> for reading existing file content during Edit state-checking</td></tr>
           <tr><td><code>core/result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; R4 PreToolUse block via <code>hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }</code></td></tr>
         </tbody>
       </table>
     </div>

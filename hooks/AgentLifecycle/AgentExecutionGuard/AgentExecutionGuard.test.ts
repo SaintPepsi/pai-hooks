@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import { AgentExecutionGuard, type AgentExecutionGuardDeps } from "./AgentExecutionGuard.contract";
 
 const noDeps: AgentExecutionGuardDeps = { stderr: () => {} };
@@ -11,7 +9,11 @@ function makeInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
     session_id: "test",
     tool_name: "Task",
-    tool_input: { subagent_type: "general-purpose", description: "test task", ...overrides },
+    tool_input: {
+      subagent_type: "general-purpose",
+      description: "test task",
+      ...overrides,
+    },
   };
 }
 
@@ -22,59 +24,54 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("passes when run_in_background is true", () => {
-    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
-      makeInput({ run_in_background: true }),
-      noDeps,
-    );
+    const result = AgentExecutionGuard.execute(makeInput({ run_in_background: true }), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("continue");
+    if (!result.ok) return;
+    expect(result.value.continue).toBe(true);
+    expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
 
   it("passes for Explore agent type", () => {
-    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
-      makeInput({ subagent_type: "Explore" }),
-      noDeps,
-    );
+    const result = AgentExecutionGuard.execute(makeInput({ subagent_type: "Explore" }), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("continue");
+    if (!result.ok) return;
+    expect(result.value.continue).toBe(true);
+    expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
 
   it("passes for haiku model", () => {
-    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
-      makeInput({ model: "haiku" }),
-      noDeps,
-    );
+    const result = AgentExecutionGuard.execute(makeInput({ model: "haiku" }), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("continue");
+    if (!result.ok) return;
+    expect(result.value.continue).toBe(true);
+    expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
 
   it("passes for FAST timing in prompt scope", () => {
-    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
+    const result = AgentExecutionGuard.execute(
       makeInput({ prompt: "## Scope\nTiming: FAST\nDo something quick" }),
       noDeps,
     );
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("continue");
+    if (!result.ok) return;
+    expect(result.value.continue).toBe(true);
+    expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
 
   it("warns for foreground non-fast agent", () => {
-    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
-      makeInput(),
-      noDeps,
-    );
+    const result = AgentExecutionGuard.execute(makeInput(), noDeps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("context");
-    const output = result.value as ContextOutput;
-    expect(output.content).toContain("FOREGROUND AGENT DETECTED");
-    expect(output.content).toContain("run_in_background");
+    if (!result.ok) return;
+    const ctx = getInjectedContextFor(result.value, "PreToolUse");
+    expect(ctx).toContain("FOREGROUND AGENT DETECTED");
+    expect(ctx).toContain("run_in_background");
   });
 
   it("warning includes agent description", () => {
-    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
-      makeInput({ description: "research task" }),
-      noDeps,
-    );
-    const output = result.value as ContextOutput;
-    expect(output.content).toContain("research task");
+    const result = AgentExecutionGuard.execute(makeInput({ description: "research task" }), noDeps);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const ctx = getInjectedContextFor(result.value, "PreToolUse");
+    expect(ctx).toContain("research task");
   });
 });

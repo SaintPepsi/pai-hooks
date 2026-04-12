@@ -31,7 +31,7 @@ Both `defaultFindProjectRoot` and `findIndexPath` need to handle directory input
 ```typescript
 // Determine starting directory
 const s = deps.stat(filePath);
-let dir = (s && s.isDirectory?.()) ? filePath : dirname(filePath);
+let dir = s && s.isDirectory?.() ? filePath : dirname(filePath);
 ```
 
 For `defaultFindProjectRoot`, which doesn't have `deps.stat` in its current scope, add an `isDirectory` check via the existing `fileExists` adapter (check if `filePath` itself contains a project marker before calling `dirname`).
@@ -42,11 +42,11 @@ Replace hardcoded `package.json` + `.git` with a shared constant in `shared.ts`:
 
 ```typescript
 export const PROJECT_MARKERS = [
-  ".git",           // universal, strongest signal
-  "package.json",   // JS/TS
-  "composer.json",  // PHP
-  "go.mod",         // Go
-  "Cargo.toml",     // Rust
+  ".git", // universal, strongest signal
+  "package.json", // JS/TS
+  "composer.json", // PHP
+  "go.mod", // Go
+  "Cargo.toml", // Rust
   "pyproject.toml", // Python
 ];
 ```
@@ -74,14 +74,14 @@ Add a note to `README.md`: SessionStart pre-warming works for single-root projec
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `shared.ts` | Add `PROJECT_MARKERS` constant. Update `getArtifactsDir` to accept branch param. Update `findIndexPath` to handle directory inputs and use `PROJECT_MARKERS`. |
-| `DuplicationIndexBuilder.contract.ts` | Fix `defaultFindProjectRoot` dirname bug. Use `PROJECT_MARKERS`. Pass branch to `getArtifactsDir`. |
-| `DuplicationChecker.contract.ts` | Pass branch to artifact path resolution. |
-| `shared.test.ts` | Add tests for `getArtifactsDir` with branch, `PROJECT_MARKERS`. |
-| `DuplicationIndexBuilder.test.ts` | Add test for directory input to `findProjectRoot`. |
-| `README.md` | Document monorepo limitation. |
+| File                                  | Change                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared.ts`                           | Add `PROJECT_MARKERS` constant. Update `getArtifactsDir` to accept branch param. Update `findIndexPath` to handle directory inputs and use `PROJECT_MARKERS`. |
+| `DuplicationIndexBuilder.contract.ts` | Fix `defaultFindProjectRoot` dirname bug. Use `PROJECT_MARKERS`. Pass branch to `getArtifactsDir`.                                                            |
+| `DuplicationChecker.contract.ts`      | Pass branch to artifact path resolution.                                                                                                                      |
+| `shared.test.ts`                      | Add tests for `getArtifactsDir` with branch, `PROJECT_MARKERS`.                                                                                               |
+| `DuplicationIndexBuilder.test.ts`     | Add test for directory input to `findProjectRoot`.                                                                                                            |
+| `README.md`                           | Document monorepo limitation.                                                                                                                                 |
 
 ## Testing Strategy
 

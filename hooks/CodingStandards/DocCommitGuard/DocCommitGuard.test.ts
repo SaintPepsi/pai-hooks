@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  getPreToolUseDenyReason as denyReason,
+  isPreToolUseDeny as isDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import { DocCommitGuard, type DocCommitGuardDeps } from "./DocCommitGuard.contract";
 
 function makeInput(command: string): ToolHookInput {
@@ -26,8 +30,8 @@ function makeDeps(overrides: Partial<DocCommitGuardDeps> = {}): DocCommitGuardDe
 function run(
   input: ToolHookInput,
   deps: DocCommitGuardDeps,
-): Result<ContinueOutput | BlockOutput, ResultError> {
-  return DocCommitGuard.execute(input, deps) as Result<ContinueOutput | BlockOutput, ResultError>;
+): Result<SyncHookJSONOutput, ResultError> {
+  return DocCommitGuard.execute(input, deps);
 }
 
 describe("DocCommitGuard", () => {
@@ -39,7 +43,11 @@ describe("DocCommitGuard", () => {
   // ─── accepts() ──────────────────────────────────────────────────────────
 
   it("rejects non-Bash tools", () => {
-    const input: ToolHookInput = { session_id: "s", tool_name: "Edit", tool_input: {} };
+    const input: ToolHookInput = {
+      session_id: "s",
+      tool_name: "Edit",
+      tool_input: {},
+    };
     expect(DocCommitGuard.accepts(input)).toBe(false);
   });
 
@@ -72,7 +80,7 @@ describe("DocCommitGuard", () => {
 
     const r = run(makeInput("git commit -m 'test'"), deps);
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value.type).toBe("continue");
+    if (r.ok) expect(r.value.continue).toBe(true);
   });
 
   it("continues when no hook.json files exist", () => {
@@ -80,7 +88,7 @@ describe("DocCommitGuard", () => {
 
     const r = run(makeInput("git commit -m 'test'"), deps);
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value.type).toBe("continue");
+    if (r.ok) expect(r.value.continue).toBe(true);
   });
 
   // ─── execute() — missing docs ──────────────────────────────────────────
@@ -94,8 +102,8 @@ describe("DocCommitGuard", () => {
     const r = run(makeInput("git commit -m 'test'"), deps);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
-      expect((r.value as BlockOutput).reason).toContain("doc.md");
+      expect(isDeny(r.value)).toBe(true);
+      expect(denyReason(r.value)).toContain("doc.md");
     }
   });
 
@@ -108,8 +116,8 @@ describe("DocCommitGuard", () => {
     const r = run(makeInput("git commit -m 'test'"), deps);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
-      expect((r.value as BlockOutput).reason).toContain("IDEA.md");
+      expect(isDeny(r.value)).toBe(true);
+      expect(denyReason(r.value)).toContain("IDEA.md");
     }
   });
 
@@ -122,8 +130,8 @@ describe("DocCommitGuard", () => {
     const r = run(makeInput("git commit -m 'test'"), deps);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
-      const reason = (r.value as BlockOutput).reason;
+      expect(isDeny(r.value)).toBe(true);
+      const reason = denyReason(r.value);
       expect(reason).toContain("MergeGate");
       expect(reason).toContain("Linter");
     }
@@ -141,8 +149,8 @@ describe("DocCommitGuard", () => {
     const r = run(makeInput("git commit -m 'test'"), deps);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.type).toBe("block");
-      const reason = (r.value as BlockOutput).reason;
+      expect(isDeny(r.value)).toBe(true);
+      const reason = denyReason(r.value);
       expect(reason).toContain("HookBad");
       expect(reason).not.toContain("HookOk");
     }

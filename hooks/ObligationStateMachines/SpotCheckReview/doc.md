@@ -45,8 +45,10 @@ const unreviewedFiles = files.filter((f) => {
   if (!currentHash) return true;
   return reviewed[f] !== currentHash;
 });
-if (unreviewedFiles.length === 0) return ok({ type: "silent" });
-return ok({ type: "block", decision: "block", reason: buildBlockMessage(unreviewedFiles) });
+if (unreviewedFiles.length === 0) return ok({}); // R8 — bare empty object, silent skip
+// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
+// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
+return ok({ decision: "block", reason: buildBlockMessage(unreviewedFiles) });
 ```
 
 ## Examples
@@ -61,8 +63,9 @@ return ok({ type: "block", decision: "block", reason: buildBlockMessage(unreview
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File read/write/exists/remove operations for state persistence |
-| `process` | adapter | `execSyncSafe` for running git commands to find unpushed files |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks |
+| Dependency                         | Type      | Purpose                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fs`                               | adapter   | File read/write/exists/remove operations for state persistence                                                                                                                                                                                                                                                                        |
+| `process`                          | adapter   | `execSyncSafe` for running git commands to find unpushed files                                                                                                                                                                                                                                                                        |
+| `DocObligationStateMachine.shared` | shared    | Provides `projectHasHook` for deduplication with project-level hooks                                                                                                                                                                                                                                                                  |
+| `@anthropic-ai/claude-agent-sdk`   | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |

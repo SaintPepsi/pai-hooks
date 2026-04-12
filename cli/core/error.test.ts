@@ -26,7 +26,9 @@ import {
 
 describe("PaihError", () => {
   it("stores code, message, and context", () => {
-    const err = new PaihError(PaihErrorCode.InvalidArgs, "bad input", { key: "val" });
+    const err = new PaihError(PaihErrorCode.InvalidArgs, "bad input", {
+      key: "val",
+    });
     expect(err.code).toBe(PaihErrorCode.InvalidArgs);
     expect(err.message).toBe("bad input");
     expect(err.context).toEqual({ key: "val" });

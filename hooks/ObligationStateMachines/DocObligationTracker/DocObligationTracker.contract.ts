@@ -1,10 +1,8 @@
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   type DocObligationDeps,
   type DocTrackerExcludeDeps,
@@ -17,14 +15,11 @@ import {
   pendingPath,
   projectHasHook,
 } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 export type DocTrackerDeps = DocObligationDeps & DocTrackerExcludeDeps;
 
-export const DocObligationTracker: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  DocTrackerDeps
-> = {
+export const DocObligationTracker: SyncHookContract<ToolHookInput, DocTrackerDeps> = {
   name: "DocObligationTracker",
   event: "PostToolUse",
 
@@ -36,17 +31,17 @@ export const DocObligationTracker: SyncHookContract<
     return isDocFile(filePath) || isNonTestCodeFile(filePath);
   },
 
-  execute(input: ToolHookInput, deps: DocTrackerDeps): Result<ContinueOutput, ResultError> {
+  execute(input: ToolHookInput, deps: DocTrackerDeps): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (isDocFile(filePath)) {
       if (!deps.fileExists(flagFile)) {
-        return ok(continueOk());
+        return ok({ continue: true });
       }
 
       const pending = deps.readPending(flagFile);
@@ -62,13 +57,13 @@ export const DocObligationTracker: SyncHookContract<
         );
       }
 
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const excludePatterns = deps.getExcludePatterns();
     if (excludePatterns.length > 0 && matchesDocExcludePattern(filePath, excludePatterns)) {
       deps.stderr(`[DocObligationTracker] Excluded: ${filePath}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const pending = deps.readPending(flagFile);
@@ -78,7 +73,7 @@ export const DocObligationTracker: SyncHookContract<
     deps.writePending(flagFile, pending);
     deps.stderr(`[DocObligationTracker] Code modified: ${filePath} — docs pending`);
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps: { ...defaultDeps, ...defaultDocTrackerExcludeDeps },

@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1949,6 +1962,7 @@ const HTML_IMG_SIGNOFF = /&lt;img\s[^&gt;]*alt="🍁"[^&gt;]*&gt;\s*Maple/;</div
         <tbody>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td>Provides <code>pickNarrative</code> for selecting block message tone</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code> and <code>Result</code> type for error handling</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> return type; PreToolUse R1 continue and R4×2 denies via <code>hookSpecificOutput.permissionDecision: "deny"</code> (post-SDK-refactor 1I, replaces legacy `BlockOutput</td><td>ContinueOutput`)</td></tr>
         </tbody>
       </table>
     </div>

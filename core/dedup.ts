@@ -13,7 +13,13 @@ import type { HookInput } from "@hooks/core/types/hook-inputs";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 /** Values the JSON.stringify replacer receives. */
-type JsonReplacerValue = string | number | boolean | null | JsonReplacerValue[] | { [key: string]: JsonReplacerValue };
+type JsonReplacerValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonReplacerValue[]
+  | { [key: string]: JsonReplacerValue };
 
 export interface DedupDeps {
   ensureDir: (path: string) => boolean;

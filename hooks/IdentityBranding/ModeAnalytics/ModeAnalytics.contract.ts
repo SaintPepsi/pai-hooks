@@ -7,13 +7,13 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ const defaultDeps: ModeAnalyticsDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const ModeAnalytics: SyncHookContract<SessionEndInput, SilentOutput, ModeAnalyticsDeps> = {
+export const ModeAnalytics: SyncHookContract<SessionEndInput, ModeAnalyticsDeps> = {
   name: "ModeAnalytics",
   event: "SessionEnd",
 
@@ -44,7 +44,10 @@ export const ModeAnalytics: SyncHookContract<SessionEndInput, SilentOutput, Mode
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: ModeAnalyticsDeps): Result<SilentOutput, ResultError> {
+  execute(
+    _input: SessionEndInput,
+    deps: ModeAnalyticsDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const toolDir = join(deps.baseDir, "Tools", "mode-analytics");
 
     const collectResult = deps.execSyncSafe(`bun "${join(toolDir, "CollectModeData.ts")}"`, {
@@ -52,7 +55,7 @@ export const ModeAnalytics: SyncHookContract<SessionEndInput, SilentOutput, Mode
     });
     if (!collectResult.ok) {
       deps.stderr(`[ModeAnalytics] Collection failed: ${collectResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const genResult = deps.execSyncSafe(`bun "${join(toolDir, "GenerateDashboard.ts")}"`, {
@@ -64,7 +67,7 @@ export const ModeAnalytics: SyncHookContract<SessionEndInput, SilentOutput, Mode
       deps.stderr(`[ModeAnalytics] Dashboard generation failed: ${genResult.error.message}`);
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

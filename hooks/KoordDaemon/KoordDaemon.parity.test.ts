@@ -52,10 +52,10 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
     //   .replace(/\{\{agent_name\}\}/g, agentName)
     //   .replace(/\{\{thread_id\}\}/g, threadId)
     //   .replace(/\{\{task_description\}\}/g, taskDesc)
-    expect(result.value.type).toBe("updatedInput");
-    if (result.value.type !== "updatedInput") return;
+    const hso1 = result.value.hookSpecificOutput;
+    if (!hso1 || hso1.hookEventName !== "PreToolUse") throw new Error("Expected PreToolUse hso");
 
-    const prompt = result.value.updatedInput.prompt as string;
+    const prompt = hso1.updatedInput?.prompt as string;
 
     // Original JS hook (AgentPrepromptInjector.hook.js:70-72):
     //   originalPrompt + "\n\n---\n\n" + preprompt
@@ -86,9 +86,12 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
 
     const result = AgentPrepromptInjector.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "updatedInput") {
-      // Original trims the name field (AgentPrepromptInjector.hook.js:102)
-      expect(result.value.updatedInput.prompt as string).toContain("my-agent");
+    if (result.ok) {
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PreToolUse") {
+        // Original trims the name field (AgentPrepromptInjector.hook.js:102)
+        expect(hso.updatedInput?.prompt as string).toContain("my-agent");
+      }
     }
   });
 
@@ -116,16 +119,19 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
 
     const result = AgentPrepromptInjector.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "updatedInput") {
-      const prompt = result.value.updatedInput.prompt as string;
-      expect(prompt).toContain("worker|unknown|Background task");
+    if (result.ok) {
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PreToolUse") {
+        const prompt = hso.updatedInput?.prompt as string;
+        expect(prompt).toContain("worker|unknown|Background task");
+      }
     }
   });
 
   test("updatedInput output matches original JSON shape via runner", async () => {
     // Original JS hook outputs (AgentPrepromptInjector.hook.js:75-82):
     //   { hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput: { prompt: "..." } } }
-    // The runner's formatOutput for UpdatedInputOutput produces the same structure.
+    // The runner's formatOutput for hookSpecificOutput with updatedInput produces the same structure.
 
     // Import runner's formatOutput indirectly by checking the output structure
     const { AgentPrepromptInjector } = await import(
@@ -147,9 +153,14 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
 
     const result = AgentPrepromptInjector.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "updatedInput") {
-      // Verify the shape matches what the runner would format, matching original JS output
-      expect(result.value.updatedInput).toEqual({ prompt: "original\n\n---\n\ninjected" });
+    if (result.ok) {
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PreToolUse") {
+        // Verify the shape matches what the runner would format, matching original JS output
+        expect(hso.updatedInput).toEqual({ prompt: "original\n\n---\n\ninjected" });
+      } else {
+        throw new Error("Expected PreToolUse hookSpecificOutput");
+      }
     }
   });
 });

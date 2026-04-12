@@ -31,8 +31,10 @@ It does **not** fire when:
 // Flag activation on research tool detection
 const flag = flagPath(deps.stateDir);
 deps.writeFlag(flag);
-deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
-return ok({ type: "continue", continue: true });
+deps.stderr(
+  "[CitationTracker] Research tool detected — citation enforcement active",
+);
+return ok({ continue: true });
 ```
 
 ## Examples
@@ -47,7 +49,7 @@ return ok({ type: "continue", continue: true });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
+| Dependency                   | Type   | Purpose                                                                            |
+| ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
 | `CitationEnforcement.shared` | shared | Provides `RESEARCH_TOOLS` set, `isResearchSkill` helper, `flagPath`, and deps type |
-| `result` | core | `ok` wrapper for Result type returns |
+| `result`                     | core   | `ok` wrapper for Result type returns                                               |

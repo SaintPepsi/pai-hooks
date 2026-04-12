@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1852,7 +1865,7 @@ Intercept background agent launches before they execute. Read a template file co
       <div class="reason"><span class="ri">&#x2022;</span> The tool is not the Agent tool</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>run_in_background</code> is not true (foreground agent calls)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The template file does not exist at the configured or fallback path</div>
-<div class="reason"><span class="ri">&#x2022;</span> The template file cannot be read (returns <code>continueOk()</code>, fails open)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The template file cannot be read (returns <code>ok({ continue: true })</code>, fails open)</div>
     </div>
   </section>
 
@@ -1876,7 +1889,7 @@ Intercept background agent launches before they execute. Read a template file co
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Verifies the template file exists; returns <code>continueOk()</code> if missing</p></div>
+          <div class="step-content"><p>Verifies the template file exists; returns <code>ok({ continue: true })</code> if missing</p></div>
         </div>
 
         <div class="flow-step">
@@ -1901,7 +1914,7 @@ Intercept background agent launches before they execute. Read a template file co
 
         <div class="flow-step">
           <div class="step-dot">8</div>
-          <div class="step-content"><p>Returns <code>updatedInput({ prompt: updatedPrompt })</code> to modify the Agent tool's input</p></div>
+          <div class="step-content"><p>Returns <code>ok({ hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput: { prompt } } })</code> to modify the Agent tool's input</p></div>
         </div>
 </div>
       
@@ -1920,7 +1933,12 @@ const preprompt = template
 
 // Append to original prompt
 const updatedPrompt = originalPrompt + SEPARATOR + preprompt;
-return ok(updatedInput({ prompt: updatedPrompt }));</div>
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    updatedInput: { prompt: updatedPrompt },
+  },
+});</div>
         </div>
       </div>
     </div>
@@ -1962,7 +1980,6 @@ return ok(updatedInput({ prompt: updatedPrompt }));</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result wrapping</td></tr>
-          <tr><td><code>types/hook-outputs</code></td><td>core</td><td><code>updatedInput()</code>, <code>continueOk()</code> for PreToolUse outputs</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>fileExists</code>, <code>readFile</code> for template access</td></tr>
           <tr><td><code>KoordDaemon/shared</code></td><td>shared</td><td><code>readKoordConfig</code>, <code>extractThreadId</code>, <code>extractAgentName</code>, <code>extractTask</code></td></tr>
           <tr><td><code>paths</code></td><td>lib</td><td>Path resolution utilities</td></tr>

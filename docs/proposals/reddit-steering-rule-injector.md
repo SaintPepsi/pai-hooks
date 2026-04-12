@@ -16,10 +16,12 @@ I've been building a hook system for Claude Code that manages behavioral rules (
 **The problem:** I had ~50 steering rules loaded at session start — 90KB of context. Claude Code truncated it to 2KB, so most rules never made it into context. Disabling the loader saved tokens but meant no rules at all.
 
 **The solution:** I split the monolithic rules file into individual `.md` files, each with YAML frontmatter declaring:
+
 - Which hook events trigger it (`SessionStart`, `UserPromptSubmit`)
 - Keywords that activate it (e.g., `[push, remote, origin]` for git safety rules)
 
 Now:
+
 - ~5 foundational rules inject at session start (identity, first principles)
 - The rest inject **only when relevant** — mention "push" in your prompt and the git safety rule appears
 - Each rule injects at most once per session (tracked in a gitignored JSON file)

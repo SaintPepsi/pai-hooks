@@ -28,9 +28,11 @@ Configure in `~/.claude/settings.json` under `hookConfig.koordDaemon`:
 | Hook | Event | Purpose |
 |------|-------|---------|
 | SessionIdRegister | SessionStart | Registers session_id with daemon for thread agents |
+| MessageQueueServer | SessionStart | Spawns detached MQ HTTP server for daemon message delivery |
 | AgentPrepromptInjector | PreToolUse | Injects worker preprompt into background agent prompts |
 | AgentSpawnTracker | PostToolUse | Notifies daemon when a background agent is spawned |
 | AgentCompleteTracker | PostToolUse | Notifies daemon when an agent completes |
+| MessageQueueRelay | PostToolUse | Relays mq-watcher messages to the agent with respawn directive |
 
 ## Shared Module
 
@@ -41,4 +43,4 @@ Configure in `~/.claude/settings.json` under `hookConfig.koordDaemon`:
 
 ## Tests
 
-All tests in `KoordDaemon.test.ts` (38 tests covering shared helpers + all 4 contracts).
+118 tests across 8 files: `KoordDaemon.test.ts`, `KoordDaemon.parity.test.ts`, `MessageQueue.test.ts`, and per-hook test files for `AgentPrepromptInjector`, `MessageQueueRelay`, `MessageQueueServer`, `AgentSpawnTracker`, and `AgentCompleteTracker`.

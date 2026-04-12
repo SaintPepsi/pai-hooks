@@ -17,10 +17,16 @@ function makeDeps(overrides: Partial<LearningActionerDeps> = {}): LearningAction
     readDir: () => ({ ok: true, value: [] }),
     readJson: ((path: string) => {
       if (path.includes("learning-agent-credit.json")) {
-        return { ok: true, value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" } };
+        return {
+          ok: true,
+          value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" },
+        };
       }
       if (path.includes("usage-cache.json")) {
-        return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
+        return {
+          ok: true,
+          value: { five_hour: { utilization: 0, resets_at: "" } },
+        };
       }
       return {
         ok: false,
@@ -60,7 +66,7 @@ describe("LearningActioner contract", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
   });
 
   it("returns silent when .analyzing lock file exists and is fresh", () => {
@@ -70,7 +76,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
   });
 
   it("cleans up stale .analyzing lock file (>45 min old)", () => {
@@ -109,16 +115,21 @@ describe("LearningActioner contract", () => {
     expect(called).toBe(true);
   });
 
-
   it("returns silent when credit is below threshold", () => {
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
       readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
-          return { ok: true, value: { credit: 3.0, last_updated: "2026-01-01T00:00:00Z" } };
+          return {
+            ok: true,
+            value: { credit: 3.0, last_updated: "2026-01-01T00:00:00Z" },
+          };
         }
         if (path.includes("usage-cache.json")) {
-          return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
+          return {
+            ok: true,
+            value: { five_hour: { utilization: 0, resets_at: "" } },
+          };
         }
         return {
           ok: false,
@@ -128,7 +139,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
   });
 
   it("spawns when credit crosses threshold of 10", () => {
@@ -137,10 +148,16 @@ describe("LearningActioner contract", () => {
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
       readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
-          return { ok: true, value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" } };
+          return {
+            ok: true,
+            value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" },
+          };
         }
         if (path.includes("usage-cache.json")) {
-          return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
+          return {
+            ok: true,
+            value: { five_hour: { utilization: 0, resets_at: "" } },
+          };
         }
         return {
           ok: false,
@@ -162,7 +179,10 @@ describe("LearningActioner contract", () => {
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
       readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
-          return { ok: true, value: { credit: 9.99, last_updated: "2026-01-01T00:00:00Z" } };
+          return {
+            ok: true,
+            value: { credit: 9.99, last_updated: "2026-01-01T00:00:00Z" },
+          };
         }
         if (path.includes("usage-cache.json")) {
           // 80% with 4h remaining (1h elapsed) → projected 400%
@@ -208,7 +228,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
     expect(spawned).toBe(false);
   });
 
@@ -283,7 +303,10 @@ describe("LearningActioner contract", () => {
         if (path.endsWith("algorithm-reflections.jsonl")) return true;
         return false;
       },
-      stat: () => ({ ok: false, error: dirCreateFailed("/tmp", new Error("no stat")) }),
+      stat: () => ({
+        ok: false,
+        error: dirCreateFailed("/tmp", new Error("no stat")),
+      }),
       removeFile: () => ({ ok: true, value: undefined }),
       runLearningAgent: () => {
         spawned = true;
@@ -396,7 +419,10 @@ describe("evaluateCredit", () => {
           if (opts.creditMissing) return notFound;
           return {
             ok: true,
-            value: { credit: opts.credit ?? 0, last_updated: "2026-01-01T00:00:00Z" },
+            value: {
+              credit: opts.credit ?? 0,
+              last_updated: "2026-01-01T00:00:00Z",
+            },
           };
         }
         if (path.includes("usage-cache.json")) {
@@ -404,7 +430,10 @@ describe("evaluateCredit", () => {
           return {
             ok: true,
             value: {
-              five_hour: { utilization: opts.utilization ?? 0, resets_at: opts.resetsAt ?? "" },
+              five_hour: {
+                utilization: opts.utilization ?? 0,
+                resets_at: opts.resetsAt ?? "",
+              },
             },
           };
         }
@@ -476,7 +505,9 @@ describe("LearningActioner defaultDeps", () => {
   });
 
   it("defaultDeps.readDir returns a Result", () => {
-    const result = LearningActioner.defaultDeps.readDir("/tmp", { withFileTypes: true });
+    const result = LearningActioner.defaultDeps.readDir("/tmp", {
+      withFileTypes: true,
+    });
     expect(typeof result.ok).toBe("boolean");
   });
 

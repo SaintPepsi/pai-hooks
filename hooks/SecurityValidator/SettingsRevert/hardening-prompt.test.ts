@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { buildHardeningPrompt, buildHardeningFollowUp } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
+import {
+  buildHardeningFollowUp,
+  buildHardeningPrompt,
+} from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
 
-const BYPASS_COMMAND = "python3 -c 'import json; json.dump({}, open(\"settings.json\",\"w\"))'";
+const BYPASS_COMMAND = 'python3 -c \'import json; json.dump({}, open("settings.json","w"))\'';
 
 describe("buildHardeningPrompt", () => {
   it("includes the bypass command", () => {

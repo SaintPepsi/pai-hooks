@@ -28,11 +28,13 @@ SecurityValidator's `confirmWrite` path rule for settings.json acts as a **failu
 ## Signals
 
 **Input:**
+
 - Tool name (Edit, Write, Bash)
 - File path (for Edit/Write)
 - Session ID (for snapshot namespacing)
 
 **Output:**
+
 - `ask` decision with confirmation message (Edit/Write)
 - `continue` with snapshot side-effect (Bash — PreToolUse)
 - `continue` with revert + warning context (Bash — PostToolUse, when change detected)

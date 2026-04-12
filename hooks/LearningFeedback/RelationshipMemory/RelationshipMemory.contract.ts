@@ -6,12 +6,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getLocalComponents } from "@hooks/lib/time";
@@ -116,7 +116,11 @@ function defaultAnalyzeForRelationship(entries: TranscriptEntry[]): Relationship
 
   if (sessionSummary.length > 0) {
     for (const summary of [...new Set(sessionSummary)].slice(0, 3)) {
-      notes.push({ type: "B", entities: [`@${getDAName()}`], content: summary });
+      notes.push({
+        type: "B",
+        entities: [`@${getDAName()}`],
+        content: summary,
+      });
     }
   }
 
@@ -176,35 +180,34 @@ const defaultDeps: RelationshipMemoryDeps = {
   stderr: defaultStderr,
 };
 
-export const RelationshipMemory: SyncHookContract<StopInput, SilentOutput, RelationshipMemoryDeps> =
-  {
-    name: "RelationshipMemory",
-    event: "Stop",
+export const RelationshipMemory: SyncHookContract<StopInput, RelationshipMemoryDeps> = {
+  name: "RelationshipMemory",
+  event: "Stop",
 
-    accepts(input: StopInput): boolean {
-      return !!input.transcript_path;
-    },
+  accepts(input: StopInput): boolean {
+    return !!input.transcript_path;
+  },
 
-    execute(input: StopInput, deps: RelationshipMemoryDeps): Result<SilentOutput, ResultError> {
-      const entries = deps.readTranscript(input.transcript_path!);
-      if (entries.length === 0) {
-        deps.stderr("[RelationshipMemory] No transcript entries, skipping");
-        return ok({ type: "silent" });
-      }
+  execute(input: StopInput, deps: RelationshipMemoryDeps): Result<SyncHookJSONOutput, ResultError> {
+    const entries = deps.readTranscript(input.transcript_path!);
+    if (entries.length === 0) {
+      deps.stderr("[RelationshipMemory] No transcript entries, skipping");
+      return ok({});
+    }
 
-      deps.stderr(`[RelationshipMemory] Analyzing ${entries.length} transcript entries`);
+    deps.stderr(`[RelationshipMemory] Analyzing ${entries.length} transcript entries`);
 
-      const notes = deps.analyzeForRelationship(entries);
-      if (notes.length === 0) {
-        deps.stderr("[RelationshipMemory] No relationship notes to capture");
-        return ok({ type: "silent" });
-      }
+    const notes = deps.analyzeForRelationship(entries);
+    if (notes.length === 0) {
+      deps.stderr("[RelationshipMemory] No relationship notes to capture");
+      return ok({});
+    }
 
-      deps.writeNotes(notes);
-      deps.stderr(`[RelationshipMemory] Captured ${notes.length} notes`);
+    deps.writeNotes(notes);
+    deps.stderr(`[RelationshipMemory] Captured ${notes.length} notes`);
 
-      return ok({ type: "silent" });
-    },
+    return ok({});
+  },
 
-    defaultDeps,
-  };
+  defaultDeps,
+};

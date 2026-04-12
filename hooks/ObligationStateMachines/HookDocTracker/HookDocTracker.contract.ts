@@ -1,9 +1,8 @@
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
   allDocFileNames,
@@ -21,7 +20,7 @@ import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 import { addPending, clearMatching } from "@hooks/lib/obligation-machine";
 import { getFilePath } from "@hooks/lib/tool-input";
 
-export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, ObligationDeps> = {
+export const HookDocTracker: SyncHookContract<ToolHookInput, ObligationDeps> = {
   name: "HookDocTracker",
   event: "PostToolUse",
 
@@ -34,9 +33,9 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
     return isHookSourceFile(filePath, settings.watchPatterns) || isAnyDocFile(filePath, settings);
   },
 
-  execute(input: ToolHookInput, deps: ObligationDeps): Result<ContinueOutput, ResultError> {
+  execute(input: ToolHookInput, deps: ObligationDeps): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input);
-    if (!filePath) return ok(continueOk());
+    if (!filePath) return ok({ continue: true });
 
     const settings = readHookDocSettings();
     const flagFile = pendingPath(deps.stateDir, input.session_id);
@@ -51,7 +50,7 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
         const allDocsExist = allDocFileNames(settings).every((name) =>
           deps.fileExists(`${docDir}/${name}`),
         );
-        if (!allDocsExist) return ok(continueOk());
+        if (!allDocsExist) return ok({ continue: true });
 
         const { remaining, cleared } = clearMatching(deps, flagFile, (p) => {
           const { source } = parseTag(p);
@@ -80,7 +79,7 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
           );
         }
       }
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Hook source file modified → add tagged entries for each doc file
@@ -88,7 +87,7 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
       addPending(deps, flagFile, tag(filePath, docName));
     }
     deps.stderr(`[HookDocTracker] Hook source modified: ${filePath} — docs pending`);
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

@@ -38,10 +38,12 @@ It does **not** fire when:
 ```typescript
 if (PROTECTED_BRANCHES.includes(branch)) {
   return ok({
-    type: "block",
-    decision: "block",
-    reason: `Protected branch guard: cannot run git mutations on '${branch}'.
-      Create a feature branch first: git checkout -b feature/your-feature`,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: `Protected branch guard: cannot run git mutations on '${branch}'.
+        Create a feature branch first: git checkout -b feature/your-feature`,
+    },
   });
 }
 ```
@@ -63,3 +65,4 @@ if (PROTECTED_BRANCHES.includes(branch)) {
 | `paths` | lib | Resolves the path to `settings.json` for exempt directory configuration |
 | `fs` | adapter | Reads `settings.json` for user-configured exempt directories |
 | `process` | adapter | Executes `git branch --show-current` to determine the current branch |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4, 1D) |

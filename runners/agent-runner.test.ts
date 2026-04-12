@@ -25,7 +25,7 @@ function makeDeps(overrides: Partial<AgentRunnerDeps> = {}): AgentRunnerDeps {
     readFile: () => err(fileNotFound("no-session")),
     removeFile: () => ok(undefined),
     writeFile: () => ok(undefined),
-    spawnSyncSafe: () => ok({ stdout: "", exitCode: 0 }),
+    spawnSyncSafe: () => ok({ stdout: "", stderr: "", exitCode: 0 }),
     stderr: () => {},
     env: { BUN_TEST: "1" },
     ...overrides,
@@ -71,7 +71,7 @@ describe("agent-runner / dry-run mode", () => {
     const deps = makeDeps({
       spawnSyncSafe: () => {
         spawnCalled = true;
-        return ok({ stdout: "", exitCode: 0 });
+        return ok({ stdout: "", stderr: "", exitCode: 0 });
       },
     });
     runAgent(makeConfig(), true, deps);
@@ -101,7 +101,7 @@ describe("agent-runner / real execution", () => {
       env: {},
       spawnSyncSafe: (cmd, args) => {
         calledWith = { cmd, args };
-        return ok({ stdout: "", exitCode: 0 });
+        return ok({ stdout: "", stderr: "", exitCode: 0 });
       },
     });
     runAgent(makeConfig({ prompt: "do the thing", model: "opus", maxTurns: 5 }), false, deps);
@@ -160,6 +160,29 @@ describe("agent-runner / real execution", () => {
     expect(removed).toContain("/tmp/real-test.lock");
   });
 
+  test("forwards claude stderr to deps.stderr when non-empty", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      env: {},
+      spawnSyncSafe: () => ok({ stdout: "", stderr: "Error: rate limit exceeded", exitCode: 1 }),
+      stderr: (msg) => stderrMessages.push(msg),
+    });
+    runAgent(makeConfig(), false, deps);
+    expect(stderrMessages.some((m) => m.includes("rate limit exceeded"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("[agent-runner]"))).toBe(true);
+  });
+
+  test("does not call deps.stderr when claude stderr is empty", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      env: {},
+      spawnSyncSafe: () => ok({ stdout: "", stderr: "", exitCode: 0 }),
+      stderr: (msg) => stderrMessages.push(msg),
+    });
+    runAgent(makeConfig(), false, deps);
+    expect(stderrMessages).toHaveLength(0);
+  });
+
   test("removes lock file even when execution fails", () => {
     const removed: string[] = [];
     const config = makeConfig({ lockPath: "/tmp/fail-test.lock" });
@@ -183,10 +206,10 @@ describe("agent-runner / session resumption", () => {
     const calls: string[][] = [];
     const deps = makeDeps({
       env: {},
-      readFile: (p) => p.endsWith(".session") ? ok("prev-session-123") : err(fileNotFound(p)),
+      readFile: (p) => (p.endsWith(".session") ? ok("prev-session-123") : err(fileNotFound(p))),
       spawnSyncSafe: (_cmd, args) => {
         calls.push(args);
-        return ok({ stdout: '{"session_id":"new-session-456"}', exitCode: 0 });
+        return ok({ stdout: '{"session_id":"new-session-456"}', stderr: "", exitCode: 0 });
       },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
@@ -202,7 +225,7 @@ describe("agent-runner / session resumption", () => {
       env: {},
       spawnSyncSafe: (_cmd, args) => {
         calls.push(args);
-        return ok({ stdout: '{"session_id":"fresh-session"}', exitCode: 0 });
+        return ok({ stdout: '{"session_id":"fresh-session"}', stderr: "", exitCode: 0 });
       },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
@@ -215,8 +238,12 @@ describe("agent-runner / session resumption", () => {
     const written: Array<{ path: string; content: string }> = [];
     const deps = makeDeps({
       env: {},
-      spawnSyncSafe: () => ok({ stdout: '{"session_id":"saved-session-789"}', exitCode: 0 }),
-      writeFile: (p, c) => { written.push({ path: p, content: c }); return ok(undefined); },
+      spawnSyncSafe: () =>
+        ok({ stdout: '{"session_id":"saved-session-789"}', stderr: "", exitCode: 0 }),
+      writeFile: (p, c) => {
+        written.push({ path: p, content: c });
+        return ok(undefined);
+      },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
     runAgent(config, false, deps);
@@ -231,12 +258,12 @@ describe("agent-runner / session resumption", () => {
     let callCount = 0;
     const deps = makeDeps({
       env: {},
-      readFile: (p) => p.endsWith(".session") ? ok("stale-session") : err(fileNotFound(p)),
+      readFile: (p) => (p.endsWith(".session") ? ok("stale-session") : err(fileNotFound(p))),
       spawnSyncSafe: (_cmd, args) => {
         calls.push(args);
         callCount++;
         if (callCount === 1) return err(processSpawnFailed("claude", new Error("session expired")));
-        return ok({ stdout: '{"session_id":"fallback-session"}', exitCode: 0 });
+        return ok({ stdout: '{"session_id":"fallback-session"}', stderr: "", exitCode: 0 });
       },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
@@ -251,9 +278,12 @@ describe("agent-runner / session resumption", () => {
     const logged: Array<{ path: string; content: string }> = [];
     const deps = makeDeps({
       env: {},
-      readFile: (p) => p.endsWith(".session") ? ok("prev-id") : err(fileNotFound(p)),
-      spawnSyncSafe: () => ok({ stdout: '{"session_id":"new-id"}', exitCode: 0 }),
-      appendFile: (p, content) => { logged.push({ path: p, content }); return ok(undefined); },
+      readFile: (p) => (p.endsWith(".session") ? ok("prev-id") : err(fileNotFound(p))),
+      spawnSyncSafe: () => ok({ stdout: '{"session_id":"new-id"}', stderr: "", exitCode: 0 }),
+      appendFile: (p, content) => {
+        logged.push({ path: p, content });
+        return ok(undefined);
+      },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
     runAgent(config, false, deps);

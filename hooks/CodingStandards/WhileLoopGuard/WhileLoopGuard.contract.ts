@@ -15,15 +15,14 @@
  * (e.g., "loops without bounded conditions").
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,11 +112,7 @@ const defaultDeps: WhileLoopGuardDeps = {
   stderr: defaultStderr,
 };
 
-export const WhileLoopGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  WhileLoopGuardDeps
-> = {
+export const WhileLoopGuard: SyncHookContract<ToolHookInput, WhileLoopGuardDeps> = {
   name: "WhileLoopGuard",
   event: "PreToolUse",
 
@@ -128,10 +123,7 @@ export const WhileLoopGuard: SyncHookContract<
     return CODE_EXTENSIONS.test(filePath);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: WhileLoopGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput, deps: WhileLoopGuardDeps): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     let contentToCheck: string | null = null;
@@ -141,7 +133,7 @@ export const WhileLoopGuard: SyncHookContract<
     } else if (input.tool_name === "Edit") {
       const editParts = getEditParts(input);
       if (!editParts) {
-        return ok(continueOk());
+        return ok({ continue: true });
       }
 
       const currentFile = deps.readFile(filePath);
@@ -158,7 +150,7 @@ export const WhileLoopGuard: SyncHookContract<
     }
 
     if (!contentToCheck) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const stripped = stripCommentsAndStrings(contentToCheck, filePath);
@@ -183,13 +175,15 @@ export const WhileLoopGuard: SyncHookContract<
       deps.stderr(reason);
 
       return ok({
-        type: "block",
-        decision: "block",
-        reason,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: reason,
+        },
       });
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

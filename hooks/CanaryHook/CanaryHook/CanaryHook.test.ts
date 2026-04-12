@@ -31,7 +31,6 @@ describe("CanaryHook", () => {
     const result = CanaryHook.execute(mockInput, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
       expect(result.value.continue).toBe(true);
     }
   });
@@ -62,5 +61,4 @@ describe("CanaryHook", () => {
     expect(appendedPath).toContain("canary-hook.log");
     expect(appendedContent).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
-
 });

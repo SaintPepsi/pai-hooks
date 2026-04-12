@@ -97,7 +97,6 @@ describe("HookExecutePermission.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
       expect(result.value.continue).toBe(true);
     }
     expect(messages.length).toBe(1);
@@ -115,7 +114,6 @@ describe("HookExecutePermission.execute()", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
       expect(result.value.continue).toBe(true);
     }
     expect(messages.length).toBe(1);

@@ -4,11 +4,11 @@
  * Source: contracts/AgentLifecycle.ts (AgentLifecycleStop export)
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SubagentStopInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   type AgentFileData,
   type AgentLifecycleDeps,
@@ -17,11 +17,7 @@ import {
   defaultDeps,
 } from "@hooks/hooks/AgentLifecycle/shared";
 
-export const AgentLifecycleStop: SyncHookContract<
-  SubagentStopInput,
-  SilentOutput,
-  AgentLifecycleDeps
-> = {
+export const AgentLifecycleStop: SyncHookContract<SubagentStopInput, AgentLifecycleDeps> = {
   name: "AgentLifecycleStop",
   event: "SubagentStop",
 
@@ -29,11 +25,14 @@ export const AgentLifecycleStop: SyncHookContract<
     return true;
   },
 
-  execute(input: SubagentStopInput, deps: AgentLifecycleDeps): Result<SilentOutput, ResultError> {
+  execute(
+    input: SubagentStopInput,
+    deps: AgentLifecycleDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const dirResult = deps.ensureDir(deps.getAgentsDir());
     if (!dirResult.ok) {
       deps.stderr(`[AgentLifecycle] Stop: failed to ensure agents dir: ${dirResult.error}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const filePath = agentFilePath(deps, input.session_id);
@@ -87,7 +86,7 @@ export const AgentLifecycleStop: SyncHookContract<
     const writeResult = deps.writeFile(filePath, JSON.stringify(data));
     if (!writeResult.ok) {
       deps.stderr(`[AgentLifecycle] Stop: failed to write agent file: ${writeResult.error}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr(`[AgentLifecycle] Stop: agent=${input.session_id}`);
@@ -95,7 +94,7 @@ export const AgentLifecycleStop: SyncHookContract<
     // Opportunistic orphan cleanup
     cleanupOrphans(deps, input.session_id);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

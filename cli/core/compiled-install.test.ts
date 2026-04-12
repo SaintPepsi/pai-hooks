@@ -117,7 +117,7 @@ describe("install --compiled", () => {
     expect(commands.some((c) => c.startsWith("bun "))).toBe(false);
 
     // Commands use $CLAUDE_PROJECT_DIR for worktree compatibility
-    expect(commands.every((c) => c.includes('$CLAUDE_PROJECT_DIR'))).toBe(true);
+    expect(commands.every((c) => c.includes("$CLAUDE_PROJECT_DIR"))).toBe(true);
   });
 });
 
@@ -143,7 +143,7 @@ describe("install --compiled-ts", () => {
 
     // Commands use $CLAUDE_PROJECT_DIR for worktree compatibility
     // (mirrors source-mode assertion in cli/commands/install.test.ts)
-    expect(commands.every((c) => c.includes('$CLAUDE_PROJECT_DIR'))).toBe(true);
+    expect(commands.every((c) => c.includes("$CLAUDE_PROJECT_DIR"))).toBe(true);
   });
 });
 

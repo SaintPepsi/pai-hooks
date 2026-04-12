@@ -6,9 +6,9 @@
  * so we test through the exported handleToolCall/handleRequest interface.
  */
 
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { readFile, writeFile } from "@hooks/core/adapters/fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
+import { readFile, writeFile } from "@hooks/core/adapters/fs";
 
 const PATTERNS_PATH = join(import.meta.dir, "patterns.json");
 
@@ -72,8 +72,11 @@ describe("hardening-mcp patterns.json integration", () => {
     const existingPattern = config.bash.blocked[0].pattern;
 
     // Insert same pattern — should not duplicate
-    config.bash.blocked.push({ pattern: existingPattern, reason: "test duplicate" });
-    writeFile(PATTERNS_PATH, JSON.stringify(config, null, 2) + "\n");
+    config.bash.blocked.push({
+      pattern: existingPattern,
+      reason: "test duplicate",
+    });
+    writeFile(PATTERNS_PATH, `${JSON.stringify(config, null, 2)}\n`);
 
     // Re-read and count occurrences
     const reread = readFile(PATTERNS_PATH);

@@ -39,7 +39,11 @@ export const MyHook: AsyncHookContract<StopInput, MyDeps> = { ... };
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { block, continueOk, silent } from "@hooks/core/types/hook-outputs";
-import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type {
+  BlockOutput,
+  ContinueOutput,
+  SilentOutput,
+} from "@hooks/core/types/hook-outputs";
 // etc.
 ```
 
@@ -70,7 +74,7 @@ return ok(continueOk(summary));
 // After — replace EVENT with the contract's actual event name:
 return ok({
   hookSpecificOutput: {
-    hookEventName: "PostToolUse",  // ← must match the contract's event
+    hookEventName: "PostToolUse", // ← must match the contract's event
     additionalContext: summary,
   },
 });
@@ -145,7 +149,7 @@ return ok({ type: "context", content: text });
 // After (events WITH hookSpecificOutput support):
 return ok({
   hookSpecificOutput: {
-    hookEventName: "SessionStart",  // ← match the event
+    hookEventName: "SessionStart", // ← match the event
     additionalContext: text,
   },
 });
@@ -224,6 +228,7 @@ execute: () => ok({ continue: true }),
 ### Task 0A: Create `core/types/hook-output-helpers.ts`
 
 **Files:**
+
 - Create: `core/types/hook-output-helpers.ts`
 
 **Step 1: Create the type alias file**
@@ -264,7 +269,7 @@ export type NonHookSpecificEvent =
 
 **Step 2: Verify types compile**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/types/hook-output-helpers.ts`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/types/hook-output-helpers.ts`
 Expected: No errors.
 
 **Step 3: Commit**
@@ -279,6 +284,7 @@ git commit -m "feat: add SDK-derived type aliases for hook output helpers"
 ### Task 0B: Update `core/contract.ts`
 
 **Files:**
+
 - Modify: `core/contract.ts`
 
 **Step 1: Read the current file**
@@ -325,26 +331,31 @@ interface HookContractBase<I extends HookInput = HookInput, D = unknown> {
   defaultDeps: D;
 }
 
-export interface SyncHookContract<I extends HookInput = HookInput, D = unknown>
-  extends HookContractBase<I, D> {
+export interface SyncHookContract<
+  I extends HookInput = HookInput,
+  D = unknown,
+> extends HookContractBase<I, D> {
   /** SRP core: synchronous pure business logic. Returns Result, never throws. */
   execute(input: I, deps: D): Result<SyncHookJSONOutput, ResultError>;
 }
 
-export interface AsyncHookContract<I extends HookInput = HookInput, D = unknown>
-  extends HookContractBase<I, D> {
+export interface AsyncHookContract<
+  I extends HookInput = HookInput,
+  D = unknown,
+> extends HookContractBase<I, D> {
   /** SRP core: async business logic. Returns Promise<Result>, never throws. */
   execute(input: I, deps: D): Promise<Result<SyncHookJSONOutput, ResultError>>;
 }
 
 /** Union type accepted by the runner. Contracts should use SyncHookContract or AsyncHookContract. */
 export type HookContract<I extends HookInput = HookInput, D = unknown> =
-  SyncHookContract<I, D> | AsyncHookContract<I, D>;
+  | SyncHookContract<I, D>
+  | AsyncHookContract<I, D>;
 ```
 
 **Step 3: Verify it compiles**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/contract.ts`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/contract.ts`
 Expected: Errors in downstream files (contracts still use old generics). That's expected — Phase 1 fixes them.
 
 **Step 4: Commit**
@@ -359,6 +370,7 @@ git commit -m "feat: contract.ts uses SyncHookJSONOutput, drops O generic"
 ### Task 0C: Update `core/runner.ts`
 
 **Files:**
+
 - Modify: `core/runner.ts`
 
 **Step 1: Read the current file**
@@ -368,6 +380,7 @@ Read `core/runner.ts` to confirm it matches expectations.
 **Step 2: Replace with SDK-direct version**
 
 Key changes:
+
 1. Delete `formatOutput` function entirely
 2. Remove `HookOutput` import
 3. Add `validateHookOutput` import from output schema
@@ -388,11 +401,22 @@ Key changes:
 import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
 import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
-import { ErrorCode, jsonParseFailed, type ResultError } from "@hooks/core/error";
+import {
+  ErrorCode,
+  jsonParseFailed,
+  type ResultError,
+} from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import { isDuplicate } from "@hooks/core/dedup";
-import type { HookEventType, HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
-import { getEventType as schemaGetEventType, parseHookInput } from "@hooks/core/types/hook-input-schema";
+import type {
+  HookEventType,
+  HookInput,
+  HookInputBase,
+} from "@hooks/core/types/hook-inputs";
+import {
+  getEventType as schemaGetEventType,
+  parseHookInput,
+} from "@hooks/core/types/hook-input-schema";
 import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
 
 // ─── Event Resolution ──────────────────────────────────────────────────────
@@ -401,7 +425,10 @@ import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
  * Normalize contract.event for logging/formatting.
  * When a contract declares multiple events, infer the actual event from input shape.
  */
-function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
+function resolveEvent(
+  contractEvent: HookEventType | HookEventType[],
+  input: HookInput,
+): string {
   if (!Array.isArray(contractEvent)) return contractEvent;
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right);
@@ -423,13 +450,18 @@ interface PipelineIO {
   write: (msg: string) => void;
   writeErr: (msg: string) => void;
   exit: (code: number) => void;
-  checkDuplicate: (hookName: string, sessionId: string, input: HookInput) => boolean;
+  checkDuplicate: (
+    hookName: string,
+    sessionId: string,
+    input: HookInput,
+  ) => boolean;
   log: (entry: HookLogEntry) => void;
   startTime: number;
 }
 
 function createPipelineIO(options: RunHookOptions): PipelineIO {
-  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
+  const writeErr =
+    options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
   return {
     write: options.stdout ?? ((msg: string) => process.stdout.write(msg)),
     writeErr,
@@ -454,7 +486,11 @@ function makeEmitLog(
     io.log({
       ts: new Date().toISOString(),
       hook: contract.name,
-      event: input ? resolveEvent(contract.event, input) : (Array.isArray(contract.event) ? contract.event[0] : contract.event),
+      event: input
+        ? resolveEvent(contract.event, input)
+        : Array.isArray(contract.event)
+          ? contract.event[0]
+          : contract.event,
       status,
       duration_ms: Math.round(performance.now() - io.startTime),
       session_id: sessionId,
@@ -492,13 +528,18 @@ async function executePipeline<I extends HookInput, D>(
     return;
   }
 
-  const result = await Promise.resolve(contract.execute(input, contract.defaultDeps));
+  const result = await Promise.resolve(
+    contract.execute(input, contract.defaultDeps),
+  );
 
   if (!result.ok) {
     io.writeErr(`[${contract.name}] error: ${result.error.message}`);
     emitLog("error", result.error.message);
 
-    if (opts?.handleSecurityBlock && result.error.code === ErrorCode.SecurityBlock) {
+    if (
+      opts?.handleSecurityBlock &&
+      result.error.code === ErrorCode.SecurityBlock
+    ) {
       io.exit(2);
       return;
     }
@@ -510,7 +551,9 @@ async function executePipeline<I extends HookInput, D>(
   // Validate against SDK schema (fail-open safety net)
   const validated = validateHookOutput(result.value);
   if (validated._tag === "Left") {
-    io.writeErr(`[${contract.name}] output validation failed: ${validated.left.message}`);
+    io.writeErr(
+      `[${contract.name}] output validation failed: ${validated.left.message}`,
+    );
     emitLog("error", `output validation: ${validated.left.message}`);
     io.write(JSON.stringify({ continue: true }));
     io.exit(0);
@@ -542,7 +585,11 @@ export interface RunHookOptions {
   /** Override log writer for testing. */
   appendLog?: (entry: HookLogEntry) => void;
   /** Override dedup guard for testing. Return true to skip as duplicate. */
-  isDuplicate?: (hookName: string, sessionId: string, input: HookInput) => boolean;
+  isDuplicate?: (
+    hookName: string,
+    sessionId: string,
+    input: HookInput,
+  ) => boolean;
 }
 
 /**
@@ -557,8 +604,14 @@ export async function runHookWith<I extends HookInput, D>(
   const safeExit = () => io.exit(0);
 
   await executePipeline(contract, input, io, safeExit).catch((e) => {
-    io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
-    makeEmitLog(io, contract, undefined)("error", e instanceof Error ? e.message : String(e));
+    io.writeErr(
+      `[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`,
+    );
+    makeEmitLog(
+      io,
+      contract,
+      undefined,
+    )("error", e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }
@@ -575,8 +628,11 @@ export async function runHook<I extends HookInput, D>(
 ): Promise<void> {
   const io = createPipelineIO(options);
   const timeoutMs = options.stdinTimeout ?? 200;
-  const events = Array.isArray(contract.event) ? contract.event : [contract.event];
-  const contractHandlesToolEvents = events.includes("PreToolUse") || events.includes("PostToolUse");
+  const events = Array.isArray(contract.event)
+    ? contract.event
+    : [contract.event];
+  const contractHandlesToolEvents =
+    events.includes("PreToolUse") || events.includes("PostToolUse");
 
   let inputIsToolEvent = false;
   let inputParsed = false;
@@ -620,17 +676,30 @@ export async function runHook<I extends HookInput, D>(
       io.writeErr(
         `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
       );
-      makeEmitLog(io, contract, (input as HookInputBase).session_id, input)("error", "input missing tool_name");
+      makeEmitLog(
+        io,
+        contract,
+        (input as HookInputBase).session_id,
+        input,
+      )("error", "input missing tool_name");
       safeExit();
       return;
     }
 
-    await executePipeline(contract, input, io, safeExit, { handleSecurityBlock: true });
+    await executePipeline(contract, input, io, safeExit, {
+      handleSecurityBlock: true,
+    });
   };
 
   await runStdinPipeline().catch((e) => {
-    io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);
-    makeEmitLog(io, contract, undefined)("error", e instanceof Error ? e.message : String(e));
+    io.writeErr(
+      `[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`,
+    );
+    makeEmitLog(
+      io,
+      contract,
+      undefined,
+    )("error", e instanceof Error ? e.message : String(e));
     safeExit();
   });
 }
@@ -638,7 +707,7 @@ export async function runHook<I extends HookInput, D>(
 
 **Step 3: Verify it compiles** (expect downstream errors, that's fine)
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/runner.ts 2>&1 | head -5`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/runner.ts 2>&1 | head -5`
 
 **Step 4: Commit**
 
@@ -652,6 +721,7 @@ git commit -m "feat: runner uses direct SyncHookJSONOutput serialization, delete
 ### Task 0D: Update runner tests
 
 **Files:**
+
 - Modify: `core/runner.test.ts`
 - Modify: `core/runner.coverage.test.ts`
 
@@ -660,6 +730,7 @@ git commit -m "feat: runner uses direct SyncHookJSONOutput serialization, delete
 **Step 2: Update `core/runner.test.ts`**
 
 Key changes:
+
 - Remove `import type { BlockOutput, ContextOutput, ContinueOutput, SilentOutput } from "./types/hook-outputs"`
 - Update all inline contract definitions: drop `O` generic from `HookContract<I, O, D>`
 - Update return values: remove `type` field, use SDK-shaped objects
@@ -687,13 +758,25 @@ function createMockIO(): MockIO & RunHookOptions {
   const io: MockIO = { stdoutLines: [], stderrLines: [], exitCode: null };
   return {
     ...io,
-    stdout: (msg: string) => { io.stdoutLines.push(msg); },
-    stderr: (msg: string) => { io.stderrLines.push(msg); },
-    exit: (code: number) => { io.exitCode = code; },
+    stdout: (msg: string) => {
+      io.stdoutLines.push(msg);
+    },
+    stderr: (msg: string) => {
+      io.stderrLines.push(msg);
+    },
+    exit: (code: number) => {
+      io.exitCode = code;
+    },
     isDuplicate: () => false,
-    get stdoutLines() { return io.stdoutLines; },
-    get stderrLines() { return io.stderrLines; },
-    get exitCode() { return io.exitCode; },
+    get stdoutLines() {
+      return io.stdoutLines;
+    },
+    get stderrLines() {
+      return io.stderrLines;
+    },
+    get exitCode() {
+      return io.exitCode;
+    },
   };
 }
 
@@ -711,12 +794,13 @@ const withContext: HookContract<ToolHookInput, {}> = {
   name: "TestContext",
   event: "PostToolUse",
   accepts: (input) => input.tool_name === "TaskUpdate",
-  execute: () => ok({
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse" as const,
-      additionalContext: "extra info",
-    },
-  }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "extra info",
+      },
+    }),
   defaultDeps: {},
 };
 
@@ -725,12 +809,13 @@ const withEmptyContext: HookContract<ToolHookInput, {}> = {
   name: "TestEmptyContext",
   event: "PostToolUse",
   accepts: () => true,
-  execute: () => ok({
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse" as const,
-      additionalContext: "",
-    },
-  }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "",
+      },
+    }),
   defaultDeps: {},
 };
 
@@ -739,13 +824,14 @@ const blocker: HookContract<ToolHookInput, {}> = {
   name: "TestBlocker",
   event: "PreToolUse",
   accepts: () => true,
-  execute: () => ok({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse" as const,
-      permissionDecision: "deny" as const,
-      permissionDecisionReason: "not allowed",
-    },
-  }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse" as const,
+        permissionDecision: "deny" as const,
+        permissionDecisionReason: "not allowed",
+      },
+    }),
   defaultDeps: {},
 };
 
@@ -763,12 +849,13 @@ const selective: HookContract<ToolHookInput, {}> = {
   name: "TestSelective",
   event: "PostToolUse",
   accepts: (input) => input.tool_name === "SpecificTool",
-  execute: () => ok({
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse" as const,
-      additionalContext: "accepted",
-    },
-  }),
+  execute: () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "accepted",
+      },
+    }),
   defaultDeps: {},
 };
 
@@ -777,12 +864,13 @@ const asyncContract: HookContract<ToolHookInput, {}> = {
   name: "TestAsync",
   event: "PostToolUse",
   accepts: () => true,
-  execute: async () => ok({
-    hookSpecificOutput: {
-      hookEventName: "PostToolUse" as const,
-      additionalContext: "async done",
-    },
-  }),
+  execute: async () =>
+    ok({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse" as const,
+        additionalContext: "async done",
+      },
+    }),
   defaultDeps: {},
 };
 
@@ -834,7 +922,9 @@ describe("runHook — pipeline basics", () => {
     const output = JSON.parse(io.stdoutLines[0]);
     expect(output.hookSpecificOutput.hookEventName).toBe("PreToolUse");
     expect(output.hookSpecificOutput.permissionDecision).toBe("deny");
-    expect(output.hookSpecificOutput.permissionDecisionReason).toBe("not allowed");
+    expect(output.hookSpecificOutput.permissionDecisionReason).toBe(
+      "not allowed",
+    );
   });
 
   it("falls back to safe continue on execute error", async () => {
@@ -849,7 +939,11 @@ describe("runHook — pipeline basics", () => {
 describe("runHook — accepts() gate", () => {
   it("skips execution when accepts returns false", async () => {
     const io = createMockIO();
-    const input = JSON.stringify({ session_id: "s", tool_name: "OtherTool", tool_input: {} });
+    const input = JSON.stringify({
+      session_id: "s",
+      tool_name: "OtherTool",
+      tool_input: {},
+    });
     await runHook(selective, { ...io, stdinOverride: input });
     const output = JSON.parse(io.stdoutLines[0]);
     expect(output.continue).toBe(true);
@@ -858,7 +952,11 @@ describe("runHook — accepts() gate", () => {
 
   it("runs execution when accepts returns true", async () => {
     const io = createMockIO();
-    const input = JSON.stringify({ session_id: "s", tool_name: "SpecificTool", tool_input: {} });
+    const input = JSON.stringify({
+      session_id: "s",
+      tool_name: "SpecificTool",
+      tool_input: {},
+    });
     await runHook(selective, { ...io, stdinOverride: input });
     const output = JSON.parse(io.stdoutLines[0]);
     expect(output.hookSpecificOutput.additionalContext).toBe("accepted");
@@ -904,7 +1002,9 @@ describe("runHook — error safety", () => {
       name: "TestThrowing",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => { throw new Error("boom"); },
+      execute: () => {
+        throw new Error("boom");
+      },
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -926,7 +1026,7 @@ describe("runHook — error safety", () => {
 
 **Step 4: Run tests**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test core/runner.test.ts core/runner.coverage.test.ts`
+Run: `cd /Users/hogers/.claude/pai-hooks && bun test core/runner.test.ts core/runner.coverage.test.ts`
 Expected: All pass.
 
 **Step 5: Commit**
@@ -941,6 +1041,7 @@ git commit -m "test: update runner tests for SyncHookJSONOutput"
 ### Task 0E: Update `core/index.ts` barrel exports
 
 **Files:**
+
 - Modify: `core/index.ts`
 
 **Step 1: Read the current barrel file**
@@ -948,6 +1049,7 @@ git commit -m "test: update runner tests for SyncHookJSONOutput"
 **Step 2: Replace hook-outputs exports with SDK re-exports**
 
 Remove the entire `// Output types` export block:
+
 ```typescript
 // DELETE:
 export {
@@ -966,18 +1068,22 @@ export {
 ```
 
 Add SDK type re-export and helpers:
+
 ```typescript
 // SDK output type (source of truth)
 export type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 // Type helpers derived from SDK
-export type { HookSpecificEventName, NonHookSpecificEvent } from "@hooks/core/types/hook-output-helpers";
+export type {
+  HookSpecificEventName,
+  NonHookSpecificEvent,
+} from "@hooks/core/types/hook-output-helpers";
 // Output schema validation
 export { validateHookOutput } from "@hooks/core/types/hook-output-schema";
 ```
 
 **Step 3: Verify no compile errors in index.ts itself**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/index.ts 2>&1 | head -5`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/index.ts 2>&1 | head -5`
 
 **Step 4: Commit**
 
@@ -991,6 +1097,7 @@ git commit -m "feat: barrel exports SDK types instead of custom hook-outputs"
 ### Task 0F: Update `core/types/hook-output-schema.ts`
 
 **Files:**
+
 - Modify: `core/types/hook-output-schema.ts`
 
 **Step 1: Read the current file**
@@ -1012,7 +1119,8 @@ Delete: `import type { HookOutput }`, `encodeHookOutput`, `buildOutputObject`.
  * Usage:
  *   import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
  *   const result = validateHookOutput(contractOutput);
- *   if (result._tag === "Left") { /* validation failed */ }
+ *   if (result._tag === "Left") { // validation failed
+ *   }
  */
 
 import { Schema } from "effect";
@@ -1190,7 +1298,7 @@ export function validateHookOutput(
 
 **Step 3: Run output schema tests if they exist**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test core/types/hook-output-schema 2>&1 | tail -5`
+Run: `cd /Users/hogers/.claude/pai-hooks && bun test core/types/hook-output-schema 2>&1 | tail -5`
 
 **Step 4: Commit**
 
@@ -1204,6 +1312,7 @@ git commit -m "feat: output schema covers all SDK hookSpecificOutput variants, r
 ### Task 0G: Update `core/adapters/log.ts` (if needed)
 
 **Files:**
+
 - Modify: `core/adapters/log.ts` (only if `HookLogEntry` has `output_type` field)
 
 **Step 1: Read `core/adapters/log.ts` and check if `output_type` is in the type**
@@ -1224,6 +1333,7 @@ git commit -m "chore: make output_type optional in HookLogEntry"
 **Prerequisites:** All Phase 0 tasks complete. Run `npx tsc --noEmit` to confirm foundation compiles.
 
 **For each task below:**
+
 1. Read every contract file listed
 2. Apply recipes S1, S2 (structural) to every file
 3. Apply the output recipes listed per contract
@@ -1235,16 +1345,17 @@ git commit -m "chore: make output_type optional in HookLogEntry"
 
 ### Task 1A: WorkLifecycle (6 contracts) — PRIORITY: fixes PreCompactStatePersist bug
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| ArticleWriter | Stop | R8 | Async, silent side-effect |
-| AutoWorkCreation | PostToolUse | R8 | Async, silent side-effect |
-| PRDSync | PostToolUse | R1, R2 | `continueOk(text)` → hookSpecificOutput with PostToolUse |
-| PreCompactStatePersist | PreCompact | R1, R3 | **THE BUG**: PreCompact has NO hookSpecificOutput. Use `systemMessage` instead |
-| SessionSummary | Stop | R8 | Async, silent side-effect |
-| WorkCompletionLearning | Stop | R8 | Async, silent side-effect |
+| Contract               | Event       | Recipes | Notes                                                                          |
+| ---------------------- | ----------- | ------- | ------------------------------------------------------------------------------ |
+| ArticleWriter          | Stop        | R8      | Async, silent side-effect                                                      |
+| AutoWorkCreation       | PostToolUse | R8      | Async, silent side-effect                                                      |
+| PRDSync                | PostToolUse | R1, R2  | `continueOk(text)` → hookSpecificOutput with PostToolUse                       |
+| PreCompactStatePersist | PreCompact  | R1, R3  | **THE BUG**: PreCompact has NO hookSpecificOutput. Use `systemMessage` instead |
+| SessionSummary         | Stop        | R8      | Async, silent side-effect                                                      |
+| WorkCompletionLearning | Stop        | R8      | Async, silent side-effect                                                      |
 
 **Files:**
+
 - `hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract.ts`
 - `hooks/WorkLifecycle/AutoWorkCreation/AutoWorkCreation.contract.ts`
 - `hooks/WorkLifecycle/PRDSync/PRDSync.contract.ts`
@@ -1254,9 +1365,10 @@ git commit -m "chore: make output_type optional in HookLogEntry"
 - `hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.contract.ts`
 
 **Critical — PreCompactStatePersist:** This is the bug that started this whole effort. The fix:
+
 ```typescript
 // Before (broken — PreCompact doesn't support hookSpecificOutput):
-return ok(continueOk(summary));  // Runner stamps hookEventName: "PreCompact" → REJECTED
+return ok(continueOk(summary)); // Runner stamps hookEventName: "PreCompact" → REJECTED
 
 // After (correct):
 return ok({ continue: true, systemMessage: summary });
@@ -1266,14 +1378,15 @@ return ok({ continue: true, systemMessage: summary });
 
 ### Task 1B: SecurityValidator (4 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| PermissionPromptLogger | PermissionRequest | R8 | Async, silent side-effect |
-| SecurityValidator | PreToolUse | R1, R4, R6 | Complex: continue/block/ask. Uses `err(securityBlock())` for hard blocks (no output change needed for error path) |
-| SettingsGuard | PreToolUse | R1, R6 | Continue or ask |
-| SettingsRevert | PostToolUse | R1, R8 | Continue or silent |
+| Contract               | Event             | Recipes    | Notes                                                                                                             |
+| ---------------------- | ----------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| PermissionPromptLogger | PermissionRequest | R8         | Async, silent side-effect                                                                                         |
+| SecurityValidator      | PreToolUse        | R1, R4, R6 | Complex: continue/block/ask. Uses `err(securityBlock())` for hard blocks (no output change needed for error path) |
+| SettingsGuard          | PreToolUse        | R1, R6     | Continue or ask                                                                                                   |
+| SettingsRevert         | PostToolUse       | R1, R8     | Continue or silent                                                                                                |
 
 **Files:**
+
 - `hooks/SecurityValidator/PermissionPromptLogger/PermissionPromptLogger.contract.ts`
 - `hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract.ts`
 - `hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract.ts`
@@ -1283,17 +1396,18 @@ return ok({ continue: true, systemMessage: summary });
 
 ### Task 1C: CodingStandards (7 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| BashWriteGuard | PreToolUse | R1, R4 | Continue or block |
-| CodingStandardsAdvisor | PostToolUse | R1, R2 | Continue with context |
-| CodingStandardsEnforcer | PreToolUse | R1, R4 | Continue or block |
-| DocCommitGuard | PreToolUse | R1, R4 | Continue or block |
-| TypeCheckVerifier | PostToolUse | R1, R2 | Continue with context |
-| TypeStrictness | PreToolUse | R1, R4 | Continue or block |
-| WhileLoopGuard | PreToolUse | R1, R4 | Continue or block |
+| Contract                | Event       | Recipes | Notes                 |
+| ----------------------- | ----------- | ------- | --------------------- |
+| BashWriteGuard          | PreToolUse  | R1, R4  | Continue or block     |
+| CodingStandardsAdvisor  | PostToolUse | R1, R2  | Continue with context |
+| CodingStandardsEnforcer | PreToolUse  | R1, R4  | Continue or block     |
+| DocCommitGuard          | PreToolUse  | R1, R4  | Continue or block     |
+| TypeCheckVerifier       | PostToolUse | R1, R2  | Continue with context |
+| TypeStrictness          | PreToolUse  | R1, R4  | Continue or block     |
+| WhileLoopGuard          | PreToolUse  | R1, R4  | Continue or block     |
 
 **Files:**
+
 - `hooks/CodingStandards/BashWriteGuard/BashWriteGuard.contract.ts`
 - `hooks/CodingStandards/BashWriteGuard/BashWriteGuard.test.ts`
 - `hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`
@@ -1310,19 +1424,20 @@ return ok({ continue: true, systemMessage: summary });
 
 ### Task 1D: GitSafety (9 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| ApprovalGate | PreToolUse | R1, R4 | Continue or block |
-| DestructiveDeleteGuard | PreToolUse | R1, R4, R6 | Continue, block, or ask |
-| GitAutoSync | Stop | R8 | Async, silent |
-| HookExecutePermission | PreToolUse | R1 | Simple continue |
-| IssueCreateGate | PreToolUse | R1, R4 | Continue or block |
-| MergeGate | PreToolUse | R1, R4 | Continue or block |
-| ProtectedBranchGuard | PreToolUse | R1, R4 | Continue or block |
-| RebaseGuard | PreToolUse | R1, R4 | Continue or block |
-| WorktreeSafetyVerification | PreToolUse | R1 | Simple continue |
+| Contract                   | Event      | Recipes    | Notes                   |
+| -------------------------- | ---------- | ---------- | ----------------------- |
+| ApprovalGate               | PreToolUse | R1, R4     | Continue or block       |
+| DestructiveDeleteGuard     | PreToolUse | R1, R4, R6 | Continue, block, or ask |
+| GitAutoSync                | Stop       | R8         | Async, silent           |
+| HookExecutePermission      | PreToolUse | R1         | Simple continue         |
+| IssueCreateGate            | PreToolUse | R1, R4     | Continue or block       |
+| MergeGate                  | PreToolUse | R1, R4     | Continue or block       |
+| ProtectedBranchGuard       | PreToolUse | R1, R4     | Continue or block       |
+| RebaseGuard                | PreToolUse | R1, R4     | Continue or block       |
+| WorktreeSafetyVerification | PreToolUse | R1         | Simple continue         |
 
 **Files:**
+
 - `hooks/GitSafety/ApprovalGate/ApprovalGate.contract.ts`
 - `hooks/GitSafety/ApprovalGate/ApprovalGate.test.ts`
 - `hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.contract.ts`
@@ -1344,25 +1459,27 @@ return ok({ continue: true, systemMessage: summary });
 
 **COMPLEX:** This group has shared state machine files that multiple contracts reference. Migrate shared files first, then contracts.
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| CitationEnforcement | PostToolUse | R1, R2 | Uses shared `CitationEnforcement.ts` |
-| CitationTracker | PostToolUse | R1 | Simple continue |
-| DocObligationEnforcer | Stop | R5, R8 | Block or silent. Uses shared `DocObligationStateMachine.ts` |
-| DocObligationTracker | PostToolUse | R1, R2 | Uses shared `DocObligationStateMachine.ts` |
-| HookDocEnforcer | Stop | R5, R8 | Block or silent |
-| HookDocTracker | PostToolUse | R1, R2 | Continue with context |
-| SpotCheckReview | Stop | R5, R8 | Block or silent. Uses shared `SpotCheckReview.ts` |
-| TestObligationEnforcer | Stop | R5, R8 | Block or silent. Uses shared `TestObligationStateMachine.ts` |
-| TestObligationTracker | PostToolUse | R1, R2 | Uses shared `TestObligationStateMachine.ts` |
+| Contract               | Event       | Recipes | Notes                                                        |
+| ---------------------- | ----------- | ------- | ------------------------------------------------------------ |
+| CitationEnforcement    | PostToolUse | R1, R2  | Uses shared `CitationEnforcement.ts`                         |
+| CitationTracker        | PostToolUse | R1      | Simple continue                                              |
+| DocObligationEnforcer  | Stop        | R5, R8  | Block or silent. Uses shared `DocObligationStateMachine.ts`  |
+| DocObligationTracker   | PostToolUse | R1, R2  | Uses shared `DocObligationStateMachine.ts`                   |
+| HookDocEnforcer        | Stop        | R5, R8  | Block or silent                                              |
+| HookDocTracker         | PostToolUse | R1, R2  | Continue with context                                        |
+| SpotCheckReview        | Stop        | R5, R8  | Block or silent. Uses shared `SpotCheckReview.ts`            |
+| TestObligationEnforcer | Stop        | R5, R8  | Block or silent. Uses shared `TestObligationStateMachine.ts` |
+| TestObligationTracker  | PostToolUse | R1, R2  | Uses shared `TestObligationStateMachine.ts`                  |
 
 **Shared files (migrate these FIRST):**
+
 - `hooks/ObligationStateMachines/DocObligationTracker/DocObligationStateMachine.ts`
 - `hooks/ObligationStateMachines/TestObligationTracker/TestObligationStateMachine.ts`
 - `hooks/ObligationStateMachines/CitationTracker/CitationEnforcement.ts`
 - `hooks/ObligationStateMachines/SpotCheckReview/SpotCheckReview.ts`
 
 **Test files:**
+
 - `hooks/ObligationStateMachines/DocObligationTracker/DocObligationStateMachine.test.ts`
 - `hooks/ObligationStateMachines/TestObligationTracker/TestObligationStateMachine.test.ts`
 - `hooks/ObligationStateMachines/CitationTracker/CitationEnforcement.test.ts`
@@ -1370,6 +1487,7 @@ return ok({ continue: true, systemMessage: summary });
 - `hooks/ObligationStateMachines/HookDocTracker/HookDocStateMachine.test.ts`
 
 **Contract files:**
+
 - `hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract.ts`
 - `hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract.ts`
 - `hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.contract.ts`
@@ -1384,16 +1502,17 @@ return ok({ continue: true, systemMessage: summary });
 
 ### Task 1F: KoordDaemon (6 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| AgentCompleteTracker | PostToolUse | R1, R2 | Continue with context |
-| AgentPrepromptInjector | PreToolUse | R1, R9 | Continue or updatedInput |
-| AgentSpawnTracker | PostToolUse | R1, R2 | Continue with context |
-| MessageQueueRelay | PostToolUse | R1, R2 | Continue with context |
-| MessageQueueServer | SessionStart | R7, R8 | Async, context or silent |
-| SessionIdRegister | SessionStart | R8 | Async, silent |
+| Contract               | Event        | Recipes | Notes                    |
+| ---------------------- | ------------ | ------- | ------------------------ |
+| AgentCompleteTracker   | PostToolUse  | R1, R2  | Continue with context    |
+| AgentPrepromptInjector | PreToolUse   | R1, R9  | Continue or updatedInput |
+| AgentSpawnTracker      | PostToolUse  | R1, R2  | Continue with context    |
+| MessageQueueRelay      | PostToolUse  | R1, R2  | Continue with context    |
+| MessageQueueServer     | SessionStart | R7, R8  | Async, context or silent |
+| SessionIdRegister      | SessionStart | R8      | Async, silent            |
 
 **Files:**
+
 - `hooks/KoordDaemon/AgentCompleteTracker/AgentCompleteTracker.contract.ts`
 - `hooks/KoordDaemon/AgentPrepromptInjector/AgentPrepromptInjector.contract.ts`
 - `hooks/KoordDaemon/AgentSpawnTracker/AgentSpawnTracker.contract.ts`
@@ -1405,14 +1524,15 @@ return ok({ continue: true, systemMessage: summary });
 
 ### Task 1G: SessionFraming (4 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| BranchAwareness | SessionStart | R7, R8 | Async, context or silent |
-| CheckVersion | SessionStart | R8 | Async, silent |
-| GitignoreRecommender | SessionStart | R1, R2 | Continue with context |
-| LoadContext | SessionStart | R7, R8 | Async, context or silent. **Large contract — context injection via hookSpecificOutput** |
+| Contract             | Event        | Recipes | Notes                                                                                   |
+| -------------------- | ------------ | ------- | --------------------------------------------------------------------------------------- |
+| BranchAwareness      | SessionStart | R7, R8  | Async, context or silent                                                                |
+| CheckVersion         | SessionStart | R8      | Async, silent                                                                           |
+| GitignoreRecommender | SessionStart | R1, R2  | Continue with context                                                                   |
+| LoadContext          | SessionStart | R7, R8  | Async, context or silent. **Large contract — context injection via hookSpecificOutput** |
 
 **Files:**
+
 - `hooks/SessionFraming/BranchAwareness/BranchAwareness.contract.ts`
 - `hooks/SessionFraming/BranchAwareness/BranchAwareness.test.ts`
 - `hooks/SessionFraming/CheckVersion/CheckVersion.contract.ts`
@@ -1426,11 +1546,12 @@ return ok({ continue: true, systemMessage: summary });
 
 ### Task 1H: SteeringRuleInjector (1 contract, COMPLEX multi-event)
 
-| Contract | Events | Recipes | Notes |
-|---|---|---|---|
+| Contract             | Events                                                                       | Recipes            | Notes                                               |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------ | --------------------------------------------------- |
 | SteeringRuleInjector | SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SubagentStart | R1, R2, R3, R5, R8 | Multi-event: output shape depends on resolved event |
 
 **Files:**
+
 - `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.ts`
 - `hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.test.ts`
 
@@ -1457,13 +1578,14 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1I: IdentityBranding (3 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
+| Contract      | Event            | Recipes    | Notes                               |
+| ------------- | ---------------- | ---------- | ----------------------------------- |
 | MapleBranding | UserPromptSubmit | R1, R2, R5 | Continue, block on UserPromptSubmit |
-| ModeAnalytics | PostToolUse | R8 | Async, silent |
-| UpdateCounts | PostToolUse | R8 | Async, silent |
+| ModeAnalytics | PostToolUse      | R8         | Async, silent                       |
+| UpdateCounts  | PostToolUse      | R8         | Async, silent                       |
 
 **Files:**
+
 - `hooks/IdentityBranding/MapleBranding/MapleBranding.contract.ts`
 - `hooks/IdentityBranding/MapleBranding/MapleBranding.test.ts`
 - `hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.contract.ts`
@@ -1475,13 +1597,14 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1J: LearningFeedback (3 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| LearningActioner | Stop | R8 | Async, silent |
-| RatingCapture | UserPromptSubmit | R7 | Context injection |
-| RelationshipMemory | Stop | R8 | Async, silent |
+| Contract           | Event            | Recipes | Notes             |
+| ------------------ | ---------------- | ------- | ----------------- |
+| LearningActioner   | Stop             | R8      | Async, silent     |
+| RatingCapture      | UserPromptSubmit | R7      | Context injection |
+| RelationshipMemory | Stop             | R8      | Async, silent     |
 
 **Files:**
+
 - `hooks/LearningFeedback/LearningActioner/LearningActioner.contract.ts`
 - `hooks/LearningFeedback/RatingCapture/RatingCapture.contract.ts`
 - `hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.contract.ts`
@@ -1490,13 +1613,14 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1K: AgentLifecycle (3 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| AgentExecutionGuard | PreToolUse | R1, R7 | Continue or context injection |
-| AgentLifecycleStart | SubagentStart | R8 | Async, silent |
-| AgentLifecycleStop | SubagentStop | R8 | Async, silent |
+| Contract            | Event         | Recipes | Notes                         |
+| ------------------- | ------------- | ------- | ----------------------------- |
+| AgentExecutionGuard | PreToolUse    | R1, R7  | Continue or context injection |
+| AgentLifecycleStart | SubagentStart | R8      | Async, silent                 |
+| AgentLifecycleStop  | SubagentStop  | R8      | Async, silent                 |
 
 **Files:**
+
 - `hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.contract.ts`
 - `hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.test.ts`
 - `hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.contract.ts`
@@ -1506,12 +1630,13 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1L: AlgorithmTracking (2 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| AlgorithmTracker | PostToolUse | R1, R2 | Continue with context |
-| CheckAlgorithmVersion | SessionStart | R8 | Async, silent |
+| Contract              | Event        | Recipes | Notes                 |
+| --------------------- | ------------ | ------- | --------------------- |
+| AlgorithmTracker      | PostToolUse  | R1, R2  | Continue with context |
+| CheckAlgorithmVersion | SessionStart | R8      | Async, silent         |
 
 **Files:**
+
 - `hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.contract.ts`
 - `hooks/AlgorithmTracking/CheckAlgorithmVersion/CheckAlgorithmVersion.contract.ts`
 
@@ -1519,12 +1644,13 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1M: ArchitectureEscalation (2 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| ArchitectureEscalation | PostToolUse | R1, R2 | Continue with context |
-| SonnetDelegation | PostToolUse | R1, R2 | Continue with context |
+| Contract               | Event       | Recipes | Notes                 |
+| ---------------------- | ----------- | ------- | --------------------- |
+| ArchitectureEscalation | PostToolUse | R1, R2  | Continue with context |
+| SonnetDelegation       | PostToolUse | R1, R2  | Continue with context |
 
 **Files:**
+
 - `hooks/ArchitectureEscalation/ArchitectureEscalation/ArchitectureEscalation.contract.ts`
 - `hooks/ArchitectureEscalation/SonnetDelegation/SonnetDelegation.contract.ts`
 - `hooks/ArchitectureEscalation/SonnetDelegation/SonnetDelegation.test.ts`
@@ -1533,24 +1659,26 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1N: CanaryHook (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| CanaryHook | SessionStart | R1 | Simplest hook — good smoke test |
+| Contract   | Event        | Recipes | Notes                           |
+| ---------- | ------------ | ------- | ------------------------------- |
+| CanaryHook | SessionStart | R1      | Simplest hook — good smoke test |
 
 **Files:**
+
 - `hooks/CanaryHook/CanaryHook/CanaryHook.contract.ts`
 
 ---
 
 ### Task 1O: CodeQualityPipeline (3 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| CodeQualityBaseline | SessionStart | R1, R2 | Continue with context |
-| CodeQualityGuard | PostToolUse | R1, R2 | Continue with context |
-| SessionQualityReport | Stop | R8 | Async, silent |
+| Contract             | Event        | Recipes | Notes                 |
+| -------------------- | ------------ | ------- | --------------------- |
+| CodeQualityBaseline  | SessionStart | R1, R2  | Continue with context |
+| CodeQualityGuard     | PostToolUse  | R1, R2  | Continue with context |
+| SessionQualityReport | Stop         | R8      | Async, silent         |
 
 **Files:**
+
 - `hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract.ts`
 - `hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract.ts`
 - `hooks/CodeQualityPipeline/SessionQualityReport/SessionQualityReport.contract.ts`
@@ -1559,15 +1687,16 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1P: CronStatusLine (5 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| CronCreate | PostToolUse | R8 | Async, silent |
-| CronDelete | PostToolUse | R8 | Async, silent |
-| CronFire | PostToolUse | R8 | Async, silent |
-| CronPrune | SessionStart | R8 | Async, silent |
-| CronSessionEnd | SessionEnd | R8 | Async, silent |
+| Contract       | Event        | Recipes | Notes         |
+| -------------- | ------------ | ------- | ------------- |
+| CronCreate     | PostToolUse  | R8      | Async, silent |
+| CronDelete     | PostToolUse  | R8      | Async, silent |
+| CronFire       | PostToolUse  | R8      | Async, silent |
+| CronPrune      | SessionStart | R8      | Async, silent |
+| CronSessionEnd | SessionEnd   | R8      | Async, silent |
 
 **Files:**
+
 - `hooks/CronStatusLine/CronCreate/CronCreate.contract.ts`
 - `hooks/CronStatusLine/CronDelete/CronDelete.contract.ts`
 - `hooks/CronStatusLine/CronFire/CronFire.contract.ts`
@@ -1578,12 +1707,13 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1Q: DuplicationDetection (2 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| DuplicationChecker | PreToolUse | R1, R4 | Continue or block |
-| DuplicationIndexBuilder | PostToolUse | R1, R2 | Continue with context |
+| Contract                | Event       | Recipes | Notes                 |
+| ----------------------- | ----------- | ------- | --------------------- |
+| DuplicationChecker      | PreToolUse  | R1, R4  | Continue or block     |
+| DuplicationIndexBuilder | PostToolUse | R1, R2  | Continue with context |
 
 **Files:**
+
 - `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts`
 - `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
 - `hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract.ts`
@@ -1593,11 +1723,12 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1R: ExecutionEvidence (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| ExecutionEvidenceVerifier | PostToolUse | R1, R2 | Continue with context |
+| Contract                  | Event       | Recipes | Notes                 |
+| ------------------------- | ----------- | ------- | --------------------- |
+| ExecutionEvidenceVerifier | PostToolUse | R1, R2  | Continue with context |
 
 **Files:**
+
 - `hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.contract.ts`
 - `hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.test.ts`
 
@@ -1605,68 +1736,74 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 ### Task 1S: LastResponseCache (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| LastResponseCache | PostToolUse | R8 | Async, silent |
+| Contract          | Event       | Recipes | Notes         |
+| ----------------- | ----------- | ------- | ------------- |
+| LastResponseCache | PostToolUse | R8      | Async, silent |
 
 **Files:**
+
 - `hooks/LastResponseCache/LastResponseCache/LastResponseCache.contract.ts`
 
 ---
 
 ### Task 1T: QuestionAnswered (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| QuestionAnswered | PostToolUse | R8 | Async, silent |
+| Contract         | Event       | Recipes | Notes         |
+| ---------------- | ----------- | ------- | ------------- |
+| QuestionAnswered | PostToolUse | R8      | Async, silent |
 
 **Files:**
+
 - `hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.contract.ts`
 
 ---
 
 ### Task 1U: SkillGuard (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| SkillGuard | PreToolUse | R1, R4 | Continue or block |
+| Contract   | Event      | Recipes | Notes             |
+| ---------- | ---------- | ------- | ----------------- |
+| SkillGuard | PreToolUse | R1, R4  | Continue or block |
 
 **Files:**
+
 - `hooks/SkillGuard/SkillGuard/SkillGuard.contract.ts`
 
 ---
 
 ### Task 1V: StopOrchestrator (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| StopOrchestrator | Stop | R8 | Async, silent |
+| Contract         | Event | Recipes | Notes         |
+| ---------------- | ----- | ------- | ------------- |
+| StopOrchestrator | Stop  | R8      | Async, silent |
 
 **Files:**
+
 - `hooks/StopOrchestrator/StopOrchestrator/StopOrchestrator.contract.ts`
 
 ---
 
 ### Task 1W: VoiceGate (1 contract)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| VoiceGate | PreToolUse | R1, R4 | Continue or block |
+| Contract  | Event      | Recipes | Notes             |
+| --------- | ---------- | ------- | ----------------- |
+| VoiceGate | PreToolUse | R1, R4  | Continue or block |
 
 **Files:**
+
 - `hooks/VoiceGate/VoiceGate/VoiceGate.contract.ts`
 
 ---
 
 ### Task 1X: WikiPipeline (3 contracts)
 
-| Contract | Event | Recipes | Notes |
-|---|---|---|---|
-| WikiContextInjector | UserPromptSubmit | R1, R2 | Continue with context |
-| WikiIngest | PostToolUse | R8 | Async, silent |
-| WikiReadTracker | PostToolUse | R1, R2 | Continue with context |
+| Contract            | Event            | Recipes | Notes                 |
+| ------------------- | ---------------- | ------- | --------------------- |
+| WikiContextInjector | UserPromptSubmit | R1, R2  | Continue with context |
+| WikiIngest          | PostToolUse      | R8      | Async, silent         |
+| WikiReadTracker     | PostToolUse      | R1, R2  | Continue with context |
 
 **Files:**
+
 - `hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.contract.ts`
 - `hooks/WikiPipeline/WikiIngest/WikiIngest.contract.ts`
 - `hooks/WikiPipeline/WikiReadTracker/WikiReadTracker.contract.ts`
@@ -1678,12 +1815,13 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 ### Task 2A: Delete old type files
 
 **Files:**
+
 - Delete: `core/types/hook-outputs.ts`
 - Delete: `core/types/hook-outputs.test.ts`
 
 **Step 1: Verify no remaining imports**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && grep -r "hook-outputs" --include="*.ts" | grep -v node_modules | grep -v "docs/plans"`
+Run: `cd /Users/hogers/.claude/pai-hooks && grep -r "hook-outputs" --include="*.ts" | grep -v node_modules | grep -v "docs/plans"`
 Expected: No results (all imports migrated in Phase 1).
 
 **Step 2: Delete files**
@@ -1705,12 +1843,12 @@ git commit -m "cleanup: delete hook-outputs.ts — replaced by SDK SyncHookJSONO
 
 **Step 1: Type check entire project**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit`
 Expected: Zero errors.
 
 **Step 2: Run full test suite**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/hogers/.claude/pai-hooks && bun test`
 Expected: All tests pass.
 
 **Step 3: Commit any remaining fixes**
@@ -1720,6 +1858,7 @@ Expected: All tests pass.
 ### Task 2C: Update documentation
 
 **Files:**
+
 - `core/types/doc.md` (if exists)
 - `core/README.md` (if exists)
 
@@ -1731,13 +1870,13 @@ Update any docs that reference the old type system (`HookOutput`, `ContinueOutpu
 
 These existing plans reference old types and should be updated:
 
-| Plan | References to update |
-|---|---|
-| `2026-04-09-hook-output-compression-plan.md` | `continueOk`, `HookOutput` |
-| `2026-04-09-steering-rule-injector-plan.md` | `ContinueOutput`, `hook-outputs` imports |
-| `2026-04-06-pattern-detection-implementation.md` | `continueOk`, `hook-outputs` |
-| `2026-04-06-hookdoc-multi-doc-implementation.md` | `hook-outputs` imports |
-| `2026-04-06-doc-commit-guard-implementation.md` | `continueOk`, `hook-outputs` |
+| Plan                                             | References to update                     |
+| ------------------------------------------------ | ---------------------------------------- |
+| `2026-04-09-hook-output-compression-plan.md`     | `continueOk`, `HookOutput`               |
+| `2026-04-09-steering-rule-injector-plan.md`      | `ContinueOutput`, `hook-outputs` imports |
+| `2026-04-06-pattern-detection-implementation.md` | `continueOk`, `hook-outputs`             |
+| `2026-04-06-hookdoc-multi-doc-implementation.md` | `hook-outputs` imports                   |
+| `2026-04-06-doc-commit-guard-implementation.md`  | `continueOk`, `hook-outputs`             |
 
 For each: replace old type references with SDK types using the recipe reference above.
 

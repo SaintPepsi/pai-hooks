@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   fileExists as fsFileExists,
   readFile,
@@ -11,9 +12,8 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,12 +65,7 @@ Review for: bugs, security issues, missing error handling, code quality, and adh
 
 const defaultDeps: SpotCheckReviewDeps = {
   paiDir: getPaiDir(),
-  stateDir: join(
-    getPaiDir(),
-    "MEMORY",
-    "STATE",
-    "spot-check",
-  ),
+  stateDir: join(getPaiDir(), "MEMORY", "STATE", "spot-check"),
   getChangedFiles: getUnpushedFiles,
   getFileHashes: (files: string[]) => {
     const map = new Map<string, string>();
@@ -108,11 +103,7 @@ const defaultDeps: SpotCheckReviewDeps = {
 
 // ─── Contract ─────────────────────────────────────────────────────────────────
 
-export const SpotCheckReview: SyncHookContract<
-  StopInput,
-  BlockOutput | SilentOutput,
-  SpotCheckReviewDeps
-> = {
+export const SpotCheckReview: SyncHookContract<StopInput, SpotCheckReviewDeps> = {
   name: "SpotCheckReview",
   event: "Stop",
 
@@ -121,15 +112,12 @@ export const SpotCheckReview: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: StopInput,
-    deps: SpotCheckReviewDeps,
-  ): Result<BlockOutput | SilentOutput, ResultError> {
-    if (process.cwd() === deps.paiDir) return ok({ type: "silent" });
+  execute(input: StopInput, deps: SpotCheckReviewDeps): Result<SyncHookJSONOutput, ResultError> {
+    if (process.cwd() === deps.paiDir) return ok({});
     const files = deps.getChangedFiles();
 
     if (files.length === 0) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const countFile = blockCountPath(deps.stateDir, input.session_id);
@@ -152,7 +140,7 @@ export const SpotCheckReview: SyncHookContract<
       deps.stderr(
         `[SpotCheckReview] Block limit (${MAX_BLOCKS}) reached. Marked ${hashes.size} file(s) as reviewed. Releasing session.`,
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const reviewed = deps.readReviewedHashes(hashPath);
@@ -165,7 +153,7 @@ export const SpotCheckReview: SyncHookContract<
 
     if (unreviewedFiles.length === 0) {
       deps.stderr(`[SpotCheckReview] All ${files.length} file(s) already reviewed. Skipping.`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.writeBlockCount(countFile, blockCount + 1);
@@ -173,7 +161,11 @@ export const SpotCheckReview: SyncHookContract<
       `[SpotCheckReview] Block ${blockCount + 1}/${MAX_BLOCKS}: ${unreviewedFiles.length} unreviewed file(s) (${files.length - unreviewedFiles.length} already reviewed)`,
     );
 
-    return ok({ type: "block", decision: "block", reason: buildBlockMessage(unreviewedFiles) });
+    // R5: Stop is a NonHookSpecificEvent — block via top-level decision/reason.
+    return ok({
+      decision: "block",
+      reason: buildBlockMessage(unreviewedFiles),
+    });
   },
 
   defaultDeps,

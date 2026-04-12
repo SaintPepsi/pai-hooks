@@ -167,7 +167,11 @@ describe("compileHook", () => {
       stat: (p) => memDeps.stat(p),
       cwd: () => memDeps.cwd(),
       exec: (): Result<ExecResult, PaihError> => {
-        return ok({ stdout: "", stderr: "error: module not found", exitCode: 1 });
+        return ok({
+          stdout: "",
+          stderr: "error: module not found",
+          exitCode: 1,
+        });
       },
       deleteFile: () => ok(undefined),
       removeDir: () => ok(undefined),
@@ -219,18 +223,27 @@ describe("compileHook", () => {
 
 describe("compiledCommandString", () => {
   it("compiled mode — returns direct path", () => {
-    const result = compiledCommandString("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.js", "compiled");
-    expect(result).toBe("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.js");
+    const result = compiledCommandString(
+      '"$CLAUDE_PROJECT_DIR"/.claude/hooks/Group/Hook.js',
+      "compiled",
+    );
+    expect(result).toBe('"$CLAUDE_PROJECT_DIR"/.claude/hooks/Group/Hook.js');
   });
 
   it("compiled-ts mode — returns bun <path>", () => {
-    const result = compiledCommandString("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.ts", "compiled-ts");
-    expect(result).toBe("bun \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.ts");
+    const result = compiledCommandString(
+      '"$CLAUDE_PROJECT_DIR"/.claude/hooks/Group/Hook.ts',
+      "compiled-ts",
+    );
+    expect(result).toBe('bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/Group/Hook.ts');
   });
 
   it("source mode — returns direct path", () => {
-    const result = compiledCommandString("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.hook.ts", "source");
-    expect(result).toBe("\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/Group/Hook.hook.ts");
+    const result = compiledCommandString(
+      '"$CLAUDE_PROJECT_DIR"/.claude/hooks/Group/Hook.hook.ts',
+      "source",
+    );
+    expect(result).toBe('"$CLAUDE_PROJECT_DIR"/.claude/hooks/Group/Hook.hook.ts');
   });
 });
 
@@ -247,7 +260,14 @@ describe("compileHook error paths", () => {
     const origReadFile = deps.readFile;
     deps.readFile = (p: string) => {
       if (p.endsWith(".tmp")) {
-        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("read fail"); } })() as unknown as PaihError);
+        return err(
+          new (class extends Error {
+            code = PaihErrorCode.BuildFailed;
+            constructor() {
+              super("read fail");
+            }
+          })() as unknown as PaihError,
+        );
       }
       return origReadFile(p);
     };
@@ -261,7 +281,14 @@ describe("compileHook error paths", () => {
     deps.writeFile = (p: string, c: string) => {
       // Let tsconfig and temp bundle writes succeed, fail on final .js write
       if (p.endsWith(".js") && !p.endsWith(".tmp")) {
-        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("write fail"); } })() as unknown as PaihError);
+        return err(
+          new (class extends Error {
+            code = PaihErrorCode.BuildFailed;
+            constructor() {
+              super("write fail");
+            }
+          })() as unknown as PaihError,
+        );
       }
       return origWriteFile(p, c);
     };
@@ -274,7 +301,14 @@ describe("compileHook error paths", () => {
     const origWriteFile = deps.writeFile;
     deps.writeFile = (p: string, c: string) => {
       if (p.endsWith(".tsconfig.json")) {
-        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("tsconfig write fail"); } })() as unknown as PaihError);
+        return err(
+          new (class extends Error {
+            code = PaihErrorCode.BuildFailed;
+            constructor() {
+              super("tsconfig write fail");
+            }
+          })() as unknown as PaihError,
+        );
       }
       return origWriteFile(p, c);
     };
@@ -292,7 +326,14 @@ describe("compileHook error paths", () => {
         return ok({ stdout: "", stderr: "", exitCode: 0 });
       }
       if (cmd.includes("chmod")) {
-        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("chmod fail"); } })() as unknown as PaihError);
+        return err(
+          new (class extends Error {
+            code = PaihErrorCode.BuildFailed;
+            constructor() {
+              super("chmod fail");
+            }
+          })() as unknown as PaihError,
+        );
       }
       return ok({ stdout: "", stderr: "", exitCode: 0 });
     };

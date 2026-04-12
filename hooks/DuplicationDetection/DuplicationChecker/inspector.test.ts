@@ -3,13 +3,13 @@ import type { PaihError } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 import { getArtifactsDir, projectHash } from "@hooks/hooks/DuplicationDetection/shared";
-import { inspect, type InspectorDeps, type InspectResult } from "./inspector";
+import { type InspectorDeps, type InspectResult, inspect } from "./inspector";
 
 // ─── Test Fixtures ──────────────────────────────────────────────────────────
 
 const PROJECT_DIR = "/Users/test/my-project";
 const BRANCH = "main";
-const HASH = projectHash(PROJECT_DIR);
+const _HASH = projectHash(PROJECT_DIR);
 const INDEX_PATH = `${getArtifactsDir(PROJECT_DIR, BRANCH)}/index.json`;
 
 function makeIndex(overrides: Partial<DuplicationIndex> = {}): DuplicationIndex {
@@ -21,13 +21,30 @@ function makeIndex(overrides: Partial<DuplicationIndex> = {}): DuplicationIndex 
     fileCount: 28,
     functionCount: 142,
     entries: [],
-    hashGroups: [["abc", [0, 1]], ["def", [2]]],
+    hashGroups: [
+      ["abc", [0, 1]],
+      ["def", [2]],
+    ],
     nameGroups: Array.from({ length: 98 }, (_, i) => [`name${i}`, [i]]) as [string, number[]][],
     sigGroups: Array.from({ length: 67 }, (_, i) => [`sig${i}`, [i]]) as [string, number[]][],
     patterns: [
-      { id: "p1", name: "pattern1", sig: "sig1", tier: 1, fileCount: 3, files: ["a.ts", "b.ts", "c.ts"] },
+      {
+        id: "p1",
+        name: "pattern1",
+        sig: "sig1",
+        tier: 1,
+        fileCount: 3,
+        files: ["a.ts", "b.ts", "c.ts"],
+      },
       { id: "p2", name: "pattern2", sig: "sig2", tier: 2, fileCount: 2, files: ["d.ts", "e.ts"] },
-      { id: "p3", name: "pattern3", sig: "sig3", tier: 2, fileCount: 4, files: ["f.ts", "g.ts", "h.ts", "i.ts"] },
+      {
+        id: "p3",
+        name: "pattern3",
+        sig: "sig3",
+        tier: 2,
+        fileCount: 4,
+        files: ["f.ts", "g.ts", "h.ts", "i.ts"],
+      },
     ],
     ...overrides,
   };

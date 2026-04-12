@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { ErrorCode } from "@hooks/core/error";
 import { safeFetch } from "@hooks/core/adapters/fetch";
+import { ErrorCode } from "@hooks/core/error";
 
 // ─── safeFetch ───────────────────────────────────────────────────────────────
 
@@ -21,7 +21,9 @@ describe("safeFetch", () => {
 
   it("returns result with status for successful fetch", async () => {
     // Use a known endpoint — the voice server that's typically running
-    const r = await safeFetch("http://localhost:8888/health", { timeout: 2000 });
+    const r = await safeFetch("http://localhost:8888/health", {
+      timeout: 2000,
+    });
     // If voice server is running, we get a response. If not, we get a fetch error.
     // Either way the adapter should return a Result, not throw.
     if (r.ok) {

@@ -18,9 +18,9 @@ Does **not** fire for Write, Edit, Bash, Glob, Grep, or any other tool calls. Do
 1. Extracts the `file_path` from the Read tool input
 2. Builds a metric record with `session_id`, `path`, and `timestamp` (ISO 8601)
 3. Appends the record as a JSON line to `MEMORY/WIKI/.pipeline/metrics.jsonl`
-4. Returns `continueOk()` with no additional context — this is a silent tracking hook
+4. Returns `{ continue: true }` with no additional context — this is a silent tracking hook
 
-If the file append fails (e.g., disk full), the error is logged to stderr and the hook still returns `continueOk()` to avoid blocking the session.
+If the file append fails (e.g., disk full), the error is logged to stderr and the hook still returns `{ continue: true }` to avoid blocking the session.
 
 ## Examples
 

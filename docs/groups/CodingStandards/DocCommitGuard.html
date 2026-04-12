@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1880,12 +1893,12 @@ A commit-time gate that scans every hook directory for required documentation fi
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>If all docs are present, returns <code>continue</code></p></div>
+          <div class="step-content"><p>If all docs are present, returns <code>{ continue: true }</code></p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>If any docs are missing, formats a block reason listing each missing file and returns <code>block</code></p></div>
+          <div class="step-content"><p>If any docs are missing, formats a block reason listing each missing file and returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 canonical PreToolUse block channel)</p></div>
         </div>
 </div>
       
@@ -1950,10 +1963,10 @@ for (const match of deps.scanHookJsons(deps.hooksDir)) {
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
-          <tr><td><code>hook-outputs</code></td><td>core</td><td><code>continueOk()</code> factory for continue results</td></tr>
           <tr><td><code>tool-input</code></td><td>lib</td><td><code>getCommand()</code> to extract Bash command string</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>fileExists</code> to check for doc files on disk</td></tr>
           <tr><td><code>Glob</code></td><td>bun</td><td>Scans <code><em>/</em>/hook.json</code> patterns in hooks directory</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; R4 PreToolUse block via <code>hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }</code></td></tr>
         </tbody>
       </table>
     </div>

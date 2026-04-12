@@ -60,3 +60,4 @@ await Promise.allSettled(handlers);
 | `handlers/VoiceNotification` | handler | TTS announcement of completion summaries |
 | `handlers/RebuildSkill` | handler | Checks and rebuilds stale skills |
 | `handlers/AlgorithmEnrichment` | handler | Enriches algorithm state from responses |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; Stop silent no-op via `ok({})` (R8 shape, post-SDK-refactor 1V, replaces legacy `SilentOutput`) |

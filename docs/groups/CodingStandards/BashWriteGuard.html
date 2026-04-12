@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1885,12 +1898,12 @@ Monitor shell command execution and detect when a command would write to a code 
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>If no write pattern is detected, returns <code>continue</code></p></div>
+          <div class="step-content"><p>If no write pattern is detected, returns <code>{ continue: true }</code></p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>If a write pattern is detected, formats a block message explaining why the command is blocked and returns <code>block</code></p></div>
+          <div class="step-content"><p>If a write pattern is detected, formats a block message explaining why the command is blocked and returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 canonical block channel for PreToolUse)</p></div>
         </div>
 </div>
       
@@ -1902,10 +1915,10 @@ Monitor shell command execution and detect when a command would write to a code 
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
 // Core detection patterns
-if (/&gt;{1,2}\s*\S*\.tsx?\b/.test(command)) return true;  // redirect
-if (/\bsed\b.*-i\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(command)) return true;  // sed -i
-if (/\btee\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(teeTarget)) return true;  // tee
-if (/\b(?:cp|mv)\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(lastArg)) return true;  // cp/mv</div>
+if (/&gt;{1,2}\s*\S*\.tsx?\b/.test(command)) return true; // redirect
+if (/\bsed\b.*-i\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(command)) return true; // sed -i
+if (/\btee\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(teeTarget)) return true; // tee
+if (/\b(?:cp|mv)\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(lastArg)) return true; // cp/mv</div>
         </div>
       </div>
     </div>
@@ -1955,6 +1968,7 @@ if (/\b(?:cp|mv)\b/.test(command) &amp;&amp; TS_FILE_PATTERN.test(lastArg)) retu
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td><code>pickNarrative</code> for block message opener</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; R4 PreToolUse block via <code>hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }</code></td></tr>
         </tbody>
       </table>
     </div>

@@ -1,16 +1,47 @@
 import { describe, expect, it } from "bun:test";
-import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, SubagentStartInput, StopInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import type {
+  SessionStartInput,
+  StopInput,
+  SubagentStartInput,
+  ToolHookInput,
+  UserPromptSubmitInput,
+} from "@hooks/core/types/hook-inputs";
 import {
   type InjectionTracker,
-  type SteeringRuleConfig,
-  type SteeringRuleInjectorDeps,
-  SteeringRuleInjector,
   matchesKeywords,
   parseFrontmatter,
+  type SteeringRuleConfig,
+  SteeringRuleInjector,
+  type SteeringRuleInjectorDeps,
 } from "./SteeringRuleInjector.contract";
+
+// ─── Narrowing Helpers ───────────────────────────────────────────────────────
+
+function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs) return undefined;
+  return "additionalContext" in hs ? hs.additionalContext : undefined;
+}
+
+function getBlockReason(output: SyncHookJSONOutput): string | undefined {
+  if ("decision" in output && output.decision === "block") {
+    return "reason" in output ? output.reason : undefined;
+  }
+  return undefined;
+}
+
+function isSilent(output: SyncHookJSONOutput): boolean {
+  return !("decision" in output) && !output.hookSpecificOutput && output.continue !== true;
+}
+
+function isBareContinue(output: SyncHookJSONOutput): boolean {
+  return (
+    output.continue === true &&
+    !output.hookSpecificOutput &&
+    !("decision" in output && output.decision)
+  );
+}
 
 describe("parseFrontmatter", () => {
   it("parses valid frontmatter with all fields", () => {
@@ -195,19 +226,39 @@ function makePromptInput(prompt: string): UserPromptSubmitInput {
 }
 
 function makeToolInput(toolName: string, filePath: string): ToolHookInput {
-  return { session_id: "test-session-123", hook_type: "PreToolUse", tool_name: toolName, tool_input: { file_path: filePath } };
+  return {
+    session_id: "test-session-123",
+    hook_type: "PreToolUse",
+    tool_name: toolName,
+    tool_input: { file_path: filePath },
+  };
 }
 
 function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
-  return { session_id: "test-session-123", hook_type: "PostToolUse", tool_name: toolName, tool_input: { file_path: filePath }, tool_response: {} };
+  return {
+    session_id: "test-session-123",
+    hook_type: "PostToolUse",
+    tool_name: toolName,
+    tool_input: { file_path: filePath },
+    tool_response: {},
+  };
 }
 
 function makeSubagentInput(): SubagentStartInput {
-  return { session_id: "test-session-123", hook_type: "SubagentStart", transcript_path: "/tmp/transcript.jsonl" };
+  return {
+    session_id: "test-session-123",
+    hook_type: "SubagentStart",
+    transcript_path: "/tmp/transcript.jsonl",
+  };
 }
 
 function makeStopInput(lastMessage?: string): StopInput {
-  return { session_id: "test-session-123", hook_type: "Stop", last_assistant_message: lastMessage, stop_hook_active: true };
+  return {
+    session_id: "test-session-123",
+    hook_type: "Stop",
+    last_assistant_message: lastMessage,
+    stop_hook_active: true,
+  };
 }
 
 describe("SteeringRuleInjector contract", () => {
@@ -238,7 +289,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns silent when disabled", () => {
@@ -247,7 +298,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("injects always-rules on SessionStart", () => {
@@ -259,9 +310,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
   it("does NOT inject UserPromptSubmit-only rules on SessionStart", () => {
@@ -273,7 +322,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("injects keyword-matched rules on UserPromptSubmit", () => {
@@ -285,9 +334,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Deploy safety guidelines.");
+    expect(getInjectedContext(result.value)).toContain("Deploy safety guidelines.");
   });
 
   it("returns silent when no keywords match prompt", () => {
@@ -299,7 +346,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns silent for empty-keyword rules on UserPromptSubmit", () => {
@@ -311,7 +358,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("skips already-injected rules", () => {
@@ -329,7 +376,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("writes to tracker after injection", () => {
@@ -356,7 +403,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns silent when no rule files resolve from globs", () => {
@@ -368,7 +415,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns bare continue (not silent) when no rule files found on PreToolUse", () => {
@@ -379,8 +426,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+    expect(isBareContinue(result.value)).toBe(true);
   });
 
   it("concatenates multiple matched rules with separator", () => {
@@ -396,11 +442,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
-    expect((result.value as ContinueOutput).additionalContext).toContain("Git workflow rules.");
-    expect((result.value as ContinueOutput).additionalContext).toContain("\n\n---\n\n");
+    expect(getInjectedContext(result.value)).toContain("Always inject this content.");
+    expect(getInjectedContext(result.value)).toContain("Git workflow rules.");
+    expect(getInjectedContext(result.value)).toContain("\n\n---\n\n");
   });
 
   it("skips files with invalid frontmatter", () => {
@@ -416,9 +460,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
   it("skips files that cannot be read", () => {
@@ -434,9 +476,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
   it("injects matched rules on PreToolUse (keyword matches file path)", () => {
@@ -448,9 +488,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Browser-mandatory for CSS changes.");
+    expect(getInjectedContext(result.value)).toContain("Browser-mandatory for CSS changes.");
   });
 
   it("returns bare continue on PreToolUse when no keywords match", () => {
@@ -462,9 +500,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+    expect(isBareContinue(result.value)).toBe(true);
   });
 
   it("injects matched rules on PostToolUse (keyword matches tool name)", () => {
@@ -476,9 +512,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Verify after editing.");
+    expect(getInjectedContext(result.value)).toContain("Verify after editing.");
   });
 
   it("returns bare continue on PostToolUse when no keywords match", () => {
@@ -490,9 +524,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+    expect(isBareContinue(result.value)).toBe(true);
   });
 
   it("injects always-rules on SubagentStart", () => {
@@ -504,9 +536,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Least privilege for sub-agents.");
+    expect(getInjectedContext(result.value)).toContain("Least privilege for sub-agents.");
   });
 
   it("injects keyword-matched rules on Stop (matches last_assistant_message)", () => {
@@ -521,9 +551,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("Always go with the proper fix.");
+    expect(getBlockReason(result.value)).toContain("Always go with the proper fix.");
   });
 
   it("returns silent on Stop when no keywords match last_assistant_message", () => {
@@ -538,7 +566,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("returns silent on Stop when last_assistant_message is missing", () => {
@@ -550,7 +578,7 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilent(result.value)).toBe(true);
   });
 
   it("matches keywords against tool_name + file_path combined", () => {
@@ -569,9 +597,7 @@ Matched on tool or path.`;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Matched on tool or path.");
+    expect(getInjectedContext(result.value)).toContain("Matched on tool or path.");
   });
 
   it("matches keywords against tool_input.skill for Skill tool calls", () => {
@@ -596,8 +622,7 @@ Dogfood every task.`;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    expect((result.value as ContinueOutput).additionalContext).toContain("Dogfood every task.");
+    expect(getInjectedContext(result.value)).toContain("Dogfood every task.");
   });
 
   it("does not match Skill tool when skill name has no keyword match", () => {
@@ -622,10 +647,8 @@ Dogfood every task.`;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
-    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+    expect(isBareContinue(result.value)).toBe(true);
   });
-
 });
 
 describe("SteeringRuleInjector defaultDeps", () => {

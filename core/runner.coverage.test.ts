@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
 import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -52,11 +52,17 @@ const validToolInputJson = JSON.stringify(validToolInput);
 
 describe("runHookWith — pre-built input pipeline", () => {
   it("runs contract with pre-built input, skipping stdin", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestDirect",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const, additionalContext: "direct" }),
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PostToolUse" as const,
+            additionalContext: "direct",
+          },
+        }),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -67,11 +73,11 @@ describe("runHookWith — pre-built input pipeline", () => {
   });
 
   it("exits 0 when accepts() returns false", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestReject",
       event: "PostToolUse",
       accepts: () => false,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -81,7 +87,7 @@ describe("runHookWith — pre-built input pipeline", () => {
   });
 
   it("logs error and exits 0 when execute returns error", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestErrResult",
       event: "PostToolUse",
       accepts: () => true,
@@ -95,7 +101,7 @@ describe("runHookWith — pre-built input pipeline", () => {
   });
 
   it("catches thrown exceptions and exits 0", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestThrow",
       event: "PostToolUse",
       accepts: () => true,
@@ -111,7 +117,7 @@ describe("runHookWith — pre-built input pipeline", () => {
   });
 
   it("catches non-Error thrown values", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestThrowString",
       event: "PostToolUse",
       accepts: () => true,
@@ -131,7 +137,7 @@ describe("runHookWith — pre-built input pipeline", () => {
 
 describe("runHook — SecurityBlock exit code 2", () => {
   it("exits with code 2 when error has SecurityBlock code", async () => {
-    const securityContract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const securityContract: HookContract<ToolHookInput, {}> = {
       name: "TestSecurity",
       event: "PreToolUse",
       accepts: () => true,
@@ -139,13 +145,16 @@ describe("runHook — SecurityBlock exit code 2", () => {
       defaultDeps: {},
     };
     const io = createMockIO();
-    await runHook(securityContract, { ...io, stdinOverride: validToolInputJson });
+    await runHook(securityContract, {
+      ...io,
+      stdinOverride: validToolInputJson,
+    });
     expect(io.exitCode).toBe(2);
     expect(io.stderrLines.some((l) => l.includes("blocked for security"))).toBe(true);
   });
 
   it("exits 0 for non-SecurityBlock errors (fail open)", async () => {
-    const normalError: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const normalError: HookContract<ToolHookInput, {}> = {
       name: "TestNormalErr",
       event: "PreToolUse",
       accepts: () => true,
@@ -162,40 +171,46 @@ describe("runHook — SecurityBlock exit code 2", () => {
 
 describe("runHook — tool_name validation for tool events", () => {
   it("catches missing tool_name for PreToolUse contract", async () => {
-    const preToolContract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const preToolContract: HookContract<ToolHookInput, {}> = {
       name: "TestPreTool",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const inputMissingToolName = JSON.stringify({ session_id: "s" });
     const io = createMockIO();
-    await runHook(preToolContract, { ...io, stdinOverride: inputMissingToolName });
+    await runHook(preToolContract, {
+      ...io,
+      stdinOverride: inputMissingToolName,
+    });
     expect(io.stderrLines.some((l) => l.includes("missing tool_name"))).toBe(true);
     expect(io.exitCode).toBe(0);
   });
 
   it("catches missing tool_name for PostToolUse contract", async () => {
-    const postToolContract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const postToolContract: HookContract<ToolHookInput, {}> = {
       name: "TestPostTool",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const inputMissingToolName = JSON.stringify({ session_id: "s" });
     const io = createMockIO();
-    await runHook(postToolContract, { ...io, stdinOverride: inputMissingToolName });
+    await runHook(postToolContract, {
+      ...io,
+      stdinOverride: inputMissingToolName,
+    });
     expect(io.stderrLines.some((l) => l.includes("missing tool_name"))).toBe(true);
   });
 
   it("does not flag missing tool_name for non-tool events", async () => {
-    const sessionContract: HookContract<SessionStartInput, ContinueOutput, {}> = {
+    const sessionContract: HookContract<SessionStartInput, {}> = {
       name: "TestSession",
       event: "SessionStart",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const sessionInput = JSON.stringify({ session_id: "s" });
@@ -210,11 +225,15 @@ describe("runHook — tool_name validation for tool events", () => {
 
 describe("runHook — PostToolUse block format", () => {
   it("uses decision/reason format for non-PreToolUse block", async () => {
-    const postBlocker: HookContract<ToolHookInput, BlockOutput, {}> = {
+    const postBlocker: HookContract<ToolHookInput, {}> = {
       name: "TestPostBlock",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "block", decision: "block" as const, reason: "post-block reason" }),
+      execute: () =>
+        ok({
+          decision: "block" as const,
+          reason: "post-block reason",
+        }),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -228,31 +247,39 @@ describe("runHook — PostToolUse block format", () => {
 });
 
 describe("runHook — ask output format", () => {
-  it("produces decision/message JSON for ask output", async () => {
-    const asker: HookContract<ToolHookInput, AskOutput, {}> = {
+  it("produces hookSpecificOutput ask permissionDecision for PreToolUse ask", async () => {
+    const asker: HookContract<ToolHookInput, {}> = {
       name: "TestAsker",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "ask", decision: "ask" as const, message: "are you sure?" }),
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse" as const,
+            permissionDecision: "ask" as const,
+            permissionDecisionReason: "are you sure?",
+          },
+        }),
       defaultDeps: {},
     };
     const io = createMockIO();
     await runHook(asker, { ...io, stdinOverride: validToolInputJson });
     const output = JSON.parse(io.stdoutLines[0]);
-    expect(output.decision).toBe("ask");
-    expect(output.message).toBe("are you sure?");
+    expect(output.hookSpecificOutput.hookEventName).toBe("PreToolUse");
+    expect(output.hookSpecificOutput.permissionDecision).toBe("ask");
+    expect(output.hookSpecificOutput.permissionDecisionReason).toBe("are you sure?");
   });
 });
 
-// ─── runHookWith — silent and null output ────────────────────────────────────
+// ─── runHookWith — silent and updatedInput output ────────────────────────────
 
 describe("runHookWith — output edge cases", () => {
   it("produces no stdout for silent output", async () => {
-    const silentContract: HookContract<ToolHookInput, { type: "silent" }, {}> = {
+    const silentContract: HookContract<ToolHookInput, {}> = {
       name: "TestSilentWith",
       event: "Stop",
       accepts: () => true,
-      execute: () => ok({ type: "silent" as const }),
+      execute: () => ok({}),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -262,11 +289,17 @@ describe("runHookWith — output edge cases", () => {
   });
 
   it("formats updatedInput output type", async () => {
-    const contract: HookContract<ToolHookInput, { type: "updatedInput"; updatedInput: Record<string, unknown> }, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestUpdatedInput",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "updatedInput" as const, updatedInput: { command: "ls -la" } }),
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse" as const,
+            updatedInput: { command: "ls -la" },
+          },
+        }),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -277,11 +310,11 @@ describe("runHookWith — output edge cases", () => {
   });
 
   it("skips duplicate in runHookWith", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestDedupWith",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -292,15 +325,55 @@ describe("runHookWith — output edge cases", () => {
   });
 });
 
+// ─── Output Validation Failure Tests ────────────────────────────────────────
+
+// Construct an output that is structurally invalid per the Effect schema
+// (unrecognized hookEventName fails the hookSpecificOutput union) but passes
+// TypeScript by casting through the SDK's SyncHookJSONOutput type.
+// This is the correct intermediate-type cast pattern per TypeStrictness guidance.
+const invalidSchemaOutput = {
+  hookSpecificOutput: { hookEventName: "UnknownEvent" },
+} as unknown as SyncHookJSONOutput;
+
+describe("runHook — output validation failure (fail-open path)", () => {
+  it("writes { continue: true } to stdout when validateHookOutput fails", async () => {
+    const badOutputContract: HookContract<ToolHookInput, {}> = {
+      name: "TestBadOutput",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok(invalidSchemaOutput),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(badOutputContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("emits stderr warning when validateHookOutput fails", async () => {
+    const badOutputContract: HookContract<ToolHookInput, {}> = {
+      name: "TestBadOutputWarn",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok(invalidSchemaOutput),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(badOutputContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stderrLines.some((l) => l.includes("output validation failed"))).toBe(true);
+  });
+});
+
 // ─── runHook — additional branches ──────────────────────────────────────────
 
 describe("runHook — stdin and dedup branches", () => {
   it("handles stdin read error gracefully", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestStdinErr",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -314,11 +387,11 @@ describe("runHook — stdin and dedup branches", () => {
   });
 
   it("skips duplicate in runHook", async () => {
-    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+    const contract: HookContract<ToolHookInput, {}> = {
       name: "TestDedupMain",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => ok({ type: "continue", continue: true as const }),
+      execute: () => ok({ continue: true }),
       defaultDeps: {},
     };
     const io = createMockIO();

@@ -37,7 +37,7 @@ describe("SessionIdRegister", () => {
     const input: SessionStartInput = { session_id: "", hook_type: "SessionStart" };
     const result = await SessionIdRegister.execute(input, makeDeps());
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 
   test("returns silent when no KOORD_THREAD_ID", async () => {
@@ -46,7 +46,7 @@ describe("SessionIdRegister", () => {
     });
     const result = await SessionIdRegister.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 
   test("returns silent when no daemon URL", async () => {
@@ -59,7 +59,7 @@ describe("SessionIdRegister", () => {
     });
     const result = await SessionIdRegister.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 
   test("posts to /register-session with correct body", async () => {
@@ -102,7 +102,7 @@ describe("SessionIdRegister", () => {
     });
     const result = await SessionIdRegister.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("silent");
+    if (result.ok) expect(result.value).toEqual({});
   });
 
   test("strips trailing slashes from daemon URL", async () => {

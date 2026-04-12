@@ -120,7 +120,10 @@ function sectionIcon(heading: string): string {
 // ─── Markdown Parsing ─────────────────────────────────────────────────────────
 
 /** Split markdown into sections by ## headings. Content before the first ## is preamble. */
-function parseSections(md: string): { preamble: string; sections: DocSection[] } {
+function parseSections(md: string): {
+  preamble: string;
+  sections: DocSection[];
+} {
   const lines = md.split("\n");
   const sections: DocSection[] = [];
   let preamble = "";
@@ -154,7 +157,11 @@ function parseSections(md: string): { preamble: string; sections: DocSection[] }
 
   // Flush last section
   if (currentHeading) {
-    sections.push({ heading: currentHeading, id: currentId, body: currentBody.join("\n").trim() });
+    sections.push({
+      heading: currentHeading,
+      id: currentId,
+      body: currentBody.join("\n").trim(),
+    });
   } else if (currentBody.length > 0) {
     preamble = currentBody.join("\n").trim();
   }
@@ -243,7 +250,10 @@ function parseBlocks(body: string): Block[] {
     // Blockquote (collect all consecutive > lines)
     if (line.startsWith("> ") || line === ">") {
       const bqLines: string[] = [];
-      while (i < lines.length && (lines[i].startsWith("> ") || lines[i] === ">")) {
+      while (
+        i < lines.length &&
+        (lines[i].startsWith("> ") || lines[i] === ">")
+      ) {
         bqLines.push(lines[i].replace(/^>\s?/, ""));
         i++;
       }
@@ -254,7 +264,11 @@ function parseBlocks(body: string): Block[] {
     // Table
     if (line.includes("|") && line.trim().startsWith("|")) {
       const tableLines: string[] = [];
-      while (i < lines.length && lines[i].includes("|") && lines[i].trim().startsWith("|")) {
+      while (
+        i < lines.length &&
+        lines[i].includes("|") &&
+        lines[i].trim().startsWith("|")
+      ) {
         tableLines.push(lines[i]);
         i++;
       }
@@ -267,7 +281,11 @@ function parseBlocks(body: string): Block[] {
         )
         .filter((cells) => !cells.every((c) => /^[-:]+$/.test(c)));
       if (parsedRows.length > 0) {
-        blocks.push({ type: "table", headers: parsedRows[0], rows: parsedRows.slice(1) });
+        blocks.push({
+          type: "table",
+          headers: parsedRows[0],
+          rows: parsedRows.slice(1),
+        });
       }
       continue;
     }
@@ -326,7 +344,8 @@ function renderBlock(block: Block): string {
     case "bullets":
       return block.items
         .map(
-          (item) => `<div class="reason"><span class="ri">&#x2022;</span> ${inlineMd(item)}</div>`,
+          (item) =>
+            `<div class="reason"><span class="ri">&#x2022;</span> ${inlineMd(item)}</div>`,
         )
         .join("\n");
 
@@ -596,7 +615,12 @@ ${navItems}
 
 // ─── Hero Builder ─────────────────────────────────────────────────────────────
 
-function buildHero(badge: string, title: string, subtitle: string, meta: string[]): string {
+function buildHero(
+  badge: string,
+  title: string,
+  subtitle: string,
+  meta: string[],
+): string {
   const metaItems = meta.map((m) => `      <span>${esc(m)}</span>`).join("\n");
   return `
 <div class="hero">
@@ -616,7 +640,12 @@ ${metaItems}
 // ─── Page Templates ───────────────────────────────────────────────────────────
 
 /** Render a single hook documentation page. */
-export function renderHookPage(hook: HookMeta, markdownContent: string, groupName: string, ideaContent?: string): string {
+export function renderHookPage(
+  hook: HookMeta,
+  markdownContent: string,
+  groupName: string,
+  ideaContent?: string,
+): string {
   const { preamble, sections } = parseSections(markdownContent);
 
   // Remove h1 from preamble (redundant with hero)
@@ -634,7 +663,8 @@ export function renderHookPage(hook: HookMeta, markdownContent: string, groupNam
   const hero = buildHero(
     "Hook Documentation",
     hook.name,
-    hook.description || `${eventList(hook.event).join(" + ")} hook in the ${groupName} group.`,
+    hook.description ||
+      `${eventList(hook.event).join(" + ")} hook in the ${groupName} group.`,
     [groupName, ...eventList(hook.event), "pai-hooks"],
   );
 
@@ -653,7 +683,9 @@ ${hero}
 
 <div class="container">
   <div class="tags" style="margin-bottom: var(--sp-md);">
-    ${eventList(hook.event).map((e) => `<span class="tag ${eventColor(e)}">${esc(e)}</span>`).join("\n    ")}
+    ${eventList(hook.event)
+      .map((e) => `<span class="tag ${eventColor(e)}">${esc(e)}</span>`)
+      .join("\n    ")}
     <span class="tag green">${esc(groupName)}</span>
   </div>
   <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
@@ -693,10 +725,12 @@ export function renderGroupPage(group: GroupMeta): string {
       const interactiveAttrs = clickable
         ? ` style="cursor:pointer;" onclick="location.href='${esc(h.name)}.html'"`
         : ` style="opacity:0.6;"`;
-      const badges = events.map((e) => {
-        const c = eventColor(e);
-        return `<span class="card-badge" style="background:var(--${c}-dim);color:var(--${c});">${esc(e)}</span>`;
-      }).join("\n            ");
+      const badges = events
+        .map((e) => {
+          const c = eventColor(e);
+          return `<span class="card-badge" style="background:var(--${c}-dim);color:var(--${c});">${esc(e)}</span>`;
+        })
+        .join("\n            ");
       return `
       <div class="card ${primaryColor}"${interactiveAttrs}>
         <div class="card-header">
@@ -721,7 +755,9 @@ export function renderGroupPage(group: GroupMeta): string {
   const events = [...new Set(group.hooks.flatMap((h) => eventList(h.event)))];
   const summaryItems = events
     .map((event) => {
-      const count = group.hooks.filter((h) => eventList(h.event).includes(event)).length;
+      const count = group.hooks.filter((h) =>
+        eventList(h.event).includes(event),
+      ).length;
       const color = eventColor(event);
       return `<div class="summary-item"><div class="num" style="color:var(--${color === "accent" ? "accent-bright" : color});">${count}</div><div class="label">${esc(event)}</div></div>`;
     })

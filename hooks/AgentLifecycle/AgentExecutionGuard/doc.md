@@ -36,12 +36,18 @@ It does **not** fire when:
 
 ```typescript
 // Core detection: non-fast agent without background flag
-if (toolInput.run_in_background === true) return ok({ type: "continue", continue: true });
-if (FAST_AGENT_TYPES.includes(agentType)) return ok({ type: "continue", continue: true });
-if (FAST_MODELS.includes(model)) return ok({ type: "continue", continue: true });
+if (toolInput.run_in_background === true) return ok({ continue: true });
+if (FAST_AGENT_TYPES.includes(agentType)) return ok({ continue: true });
+if (FAST_MODELS.includes(model)) return ok({ continue: true });
 
 // VIOLATION: inject warning context
-return ok({ type: "context", content: warning });
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    additionalContext: warning,
+  },
+});
 ```
 
 ## Examples
@@ -56,9 +62,21 @@ return ok({ type: "context", content: warning });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | Provides `ok()` for Result-based returns |
-| `contract` | core | `SyncHookContract` type definition |
-| `hook-inputs` | core | `ToolHookInput` type for PreToolUse events |
-| `hook-outputs` | core | `ContinueOutput` and `ContextOutput` types |
+| Dependency                       | Type | Purpose                                                                                                         |
+| -------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core | Provides `ok()` for Result-based returns                                                                        |
+| `contract`                       | core | `SyncHookContract` type definition                                                                              |
+| `hook-inputs`                    | core | `ToolHookInput` type for PreToolUse events                                                                      |
+| `@anthropic-ai/claude-agent-sdk` | SDK  | `SyncHookJSONOutput` union type (replaces local `ContinueOutput`/`ContextOutput` tombstoned in Phase 1 Task 1K) |
+
+---
+
+## History
+
+**Phase 1 Task 1K (2026-04-11)** — Latent bug #22 fixed. The R7 context-injection site
+at `AgentExecutionGuard.contract.ts:96` was emitting `ok({ type: "context", content: warning })`,
+which became a silent drop after Phase 0 Task 0C (commit `3705810`) deleted the runner's
+`formatOutput()` translation layer. `validateHookOutput` fail-opens on unrecognized shapes, so
+the foreground-agent warning was dropped with no diagnostic. Fixed by migrating to the SDK's
+verbose `hookSpecificOutput.additionalContext` shape for PreToolUse events, per recipe R7 in
+`/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:137-151`.

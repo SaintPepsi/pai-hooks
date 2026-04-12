@@ -31,7 +31,10 @@ It does **not** fire when:
 ```typescript
 // Mark work complete, clear state, reset terminal
 metaContent = metaContent.replace(/^status: "ACTIVE"$/m, 'status: "COMPLETED"');
-metaContent = metaContent.replace(/^completed_at: null$/m, `completed_at: "${deps.getTimestamp()}"`);
+metaContent = metaContent.replace(
+  /^completed_at: null$/m,
+  `completed_at: "${deps.getTimestamp()}"`,
+);
 deps.writeFile(metaPath, metaContent);
 deps.unlinkSync(stateFile);
 ```
@@ -48,8 +51,9 @@ deps.unlinkSync(stateFile);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | File read/write/remove for state and META.yaml |
-| `lib/time` | lib | ISO timestamp for completion time |
-| `core/result` | core | Result type |
+| Dependency                       | Type      | Purpose                                              |
+| -------------------------------- | --------- | ---------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | File read/write/remove for state and META.yaml       |
+| `lib/time`                       | lib       | ISO timestamp for completion time                    |
+| `core/result`                    | core      | Result type                                          |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor) |

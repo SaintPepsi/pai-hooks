@@ -303,7 +303,11 @@ function four() {}
 
   describe("formatAdvisory", () => {
     test("returns null for clean files", () => {
-      const result: QualityScore = { score: 10, violations: [], checkResults: [] };
+      const result: QualityScore = {
+        score: 10,
+        violations: [],
+        checkResults: [],
+      };
       expect(formatAdvisory(result, "src/clean.ts")).toBeNull();
     });
 
@@ -326,14 +330,30 @@ function four() {}
 
   describe("formatDelta", () => {
     test("returns null for negligible changes", () => {
-      const before: QualityScore = { score: 8.0, violations: [], checkResults: [] };
-      const after: QualityScore = { score: 8.0, violations: [], checkResults: [] };
+      const before: QualityScore = {
+        score: 8.0,
+        violations: [],
+        checkResults: [],
+      };
+      const after: QualityScore = {
+        score: 8.0,
+        violations: [],
+        checkResults: [],
+      };
       expect(formatDelta(before, after, "src/file.ts")).toBeNull();
     });
 
     test("formats improvement", () => {
-      const before: QualityScore = { score: 4.2, violations: [], checkResults: [] };
-      const after: QualityScore = { score: 7.8, violations: [], checkResults: [] };
+      const before: QualityScore = {
+        score: 4.2,
+        violations: [],
+        checkResults: [],
+      };
+      const after: QualityScore = {
+        score: 7.8,
+        violations: [],
+        checkResults: [],
+      };
       const delta = formatDelta(before, after, "src/file.ts");
       expect(delta).not.toBeNull();
       expect(delta).toContain("improved");
@@ -343,8 +363,16 @@ function four() {}
     });
 
     test("formats degradation", () => {
-      const before: QualityScore = { score: 7.8, violations: [], checkResults: [] };
-      const after: QualityScore = { score: 5.1, violations: [], checkResults: [] };
+      const before: QualityScore = {
+        score: 7.8,
+        violations: [],
+        checkResults: [],
+      };
+      const after: QualityScore = {
+        score: 5.1,
+        violations: [],
+        checkResults: [],
+      };
       const delta = formatDelta(before, after, "src/file.ts");
       expect(delta).not.toBeNull();
       expect(delta).toContain("degraded");

@@ -1,13 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { ok, err } from "@hooks/core/result";
 import { processSpawnFailed } from "@hooks/core/error";
-import { runHardening, type HardeningDeps } from "@hooks/hooks/SecurityValidator/run-hardening";
+import { err, ok } from "@hooks/core/result";
+import { type HardeningDeps, runHardening } from "@hooks/hooks/SecurityValidator/run-hardening";
 import type { SpawnAgentConfig } from "@hooks/lib/spawn-agent";
 
-function fakeDeps(overrides: Partial<HardeningDeps> = {}): HardeningDeps & { _captured: SpawnAgentConfig[] } {
+function fakeDeps(
+  overrides: Partial<HardeningDeps> = {},
+): HardeningDeps & { _captured: SpawnAgentConfig[] } {
   const captured: SpawnAgentConfig[] = [];
   return {
-    spawnAgent: (config) => { captured.push(config); return ok(undefined as void); },
+    spawnAgent: (config) => {
+      captured.push(config);
+      return ok(undefined as undefined);
+    },
     stderr: () => {},
     baseDir: "/fake/pai",
     mcpConfigPath: "/fake/mcp-config.json",

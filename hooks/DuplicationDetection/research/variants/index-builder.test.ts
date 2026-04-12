@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, test } from "bun:test";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SCRIPT_PATH = import.meta.dir + "/index-builder.ts";
-const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
+const SCRIPT_PATH = `${import.meta.dir}/index-builder.ts`;
+const PAI_HOOKS_DIR = `${import.meta.dir}/../../../..`;
 
 const UNIQUE_ID = Math.random().toString(36).slice(2);
 const SHARED_INDEX_PATH = `/tmp/test-dup-index-${UNIQUE_ID}.json`;
@@ -19,7 +19,8 @@ async function runCLI(
   const stdoutPath = `/tmp/index-builder-test-${id}-stdout.txt`;
   const stderrPath = `/tmp/index-builder-test-${id}-stderr.txt`;
 
-  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+  const bunPath = Bun.which("bun") ?? "bun";
+  const proc = Bun.spawn([bunPath, SCRIPT_PATH, ...args], {
     cwd: import.meta.dir,
     stdout: Bun.file(stdoutPath),
     stderr: Bun.file(stderrPath),

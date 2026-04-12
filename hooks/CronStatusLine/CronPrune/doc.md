@@ -39,11 +39,16 @@ for (const cron of parsed.value.crons) {
   const intervalMs = cronIntervalMs(cron.schedule);
   if (intervalMs > longestCronMs) longestCronMs = intervalMs;
 }
-const pruneThreshold = longestCronMs > 0 ? longestCronMs * 2 : DEFAULT_PRUNE_THRESHOLD_MS;
+const pruneThreshold =
+  longestCronMs > 0 ? longestCronMs * 2 : DEFAULT_PRUNE_THRESHOLD_MS;
 
 if (ageMs > pruneThreshold) {
   deps.removeFile(filePath);
-  appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_dead" }, deps, deps);
+  appendCronLog(
+    { type: "pruned", sessionId, cronCount, reason: "session_dead" },
+    deps,
+    deps,
+  );
 }
 ```
 
@@ -59,9 +64,9 @@ if (ageMs > pruneThreshold) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File I/O operations including `stat` for mtime checks and `removeFile` for cleanup |
-| `error` | core | `jsonParseFailed` error constructor for safe JSON parsing |
-| `shared` | shared | `cronDir`, `appendCronLog` for cron directory resolution and logging |
-| `result` | core | `ok`, `tryCatch` for Result type operations |
+| Dependency | Type    | Purpose                                                                            |
+| ---------- | ------- | ---------------------------------------------------------------------------------- |
+| `fs`       | adapter | File I/O operations including `stat` for mtime checks and `removeFile` for cleanup |
+| `error`    | core    | `jsonParseFailed` error constructor for safe JSON parsing                          |
+| `shared`   | shared  | `cronDir`, `appendCronLog` for cron directory resolution and logging               |
+| `result`   | core    | `ok`, `tryCatch` for Result type operations                                        |

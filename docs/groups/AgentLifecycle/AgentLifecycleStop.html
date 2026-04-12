@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1954,6 +1967,7 @@ cleanupOrphans(deps, input.session_id);</div>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> and <code>tryCatch</code> for Result-based returns</td></tr>
           <tr><td><code>error</code></td><td>core</td><td><code>jsonParseFailed</code> error constructor</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> union type for execute return</td></tr>
           <tr><td><code>AgentLifecycle/shared</code></td><td>shared</td><td><code>AgentFileData</code> type, <code>AgentLifecycleDeps</code>, <code>defaultDeps</code>, <code>agentFilePath</code>, <code>cleanupOrphans</code></td></tr>
           <tr><td><code>paths</code></td><td>lib</td><td>Resolves PAI directory for agent state storage (via shared deps)</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td>File operations: read, write, exists, ensureDir, readDir, removeFile (via shared deps)</td></tr>

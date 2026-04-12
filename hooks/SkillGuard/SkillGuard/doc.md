@@ -30,14 +30,18 @@ It does **not** fire when:
 
 ```typescript
 if (BLOCKED_SKILLS.includes(skillName)) {
-  const opener = pickNarrative("SkillGuard", 1);
+  const opener = pickNarrative("SkillGuard", 1, import.meta.dir);
   return ok({
-    type: "block",
-    decision: "block",
-    reason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias.`,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: `${opener}\n\n"${skillName}" is a known false-positive triggered by position bias.`,
+    },
   });
 }
 ```
+
+<!-- L12 tombstone: bug #12 (R4-vs-R5 class) — legacy `{ type: "block", decision: "block", reason }` shape was a silent-drop on PreToolUse; replaced with `hookSpecificOutput.permissionDecision: "deny"` via R4 migration (feat/sdk-type-foundation). -->
 
 ## Examples
 
@@ -54,3 +58,4 @@ if (BLOCKED_SKILLS.includes(skillName)) {
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `narrative-reader` | lib | Picks contextual narrative openers for block messages |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4 shape, post-SDK-refactor bug #12 fix) |

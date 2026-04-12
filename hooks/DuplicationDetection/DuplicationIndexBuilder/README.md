@@ -1,5 +1,9 @@
 # DuplicationIndexBuilder
 
+**Event:** PostToolUse (Write/Edit on `.ts`) and SessionStart (eager pre-warming)
+**Contract:** `DuplicationIndexBuilder.contract.ts`
+**Output:** `SyncHookJSONOutput` — silent continue (`ok({ continue: true })`), no context added to conversation
+
 Builds the duplication index on SessionStart (eager pre-warming) and PostToolUse (after `.ts` file writes).
 
 ## What It Does

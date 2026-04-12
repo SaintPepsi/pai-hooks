@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1740,9 +1753,10 @@ section[id] {
     <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
-    <li class="wiki-nav-item"><a href="#pattern-detection"><span class="nav-num">05</span> Pattern Detection</a></li>
-    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">06</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#bug-history"><span class="nav-num">05</span> Bug History</a></li>
+    <li class="wiki-nav-item"><a href="#pattern-detection"><span class="nav-num">06</span> Pattern Detection</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">07</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">08</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1960,12 +1974,31 @@ This is the checking half of a two-part system. A separate index builder maintai
 const blockMatches = matches.filter((m) =&gt; m.signals.length &gt;= BLOCK_THRESHOLD);
 
 if (blockMatches.length &gt; 0 &amp;&amp; deps.blocking) {
-  return ok({ type: "block", decision: "block", reason });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: reason,
+    },
+  });
 }
 // 2-3 signals: log only
-return ok({ type: "continue", continue: true });</div>
+return ok({ continue: true });</div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section id="bug-history">
+    <div class="section-label accent">Bug History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Bug History</h3>
+      </div>
+      <p><!-- L14 tombstone: bug #15 (R2 additionalContext drop) — the <code>continueWithPatterns()</code> helper returned <code>{ ...continueOk(), additionalContext: parts.join("\n\n") }</code> on PreToolUse. The top-level <code>additionalContext</code> field is silently dropped by the SDK on PreToolUse events — pattern advisories never reached the agent. Fixed in sdk-type-foundation migration (Task 1Q): now returns <code>{ continue: true, hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: parts.join("\n\n") } }</code>. Pattern advisories and derivation advisories are now actually delivered. --></p>
+      <p><!-- L14 tombstone: bug #16 (R4-vs-R5 class) — the block return on 4/4 matches used <code>{ type: "block", decision: "block", reason }</code> (R5 shape), which is silently dropped by the SDK on PreToolUse events. Duplicate-block enforcement was non-functional. Fixed in sdk-type-foundation migration (Task 1Q): now uses <code>hookSpecificOutput.permissionDecision: "deny"</code> with <code>permissionDecisionReason</code> (R4 shape). Exact duplicates are now actually blocked when <code>blocking: true</code>. --></p>
     </div>
   </section>
 

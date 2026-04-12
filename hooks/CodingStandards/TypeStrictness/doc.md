@@ -31,9 +31,9 @@ It does **not** fire when:
 3. Strips comments, string literals, template literals, and regex literals from the content
 4. Scans each line for `any` type patterns (`: any`, `as any`, `<any>`, `any[]`, `| any`, `any &`, etc.)
 5. Logs the outcome (block or continue) to the signal logger (`type-strictness.jsonl`)
-6. If `any` violations found: returns `block` with line numbers, violation details, and fix guidance
-7. If no `any` but lazy `unknown` detected: returns `continue` with advisory context warning against band-aid fixes
-8. If fully clean: returns `continue` silently
+6. If `any` violations found: returns a `SyncHookJSONOutput` with `hookSpecificOutput.permissionDecision: "deny"` (R4 canonical PreToolUse block channel) and line numbers + fix guidance as `permissionDecisionReason`
+7. If no `any` but lazy `unknown` detected: returns `{ continue: true, hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext } }` (R2 advisory channel) warning against band-aid fixes
+8. If fully clean: returns `{ continue: true }` silently
 
 ```typescript
 // Core detection: strip non-code, then scan for any patterns
@@ -41,13 +41,25 @@ const stripped = stripCommentsAndStrings(content);
 const violations = findAnyViolations(content);
 
 if (violations.length > 0) {
-  return ok({ type: "block", decision: "block", reason: formatBlockMessage(violations, filePath) });
+  return ok({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: formatBlockMessage(violations, filePath),
+    },
+  });
 }
 
 // Secondary: warn about lazy unknown usage
 const unknownWarnings = findLazyUnknownUsage(content);
 if (unknownWarnings.length > 0) {
-  return ok({ type: "continue", continue: true, additionalContext: formatLazyUnknownAdvisory(...) });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      additionalContext: formatLazyUnknownAdvisory(...),
+    },
+  });
 }
 ```
 
@@ -67,10 +79,10 @@ if (unknownWarnings.length > 0) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `signal-logger` | lib | Logs violations and outcomes to JSONL for analysis |
-| `narrative-reader` | lib | `pickNarrative` for escalating block message tone |
-| `svelte-utils` | lib | `isSvelteFile`, `extractSvelteScript` for Svelte support |
-
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                                                                                                                                                                                     |
+| `signal-logger`                  | lib       | Logs violations and outcomes to JSONL for analysis                                                                                                                                                                                                                                                                                  |
+| `narrative-reader`               | lib       | `pickNarrative` for escalating block message tone                                                                                                                                                                                                                                                                                   |
+| `svelte-utils`                   | lib       | `isSvelteFile`, `extractSvelteScript` for Svelte support                                                                                                                                                                                                                                                                            |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"`, R2 PreToolUse advisory via `hookSpecificOutput.additionalContext` (post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from `continueOk(advisory)` was silently dropped for PreToolUse events) |

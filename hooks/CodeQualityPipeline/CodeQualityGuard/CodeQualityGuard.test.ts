@@ -9,6 +9,7 @@ import {
   CodeQualityGuard,
   type CodeQualityGuardDeps,
 } from "@hooks/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -73,7 +74,11 @@ const TEST_FILE_WITH_SUPPRESSABLE = [
 ].join("\n");
 
 interface BaselineStore {
-  [filePath: string]: { score: number; violations: number; checkResults: unknown[] };
+  [filePath: string]: {
+    score: number;
+    violations: number;
+    checkResults: unknown[];
+  };
 }
 
 function makeDeps(overrides: Partial<CodeQualityGuardDeps> = {}): CodeQualityGuardDeps {
@@ -131,7 +136,9 @@ describe("CodeQualityGuard", () => {
     });
 
     test("rejects non-source files", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/config.json" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/config.json" },
+      });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
 
@@ -146,12 +153,16 @@ describe("CodeQualityGuard", () => {
     });
 
     test("rejects when tool_input is a string", () => {
-      const input = makeInput({ tool_input: "/src/app.ts" as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: "/src/app.ts" as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is null", () => {
-      const input = makeInput({ tool_input: null as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: null as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
   });
@@ -162,7 +173,6 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });
@@ -174,10 +184,10 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
-        expect(result.value.additionalContext).toBeDefined();
-        expect(result.value.additionalContext).toContain("SOLID quality:");
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("SOLID quality:");
       }
     });
   });
@@ -190,7 +200,7 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
   });
@@ -204,8 +214,8 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.continue).toBe(true);
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
   });
@@ -225,8 +235,9 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).toContain("improved");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) expect(ctx).toContain("improved");
       }
     });
 
@@ -237,21 +248,23 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).not.toContain("improved");
-        expect(result.value.additionalContext).not.toContain("degraded");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) {
+          expect(ctx).not.toContain("improved");
+          expect(ctx).not.toContain("degraded");
+        }
       }
     });
   });
 
   describe("never blocks or asks", () => {
-    test("always returns ContinueOutput type", () => {
+    test("always returns continue output", () => {
       const deps = makeDeps({ readFile: () => ok(BLOATED_TS) });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        // ContinueOutput has no decision property
+        expect(result.value.continue).toBe(true);
         expect("decision" in result.value).toBe(false);
       }
     });
@@ -259,40 +272,53 @@ describe("CodeQualityGuard", () => {
 
   describe("execute — test file relaxation", () => {
     test("suppresses type-import-ratio for .test.ts files", () => {
-      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const deps = makeDeps({
+        readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE),
+      });
       const input = makeInput({
         tool_input: { file_path: "/src/components/MyComponent.test.ts" },
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).not.toContain("Type import ratio");
-        expect(result.value.additionalContext).not.toContain("Options object has");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) {
+          expect(ctx).not.toContain("Type import ratio");
+          expect(ctx).not.toContain("Options object has");
+        }
       }
     });
 
     test("suppresses type-import-ratio for .spec.tsx files", () => {
-      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const deps = makeDeps({
+        readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE),
+      });
       const input = makeInput({
         tool_input: { file_path: "/src/components/MyComponent.spec.tsx" },
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).not.toContain("Type import ratio");
-        expect(result.value.additionalContext).not.toContain("Options object has");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) {
+          expect(ctx).not.toContain("Type import ratio");
+          expect(ctx).not.toContain("Options object has");
+        }
       }
     });
 
     test("does NOT suppress type-import-ratio for production files", () => {
-      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const deps = makeDeps({
+        readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE),
+      });
       const input = makeInput({
         tool_input: { file_path: "/src/components/MyComponent.ts" },
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).toBeDefined();
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) expect(ctx).toBeDefined();
       }
     });
   });
@@ -305,7 +331,7 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("continue");
+      if (result.ok) expect(result.value.continue).toBe(true);
     });
 
     test("scores script block from .svelte file", () => {
@@ -339,7 +365,7 @@ describe("CodeQualityGuard", () => {
       const result2 = CodeQualityGuard.execute(input, deps);
       expect(result2.ok).toBe(true);
       if (result2.ok) {
-        expect(result2.value.type).toBe("continue");
+        expect(result2.value.continue).toBe(true);
       }
     });
   });

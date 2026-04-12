@@ -65,12 +65,17 @@ describe("AgentPrepromptInjector", () => {
     test("injects preprompt with template variables replaced", () => {
       const result = AgentPrepromptInjector.execute(makeInput(), makeDeps());
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.type === "updatedInput") {
-        const prompt = result.value.updatedInput.prompt as string;
-        expect(prompt).toContain("implement feature X");
-        expect(prompt).toContain("Worker: dev-42");
-        expect(prompt).toContain("Thread: 12345678901234567");
-        expect(prompt).toContain("Task: implement feature X");
+      if (result.ok) {
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PreToolUse") {
+          const prompt = hso.updatedInput?.prompt as string;
+          expect(prompt).toContain("implement feature X");
+          expect(prompt).toContain("Worker: dev-42");
+          expect(prompt).toContain("Thread: 12345678901234567");
+          expect(prompt).toContain("Task: implement feature X");
+        } else {
+          throw new Error("Expected PreToolUse hookSpecificOutput with updatedInput");
+        }
       }
     });
 
@@ -78,7 +83,7 @@ describe("AgentPrepromptInjector", () => {
       const deps = makeDeps({ fileExists: () => false });
       const result = AgentPrepromptInjector.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("continue");
+      if (result.ok) expect(result.value.continue).toBe(true);
     });
 
     test("returns continue when template read fails", () => {
@@ -87,7 +92,7 @@ describe("AgentPrepromptInjector", () => {
       });
       const result = AgentPrepromptInjector.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("continue");
+      if (result.ok) expect(result.value.continue).toBe(true);
     });
 
     test("uses config prepromptPath when available", () => {
@@ -119,10 +124,15 @@ describe("AgentPrepromptInjector", () => {
       const input = makeInput({ name: undefined, thread_id: undefined });
       const result = AgentPrepromptInjector.execute(input, makeDeps());
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.type === "updatedInput") {
-        const prompt = result.value.updatedInput.prompt as string;
-        expect(prompt).toContain("Worker: worker");
-        expect(prompt).toContain("Thread: unknown");
+      if (result.ok) {
+        const hso = result.value.hookSpecificOutput;
+        if (hso && hso.hookEventName === "PreToolUse") {
+          const prompt = hso.updatedInput?.prompt as string;
+          expect(prompt).toContain("Worker: worker");
+          expect(prompt).toContain("Thread: unknown");
+        } else {
+          throw new Error("Expected PreToolUse hookSpecificOutput with updatedInput");
+        }
       }
     });
   });

@@ -6,12 +6,12 @@ When pai-hooks is used as a submodule inside `~/.claude/`, the real PAI modules 
 
 ## Modules
 
-| Stub | Real module | Purpose |
-|------|------------|---------|
-| `Tools/Inference.ts` | `PAI/Tools/Inference.ts` | AI inference via CLI (`InferenceResult`, `inference()`) |
-| `Tools/TranscriptParser.ts` | `PAI/Tools/TranscriptParser.ts` | Claude transcript parsing (`ParsedTranscript`, `parseTranscript()`) |
-| `Tools/FailureCapture.ts` | `PAI/Tools/FailureCapture.ts` | Failure event capture (`captureFailure()`) |
-| `adapters/fs.ts` | `PAI/adapters/fs.ts` | Filesystem helpers (`readFileSafe`, `writeFileSafe`, `pathExists`, `ensureDirSafe`) |
+| Stub                        | Real module                     | Purpose                                                                             |
+| --------------------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| `Tools/Inference.ts`        | `PAI/Tools/Inference.ts`        | AI inference via CLI (`InferenceResult`, `inference()`)                             |
+| `Tools/TranscriptParser.ts` | `PAI/Tools/TranscriptParser.ts` | Claude transcript parsing (`ParsedTranscript`, `parseTranscript()`)                 |
+| `Tools/FailureCapture.ts`   | `PAI/Tools/FailureCapture.ts`   | Failure event capture (`captureFailure()`)                                          |
+| `adapters/fs.ts`            | `PAI/adapters/fs.ts`            | Filesystem helpers (`readFileSafe`, `writeFileSafe`, `pathExists`, `ensureDirSafe`) |
 
 ## How it works
 

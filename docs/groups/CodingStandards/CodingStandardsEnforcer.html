@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1906,7 +1919,7 @@ This is the "enforce" side of a warn-then-enforce pattern. A companion advisor w
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Returns <code>block</code> with the formatted reason</p></div>
+          <div class="step-content"><p>Returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 canonical PreToolUse block) and the formatted reason as <code>permissionDecisionReason</code></p></div>
         </div>
 </div>
       
@@ -1919,11 +1932,21 @@ This is the "enforce" side of a warn-then-enforce pattern. A companion advisor w
           <div class="code-block"><span class="code-lang">typescript</span>
 // Core enforcement flow (Edit simulation)
 const currentFile = deps.readFile(filePath);
-const contentToCheck = applyEdit(currentFile, editParts.oldStr, editParts.newStr);
+const contentToCheck = applyEdit(
+  currentFile,
+  editParts.oldStr,
+  editParts.newStr,
+);
 const violations = findAllViolations(contentToCheck, filePath);
 
 if (violations.length &gt; 0) {
-  return ok({ type: "block", decision: "block", reason: formatBlockMessage(violations, filePath) });
+  return ok({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: formatBlockMessage(violations, filePath),
+    },
+  });
 }</div>
         </div>
       </div>
@@ -1978,6 +2001,7 @@ if (violations.length &gt; 0) {
           <tr><td><code>signal-logger</code></td><td>lib</td><td>Logs violations to JSONL for pattern analysis</td></tr>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td><code>pickNarrative</code> for escalating block message tone</td></tr>
           <tr><td><code>svelte-utils</code></td><td>lib</td><td><code>isSvelteFile</code>, <code>extractSvelteScript</code> for Svelte support</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; R4 PreToolUse block via <code>hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }</code></td></tr>
         </tbody>
       </table>
     </div>

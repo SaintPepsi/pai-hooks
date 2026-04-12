@@ -26,3 +26,7 @@ A suite of pre-write checks that intercept file creation and modification at the
 ## Context
 
 This pattern works best in teams or AI-assisted workflows where many contributors write code without internalizing every project convention. The warn-then-enforce model (advise on read, block on write) reduces frustration by giving advance notice.
+
+## Test Helpers
+
+`hooks/CodingStandards/test-helpers.ts` exposes shared narrowing helpers for guard tests post-SDK Type Foundation refactor: `getPreToolUseDenyReason`, `isPreToolUseAsk`, `getPreToolUseAskReason`, plus advisory-context accessors for `hookSpecificOutput.additionalContext`. These centralize the discriminated-union narrowing on `SyncHookJSONOutput` so individual guard tests don't duplicate the `hookEventName === "PreToolUse"` check before accessing `permissionDecision` or `additionalContext`. Also consumed by GitSafety tests after the 1D migration (commit f432c3b).

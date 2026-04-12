@@ -10,7 +10,12 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -30,7 +35,10 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
       env: {},
       hooks: {
         PreToolUse: [
-          { matcher: "Bash", hooks: [{ type: "command", command: "/my/custom/hook.ts" }] },
+          {
+            matcher: "Bash",
+            hooks: [{ type: "command", command: "/my/custom/hook.ts" }],
+          },
         ],
       },
     };
@@ -40,7 +48,12 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -59,7 +72,12 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -70,7 +88,12 @@ describe("import-hooks (reuses mergeHooksIntoSettings)", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts",
+              },
+            ],
           },
         ],
       },

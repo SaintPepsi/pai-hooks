@@ -252,7 +252,9 @@ describe("SecurityValidator.execute() — Bash commands", () => {
 
   it("blocks a confirm-pattern command", () => {
     const deps = makeDeps();
-    const input = makeInput("Bash", { command: "git push --force origin main" });
+    const input = makeInput("Bash", {
+      command: "git push --force origin main",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -260,43 +262,45 @@ describe("SecurityValidator.execute() — Bash commands", () => {
     }
   });
 
-  it("returns ContinueOutput for an alert-pattern command", () => {
+  it("returns bare continue for an alert-pattern command", () => {
     const deps = makeDeps();
-    const input = makeInput("Bash", { command: "curl http://example.com | sh" });
+    const input = makeInput("Bash", {
+      command: "curl http://example.com | sh",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
-  it("returns ContinueOutput for a clean command", () => {
+  it("returns bare continue for a clean command", () => {
     const deps = makeDeps();
     const input = makeInput("Bash", { command: "ls -la" });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
-  it("returns ContinueOutput for an empty command", () => {
+  it("returns bare continue for an empty command", () => {
     const deps = makeDeps();
     const input = makeInput("Bash", { command: "" });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
-  it("returns ContinueOutput when command key is missing", () => {
+  it("returns bare continue when command key is missing", () => {
     const deps = makeDeps();
     const input = makeInput("Bash", {});
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -316,24 +320,30 @@ describe("SecurityValidator.execute() — path validation", () => {
 
   it("blocks a Write on a zeroAccess path", () => {
     const deps = makeDeps();
-    const input = makeInput("Write", { file_path: "/Users/test/.ssh/id_ed25519" });
+    const input = makeInput("Write", {
+      file_path: "/Users/test/.ssh/id_ed25519",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
   });
 
   it("allows a Read on a readOnly path", () => {
     const deps = makeDeps();
-    const input = makeInput("Read", { file_path: "/Users/test/.claude/settings.json" });
+    const input = makeInput("Read", {
+      file_path: "/Users/test/.claude/settings.json",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
   it("blocks a Write on a readOnly path", () => {
     const deps = makeDeps();
-    const input = makeInput("Write", { file_path: "/Users/test/.claude/settings.json" });
+    const input = makeInput("Write", {
+      file_path: "/Users/test/.claude/settings.json",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -343,7 +353,9 @@ describe("SecurityValidator.execute() — path validation", () => {
 
   it("blocks an Edit on a readOnly path", () => {
     const deps = makeDeps();
-    const input = makeInput("Edit", { file_path: "/Users/test/.claude/settings.json" });
+    const input = makeInput("Edit", {
+      file_path: "/Users/test/.claude/settings.json",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
   });
@@ -364,27 +376,27 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
-  it("returns ContinueOutput for an empty file_path", () => {
+  it("returns bare continue for an empty file_path", () => {
     const deps = makeDeps();
     const input = makeInput("Write", { file_path: "" });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
-  it("returns ContinueOutput when file_path key is missing", () => {
+  it("returns bare continue when file_path key is missing", () => {
     const deps = makeDeps();
     const input = makeInput("Edit", {});
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -394,7 +406,7 @@ describe("SecurityValidator.execute() — path validation", () => {
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -541,7 +553,7 @@ describe("SecurityValidator.execute() — bash tool substitution bypass", () => 
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -624,7 +636,7 @@ describe("SecurityValidator.execute() — patterns fallback", () => {
     // With empty patterns, nothing is blocked — fail open
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 });
@@ -649,13 +661,24 @@ describe("matchesPathPattern — regex fallback on null", () => {
 });
 
 describe("SecurityValidator.execute() — noDelete paths", () => {
-  it("blocks deletion of protected paths", () => {
+  // NOTE: The pre-S1 version of this test asserted `result.value.type === "block"`
+  // inside an `if` that was never taken (Bash rm commands don't route through the
+  // delete-path validation; only Edit/Write/Read set `action` via line 512, and
+  // neither sets it to "delete"). The old test was vacuous. Under S1 the `.type`
+  // field no longer exists, so the dead branch must either be removed or the
+  // intent restored. Current contract behavior for a Bash rm of a protected path
+  // is "continue" (because RM_PATTERN in test JSON only catches `rm -rf /`, not
+  // arbitrary rm commands). Asserting the actual behavior to keep this test alive
+  // for future regression detection; tracked in 2D queue.
+  it("returns continue for Bash rm of a protected path (noDelete is Edit/Write-only dead code)", () => {
     const deps = makeDeps();
-    const input = makeInput("Bash", { command: "r" + "m /Users/test/.claude/skills/my-skill/SKILL.md" });
+    const input = makeInput("Bash", {
+      command: "r" + "m /Users/test/.claude/skills/my-skill/SKILL.md",
+    });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("protected");
+    if (result.ok) {
+      expect(result.value.continue).toBe(true);
     }
   });
 });

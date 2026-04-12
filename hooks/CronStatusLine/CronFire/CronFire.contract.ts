@@ -15,6 +15,7 @@
  * @see /Users/ian.hogers/.claude/pai-hooks/core/types/hook-inputs.ts — UserPromptSubmitInput
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile,
   ensureDir,
@@ -29,11 +30,9 @@ import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { silent } from "@hooks/core/types/hook-outputs";
 import type { CronFileDeps, CronPathDeps } from "@hooks/hooks/CronStatusLine/shared";
 import { appendCronLog, readCronFile, writeCronFile } from "@hooks/hooks/CronStatusLine/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
@@ -58,55 +57,57 @@ const defaultDeps: CronFireDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronFireContract: SyncHookContract<UserPromptSubmitInput, SilentOutput, CronFireDeps> =
-  {
-    name: "CronFire",
-    event: "UserPromptSubmit",
+export const CronFireContract: SyncHookContract<UserPromptSubmitInput, CronFireDeps> = {
+  name: "CronFire",
+  event: "UserPromptSubmit",
 
-    accepts(_input: UserPromptSubmitInput): boolean {
-      return true;
-    },
+  accepts(_input: UserPromptSubmitInput): boolean {
+    return true;
+  },
 
-    execute(input: UserPromptSubmitInput, deps: CronFireDeps): Result<SilentOutput, ResultError> {
-      const prompt = input.prompt || input.user_prompt || "";
-      if (!prompt) return ok(silent());
+  execute(
+    input: UserPromptSubmitInput,
+    deps: CronFireDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
+    const prompt = input.prompt || input.user_prompt || "";
+    if (!prompt) return ok({});
 
-      const sessionId = input.session_id;
-      const readResult = readCronFile(sessionId, deps, deps);
-      if (!readResult.ok) return ok(silent());
+    const sessionId = input.session_id;
+    const readResult = readCronFile(sessionId, deps, deps);
+    if (!readResult.ok) return ok({});
 
-      const sessionFile = readResult.value;
-      if (!sessionFile) return ok(silent());
+    const sessionFile = readResult.value;
+    if (!sessionFile) return ok({});
 
-      const matchIndex = sessionFile.crons.findIndex((cron) => prompt.includes(cron.prompt));
-      if (matchIndex === -1) return ok(silent());
+    const matchIndex = sessionFile.crons.findIndex((cron) => prompt.includes(cron.prompt));
+    if (matchIndex === -1) return ok({});
 
-      const matched = sessionFile.crons[matchIndex];
-      const updatedCron = {
-        ...matched,
-        fireCount: matched.fireCount + 1,
-        lastFired: deps.now(),
-      };
+    const matched = sessionFile.crons[matchIndex];
+    const updatedCron = {
+      ...matched,
+      fireCount: matched.fireCount + 1,
+      lastFired: deps.now(),
+    };
 
-      const updatedCrons = sessionFile.crons.map((cron, i) =>
-        i === matchIndex ? updatedCron : cron,
-      );
+    const updatedCrons = sessionFile.crons.map((cron, i) =>
+      i === matchIndex ? updatedCron : cron,
+    );
 
-      writeCronFile(sessionId, { ...sessionFile, crons: updatedCrons }, deps, deps);
+    writeCronFile(sessionId, { ...sessionFile, crons: updatedCrons }, deps, deps);
 
-      appendCronLog(
-        {
-          type: "fired",
-          cronId: updatedCron.id,
-          name: updatedCron.name,
-          fireCount: updatedCron.fireCount,
-        },
-        deps,
-        deps,
-      );
+    appendCronLog(
+      {
+        type: "fired",
+        cronId: updatedCron.id,
+        name: updatedCron.name,
+        fireCount: updatedCron.fireCount,
+      },
+      deps,
+      deps,
+    );
 
-      return ok(silent());
-    },
+    return ok({});
+  },
 
-    defaultDeps,
-  };
+  defaultDeps,
+};

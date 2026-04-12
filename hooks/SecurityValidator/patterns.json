@@ -295,9 +295,7 @@
       "**/credentials.json",
       "**/service-account*.json"
     ],
-    "readOnly": [
-      "/etc/**"
-    ],
+    "readOnly": ["/etc/**"],
     "confirmWrite": [
       "~/.claude/settings.json",
       "**/.env",
@@ -307,13 +305,7 @@
       "**/.env.development",
       "~/.ssh/*"
     ],
-    "noDelete": [
-      "~/.claude/hooks/**",
-      "~/.claude/PAI/**",
-      ".git/**",
-      "LICENSE*",
-      "README.md"
-    ]
+    "noDelete": ["~/.claude/hooks/**", "~/.claude/PAI/**", ".git/**", "LICENSE*", "README.md"]
   },
   "projects": {}
 }

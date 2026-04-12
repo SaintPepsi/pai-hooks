@@ -26,8 +26,8 @@ It does **not** fire when:
 2. Checks if the command contains `git commit` via regex (`/\bgit\s+commit\b/`)
 3. Scans all `hooks/{Group}/{Hook}/hook.json` directories using Bun's Glob
 4. For each hook directory, checks for the existence of `doc.md` and `IDEA.md`
-5. If all docs are present, returns `continue`
-6. If any docs are missing, formats a block reason listing each missing file and returns `block`
+5. If all docs are present, returns `{ continue: true }`
+6. If any docs are missing, formats a block reason listing each missing file and returns a `SyncHookJSONOutput` with `hookSpecificOutput.permissionDecision: "deny"` (R4 canonical PreToolUse block channel)
 
 ```typescript
 // Scan pattern — uses injected deps for testability
@@ -54,10 +54,10 @@ for (const match of deps.scanHookJsons(deps.hooksDir)) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `hook-outputs` | core | `continueOk()` factory for continue results |
-| `tool-input` | lib | `getCommand()` to extract Bash command string |
-| `fs` | adapter | `fileExists` to check for doc files on disk |
-| `Glob` | bun | Scans `*/*/hook.json` patterns in hooks directory |
+| Dependency                       | Type      | Purpose                                                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                       |
+| `tool-input`                     | lib       | `getCommand()` to extract Bash command string                                                                                                                         |
+| `fs`                             | adapter   | `fileExists` to check for doc files on disk                                                                                                                           |
+| `Glob`                           | bun       | Scans `*/*/hook.json` patterns in hooks directory                                                                                                                     |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

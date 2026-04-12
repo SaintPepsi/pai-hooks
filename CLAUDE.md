@@ -11,6 +11,7 @@ PAI hook system — TypeScript contracts for Claude Code hooks.
 ## Type System
 
 Contracts use narrowed types from `core/contract.ts`:
+
 - `SyncHookContract<I, O, D>` — most hooks (execute returns `Result`)
 - `AsyncHookContract<I, O, D>` — 6 async hooks (execute returns `Promise<Result>`)
 - `HookContract<I, O, D>` — union type, used by the runner only
@@ -34,14 +35,20 @@ Create `hooks/{Group}/{Hook}/doc.md` with these required sections:
 
 ```markdown
 ## Overview
+
 ## Event
+
 ## When It Fires
+
 ## What It Does
+
 ## Examples
+
 ## Dependencies
 ```
 
 Content within each section maps to framework components automatically:
+
 - **Bullet lists** → reason boxes
 - **Numbered lists** → flow steps
 - **Code blocks** → code windows (macOS-style)
@@ -67,12 +74,30 @@ In `~/.claude/settings.json`:
       "enabled": true,
       "blocking": true,
       "docFileName": "doc.md",
-      "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"],
-      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$", "shared\\.ts$", "README\\.md$"],
+      "requiredSections": [
+        "## Overview",
+        "## Event",
+        "## When It Fires",
+        "## What It Does",
+        "## Examples",
+        "## Dependencies"
+      ],
+      "watchPatterns": [
+        "\\.contract\\.ts$",
+        "hook\\.json$",
+        "group\\.json$",
+        "shared\\.ts$",
+        "README\\.md$"
+      ],
       "additionalDocs": [
         {
           "fileName": "IDEA.md",
-          "requiredSections": ["## Problem", "## Solution", "## How It Works", "## Signals"]
+          "requiredSections": [
+            "## Problem",
+            "## Solution",
+            "## How It Works",
+            "## Signals"
+          ]
         }
       ],
       "mode": "independent"

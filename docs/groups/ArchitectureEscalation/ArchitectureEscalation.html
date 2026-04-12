@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1742,6 +1755,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#history"><span class="nav-num">07</span> History</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1905,11 +1919,23 @@ Maintain a per-session counter for each problem criterion. Every time a criterio
           <div class="code-block"><span class="code-lang">typescript</span>
 if (failedAttempts &gt;= STOP_THRESHOLD) {
   // "STOP CURRENT APPROACH" — recommends FirstPrinciples + Council skills
-  return ok({ type: "continue", continue: true, additionalContext: message });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: message,
+    },
+  });
 }
 if (failedAttempts &gt;= WARN_THRESHOLD) {
   // "WARNING" — suggests pausing and questioning the approach
-  return ok({ type: "continue", continue: true, additionalContext: message });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: message,
+    },
+  });
 }</div>
         </div>
       </div>
@@ -1954,6 +1980,20 @@ if (failedAttempts &gt;= WARN_THRESHOLD) {
           <tr><td><code>fs</code></td><td>adapter</td><td>Reads and writes per-session escalation state JSON</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="history">
+    <div class="section-label accent">History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>History</h3>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>2026-04-11 — SDK Type Foundation (1M):</strong> Both warning (<code>ArchitectureEscalation.contract.ts:174</code>) and STOP escalation (<code>ArchitectureEscalation.contract.ts:182</code>) paths were returning <code>continueOk(message)</code> which routed <code>additionalContext</code> at the top level of the hook output. Claude Code's SDK silently dropped this field on PostToolUse. 8th instance of the same bug class found in this refactor. The fix routes both messages through <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "PostToolUse"</code>. Behaviour change: repeated in-progress transitions past WARN_THRESHOLD/STOP_THRESHOLD now actually surface the escalation warning/stop message to the model.</div>
+      </div>
     </div>
   </section>
 

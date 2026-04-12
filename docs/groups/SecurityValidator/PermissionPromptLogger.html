@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1882,7 +1895,14 @@ Silently log every permission prompt the system generates, capturing the tool na
       <div class="uc-example">
         <div><strong>Example:</strong> A <code>Bash(kill -0 1234)</code> command triggers the <code>Bash(kill *)</code> ask pattern. The hook logs:</div>
         <div>```json</div>
-        <div>{"timestamp":"2026-03-29T08:30:00Z","session_id":"abc","tool_name":"Bash","tool_input_summary":"kill -0 1234","permission_mode":"default","suggestions":"[...]"}</div>
+        <div>{</div>
+        <div>  "timestamp": "2026-03-29T08:30:00Z",</div>
+        <div>  "session_id": "abc",</div>
+        <div>  "tool_name": "Bash",</div>
+        <div>  "tool_input_summary": "kill -0 1234",</div>
+        <div>  "permission_mode": "default",</div>
+        <div>  "suggestions": "[...]"</div>
+        <div>}</div>
         <div>```</div>
         <div>The user still sees the normal "Allow Bash?" prompt.</div>
       </div>

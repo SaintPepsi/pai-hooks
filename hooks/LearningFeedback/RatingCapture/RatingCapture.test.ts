@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import type { RatingCaptureDeps } from "./RatingCapture.contract";
 import { parseExplicitRating, RatingCapture } from "./RatingCapture.contract";
 
@@ -35,7 +36,11 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
     })),
     captureFailure: mock(async () => null),
     getPrincipalName: mock(() => "TestUser"),
-    getPrincipal: mock(() => ({ name: "TestUser", pronunciation: "", timezone: "UTC" })),
+    getPrincipal: mock(() => ({
+      name: "TestUser",
+      pronunciation: "",
+      timezone: "UTC",
+    })),
     getIdentity: mock(() => ({
       name: "TestBot",
       fullName: "TestBot",
@@ -130,14 +135,15 @@ describe("RatingCapture.accepts", () => {
 // ─── execute: explicit rating ─────────────────────────────────────────────────
 
 describe("RatingCapture.execute — explicit rating", () => {
-  it("returns ok ContextOutput containing algorithm reminder", async () => {
+  it("returns ok with additionalContext containing algorithm reminder", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("context");
-    expect(typeof result.value?.content).toBe("string");
-    expect(result.value?.content.length).toBeGreaterThan(0);
+    if (!result.ok) return;
+    const ctx = getInjectedContextFor(result.value, "UserPromptSubmit");
+    expect(typeof ctx).toBe("string");
+    expect((ctx ?? "").length).toBeGreaterThan(0);
   });
 
   it("writes rating to appendFile", async () => {
@@ -180,21 +186,23 @@ describe("RatingCapture.execute — explicit rating", () => {
 // ─── execute: short prompt ────────────────────────────────────────────────────
 
 describe("RatingCapture.execute — short prompt", () => {
-  it("returns ContextOutput for empty prompt without running sentiment", async () => {
+  it("returns additionalContext for empty prompt without running sentiment", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput(""), deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("context");
+    if (!result.ok) return;
+    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
-  it("returns ContextOutput for 2-char prompt without running sentiment", async () => {
+  it("returns additionalContext for 2-char prompt without running sentiment", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("hi"), deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("context");
+    if (!result.ok) return;
+    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
@@ -213,14 +221,18 @@ describe("RatingCapture algorithm reminder", () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
-    expect(result.value?.content).toContain("v1.8.0");
+    if (!result.ok) return;
+    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain("v1.8.0");
   });
 
   it("contains ALGORITHM FORMAT REQUIRED text", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
-    expect(result.value?.content).toContain("ALGORITHM FORMAT REQUIRED");
+    if (!result.ok) return;
+    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain(
+      "ALGORITHM FORMAT REQUIRED",
+    );
   });
 
   it("wraps content in user-prompt-submit-hook tags", async () => {
@@ -230,8 +242,10 @@ describe("RatingCapture algorithm reminder", () => {
       deps,
     );
 
-    expect(result.value?.content).toContain("<user-prompt-submit-hook>");
-    expect(result.value?.content).toContain("</user-prompt-submit-hook>");
+    if (!result.ok) return;
+    const ctx = getInjectedContextFor(result.value, "UserPromptSubmit") ?? "";
+    expect(ctx).toContain("<user-prompt-submit-hook>");
+    expect(ctx).toContain("</user-prompt-submit-hook>");
   });
 });
 
@@ -245,12 +259,13 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(1);
   });
 
-  it("returns ContextOutput after sentiment analysis", async () => {
+  it("returns additionalContext after sentiment analysis", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("great job today"), deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("context");
+    if (!result.ok) return;
+    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
   });
 
   it("writes implicit rating entry when confidence >= 0.5", async () => {
@@ -286,7 +301,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     expect((deps.appendFile as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
-  it("returns ContextOutput even when inference fails", async () => {
+  it("returns additionalContext even when inference fails", async () => {
     const deps = makeDeps({
       inference: mock(async () => {
         throw new Error("inference error");
@@ -295,7 +310,8 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     const result = await RatingCapture.execute(makeInput("something happened"), deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value?.type).toBe("context");
+    if (!result.ok) return;
+    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
   });
 });
 
@@ -304,7 +320,10 @@ describe("RatingCapture.execute — implicit sentiment", () => {
 describe("RatingCapture.execute — explicit low rating learning capture", () => {
   const transcriptContent = [
     JSON.stringify({ type: "user", message: { content: "What is this?" } }),
-    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Explained the feature" } }),
+    JSON.stringify({
+      type: "assistant",
+      message: { content: "SUMMARY: Explained the feature" },
+    }),
   ].join("\n");
 
   it("calls writeFile with LEARNING path when explicit rating < 5 and transcript context present", async () => {
@@ -312,10 +331,7 @@ describe("RatingCapture.execute — explicit low rating learning capture", () =>
       fileExists: mock(() => true),
       readFile: mock(() => ok(transcriptContent)),
     });
-    await RatingCapture.execute(
-      makeInput("3", { transcript_path: "/tmp/transcript.jsonl" }),
-      deps,
-    );
+    await RatingCapture.execute(makeInput("3", { transcript_path: "/tmp/transcript.jsonl" }), deps);
 
     const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
     expect(writeCalls.length).toBeGreaterThan(0);
@@ -329,10 +345,7 @@ describe("RatingCapture.execute — explicit low rating learning capture", () =>
       fileExists: mock(() => true),
       readFile: mock(() => ok(transcriptContent)),
     });
-    await RatingCapture.execute(
-      makeInput("3", { transcript_path: "/tmp/transcript.jsonl" }),
-      deps,
-    );
+    await RatingCapture.execute(makeInput("3", { transcript_path: "/tmp/transcript.jsonl" }), deps);
 
     const ensureCalls = (deps.ensureDir as ReturnType<typeof mock>).mock.calls;
     // ensureDir is called for both signalsDir and learningsDir
@@ -356,7 +369,10 @@ describe("RatingCapture.execute — explicit low rating learning capture", () =>
 describe("RatingCapture.execute — explicit rating <= 3 calls captureFailure", () => {
   const transcriptContent = [
     JSON.stringify({ type: "user", message: { content: "What is this?" } }),
-    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Explained the feature" } }),
+    JSON.stringify({
+      type: "assistant",
+      message: { content: "SUMMARY: Explained the feature" },
+    }),
   ].join("\n");
 
   it("calls captureFailure for rating <= 3", async () => {
@@ -395,10 +411,7 @@ describe("RatingCapture.execute — explicit rating <= 3 calls captureFailure", 
       fileExists: mock(() => true),
       readFile: mock(() => ok(transcriptContent)),
     });
-    await RatingCapture.execute(
-      makeInput("4", { transcript_path: "/tmp/transcript.jsonl" }),
-      deps,
-    );
+    await RatingCapture.execute(makeInput("4", { transcript_path: "/tmp/transcript.jsonl" }), deps);
 
     expect((deps.captureFailure as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
@@ -408,10 +421,7 @@ describe("RatingCapture.execute — explicit rating <= 3 calls captureFailure", 
       fileExists: mock(() => true),
       readFile: mock(() => ok(transcriptContent)),
     });
-    await RatingCapture.execute(
-      makeInput("4", { transcript_path: "/tmp/transcript.jsonl" }),
-      deps,
-    );
+    await RatingCapture.execute(makeInput("4", { transcript_path: "/tmp/transcript.jsonl" }), deps);
 
     const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
     expect(writeCalls.length).toBeGreaterThan(0);
@@ -548,7 +558,10 @@ describe("RatingCapture.execute — implicit sentiment low rating learning captu
 describe("RatingCapture.execute — transcript context passed to inference", () => {
   it("calls inference with a prompt containing 'CONTEXT:' when transcript is available", async () => {
     const transcriptContent = [
-      JSON.stringify({ type: "user", message: { content: "previous question" } }),
+      JSON.stringify({
+        type: "user",
+        message: { content: "previous question" },
+      }),
       JSON.stringify({
         type: "assistant",
         message: { content: "SUMMARY: did the thing" },
@@ -561,7 +574,9 @@ describe("RatingCapture.execute — transcript context passed to inference", () 
     });
 
     await RatingCapture.execute(
-      makeInput("great job on that", { transcript_path: "/tmp/transcript.jsonl" }),
+      makeInput("great job on that", {
+        transcript_path: "/tmp/transcript.jsonl",
+      }),
       deps,
     );
 
@@ -603,9 +618,7 @@ describe("RatingCapture.execute — array ContentBlock transcript entries", () =
       JSON.stringify({
         type: "assistant",
         message: {
-          content: [
-            { type: "text", text: "SUMMARY: All systems nominal" },
-          ],
+          content: [{ type: "text", text: "SUMMARY: All systems nominal" }],
         },
       }),
     ].join("\n");
@@ -616,7 +629,9 @@ describe("RatingCapture.execute — array ContentBlock transcript entries", () =
     });
 
     await RatingCapture.execute(
-      makeInput("good response thanks", { transcript_path: "/tmp/transcript.jsonl" }),
+      makeInput("good response thanks", {
+        transcript_path: "/tmp/transcript.jsonl",
+      }),
       deps,
     );
 

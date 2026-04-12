@@ -8,13 +8,13 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getLocalComponents } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -137,11 +137,7 @@ const defaultDeps: SessionQualityReportDeps = {
   stderr: defaultStderr,
 };
 
-export const SessionQualityReport: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  SessionQualityReportDeps
-> = {
+export const SessionQualityReport: SyncHookContract<SessionEndInput, SessionQualityReportDeps> = {
   name: "SessionQualityReport",
   event: "SessionEnd",
 
@@ -149,7 +145,10 @@ export const SessionQualityReport: SyncHookContract<
     return !!input.session_id;
   },
 
-  execute(input: SessionEndInput, deps: SessionQualityReportDeps): Result<SilentOutput, ResultError> {
+  execute(
+    input: SessionEndInput,
+    deps: SessionQualityReportDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const baselinePath = join(
       deps.baseDir,
       "MEMORY",
@@ -159,19 +158,19 @@ export const SessionQualityReport: SyncHookContract<
 
     if (!deps.fileExists(baselinePath)) {
       deps.stderr("[SessionQualityReport] No quality baselines found, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const storeResult = deps.readJson<BaselineStore>(baselinePath);
     if (!storeResult.ok) {
       deps.stderr("[SessionQualityReport] Could not read baselines, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const baselines = storeResult.value;
     if (Object.keys(baselines).length === 0) {
       deps.stderr("[SessionQualityReport] Empty baselines, skipping");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const time = deps.getLocalComponents();
@@ -192,7 +191,7 @@ export const SessionQualityReport: SyncHookContract<
     deps.writeFile(reportPath, report);
     deps.stderr(`[SessionQualityReport] Report written to ${reportPath}`);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

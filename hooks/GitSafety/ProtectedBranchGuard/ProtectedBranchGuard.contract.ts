@@ -12,16 +12,15 @@
  * Pattern: pai-hooks/contracts/BashWriteGuard.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -89,11 +88,7 @@ const defaultDeps: ProtectedBranchGuardDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const ProtectedBranchGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  ProtectedBranchGuardDeps
-> = {
+export const ProtectedBranchGuard: SyncHookContract<ToolHookInput, ProtectedBranchGuardDeps> = {
   name: "ProtectedBranchGuard",
   event: "PreToolUse",
 
@@ -104,18 +99,18 @@ export const ProtectedBranchGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: ProtectedBranchGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
 
     // Only check git mutation commands (commit, push, merge)
     if (!isGitMutation(command)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Exempt configured directories (builtins + settings.json)
     const extraDirs = deps.getExemptDirs();
     if (isExemptDir(deps.getCwd(), extraDirs)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Check current branch
@@ -124,7 +119,7 @@ export const ProtectedBranchGuard: SyncHookContract<
     // Fail open if branch cannot be determined
     if (!branch) {
       deps.stderr("[ProtectedBranchGuard] Could not determine branch — allowing");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Block if on a protected branch
@@ -146,13 +141,15 @@ export const ProtectedBranchGuard: SyncHookContract<
       deps.stderr(`[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`);
 
       return ok({
-        type: "block",
-        decision: "block",
-        reason,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: reason,
+        },
       });
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

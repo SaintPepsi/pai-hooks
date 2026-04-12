@@ -63,7 +63,7 @@ describe("AgentSpawnTracker", () => {
     const input = makeSpawnInput({ run_in_background: false });
     const result = await AgentSpawnTracker.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
     expect(fetchCalled).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe("AgentSpawnTracker", () => {
     });
     const result = await AgentSpawnTracker.execute(makeSpawnInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("returns continue when fetch fails", async () => {
@@ -114,7 +114,7 @@ describe("AgentSpawnTracker", () => {
     });
     const result = await AgentSpawnTracker.execute(makeSpawnInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("uses settings.json fallback URL", async () => {

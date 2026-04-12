@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1740,8 +1753,9 @@ section[id] {
     <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
-    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#history"><span class="nav-num">05</span> History</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">06</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1926,10 +1940,27 @@ deps.writeJson(baselinePath, store);
 
 if (result.score &lt; LOW_SCORE_THRESHOLD) {
   const advisory = deps.formatAdvisory(result, filePath);
-  return ok({ type: "continue", continue: true, additionalContext: advisory });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: advisory,
+    },
+  });
 }</div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section id="history">
+    <div class="section-label accent">History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>History</h3>
+      </div>
+      <p><strong>Phase 1 Task 1O (2026-04-11)</strong> — Latent bug #13 fixed. The R2 advisory site at <code>CodeQualityBaseline.contract.ts:173</code> was emitting <code>ok(continueOk("Note: Pre-existing quality concerns detected.\n..."))</code> which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opened on the legacy shape, so the pre-existing quality advisory injected into PostToolUse was never delivered. Fixed by migrating to <code>hookSpecificOutput.additionalContext</code> per recipe R2 in <code>/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77</code>.</p>
     </div>
   </section>
 

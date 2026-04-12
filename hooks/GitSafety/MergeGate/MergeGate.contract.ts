@@ -8,19 +8,12 @@
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
-import {
-  type BlockOutput,
-  block,
-  type ContinueOutput,
-  continueOk,
-} from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   checkCiStatus,
   checkReviewStatus,
@@ -28,6 +21,8 @@ import {
   resolvePrFromBranch,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
+import { defaultStderr } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -80,11 +75,7 @@ const defaultDeps: MergeGateDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const MergeGate: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput,
-  MergeGateDeps
-> = {
+export const MergeGate: SyncHookContract<ToolHookInput, MergeGateDeps> = {
   name: "MergeGate",
   event: "PreToolUse",
 
@@ -92,36 +83,33 @@ export const MergeGate: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: MergeGateDeps,
-  ): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(input: ToolHookInput, deps: MergeGateDeps): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
 
     // Only intercept gh pr merge commands
     if (!MERGE_PATTERN.test(command)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Extract PR number from command or resolve from current branch
     const prNumber = extractPrNumber(command) ?? resolvePrFromBranch(deps);
     if (prNumber === null) {
       deps.stderr("[MergeGate] WARNING: Could not determine PR number. Allowing merge.");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Check CI status
     const ciStatus = checkCiStatus(prNumber, deps);
     if (ciStatus === null) {
       deps.stderr("[MergeGate] WARNING: Could not check CI status. Allowing merge.");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Check review status
     const reviewStatus = checkReviewStatus(prNumber, deps);
     if (reviewStatus === null) {
       deps.stderr("[MergeGate] WARNING: Could not check review status. Allowing merge.");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Block on CI failure or pending
@@ -134,22 +122,40 @@ export const MergeGate: SyncHookContract<
       const ciMsg = formatCiBlockMessage(prNumber, allBadChecks);
       const reviewMsg = formatReviewBlockMessage(prNumber, reviewStatus.all);
       deps.stderr(`[MergeGate] BLOCK: CI failing and no approved review on PR #${prNumber}`);
-      return ok(block(`${ciMsg}\n\n${reviewMsg}`));
+      return ok({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: `${ciMsg}\n\n${reviewMsg}`,
+        },
+      });
     }
 
     if (ciFailing) {
       const allBadChecks = [...ciStatus.failing, ...ciStatus.pending];
       deps.stderr(`[MergeGate] BLOCK: CI not passing on PR #${prNumber}`);
-      return ok(block(formatCiBlockMessage(prNumber, allBadChecks)));
+      return ok({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: formatCiBlockMessage(prNumber, allBadChecks),
+        },
+      });
     }
 
     if (noApproval) {
       deps.stderr(`[MergeGate] BLOCK: No approved review on PR #${prNumber}`);
-      return ok(block(formatReviewBlockMessage(prNumber, reviewStatus.all)));
+      return ok({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: formatReviewBlockMessage(prNumber, reviewStatus.all),
+        },
+      });
     }
 
     // All checks passed
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

@@ -16,16 +16,15 @@
  *   ~/.claude/settings.local.json
  */
 
-import { appendFile, ensureDir, readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ask, continueOk } from "@hooks/core/types/hook-outputs";
-import type { AskOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { getFilePath } from "@hooks/lib/tool-input";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,10 +94,7 @@ export interface AuditLogDeps {
 }
 
 /** Append an audit entry to the settings audit log. */
-export function logSettingsAudit(
-  entry: SettingsAuditEntry,
-  deps: AuditLogDeps,
-): void {
+export function logSettingsAudit(entry: SettingsAuditEntry, deps: AuditLogDeps): void {
   const logDir = join(deps.baseDir, "MEMORY", "SECURITY");
   deps.ensureDir(logDir);
   const logPath = join(logDir, "settings-audit.jsonl");
@@ -106,11 +102,7 @@ export function logSettingsAudit(
 }
 
 /** Snapshot all protected settings files to /tmp for PostToolUse comparison. */
-function snapshotSettings(
-  sessionId: string,
-  home: string,
-  deps: SettingsGuardDeps,
-): void {
+function snapshotSettings(sessionId: string, home: string, deps: SettingsGuardDeps): void {
   for (const filename of SETTINGS_FILENAMES) {
     const settingsPath = `${home}/.claude/${filename}`;
     if (!deps.fileExists(settingsPath)) continue;
@@ -121,7 +113,9 @@ function snapshotSettings(
     const snapPath = snapshotPath(sessionId, filename);
     const writeResult = deps.writeFile(snapPath, content.value);
     if (!writeResult.ok) {
-      deps.stderr(`[SettingsGuard] snapshot write failed for ${filename}: ${writeResult.error.message}`);
+      deps.stderr(
+        `[SettingsGuard] snapshot write failed for ${filename}: ${writeResult.error.message}`,
+      );
     }
   }
 }
@@ -139,11 +133,7 @@ const defaultDeps: SettingsGuardDeps = {
   baseDir: getPaiDir(),
 };
 
-export const SettingsGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | AskOutput,
-  SettingsGuardDeps
-> = {
+export const SettingsGuard: SyncHookContract<ToolHookInput, SettingsGuardDeps> = {
   name: "SettingsGuard",
   event: "PreToolUse",
 
@@ -158,25 +148,25 @@ export const SettingsGuard: SyncHookContract<
     return false;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: SettingsGuardDeps,
-  ): Result<ContinueOutput | AskOutput, ResultError> {
+  execute(input: ToolHookInput, deps: SettingsGuardDeps): Result<SyncHookJSONOutput, ResultError> {
     const home = deps.homedir();
 
     if (input.tool_name === "Bash") {
       // Snapshot settings files before command runs.
       // PostToolUse (SettingsGuardPost) will compare after.
       snapshotSettings(input.session_id, home, deps);
-      logSettingsAudit({
-        ts: new Date().toISOString(),
-        session_id: input.session_id,
-        tool: "Bash",
-        target: "settings.json",
-        action: "snapshotted",
-        command: ((input.tool_input?.command as string) || "").slice(0, 500),
-      }, deps);
-      return ok(continueOk());
+      logSettingsAudit(
+        {
+          ts: new Date().toISOString(),
+          session_id: input.session_id,
+          tool: "Bash",
+          target: "settings.json",
+          action: "snapshotted",
+          command: ((input.tool_input?.command as string) || "").slice(0, 500),
+        },
+        deps,
+      );
+      return ok({ continue: true });
     }
 
     // Edit/Write tools — ask for permission if targeting settings files
@@ -184,18 +174,27 @@ export const SettingsGuard: SyncHookContract<
 
     if (!isSettingsPath(filePath, home)) {
       // Matched the filename pattern but not in ~/.claude/ — allow
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     deps.stderr(`[SettingsGuard] ${input.tool_name} targets settings file: ${filePath}`);
-    logSettingsAudit({
-      ts: new Date().toISOString(),
-      session_id: input.session_id,
-      tool: input.tool_name,
-      target: filePath,
-      action: "asked",
-    }, deps);
-    return ok(ask(buildAskMessage(input.tool_name, filePath)));
+    logSettingsAudit(
+      {
+        ts: new Date().toISOString(),
+        session_id: input.session_id,
+        tool: input.tool_name,
+        target: filePath,
+        action: "asked",
+      },
+      deps,
+    );
+    return ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "ask",
+        permissionDecisionReason: buildAskMessage(input.tool_name, filePath),
+      },
+    });
   },
 
   defaultDeps,

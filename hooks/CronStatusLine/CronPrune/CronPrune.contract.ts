@@ -8,6 +8,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile,
   ensureDir,
@@ -23,14 +24,13 @@ import type { ResultError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import type {
   CronFileDeps,
   CronPathDeps,
   CronSessionFile,
 } from "@hooks/hooks/CronStatusLine/shared";
 import { appendCronLog, cronDir } from "@hooks/hooks/CronStatusLine/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -63,17 +63,17 @@ export interface CronPruneDeps extends CronFileDeps, CronPathDeps {
 function pruneStaleFiles(
   _input: SessionStartInput,
   deps: CronPruneDeps,
-): Result<SilentOutput, ResultError> {
+): Result<SyncHookJSONOutput, ResultError> {
   const dir = cronDir(deps);
 
   // If directory doesn't exist, silent no-op
   if (!deps.fileExists(dir)) {
-    return ok({ type: "silent" });
+    return ok({});
   }
 
   const dirResult = deps.readDir(dir);
   if (!dirResult.ok) {
-    return ok({ type: "silent" });
+    return ok({});
   }
 
   const now = deps.now();
@@ -120,7 +120,7 @@ function pruneStaleFiles(
     appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_dead" }, deps, deps);
   }
 
-  return ok({ type: "silent" });
+  return ok({});
 }
 
 function safeParseCronFile(raw: string): Result<CronSessionFile | null, ResultError> {
@@ -163,7 +163,7 @@ const defaultDeps: CronPruneDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronPrune: SyncHookContract<SessionStartInput, SilentOutput, CronPruneDeps> = {
+export const CronPrune: SyncHookContract<SessionStartInput, CronPruneDeps> = {
   name: "CronPrune",
   event: "SessionStart",
 
@@ -171,7 +171,7 @@ export const CronPrune: SyncHookContract<SessionStartInput, SilentOutput, CronPr
     return true;
   },
 
-  execute(input: SessionStartInput, deps: CronPruneDeps): Result<SilentOutput, ResultError> {
+  execute(input: SessionStartInput, deps: CronPruneDeps): Result<SyncHookJSONOutput, ResultError> {
     return pruneStaleFiles(input, deps);
   },
 

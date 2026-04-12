@@ -59,7 +59,11 @@ describe("lifecycle integration", () => {
 
     // Step 2: Verify (should be clean)
     const verifyClean = verify(
-      { command: "verify", names: [], flags: { installed: true, in: "/project" } },
+      {
+        command: "verify",
+        names: [],
+        flags: { installed: true, in: "/project" },
+      },
       deps,
     );
     expect(verifyClean.ok).toBe(true);
@@ -75,7 +79,11 @@ describe("lifecycle integration", () => {
 
     // Step 4: Verify (should detect drift)
     const verifyDrift = verify(
-      { command: "verify", names: [], flags: { installed: true, in: "/project" } },
+      {
+        command: "verify",
+        names: [],
+        flags: { installed: true, in: "/project" },
+      },
       deps,
     );
     expect(verifyDrift.ok).toBe(true);
@@ -99,7 +107,11 @@ describe("lifecycle integration", () => {
 
     // Step 6: Verify again (should be clean)
     const verifyAfterUpdate = verify(
-      { command: "verify", names: [], flags: { installed: true, in: "/project" } },
+      {
+        command: "verify",
+        names: [],
+        flags: { installed: true, in: "/project" },
+      },
       deps,
     );
     expect(verifyAfterUpdate.ok).toBe(true);
@@ -121,14 +133,22 @@ describe("lifecycle integration", () => {
 
     // Step 2: Uninstall
     const uninstallResult = uninstall(
-      { command: "uninstall", names: ["TestHook"], flags: { from: "/project" } },
+      {
+        command: "uninstall",
+        names: ["TestHook"],
+        flags: { from: "/project" },
+      },
       deps,
     );
     expect(uninstallResult.ok).toBe(true);
 
     // Step 3: Verify — lockfile exists but has no hooks
     const verifyResult = verify(
-      { command: "verify", names: [], flags: { installed: true, in: "/project" } },
+      {
+        command: "verify",
+        names: [],
+        flags: { installed: true, in: "/project" },
+      },
       deps,
     );
     expect(verifyResult.ok).toBe(true);

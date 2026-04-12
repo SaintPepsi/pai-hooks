@@ -36,7 +36,7 @@ const collectResult = deps.execSyncSafe(
 );
 if (!collectResult.ok) {
   deps.stderr(`[ModeAnalytics] Collection failed: ${collectResult.error.message}`);
-  return ok({ type: "silent" });
+  return ok({});
 }
 
 const genResult = deps.execSyncSafe(
@@ -60,5 +60,6 @@ const genResult = deps.execSyncSafe(
 | --- | --- | --- |
 | `process` | adapter | Provides `execSyncSafe` for running external scripts |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type — silent no-op via `ok({})` post-SDK-refactor, replaces legacy `SilentOutput` `{ type: "silent" }` |
 | `CollectModeData.ts` | external tool | Scans transcripts and updates mode-analytics.json |
 | `GenerateDashboard.ts` | external tool | Reads JSON data and writes HTML dashboard |

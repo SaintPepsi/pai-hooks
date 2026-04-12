@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1890,12 +1903,12 @@ Scan files for coding standard violations at read-time and inject advisory warni
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>If no violations are found, logs "clean" to stderr and returns <code>continue</code> silently</p></div>
+          <div class="step-content"><p>If no violations are found, logs "clean" to stderr and returns <code>{ continue: true }</code> silently</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>If violations are found, formats a violation summary and returns it as <code>additionalContext</code></p></div>
+          <div class="step-content"><p>If violations are found, formats a violation summary and returns it as <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "PostToolUse"</code> (R2 PostToolUse context-injection channel)</p></div>
         </div>
 </div>
       
@@ -1912,7 +1925,13 @@ const violations = findAllViolations(content, filePath);
 
 if (violations.length &gt; 0) {
   const advisory = formatViolationSummary(violations, filePath);
-  return ok({ type: "continue", continue: true, additionalContext: advisory });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: advisory,
+    },
+  });
 }</div>
         </div>
       </div>
@@ -1958,6 +1977,7 @@ if (violations.length &gt; 0) {
           <tr><td><code>fs</code></td><td>adapter</td><td><code>readFile</code> for reading file content</td></tr>
           <tr><td><code>coding-standards-checks</code></td><td>lib</td><td><code>findAllViolations</code>, <code>formatViolationSummary</code>, file classification helpers</td></tr>
           <tr><td><code>svelte-utils</code></td><td>lib</td><td><code>isSvelteFile</code>, <code>extractSvelteScript</code> for Svelte support</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "PostToolUse"</code> is the PostToolUse-compatible context injection channel (post-SDK-refactor, fixes a bug where the legacy top-level <code>additionalContext</code> from <code>continueOk(advisory)</code> was silently dropped for PostToolUse events — same bug class as PreCompactStatePersist 1A fix, applied here via R2 instead of R3)</td></tr>
         </tbody>
       </table>
     </div>

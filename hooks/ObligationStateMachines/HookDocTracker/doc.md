@@ -37,16 +37,18 @@ It does **not** fire when:
 
 ```typescript
 // Doc file written — clear matching pending entries
-if (isHookDocFile(filePath, settings.docFileName)) {
+if (isAnyDocFile(filePath, settings)) {
   const docDir = getHookDirFromPath(filePath);
   const { remaining, cleared } = clearMatching(deps, flagFile, (p) => {
-    return getHookDirFromPath(p) === docDir;
+    return getHookDirFromPath(parseTag(p).source) === docDir;
   });
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
-// Hook source file modified — add to pending
-addPending(deps, flagFile, filePath);
+// Hook source file modified — add tagged pending entries for each doc file
+for (const docName of allDocFileNames(settings)) {
+  addPending(deps, flagFile, tagPending(filePath, docName));
+}
 ```
 
 ## Examples
@@ -61,9 +63,9 @@ addPending(deps, flagFile, filePath);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `obligation-machine` | lib | Generic `addPending` and `clearMatching` state machine operations |
-| `paths` | lib | Path resolution utilities |
-| `HookDocStateMachine.shared` | shared | Provides `defaultDeps`, `pendingPath`, `getFilePath`, `isHookSourceFile`, `isHookDocFile`, `getHookDirFromPath`, `readHookDocSettings` |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks |
+| Dependency                         | Type   | Purpose                                                                                                                                |
+| ---------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `obligation-machine`               | lib    | Generic `addPending` and `clearMatching` state machine operations                                                                      |
+| `paths`                            | lib    | Path resolution utilities                                                                                                              |
+| `HookDocStateMachine.shared`       | shared | Provides `defaultDeps`, `pendingPath`, `getFilePath`, `isHookSourceFile`, `isHookDocFile`, `getHookDirFromPath`, `readHookDocSettings` |
+| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks                                                                   |

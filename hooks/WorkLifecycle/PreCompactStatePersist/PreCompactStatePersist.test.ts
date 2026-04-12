@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   buildContextSummary,
   findMostRecentPrd,
@@ -149,7 +149,10 @@ describe("findMostRecentPrd", () => {
     const deps = {
       readDir: () => ok([makeDirent("some-dir", true)]) as Result<unknown[], ResultError>,
       stat: () =>
-        err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<{ mtimeMs: number }, ResultError>,
+        err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<
+          { mtimeMs: number },
+          ResultError
+        >,
       stderr: () => {},
     };
 
@@ -211,7 +214,12 @@ describe("buildContextSummary", () => {
   });
 
   it("includes the PreCompact prefix label", () => {
-    const state: PRDState = { task: "T", slug: "S", phase: "P", progress: "1/1" };
+    const state: PRDState = {
+      task: "T",
+      slug: "S",
+      phase: "P",
+      progress: "1/1",
+    };
     expect(buildContextSummary(state)).toContain("[PreCompact]");
   });
 });
@@ -233,30 +241,27 @@ describe("PreCompactStatePersist", () => {
     it("returns continue with additionalContext when PRD exists and has frontmatter", () => {
       const deps = makeDeps();
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
-        expect(result.value.additionalContext).toBeDefined();
-        expect(result.value.additionalContext).toContain("Implement PreCompact hook");
-        expect(result.value.additionalContext).toContain("in-progress");
-        expect(result.value.additionalContext).toContain("3/10");
+        expect(result.value.systemMessage).toBeDefined();
+        expect(result.value.systemMessage).toContain("Implement PreCompact hook");
+        expect(result.value.systemMessage).toContain("in-progress");
+        expect(result.value.systemMessage).toContain("3/10");
       }
     });
 
     it("additionalContext includes the slug", () => {
       const deps = makeDeps();
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       if (result.ok) {
-        expect(result.value.additionalContext).toContain(
-          "20260314-120000_implement-precompact-hook",
-        );
+        expect(result.value.systemMessage).toContain("20260314-120000_implement-precompact-hook");
       }
     });
   });
@@ -268,13 +273,12 @@ describe("PreCompactStatePersist", () => {
           err({ code: "FILE_READ_FAILED", message: "no dir" }) as Result<unknown[], ResultError>,
       });
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.systemMessage).toBeUndefined();
       }
     });
 
@@ -288,12 +292,12 @@ describe("PreCompactStatePersist", () => {
           >,
       });
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.systemMessage).toBeUndefined();
       }
     });
 
@@ -303,13 +307,12 @@ describe("PreCompactStatePersist", () => {
           err({ code: "FILE_READ_FAILED", message: "read error" }) as Result<string, ResultError>,
       });
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.systemMessage).toBeUndefined();
       }
     });
 
@@ -318,12 +321,12 @@ describe("PreCompactStatePersist", () => {
         readFile: () => ok(PRD_NO_FRONTMATTER),
       });
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.systemMessage).toBeUndefined();
       }
     });
 
@@ -332,12 +335,12 @@ describe("PreCompactStatePersist", () => {
         readFile: () => ok(PRD_MISSING_TASK_AND_SLUG),
       });
       const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-        ContinueOutput,
+        SyncHookJSONOutput,
         ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.systemMessage).toBeUndefined();
       }
     });
   });
@@ -359,12 +362,12 @@ describe("PreCompactStatePersist", () => {
 
       for (const deps of scenarios) {
         const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
-          ContinueOutput,
+          SyncHookJSONOutput,
           ResultError
         >;
         expect(result.ok).toBe(true);
         if (result.ok) {
-          expect(result.value.type).toBe("continue");
+          expect(result.value.continue).toBe(true);
         }
       }
     });

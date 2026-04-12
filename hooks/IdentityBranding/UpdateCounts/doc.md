@@ -36,7 +36,7 @@ if (!result.ok) {
   deps.stderr(`[UpdateCounts] Failed to spawn background: ${result.error.message}`);
 }
 
-return ok({ type: "silent" });
+return ok({});
 ```
 
 ## Examples
@@ -55,4 +55,5 @@ return ok({ type: "silent" });
 | --- | --- | --- |
 | `process` | adapter | Provides `spawnBackground` for detached process spawning |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type — silent no-op via `ok({})` post-SDK-refactor (1I), replaces legacy `SilentOutput` |
 | `UpdateCounts.ts` | external handler | Background script that reads session data and writes `counts.json` |

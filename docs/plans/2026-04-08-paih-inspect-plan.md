@@ -13,6 +13,7 @@
 ### Task 1: Add `--project` and `--raw` flags to args parser
 
 **Files:**
+
 - Modify: `cli/core/args.ts:27-42` (flag sets)
 - Test: `cli/core/args.test.ts` (if exists, add cases)
 
@@ -22,7 +23,12 @@ Add to the args test file (or create inline test):
 
 ```typescript
 it("parses --project as value flag", () => {
-  const result = parseArgs(["inspect", "DuplicationChecker", "--project", "/tmp/foo"]);
+  const result = parseArgs([
+    "inspect",
+    "DuplicationChecker",
+    "--project",
+    "/tmp/foo",
+  ]);
   expect(result.ok).toBe(true);
   if (result.ok) {
     expect(result.value.flags.project).toBe("/tmp/foo");
@@ -46,6 +52,7 @@ Expected: FAIL — `Unknown flag: --project`
 **Step 3: Add the flags**
 
 In `cli/core/args.ts`:
+
 - Add `"--raw"` to `BOOLEAN_FLAGS`
 - Add `"--project"` to `VALUE_FLAGS`
 
@@ -66,6 +73,7 @@ git commit -m "feat(cli): add --project and --raw flags to arg parser"
 ### Task 2: Create DuplicationChecker inspector
 
 **Files:**
+
 - Create: `hooks/DuplicationDetection/DuplicationChecker/inspector.ts`
 - Create: `hooks/DuplicationDetection/DuplicationChecker/inspector.test.ts`
 
@@ -82,19 +90,45 @@ const MOCK_INDEX = JSON.stringify({
   builtAt: "2026-04-08T04:32:01.000Z",
   fileCount: 28,
   functionCount: 142,
-  entries: [{ f: "src/a.ts", n: "foo", l: 1, h: "abc", p: "()", r: "void", fp: "a".repeat(32), s: 4 }],
+  entries: [
+    {
+      f: "src/a.ts",
+      n: "foo",
+      l: 1,
+      h: "abc",
+      p: "()",
+      r: "void",
+      fp: "a".repeat(32),
+      s: 4,
+    },
+  ],
   hashGroups: [["abc", [0]]],
   nameGroups: [["foo", [0]]],
   sigGroups: [["()|void", [0]]],
   patterns: [
-    { id: "p1", name: "helper", sig: "()", tier: 1, fileCount: 2, files: ["a.ts", "b.ts"] },
-    { id: "p2", name: "util", sig: "(s: string)", tier: 2, fileCount: 3, files: ["c.ts", "d.ts", "e.ts"] },
+    {
+      id: "p1",
+      name: "helper",
+      sig: "()",
+      tier: 1,
+      fileCount: 2,
+      files: ["a.ts", "b.ts"],
+    },
+    {
+      id: "p2",
+      name: "util",
+      sig: "(s: string)",
+      tier: 2,
+      fileCount: 3,
+      files: ["c.ts", "d.ts", "e.ts"],
+    },
   ],
 });
 
 describe("DuplicationChecker inspector", () => {
   const baseDeps = {
-    readFile: (path: string) => path.endsWith("index.json") ? MOCK_INDEX : null,
+    readFile: (path: string) =>
+      path.endsWith("index.json") ? MOCK_INDEX : null,
     exists: (path: string) => path.endsWith("index.json"),
     cwd: () => "/tmp/test-project",
     getBranch: (_dir: string) => "main",
@@ -165,7 +199,10 @@ import { PaihError, PaihErrorCode } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { err, ok } from "@hooks/cli/core/result";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
-import { getArtifactsDir, projectHash } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  getArtifactsDir,
+  projectHash,
+} from "@hooks/hooks/DuplicationDetection/shared";
 
 export interface InspectResult {
   statePath: string;
@@ -181,7 +218,10 @@ export interface InspectorDeps {
   getBranch: (dir: string) => string | null;
 }
 
-export function inspect(projectDir: string, deps: InspectorDeps): Result<InspectResult, PaihError> {
+export function inspect(
+  projectDir: string,
+  deps: InspectorDeps,
+): Result<InspectResult, PaihError> {
   const branch = deps.getBranch(projectDir) ?? "default";
   const artifactsDir = getArtifactsDir(projectDir, branch);
   const statePath = `${artifactsDir}/index.json`;
@@ -223,7 +263,8 @@ export function inspect(projectDir: string, deps: InspectorDeps): Result<Inspect
   const tier1 = (index.patterns ?? []).filter((p) => p.tier === 1).length;
   const tier2 = (index.patterns ?? []).filter((p) => p.tier === 2).length;
   const patternTotal = tier1 + tier2;
-  const patternDetail = patternTotal > 0 ? ` (${tier1} tier-1, ${tier2} tier-2)` : "";
+  const patternDetail =
+    patternTotal > 0 ? ` (${tier1} tier-1, ${tier2} tier-2)` : "";
 
   const summary = [
     `DuplicationChecker — state for ${projectDir}`,
@@ -278,6 +319,7 @@ git commit -m "feat(DuplicationChecker): add inspector for state inspection"
 ### Task 3: Create `inspect` CLI command
 
 **Files:**
+
 - Create: `cli/commands/inspect.ts`
 - Create: `cli/commands/inspect.test.ts`
 
@@ -290,13 +332,28 @@ import type { ParsedArgs } from "@hooks/cli/core/args";
 import { PaihErrorCode } from "@hooks/cli/core/error";
 
 const MOCK_INDEX = JSON.stringify({
-  version: 2, root: "/tmp/proj", branch: "main", builtAt: "2026-04-08T04:32:01.000Z",
-  fileCount: 10, functionCount: 50, entries: [],
-  hashGroups: [], nameGroups: [], sigGroups: [], patterns: [],
+  version: 2,
+  root: "/tmp/proj",
+  branch: "main",
+  builtAt: "2026-04-08T04:32:01.000Z",
+  fileCount: 10,
+  functionCount: 50,
+  entries: [],
+  hashGroups: [],
+  nameGroups: [],
+  sigGroups: [],
+  patterns: [],
 });
 
-const makeDeps = (overrides?: Partial<{ exists: (p: string) => boolean; readFile: (p: string) => string | null }>) => ({
-  readFile: overrides?.readFile ?? ((p: string) => p.endsWith("index.json") ? MOCK_INDEX : null),
+const makeDeps = (
+  overrides?: Partial<{
+    exists: (p: string) => boolean;
+    readFile: (p: string) => string | null;
+  }>,
+) => ({
+  readFile:
+    overrides?.readFile ??
+    ((p: string) => (p.endsWith("index.json") ? MOCK_INDEX : null)),
   exists: overrides?.exists ?? ((p: string) => p.endsWith("index.json")),
   cwd: () => "/tmp/proj",
   getBranch: () => "main",
@@ -304,7 +361,11 @@ const makeDeps = (overrides?: Partial<{ exists: (p: string) => boolean; readFile
 
 describe("inspect command", () => {
   it("returns summary for DuplicationChecker", () => {
-    const args: ParsedArgs = { command: "inspect", names: ["DuplicationChecker"], flags: {} };
+    const args: ParsedArgs = {
+      command: "inspect",
+      names: ["DuplicationChecker"],
+      flags: {},
+    };
     const result = inspect(args, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -314,7 +375,11 @@ describe("inspect command", () => {
   });
 
   it("respects --project flag", () => {
-    const args: ParsedArgs = { command: "inspect", names: ["DuplicationChecker"], flags: { project: "/other/dir" } };
+    const args: ParsedArgs = {
+      command: "inspect",
+      names: ["DuplicationChecker"],
+      flags: { project: "/other/dir" },
+    };
     const result = inspect(args, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -323,7 +388,11 @@ describe("inspect command", () => {
   });
 
   it("returns raw output with --raw flag", () => {
-    const args: ParsedArgs = { command: "inspect", names: ["DuplicationChecker"], flags: { raw: true } };
+    const args: ParsedArgs = {
+      command: "inspect",
+      names: ["DuplicationChecker"],
+      flags: { raw: true },
+    };
     const result = inspect(args, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -332,7 +401,11 @@ describe("inspect command", () => {
   });
 
   it("returns JSON with --json flag", () => {
-    const args: ParsedArgs = { command: "inspect", names: ["DuplicationChecker"], flags: { json: true } };
+    const args: ParsedArgs = {
+      command: "inspect",
+      names: ["DuplicationChecker"],
+      flags: { json: true },
+    };
     const result = inspect(args, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -349,10 +422,15 @@ describe("inspect command", () => {
   });
 
   it("errors on unknown hook name", () => {
-    const args: ParsedArgs = { command: "inspect", names: ["UnknownHook"], flags: {} };
+    const args: ParsedArgs = {
+      command: "inspect",
+      names: ["UnknownHook"],
+      flags: {},
+    };
     const result = inspect(args, makeDeps());
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.message).toContain("Inspectable hooks:");
+    if (!result.ok)
+      expect(result.error.message).toContain("Inspectable hooks:");
   });
 });
 ```
@@ -387,10 +465,17 @@ const INSPECTABLE_HOOKS = new Set(["DuplicationChecker"]);
 
 export interface InspectDeps extends InspectorDeps {}
 
-export function inspect(args: ParsedArgs, deps: InspectDeps): Result<string, PaihError> {
+export function inspect(
+  args: ParsedArgs,
+  deps: InspectDeps,
+): Result<string, PaihError> {
   const hookName = args.names[0];
   if (!hookName) {
-    return err(invalidArgs("Usage: paih inspect <hookName> [--project <dir>] [--raw] [--json]"));
+    return err(
+      invalidArgs(
+        "Usage: paih inspect <hookName> [--project <dir>] [--raw] [--json]",
+      ),
+    );
   }
 
   if (!INSPECTABLE_HOOKS.has(hookName)) {
@@ -410,7 +495,8 @@ export function inspect(args: ParsedArgs, deps: InspectDeps): Result<string, Pai
   if (!result.ok) return result;
 
   if (args.flags.raw) return { ok: true, value: result.value.raw };
-  if (args.flags.json) return { ok: true, value: JSON.stringify(result.value.json, null, 2) };
+  if (args.flags.json)
+    return { ok: true, value: JSON.stringify(result.value.json, null, 2) };
   return { ok: true, value: result.value.summary };
 }
 ```
@@ -434,6 +520,7 @@ git commit -m "feat(cli): add inspect command handler"
 ### Task 4: Wire into CLI router and clean up status stub
 
 **Files:**
+
 - Modify: `cli/bin/paih.ts:10,28-55,59,131-152`
 - Delete: `cli/commands/status.ts`
 
@@ -473,6 +560,7 @@ In `cli/bin/paih.ts`:
 3. Add `"inspect"` to `KNOWN_COMMANDS`
 4. Add to `USAGE` string under Commands: `  inspect     Show hook state for a project`
 5. Add case in `routeCommand`:
+
    ```typescript
    case "inspect":
      return inspect(args, {

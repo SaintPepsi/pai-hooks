@@ -6,8 +6,24 @@
  */
 
 import { join } from "node:path";
-import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { HookEvent, SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { removeDir } from "@hooks/core/adapters/fs";
+import { buildChildEnv } from "@hooks/core/adapters/process";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+
+/**
+ * Narrow SyncHookJSONOutput to additionalContext for a specific hookEventName.
+ * Returns undefined when the output has no hookSpecificOutput or when the event
+ * name does not match. Use for any R2/R7 context-injection assertion.
+ */
+export function getInjectedContextFor(
+  output: SyncHookJSONOutput,
+  eventName: HookEvent,
+): string | undefined {
+  const hs = output.hookSpecificOutput;
+  if (!hs || hs.hookEventName !== eventName) return undefined;
+  return "additionalContext" in hs ? hs.additionalContext : undefined;
+}
 
 /** Create a Write tool input for testing. */
 export function makeWriteInput(filePath: string, content: string): ToolHookInput {
@@ -23,7 +39,11 @@ export function makeEditInput(filePath: string, oldString = "a", newString = "b"
   return {
     session_id: "test-sess",
     tool_name: "Edit",
-    tool_input: { file_path: filePath, old_string: oldString, new_string: newString },
+    tool_input: {
+      file_path: filePath,
+      old_string: oldString,
+      new_string: newString,
+    },
   };
 }
 
@@ -61,7 +81,7 @@ export async function runHookScript(
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...Bun.env, PAI_DIR: tmpDir },
+    env: buildChildEnv({ PAI_DIR: tmpDir }),
   });
   const writer = proc.stdin!;
   writer.write(JSON.stringify(input));

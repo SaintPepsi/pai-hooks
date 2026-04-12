@@ -8,6 +8,7 @@
  * No additionalContext — this is a silent background operation.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   readDir as adapterReadDir,
   readFile as adapterReadFile,
@@ -18,16 +19,21 @@ import {
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { buildIndex, updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
+import {
+  buildIndex,
+  updateIndexForFile,
+} from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import {
+  getArtifactsDir,
+  getCurrentBranch,
+  PROJECT_MARKERS,
+} from "@hooks/hooks/DuplicationDetection/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { getArtifactsDir, getCurrentBranch, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -69,7 +75,6 @@ function defaultFindProjectRoot(filePath: string): string | null {
   }
   return null;
 }
-
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
@@ -124,7 +129,6 @@ function isToolInput(input: HookInput): input is ToolHookInput {
 
 export const DuplicationIndexBuilderContract: SyncHookContract<
   HookInput,
-  ContinueOutput,
   DuplicationIndexBuilderDeps
 > = {
   name: "DuplicationIndexBuilder",
@@ -146,13 +150,13 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
   execute(
     input: HookInput,
     deps: DuplicationIndexBuilderDeps,
-  ): Result<ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     // SessionStart: use CWD. PostToolUse: use file path from tool input.
     const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
     const projectRoot = deps.findProjectRoot(anchor);
     if (!projectRoot) {
       deps.stderr("[DuplicationIndexBuilder] No project root found — skipping");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const branch = getCurrentBranch(projectRoot) ?? null;
@@ -167,7 +171,10 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
     const existingJson = deps.readFile(indexPath);
 
     const parseResult = existingJson
-      ? tryCatch(() => JSON.parse(existingJson) as ReturnType<typeof buildIndex>, () => null)
+      ? tryCatch(
+          () => JSON.parse(existingJson) as ReturnType<typeof buildIndex>,
+          () => null,
+        )
       : null;
     const existing = parseResult?.ok ? parseResult.value : null;
 
@@ -188,7 +195,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
 
     if (index.functionCount === 0 && !existingJson) {
       deps.stderr("[DuplicationIndexBuilder] No functions found — skipping");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Write the index
@@ -206,7 +213,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       deps.stderr("[DuplicationIndexBuilder] Failed to write index — continuing without");
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

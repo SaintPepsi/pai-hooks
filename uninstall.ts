@@ -33,7 +33,10 @@ interface Settings {
 // ─── Core Logic ─────────────────────────────────────────────────────────────
 
 export function removeHooksFromSettings(
-  settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> },
+  settings: {
+    env?: Record<string, string>;
+    hooks?: Record<string, MatcherGroup[]>;
+  },
   envVar: string,
 ): Settings {
   const result: Settings = JSON.parse(JSON.stringify(settings));
@@ -66,7 +69,11 @@ export function removeHooksFromSettings(
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
 export interface UninstallDeps {
-  readFile: (path: string) => { ok: boolean; value?: string; error?: { message: string } };
+  readFile: (path: string) => {
+    ok: boolean;
+    value?: string;
+    error?: { message: string };
+  };
   writeFile: (path: string, content: string) => { ok: boolean };
   fileExists: (path: string) => boolean;
   stderr: (msg: string) => void;

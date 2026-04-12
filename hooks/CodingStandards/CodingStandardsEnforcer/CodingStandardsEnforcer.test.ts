@@ -1,12 +1,16 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   CodingStandardsEnforcer,
   type CodingStandardsEnforcerDeps,
 } from "@hooks/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract";
+import {
+  getPreToolUseDenyReason as denyReason,
+  isPreToolUseDeny as isDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -55,9 +59,7 @@ function makeReadInput(filePath: string): ToolHookInput {
   };
 }
 
-function unwrap(
-  result: Result<ContinueOutput | BlockOutput, ResultError>,
-): ContinueOutput | BlockOutput {
+function unwrap(result: Result<SyncHookJSONOutput, ResultError>): SyncHookJSONOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }
@@ -139,7 +141,7 @@ describe("CodingStandardsEnforcer", () => {
         "export function add(a: number, b: number): number {\n  return a + b;\n}",
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("blocks raw Node builtin imports", () => {
@@ -148,7 +150,7 @@ describe("CodingStandardsEnforcer", () => {
         'import { readFileSync } from "fs";\nconst x = readFileSync("a");',
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks try-catch flow control", () => {
@@ -157,25 +159,25 @@ describe("CodingStandardsEnforcer", () => {
         "export function go() {\n  try {\n    doThing();\n  } catch (e) {\n    return null;\n  }\n}",
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks direct process.env access", () => {
       const input = makeWriteInput("/src/config.ts", "export const port = process.env.PORT;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks as any casts", () => {
       const input = makeWriteInput("/src/util.ts", "const x = data as any;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks relative imports", () => {
       const input = makeWriteInput("/src/index.ts", REL_IMPORT);
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks export default function", () => {
@@ -184,7 +186,7 @@ describe("CodingStandardsEnforcer", () => {
         "export default function handler() { return 42; }",
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks export default object", () => {
@@ -193,7 +195,7 @@ describe("CodingStandardsEnforcer", () => {
         "const cfg = { port: 3000 };\nexport default cfg;",
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("allows named exports", () => {
@@ -202,7 +204,7 @@ describe("CodingStandardsEnforcer", () => {
         "export function add(a: number, b: number): number {\n  return a + b;\n}\nexport const PI = 3.14;",
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("allows process.env inside defaultDeps", () => {
@@ -213,7 +215,7 @@ describe("CodingStandardsEnforcer", () => {
       ].join("\n");
       const input = makeWriteInput("/src/mod.ts", content);
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
   });
 
@@ -225,7 +227,7 @@ describe("CodingStandardsEnforcer", () => {
       const deps = makeDeps({ readFile: () => existingContent });
       const input = makeEditInput("/src/mod.ts", "'old'", "'new'");
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("blocks when existing file has violations even if edit is clean", () => {
@@ -233,7 +235,7 @@ describe("CodingStandardsEnforcer", () => {
       const deps = makeDeps({ readFile: () => existingContent });
       const input = makeEditInput("/src/mod.ts", '"old"', '"new"');
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("blocks when edit introduces a violation", () => {
@@ -245,21 +247,21 @@ describe("CodingStandardsEnforcer", () => {
         'import { readFileSync } from "fs";\nexport const x = 1;',
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
 
     it("continues when file does not exist on disk and editParts are empty", () => {
       const deps = makeDeps({ readFile: () => null });
       const input = makeEditInput("/src/new.ts", "", "export const y = 2;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("checks just new_string when file does not exist on disk (new file via edit)", () => {
       const deps = makeDeps({ readFile: () => null });
       const input = makeEditInput("/src/new.ts", "placeholder", "export const y = 2;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("continues when Edit is missing old_string", () => {
@@ -267,10 +269,13 @@ describe("CodingStandardsEnforcer", () => {
       const input: ToolHookInput = {
         session_id: "test-sess",
         tool_name: "Edit",
-        tool_input: { file_path: "/src/new.ts", new_string: "export const y = 2;" },
+        tool_input: {
+          file_path: "/src/new.ts",
+          new_string: "export const y = 2;",
+        },
       };
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("continues when Edit is missing new_string", () => {
@@ -281,7 +286,7 @@ describe("CodingStandardsEnforcer", () => {
         tool_input: { file_path: "/src/new.ts", old_string: "placeholder" },
       };
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("blocks new_string violations when file does not exist on disk", () => {
@@ -292,7 +297,7 @@ describe("CodingStandardsEnforcer", () => {
         'import { readFileSync } from "fs";\nexport const y = 2;',
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
   });
 
@@ -305,18 +310,20 @@ describe("CodingStandardsEnforcer", () => {
         'import { readFileSync } from "fs";\nconst x = data as any;',
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      if (result.type !== "block") throw new Error("Expected block");
-      expect(result.reason).toContain("2 violations");
-      expect(result.reason).toContain("/src/bad.ts");
+      if (!isDeny(result)) throw new Error("Expected deny");
+      const reason = denyReason(result);
+      expect(reason).toContain("2 violations");
+      expect(reason).toContain("/src/bad.ts");
     });
 
     it("includes fix instructions for violated categories only", () => {
       const input = makeWriteInput("/src/bad.ts", "const x = data as any;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      if (result.type !== "block") throw new Error("Expected block");
-      expect(result.reason).toContain("proper types");
-      expect(result.reason).not.toContain("adapters");
-      expect(result.reason).not.toContain("try-catch");
+      if (!isDeny(result)) throw new Error("Expected deny");
+      const reason = denyReason(result);
+      expect(reason).toContain("proper types");
+      expect(reason).not.toContain("adapters");
+      expect(reason).not.toContain("try-catch");
     });
   });
 
@@ -328,13 +335,13 @@ describe("CodingStandardsEnforcer", () => {
         tool_input: { file_path: "/src/utils.ts" },
       };
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("continues for .svelte file without script block", () => {
       const input = makeWriteInput("/src/NoScript.svelte", "<div>Just HTML</div>");
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("continue");
+      expect(result.continue).toBe(true);
     });
 
     it("blocks violations in .svelte script block", () => {
@@ -346,7 +353,7 @@ describe("CodingStandardsEnforcer", () => {
       ].join("\n");
       const input = makeWriteInput("/src/Component.svelte", svelteContent);
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
-      expect(result.type).toBe("block");
+      expect(isDeny(result)).toBe(true);
     });
   });
 

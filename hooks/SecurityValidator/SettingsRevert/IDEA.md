@@ -18,9 +18,11 @@ Instead of trying to predict what a command will do, observe what it actually di
 ## Signals
 
 **Input:**
+
 - Tool name (only processes Bash)
 - Session ID (to locate the correct snapshot)
 
 **Output:**
+
 - `silent` when no change detected (most common path)
 - `continue` with warning context when a change was reverted

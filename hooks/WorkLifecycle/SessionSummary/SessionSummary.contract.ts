@@ -6,12 +6,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile, readJson, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp } from "@hooks/lib/time";
 
@@ -96,7 +96,7 @@ const defaultDeps: SessionSummaryDeps = {
   stderr: defaultStderr,
 };
 
-export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, SessionSummaryDeps> = {
+export const SessionSummary: SyncHookContract<SessionEndInput, SessionSummaryDeps> = {
   name: "SessionSummary",
   event: "SessionEnd",
 
@@ -104,10 +104,13 @@ export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, Ses
     return true;
   },
 
-  execute(input: SessionEndInput, deps: SessionSummaryDeps): Result<SilentOutput, ResultError> {
+  execute(
+    input: SessionEndInput,
+    deps: SessionSummaryDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     clearSessionWork(input.session_id, deps);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

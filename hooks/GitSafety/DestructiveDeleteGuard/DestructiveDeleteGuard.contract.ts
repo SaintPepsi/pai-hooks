@@ -22,14 +22,13 @@
  *   - This guard's own test file (test strings legitimately contain the patterns)
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Artifact Allowlist ─────────────────────────────────────────────────────
 
@@ -226,11 +225,7 @@ const defaultDeps: DestructiveDeleteGuardDeps = {
   stderr: defaultStderr,
 };
 
-export const DestructiveDeleteGuard: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput | BlockOutput | AskOutput,
-  DestructiveDeleteGuardDeps
-> = {
+export const DestructiveDeleteGuard: SyncHookContract<ToolHookInput, DestructiveDeleteGuardDeps> = {
   name: "DestructiveDeleteGuard",
   event: "PreToolUse",
 
@@ -241,22 +236,24 @@ export const DestructiveDeleteGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: DestructiveDeleteGuardDeps,
-  ): Result<ContinueOutput | BlockOutput | AskOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     // Bash: detect destructive delete patterns, BLOCK
     if (input.tool_name === "Bash") {
       const command = getCommand(input);
-      if (!command) return ok(continueOk());
+      if (!command) return ok({ continue: true });
 
       if (detectsDestructiveDelete(command)) {
-        // Artifact directories get a softer "ask" instead of hard block
+        // Artifact directories get a softer "ask" — prompt the user before proceeding
         if (isArtifactDirCleanup(command)) {
           deps.stderr(
             `[DestructiveDeleteGuard] ASK: artifact dir cleanup — ${command.slice(0, 120)}`,
           );
           return ok({
-            type: "ask",
-            decision: "ask",
-            message: `Destructive delete on artifact directory: ${command.slice(0, 200)}. Proceed?`,
+            hookSpecificOutput: {
+              hookEventName: "PreToolUse",
+              permissionDecision: "ask",
+              permissionDecisionReason: `Destructive delete on artifact directory: ${command.slice(0, 200)}. Proceed?`,
+            },
           });
         }
 
@@ -272,38 +269,40 @@ export const DestructiveDeleteGuard: SyncHookContract<
         deps.stderr(`[DestructiveDeleteGuard] BLOCK: destructive delete in bash command`);
 
         return ok({
-          type: "block",
-          decision: "block",
-          reason,
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+            permissionDecisionReason: reason,
+          },
         });
       }
 
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Edit/Write: skip markdown files — documentation mentioning delete patterns is normal
     if (isDocumentationFile(input)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Edit/Write: skip Dockerfiles — rm -rf in containers is image cleanup (apt lists, caches), not host deletion
     if (isDockerfile(input)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Edit/Write: skip the fs adapter — it is the safe wrapper, raw rmSync belongs there
     if (isFsAdapter(input)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Edit/Write: skip this guard's own test file — test strings legitimately contain destructive patterns
     if (isOwnTestFile(input)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Edit/Write: detect destructive delete patterns in code, BLOCK with guidance
     const content = getContentToCheck(input);
-    if (!content) return ok(continueOk());
+    if (!content) return ok({ continue: true });
 
     if (detectsDestructiveDeleteInCode(content)) {
       const reason = [
@@ -322,13 +321,15 @@ export const DestructiveDeleteGuard: SyncHookContract<
       );
 
       return ok({
-        type: "block",
-        decision: "block",
-        reason,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: reason,
+        },
       });
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  getPreToolUseDenyReason,
+  isPreToolUseDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import { IssueCreateGate, type IssueCreateGateDeps } from "./IssueCreateGate.contract";
 
 function makeDeps(overrides: Partial<IssueCreateGateDeps> = {}): IssueCreateGateDeps {
@@ -28,8 +29,6 @@ function makeNonBashInput(toolName: string): ToolHookInput {
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
-
 describe("IssueCreateGate", () => {
   it("has correct name and event", () => {
     expect(IssueCreateGate.name).toBe("IssueCreateGate");
@@ -52,30 +51,30 @@ describe("IssueCreateGate", () => {
     const result = IssueCreateGate.execute(
       makeBashInput("gh issue create --title test"),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks gh issue create with full flags", () => {
     const result = IssueCreateGate.execute(
       makeBashInput('gh issue create --title "test" --body "body" --milestone 1'),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks gh issue create in a chained command", () => {
     const result = IssueCreateGate.execute(
       makeBashInput("echo 'creating' && gh issue create --title test"),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Blocks gh api issue creation ──
@@ -84,82 +83,70 @@ describe("IssueCreateGate", () => {
     const result = IssueCreateGate.execute(
       makeBashInput("gh api repos/org/repo/issues -f title=test"),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks gh api with full org/repo/issues path", () => {
     const result = IssueCreateGate.execute(
       makeBashInput('gh api repos/my-org/my-repo/issues --method POST -f title="New issue"'),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Passes through unrelated commands ──
 
   it("passes through git status", () => {
-    const result = IssueCreateGate.execute(
-      makeBashInput("git status"),
-      makeDeps(),
-    ) as GateResult;
+    const result = IssueCreateGate.execute(makeBashInput("git status"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh pr create", () => {
     const result = IssueCreateGate.execute(
       makeBashInput("gh pr create --title test --body body"),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh issue list", () => {
-    const result = IssueCreateGate.execute(
-      makeBashInput("gh issue list --state open"),
-      makeDeps(),
-    ) as GateResult;
+    const result = IssueCreateGate.execute(makeBashInput("gh issue list --state open"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh issue view", () => {
-    const result = IssueCreateGate.execute(
-      makeBashInput("gh issue view 42"),
-      makeDeps(),
-    ) as GateResult;
+    const result = IssueCreateGate.execute(makeBashInput("gh issue view 42"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh issue close", () => {
-    const result = IssueCreateGate.execute(
-      makeBashInput("gh issue close 42"),
-      makeDeps(),
-    ) as GateResult;
+    const result = IssueCreateGate.execute(makeBashInput("gh issue close 42"), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh api calls that are not issue creation", () => {
     const result = IssueCreateGate.execute(
       makeBashInput("gh api repos/org/repo/pulls --method GET"),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── Block message quality ──
@@ -168,12 +155,11 @@ describe("IssueCreateGate", () => {
     const result = IssueCreateGate.execute(
       makeBashInput("gh issue create --title test"),
       makeDeps(),
-    ) as GateResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("submit_issue");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("submit_issue");
   });
 
   it("logs block to stderr", () => {

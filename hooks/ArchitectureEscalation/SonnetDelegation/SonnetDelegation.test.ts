@@ -1,8 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import { SonnetDelegation, type SonnetDelegationDeps } from "./SonnetDelegation.contract";
 
 function makeDeps(overrides: Partial<SonnetDelegationDeps> = {}): SonnetDelegationDeps {
@@ -74,13 +75,12 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
     expect(result.value.continue).toBe(true);
-    expect(result.value.additionalContext).toBeDefined();
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toBeDefined();
   });
 
   it("guidance mentions Sonnet delegation", () => {
@@ -88,10 +88,10 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     if (!result.ok) return;
-    const ctx = result.value.additionalContext!;
+    const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("sonnet");
     expect(ctx).toContain("mechanical");
   });
@@ -101,10 +101,10 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     if (!result.ok) return;
-    const ctx = result.value.additionalContext!;
+    const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("NEVER");
     expect(ctx).toContain("ISC");
     expect(ctx).toContain("PRD");

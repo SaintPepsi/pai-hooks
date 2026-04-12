@@ -130,10 +130,7 @@ export function compileHook(
  * --compiled:    direct path format (relies on shebang), e.g. "$CLAUDE_PROJECT_DIR/.claude/hooks/Group/Hook.js"
  * --compiled-ts: bun <path> format, e.g. "bun $CLAUDE_PROJECT_DIR/.claude/hooks/Group/Hook.ts"
  */
-export function compiledCommandString(
-  hookPath: string,
-  mode: OutputMode,
-): string {
+export function compiledCommandString(hookPath: string, mode: OutputMode): string {
   if (mode === "compiled-ts") {
     return `bun ${hookPath}`;
   }

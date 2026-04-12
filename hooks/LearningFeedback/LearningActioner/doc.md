@@ -44,10 +44,10 @@ It does **not** fire when:
 const creditResult = evaluateCredit(deps.baseDir, deps);
 deps.writeFile(creditPath, JSON.stringify({ credit: creditResult.newCredit, ... }));
 
-if (!creditResult.shouldSpawn) return ok({ type: "silent" });
+if (!creditResult.shouldSpawn) return ok({});
 
 // Gate: learning sources must exist
-if (!hasLearningSources(deps.baseDir, deps)) return ok({ type: "silent" });
+if (!hasLearningSources(deps.baseDir, deps)) return ok({});
 
 // Spawn analysis agent via shared infrastructure
 deps.runLearningAgent();
@@ -69,10 +69,10 @@ deps.runLearningAgent();
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | File operations for lock, credit state, and learning sources |
-| `run-learning-agent.ts` | wrapper | Thin wrapper that calls `spawnAgent()` with learning-agent config |
-| `lib/spawn-agent` | lib | Shared agent spawning with lock/log/traceability |
-| `runners/agent-runner.ts` | runner | Generic background runner for all hook agents |
-| `core/result` | core | Result type for error handling |
+| Dependency                | Type    | Purpose                                                           |
+| ------------------------- | ------- | ----------------------------------------------------------------- |
+| `core/adapters/fs`        | adapter | File operations for lock, credit state, and learning sources      |
+| `run-learning-agent.ts`   | wrapper | Thin wrapper that calls `spawnAgent()` with learning-agent config |
+| `lib/spawn-agent`         | lib     | Shared agent spawning with lock/log/traceability                  |
+| `runners/agent-runner.ts` | runner  | Generic background runner for all hook agents                     |
+| `core/result`             | core    | Result type for error handling                                    |

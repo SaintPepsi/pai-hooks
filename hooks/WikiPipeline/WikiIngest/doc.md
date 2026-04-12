@@ -38,7 +38,7 @@ WikiIngest is a SessionEnd hook that automatically processes session transcripts
 ```
 Pipeline flow:
   Session JSONL (50KB) -> Filter -> Digest (2KB) -> Extract -> Extraction JSON -> Seed -> Wiki Pages
-  
+
 Audit entry (audit.jsonl):
   {"session_id":"abc123","timestamp":"2026-04-06T15:00:00","classification":"standard","extractionCost":0.001,"pagesCreated":2}
 

@@ -82,7 +82,11 @@ export function detectConflicts(
         if (seen.has(name)) continue;
         const existingCmd = existingByName.get(name);
         if (existingCmd) {
-          conflicts.push({ name, existingCommand: existingCmd, incomingCommand: hook.command });
+          conflicts.push({
+            name,
+            existingCommand: existingCmd,
+            incomingCommand: hook.command,
+          });
           seen.add(name);
         }
       }
@@ -179,7 +183,10 @@ export function formatConflictSummary(conflicts: Conflict[]): string {
 }
 
 export function isAlreadyInstalled(
-  settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> },
+  settings: {
+    env?: Record<string, string>;
+    hooks?: Record<string, MatcherGroup[]>;
+  },
   envVar: string,
 ): boolean {
   // Check settings.env (legacy) or hooks containing the env var ref
@@ -260,7 +267,10 @@ export function removeFromZshrc(content: string): string {
  * This makes re-install idempotent: old entries are replaced, not duplicated.
  */
 export function mergeHooksIntoSettings(
-  settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> },
+  settings: {
+    env?: Record<string, string>;
+    hooks?: Record<string, MatcherGroup[]>;
+  },
   exported: ExportedHooks,
 ): Settings {
   const result: Settings = JSON.parse(JSON.stringify(settings));
@@ -302,7 +312,11 @@ export function mergeHooksIntoSettings(
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
 export interface InstallDeps {
-  readFile: (path: string) => { ok: boolean; value?: string; error?: { message: string } };
+  readFile: (path: string) => {
+    ok: boolean;
+    value?: string;
+    error?: { message: string };
+  };
   writeFile: (path: string, content: string) => { ok: boolean };
   fileExists: (path: string) => boolean;
   stderr: (msg: string) => void;
@@ -385,7 +399,11 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
       // Interactive prompt
       deps.stdout(formatConflictSummary(conflicts));
       const answer = await deps.prompt("\nChoice: ");
-      const map: Record<string, ConflictMode> = { k: "keep", r: "replace", b: "both" };
+      const map: Record<string, ConflictMode> = {
+        k: "keep",
+        r: "replace",
+        b: "both",
+      };
       mode = map[answer] || "keep";
     } else {
       deps.stdout(formatConflictSummary(conflicts));

@@ -49,9 +49,25 @@ deps.writeJson(baselinePath, store);
 
 if (result.score < LOW_SCORE_THRESHOLD) {
   const advisory = deps.formatAdvisory(result, filePath);
-  return ok({ type: "continue", continue: true, additionalContext: advisory });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: advisory,
+    },
+  });
 }
 ```
+
+## History
+
+**Phase 1 Task 1O (2026-04-11)** — Latent bug #13 fixed. The R2 advisory site at
+`CodeQualityBaseline.contract.ts:173` was emitting `ok(continueOk("Note: Pre-existing quality
+concerns detected.\n..."))` which became a silent drop after Phase 0 Task 0C (commit `3705810`)
+deleted the runner's `formatOutput()` translation layer. `validateHookOutput` fail-opened on the
+legacy shape, so the pre-existing quality advisory injected into PostToolUse was never delivered.
+Fixed by migrating to `hookSpecificOutput.additionalContext` per recipe R2 in
+`/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77`.
 
 ## Examples
 
@@ -65,9 +81,9 @@ if (result.score < LOW_SCORE_THRESHOLD) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `language-profiles` | core | Determines if a file is scorable and provides language-specific check profiles |
-| `quality-scorer` | core | Scores file content and formats advisory messages |
-| `svelte-utils` | lib | Extracts `<script>` blocks from Svelte files for scoring |
-| `fs` | adapter | File read/write operations for baseline persistence |
+| Dependency          | Type    | Purpose                                                                        |
+| ------------------- | ------- | ------------------------------------------------------------------------------ |
+| `language-profiles` | core    | Determines if a file is scorable and provides language-specific check profiles |
+| `quality-scorer`    | core    | Scores file content and formats advisory messages                              |
+| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files for scoring                       |
+| `fs`                | adapter | File read/write operations for baseline persistence                            |

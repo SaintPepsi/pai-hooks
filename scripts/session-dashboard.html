@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code — Quality by Time of Day</title>
+<script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0f1117; color: #e2e4e9; }
+  header { padding: 24px 32px; border-bottom: 1px solid #2a2d3a; }
+  header h1 { font-size: 20px; font-weight: 600; color: #fbbf24; }
+  header p { color: #8b8fa3; font-size: 13px; margin-top: 4px; }
+  .drop-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 50vh; border: 2px dashed #2a2d3a; border-radius: 12px;
+    margin: 32px; padding: 48px; cursor: pointer;
+  }
+  .drop-zone:hover { border-color: #fbbf24; background: rgba(251,191,36,0.03); }
+  .drop-zone h2 { font-size: 22px; margin-bottom: 8px; }
+  .drop-zone p { color: #8b8fa3; font-size: 14px; }
+  .drop-zone input { display: none; }
+  #dashboard { display: none; padding: 16px 32px; }
+  .filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters label { font-size: 11px; color: #8b8fa3; text-transform: uppercase; letter-spacing: 0.5px; }
+  .filters input, .filters select {
+    background: #1a1d27; border: 1px solid #2a2d3a; color: #e2e4e9;
+    padding: 5px 8px; border-radius: 4px; font-size: 13px; width: 60px;
+  }
+  .filters select { width: auto; }
+  .filters .count { color: #8b8fa3; font-size: 12px; margin-left: auto; }
+  .card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #8b8fa3; margin-bottom: 12px; }
+  .plot { width: 100%; height: 350px; }
+  .plot.tall { height: 500px; }
+  .verdict { padding: 16px; background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 8px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .verdict strong { color: #fbbf24; }
+  .verdict .bad { color: #ef4444; font-weight: 700; }
+  .verdict .good { color: #22c55e; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Claude Quality Degradation Analysis — 2pm AEST Threshold</h1>
+  <p>Evidence collection for GitHub issue (anthropics/claude-code) and ACCC consumer complaint</p>
+</header>
+
+<div id="dropzone">
+  <div class="drop-zone" id="drop">
+    <h2>Drop session-analysis.csv here</h2>
+    <p>or click to browse</p>
+    <input type="file" id="fileInput" accept=".csv">
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="filters">
+    <label>Min prompts:</label><input type="number" id="fMinMsgs" value="5" min="0">
+    <label>Min turns:</label><input type="number" id="fMinTurns" value="10" min="0">
+    <label>Min duration:</label><input type="number" id="fMinDur" value="10" min="0">
+    <label>Model:</label><select id="fModel"><option value="all">All</option></select>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+      <input type="checkbox" id="fExcludeSubagents" checked style="width:auto;">
+      Exclude subagents
+    </label>
+    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+      <input type="checkbox" id="fExcludeOutliers" style="width:auto;">
+      Exclude outliers (>2x median)
+    </label>
+    <button type="button" id="resetFilters" style="background:#fbbf24;color:#0f1117;border:none;padding:5px 12px;border-radius:4px;cursor:pointer;font-weight:600;">Reset All Filters</button>
+    <span class="count" id="sessionCount"></span>
+    <span class="count" id="modelBreakdown" style="margin-left:8px;"></span>
+  </div>
+
+  <div class="verdict" id="verdict"></div>
+
+  <div class="card">
+    <h3>Frustration signals per session, by hour</h3>
+    <div id="chart1" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Corrections per user message (%), by hour</h3>
+    <div id="chart2" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Avg output tokens per session, by hour</h3>
+    <div id="chart3" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Thinking depth ratio by hour (lower = shallower reasoning)</h3>
+    <div id="chart4" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Abandoned frustrated sessions by hour</h3>
+    <div id="chart5" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Tool loops + consecutive corrections by hour (model struggling)</h3>
+    <div id="chart6" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Frustration by model — does degradation affect all models equally?</h3>
+    <div id="chart7" class="plot"></div>
+  </div>
+
+  <div class="card">
+    <h3>Every session — date vs duration, colored by frustration</h3>
+    <div id="chart8" class="plot tall"></div>
+  </div>
+</div>
+
+<script>
+const LO = {
+  paper_bgcolor:'#1a1d27', plot_bgcolor:'#1a1d27',
+  font:{color:'#e2e4e9',family:'-apple-system,system-ui,sans-serif',size:12},
+  margin:{t:10,r:20,b:45,l:55},
+  xaxis:{gridcolor:'#2a2d3a',zerolinecolor:'#2a2d3a'},
+  yaxis:{gridcolor:'#2a2d3a',zerolinecolor:'#2a2d3a'},
+  hoverlabel:{bgcolor:'#2a2d3a',font:{color:'#e2e4e9'}},
+};
+const C = {responsive:true,displayModeBar:false};
+let raw=[];
+
+// Drop zone
+const drop=document.getElementById('drop'), fi=document.getElementById('fileInput');
+drop.addEventListener('click',()=>fi.click());
+drop.addEventListener('dragover',e=>{e.preventDefault();});
+drop.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files.length)load(e.dataTransfer.files[0]);});
+fi.addEventListener('change',e=>{if(e.target.files.length)load(e.target.files[0]);});
+
+function load(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    raw=parseCSV(e.target.result);
+    const models=[...new Set(raw.map(d=>d.primary_model).filter(Boolean))].sort();
+    const sel=document.getElementById('fModel');
+    models.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+    document.getElementById('dropzone').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    ['fMinMsgs','fMinTurns','fMinDur','fModel','fExcludeSubagents','fExcludeOutliers'].forEach(id=>
+      document.getElementById(id).addEventListener('change',render));
+    document.getElementById('resetFilters').addEventListener('click',()=>{
+      document.getElementById('fMinMsgs').value=0;
+      document.getElementById('fMinTurns').value=0;
+      document.getElementById('fMinDur').value=0;
+      document.getElementById('fModel').value='all';
+      document.getElementById('fExcludeSubagents').checked=false;
+      document.getElementById('fExcludeOutliers').checked=false;
+      render();
+    });
+    render();
+  };
+  r.readAsText(file);
+}
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  if(lines.length<2)return[];
+  const h=csvLine(lines[0]);
+  const nums=new Set(['hour_local','duration_min','user_messages','assistant_turns',
+    'total_output_tokens','correction_signals','frustration_signals',
+    'output_tokens_per_user_msg','session_entries_total','total_input_tokens',
+    'is_after_2pm','is_subagent','thinking_depth_ratio','empty_responses','abandoned_frustrated',
+    'tool_success_rate','tool_loops','consecutive_corrections','max_tokens_count',
+    'avg_thinking_length','avg_assistant_text_length']);
+  return lines.slice(1).map(l=>{
+    const v=csvLine(l),o={};
+    h.forEach((k,i)=>o[k]=nums.has(k)?parseFloat(v[i])||0:v[i]||'');
+    return o;
+  });
+}
+
+function csvLine(l){
+  const r=[];let c='',q=false;
+  for(let i=0;i<l.length;i++){
+    const ch=l[i];
+    if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++;}else if(ch==='"')q=false;else c+=ch;}
+    else{if(ch==='"')q=true;else if(ch===','){r.push(c);c='';}else c+=ch;}
+  }
+  r.push(c);return r;
+}
+
+function median(arr){
+  if(!arr.length)return 0;
+  const s=[...arr].sort((a,b)=>a-b);
+  const mid=Math.floor(s.length/2);
+  return s.length%2?s[mid]:(s[mid-1]+s[mid])/2;
+}
+
+function filter(){
+  const mm=parseInt(document.getElementById('fMinMsgs').value, 10)||0;
+  const mt=parseInt(document.getElementById('fMinTurns').value, 10)||0;
+  const md=parseFloat(document.getElementById('fMinDur').value)||0;
+  const model=document.getElementById('fModel').value;
+  const excludeSub=document.getElementById('fExcludeSubagents').checked;
+  const excludeOut=document.getElementById('fExcludeOutliers').checked;
+
+  // First pass: basic filters
+  let f=raw.filter(d=>{
+    if(excludeSub&&d.is_subagent===1)return false;
+    if(d.user_messages<mm)return false;
+    if(d.assistant_turns<mt)return false;
+    if(d.duration_min<md||d.duration_min>720)return false;
+    if(model!=='all'&&d.primary_model!==model)return false;
+    return true;
+  });
+
+  // Second pass: outlier removal (>2x median on key metrics)
+  let outlierCount=0;
+  if(excludeOut&&f.length>10){
+    const medDur=median(f.map(d=>d.duration_min));
+    const medTok=median(f.map(d=>d.total_output_tokens));
+    const medCorr=median(f.map(d=>d.correction_signals));
+    const medFrust=median(f.map(d=>d.frustration_signals));
+    const before=f.length;
+    f=f.filter(d=>{
+      if(medDur>0&&d.duration_min>medDur*3)return false;
+      if(medTok>0&&d.total_output_tokens>medTok*3)return false;
+      if(medCorr>0&&d.correction_signals>medCorr*5)return false;
+      if(medFrust>0&&d.frustration_signals>medFrust*5)return false;
+      return true;
+    });
+    outlierCount=before-f.length;
+  }
+
+  const subCount=raw.filter(d=>d.is_subagent===1).length;
+  let status=`${f.length} of ${raw.length} sessions`;
+  if(excludeSub)status+=` (${subCount} subagents excluded)`;
+  if(outlierCount>0)status+=` (${outlierCount} outliers excluded)`;
+  document.getElementById('sessionCount').textContent=status;
+  return f;
+}
+
+function avg(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0;}
+function sum(a){return a.reduce((s,v)=>s+v,0);}
+
+function render(){
+  const data=filter();
+  const byH={};for(let h=0;h<24;h++)byH[h]=[];
+  data.forEach(d=>{const h=d.hour_local;if(h>=0&&h<24)byH[h].push(d);});
+  const hours=Array.from({length:24},(_,i)=>i);
+  const labels=hours.map(h=>`${String(h).padStart(2,'0')}:00`);
+  const _active=hours.filter(h=>byH[h].length>0);
+
+  // Compute before/after 2pm
+  const before=data.filter(d=>d.hour_local>=6&&d.hour_local<14);
+  const after=data.filter(d=>d.hour_local>=14&&d.hour_local<22);
+
+  const frustBefore=before.length?avg(before.map(d=>d.frustration_signals)):0;
+  const frustAfter=after.length?avg(after.map(d=>d.frustration_signals)):0;
+  const corrBefore=before.length?avg(before.map(d=>d.correction_signals)):0;
+  const corrAfter=after.length?avg(after.map(d=>d.correction_signals)):0;
+  const tokBefore=before.length?avg(before.map(d=>d.total_output_tokens)):0;
+  const tokAfter=after.length?avg(after.map(d=>d.total_output_tokens)):0;
+  const thinkBefore=before.length?avg(before.map(d=>d.thinking_depth_ratio)):0;
+  const thinkAfter=after.length?avg(after.map(d=>d.thinking_depth_ratio)):0;
+  const abandonBefore=before.length?avg(before.map(d=>d.abandoned_frustrated))*100:0;
+  const abandonAfter=after.length?avg(after.map(d=>d.abandoned_frustrated))*100:0;
+  const loopsBefore=before.length?avg(before.map(d=>d.tool_loops)):0;
+  const loopsAfter=after.length?avg(after.map(d=>d.tool_loops)):0;
+  const consecBefore=before.length?avg(before.map(d=>d.consecutive_corrections)):0;
+  const consecAfter=after.length?avg(after.map(d=>d.consecutive_corrections)):0;
+
+  const pct=(a,b)=>b?((a-b)/b*100).toFixed(0):'n/a';
+  const badge=(val,ref,higherBad)=>{
+    const diff=((val-ref)/Math.max(ref,0.01))*100;
+    const cls=(diff>0)===higherBad?(Math.abs(diff)>10?'bad':''):(Math.abs(diff)>10?'good':'');
+    return `<span class="${cls}">${typeof val==='number'&&val<10?val.toFixed(2):Math.round(val).toLocaleString()}</span>`;
+  };
+
+  document.getElementById('verdict').innerHTML=`
+    <strong style="color:#fbbf24;font-size:16px;">⚠️ 2PM AEST THRESHOLD ANALYSIS</strong><br><br>
+    <strong>Before 2pm</strong> (6am–2pm, ${before.length} sessions) vs <strong>After 2pm</strong> (2pm–10pm, ${after.length} sessions):<br><br>
+    <table style="width:100%;font-size:13px;border-collapse:collapse;">
+      <tr style="border-bottom:1px solid #2a2d3a;"><th style="text-align:left;padding:4px;">Metric</th><th>Before</th><th>After</th><th>Change</th></tr>
+      <tr><td style="padding:4px;">Frustration signals/session</td><td>${badge(frustBefore,frustBefore,true)}</td><td>${badge(frustAfter,frustBefore,true)}</td><td>${pct(frustAfter,frustBefore)}%</td></tr>
+      <tr><td style="padding:4px;">Corrections/session</td><td>${badge(corrBefore,corrBefore,true)}</td><td>${badge(corrAfter,corrBefore,true)}</td><td>${pct(corrAfter,corrBefore)}%</td></tr>
+      <tr><td style="padding:4px;">Consecutive corrections</td><td>${badge(consecBefore,consecBefore,true)}</td><td>${badge(consecAfter,consecBefore,true)}</td><td>${pct(consecAfter,consecBefore)}%</td></tr>
+      <tr><td style="padding:4px;">Abandoned frustrated (%)</td><td>${badge(abandonBefore,abandonBefore,true)}</td><td>${badge(abandonAfter,abandonBefore,true)}</td><td>${pct(abandonAfter,abandonBefore)}%</td></tr>
+      <tr><td style="padding:4px;">Tool loops/session</td><td>${badge(loopsBefore,loopsBefore,true)}</td><td>${badge(loopsAfter,loopsBefore,true)}</td><td>${pct(loopsAfter,loopsBefore)}%</td></tr>
+      <tr><td style="padding:4px;">Thinking depth ratio</td><td>${badge(thinkBefore,thinkBefore,false)}</td><td>${badge(thinkAfter,thinkBefore,false)}</td><td>${pct(thinkAfter,thinkBefore)}%</td></tr>
+      <tr><td style="padding:4px;">Output tokens/session</td><td>${badge(tokBefore,tokBefore,false)}</td><td>${badge(tokAfter,tokBefore,false)}</td><td>${pct(tokAfter,tokBefore)}%</td></tr>
+    </table>
+  `;
+
+  // Vertical line annotation for 2pm
+  const line2pm={type:'line',x0:'14:00',x1:'14:00',y0:0,y1:1,yref:'paper',line:{color:'#fbbf24',width:2,dash:'dash'}};
+  const annot2pm={x:'14:00',y:1,yref:'paper',text:'2PM AEST',showarrow:false,font:{color:'#fbbf24',size:11},yanchor:'bottom'};
+
+  // Model palette and list (used across all charts)
+  const palette=['#ef4444','#3b82f6','#22c55e','#a855f7','#f97316','#06b6d4','#ec4899','#84cc16','#f59e0b','#6366f1','#14b8a6','#f43f5e'];
+  // Include all models except <synthetic>
+  const models=[...new Set(data.map(d=>d.primary_model))].filter(m=>m&&m!=='<synthetic>').sort();
+  const activeModels=models; // show all models with any data
+  console.log('Data length:',data.length,'Models:',models,'Model counts:',models.map(m=>[m,data.filter(d=>d.primary_model===m).length]));
+
+  // Helper: build grouped data by model and hour
+  function buildModelHourData(){
+    const result={};
+    activeModels.forEach(m=>{result[m]={};for(let h=0;h<24;h++)result[m][h]=[];});
+    data.forEach(d=>{
+      if(activeModels.includes(d.primary_model)&&d.hour_local>=0&&d.hour_local<24){
+        result[d.primary_model][d.hour_local].push(d);
+      }
+    });
+    return result;
+  }
+  const modelHourData=buildModelHourData();
+
+  // Helper: create line traces for a metric (one line per model)
+  function lineTraces(metric,formatter=(s,k)=>avg(s.map(d=>d[k]))){
+    return activeModels.map((m,i)=>({
+      x:labels,
+      y:hours.map(h=>{
+        const s=modelHourData[m][h];
+        if(s.length<1)return null;
+        return formatter(s,metric);
+      }),
+      type:'scatter',
+      mode:'lines+markers',
+      name:m.replace('claude-',''),
+      line:{color:palette[i%palette.length],width:2},
+      marker:{size:6},
+      connectgaps:true,
+      hovertemplate:`${m.replace('claude-','')}<br>%{x}<br>%{y:.2f}<extra></extra>`,
+    }));
+  }
+
+  // Debug: show active models in UI
+  const modelCounts=activeModels.map(m=>`${m.replace('claude-','')}:${data.filter(d=>d.primary_model===m).length}`).join(', ');
+  document.getElementById('modelBreakdown').textContent=`Models: ${modelCounts}`;
+  console.log('Active models:',activeModels,'Counts:',activeModels.map(m=>[m,data.filter(d=>d.primary_model===m).length]));
+
+  const lineLayout={...LO,shapes:[line2pm],annotations:[annot2pm],
+    legend:{bgcolor:'rgba(0,0,0,0)',font:{size:10},orientation:'h',y:-0.18}};
+
+  // Chart 1: Frustration per session (line per model)
+  const chart1Traces=lineTraces('frustration_signals');
+  console.log('Chart1 traces:',chart1Traces.length,chart1Traces.map(t=>t.name));
+  Plotly.newPlot('chart1',chart1Traces,
+    {...lineLayout,xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Frustration / session'}},C);
+
+  // Chart 2: Corrections per user message % (line per model)
+  Plotly.newPlot('chart2',lineTraces('correction_signals',(s,k)=>{
+    const msgs=sum(s.map(d=>d.user_messages));
+    return msgs>0?sum(s.map(d=>d[k]))/msgs*100:0;
+  }),{...lineLayout,xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Corrections / user msg (%)'}},C);
+
+  // Chart 3: Avg output tokens (line per model)
+  Plotly.newPlot('chart3',lineTraces('total_output_tokens'),
+    {...lineLayout,xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Avg output tokens / session'}},C);
+
+  // Chart 4: Thinking depth ratio by hour (line per model)
+  Plotly.newPlot('chart4',lineTraces('thinking_depth_ratio'),
+    {...lineLayout,xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Thinking depth ratio (higher = better)'}},C);
+
+  // Chart 5: Abandoned frustrated sessions by hour (line per model)
+  Plotly.newPlot('chart5',lineTraces('abandoned_frustrated',(s,k)=>avg(s.map(d=>d[k]))*100),
+    {...lineLayout,xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Abandoned frustrated (%)'}},C);
+
+  // Chart 6: Tool loops + consecutive corrections (grouped by metric, not model)
+  const loopsPerH=hours.map(h=>byH[h].length?avg(byH[h].map(d=>d.tool_loops)):0);
+  const consecPerH=hours.map(h=>byH[h].length?avg(byH[h].map(d=>d.consecutive_corrections)):0);
+  Plotly.newPlot('chart6',[
+    {x:labels,y:loopsPerH,type:'bar',name:'Tool loops',marker:{color:'#ef4444'},hovertemplate:'%{x}<br>%{y:.2f} loops<extra></extra>'},
+    {x:labels,y:consecPerH,type:'bar',name:'Consecutive corrections',marker:{color:'#f97316'},hovertemplate:'%{x}<br>%{y:.2f} corrections<extra></extra>'},
+  ],{...LO,barmode:'group',shapes:[line2pm],annotations:[annot2pm],xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Count / session'},legend:{bgcolor:'rgba(0,0,0,0)',font:{size:11}}},C);
+
+  // Chart 7: Model comparison — frustration by hour, line chart (ALL models)
+  const modelTraces=activeModels.map((m,i)=>{
+    const sessionCount=data.filter(d=>d.primary_model===m).length;
+    return{
+      x:labels,
+      y:hours.map(h=>modelHourData[m][h].length>=1?avg(modelHourData[m][h].map(d=>d.frustration_signals)):null),
+      type:'scatter',mode:'lines+markers',name:`${m.replace('claude-','')} (${sessionCount})`,
+      line:{color:palette[i%palette.length],width:2},
+      marker:{size:6},
+      connectgaps:true,
+      hovertemplate:`${m}<br>%{x}<br>%{y:.2f} signals/session<extra></extra>`,
+    };
+  });
+  Plotly.newPlot('chart7',modelTraces,{...LO,shapes:[line2pm],annotations:[annot2pm],xaxis:{...LO.xaxis,title:'Hour (AEST)'},yaxis:{...LO.yaxis,title:'Frustration / session'},legend:{bgcolor:'rgba(0,0,0,0)',font:{size:10},orientation:'h',y:-0.2}},C);
+
+  // Chart 8: Timeline scatter
+  const td=data.filter(d=>d.start_local&&d.duration_min>0);
+  const maxSig=Math.max(1,...td.map(d=>d.frustration_signals+d.correction_signals));
+  Plotly.newPlot('chart8',[{
+    x:td.map(d=>d.start_local),y:td.map(d=>d.duration_min),
+    mode:'markers',type:'scatter',
+    marker:{
+      size:td.map(d=>Math.max(5,Math.min(16,d.user_messages*0.7))),
+      color:td.map(d=>d.frustration_signals+d.correction_signals),
+      colorscale:[[0,'#22c55e'],[0.2,'#3b82f6'],[0.5,'#fbbf24'],[1,'#ef4444']],
+      cmin:0,cmax:Math.max(maxSig*0.4,3),
+      colorbar:{title:{text:'Signals',font:{color:'#8b8fa3',size:11}}},
+    },
+    text:td.map(d=>`${d.start_local}<br>${d.duration_min.toFixed(1)}m, ${d.user_messages} prompts<br>Frustration: ${d.frustration_signals}, Corrections: ${d.correction_signals}<br>After 2pm: ${d.is_after_2pm?'Yes':'No'}`),
+    hoverinfo:'text',
+  }],{...LO,xaxis:{...LO.xaxis,title:'Date',type:'date'},yaxis:{...LO.yaxis,title:'Duration (min)',type:'log'}},C);
+}
+</script>
+</body>
+</html>

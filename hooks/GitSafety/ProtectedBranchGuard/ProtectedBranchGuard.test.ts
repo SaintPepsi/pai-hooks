@@ -1,8 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { ResultError } from "@hooks/core/error";
-import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  getPreToolUseDenyReason,
+  isPreToolUseDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 import {
   ProtectedBranchGuard,
   type ProtectedBranchGuardDeps,
@@ -25,8 +26,6 @@ function makeInput(command: string): ToolHookInput {
     tool_input: { command },
   };
 }
-
-type GuardResult = Result<ContinueOutput | BlockOutput, ResultError>;
 
 describe("ProtectedBranchGuard", () => {
   it("has correct name and event", () => {
@@ -51,162 +50,132 @@ describe("ProtectedBranchGuard", () => {
 
   it("blocks git commit on main", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'feat: add thing'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: add thing'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git commit --amend on main", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit --amend"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit --amend"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Blocks on master ──
 
   it("blocks git commit on master", () => {
     const deps = makeDeps({ getBranch: () => "master" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'fix: thing'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'fix: thing'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Blocks git push on protected branches ──
 
   it("blocks git push on main", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git push origin main"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks git push on master", () => {
     const deps = makeDeps({ getBranch: () => "master" });
-    const result = ProtectedBranchGuard.execute(makeInput("git push"), deps) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git push"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Blocks git merge on protected branches ──
 
   it("blocks git merge on main", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git merge feature/auth"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git merge feature/auth"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Allows on feature branches ──
 
   it("allows git commit on feature branch", () => {
     const deps = makeDeps({ getBranch: () => "feature/my-feature" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'feat: thing'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: thing'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git push on feature branch", () => {
     const deps = makeDeps({ getBranch: () => "feature/auth" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git push origin feature/auth"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git push origin feature/auth"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── Allows non-git commands ──
 
   it("allows non-git bash commands without checking branch", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(makeInput("ls -la"), deps) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("ls -la"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git status on main (read-only)", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(makeInput("git status"), deps) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git status"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git log on main (read-only)", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git log --oneline -10"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git log --oneline -10"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git diff on main (read-only)", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(makeInput("git diff HEAD~1"), deps) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git diff HEAD~1"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git branch (listing/creation) on main", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git branch feature/new-thing"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git branch feature/new-thing"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git checkout on main (switching away)", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git checkout -b feature/new"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git checkout -b feature/new"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git stash on main", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(makeInput("git stash"), deps) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git stash"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── Exempts ~/.claude ──
@@ -216,13 +185,10 @@ describe("ProtectedBranchGuard", () => {
       getBranch: () => "main",
       getCwd: () => "/Users/test/.claude",
     });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'auto-sync'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'auto-sync'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git push on main when in ~/.claude subdirectory", () => {
@@ -230,13 +196,10 @@ describe("ProtectedBranchGuard", () => {
       getBranch: () => "main",
       getCwd: () => "/Users/test/.claude/pai-hooks",
     });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git push origin main"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   // ── Exempts directories from settings.json (via getExemptDirs) ──
@@ -247,13 +210,10 @@ describe("ProtectedBranchGuard", () => {
       getCwd: () => "/Users/test/Documents/repos/bd-knowledge-management",
       getExemptDirs: () => ["bd-knowledge-management"],
     });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'feat: thing'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: thing'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("allows git push on main when CWD is a subdirectory of exempt dir", () => {
@@ -262,13 +222,10 @@ describe("ProtectedBranchGuard", () => {
       getCwd: () => "/Users/test/repos/my-project/src/tools",
       getExemptDirs: () => ["my-project"],
     });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git push origin main"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("blocks when CWD does not match any exempt dir", () => {
@@ -277,13 +234,10 @@ describe("ProtectedBranchGuard", () => {
       getCwd: () => "/Users/test/repos/other-project",
       getExemptDirs: () => ["bd-knowledge-management"],
     });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'test'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("handles empty exemptDirs gracefully", () => {
@@ -292,26 +246,20 @@ describe("ProtectedBranchGuard", () => {
       getCwd: () => "/Users/test/repos/some-project",
       getExemptDirs: () => [],
     });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'test'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   // ── Edge cases ──
 
   it("allows when branch cannot be determined (fails open)", () => {
     const deps = makeDeps({ getBranch: () => null });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'test'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
+    expect(result.value.continue).toBe(true);
   });
 
   it("blocks git commit in chained command on main", () => {
@@ -319,23 +267,19 @@ describe("ProtectedBranchGuard", () => {
     const result = ProtectedBranchGuard.execute(
       makeInput("git add -A && git commit -m 'test'"),
       deps,
-    ) as GuardResult;
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("block reason includes branch name", () => {
     const deps = makeDeps({ getBranch: () => "main" });
-    const result = ProtectedBranchGuard.execute(
-      makeInput("git commit -m 'test'"),
-      deps,
-    ) as GuardResult;
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
-    if (result.value.type !== "block") return;
-    expect(result.value.reason).toContain("main");
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(getPreToolUseDenyReason(result.value)).toContain("main");
   });
 
   it("logs block to stderr", () => {

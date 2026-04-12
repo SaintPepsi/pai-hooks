@@ -3,8 +3,8 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { InMemoryDeps } from "@hooks/cli/types/deps";
 import { loadManifests } from "@hooks/cli/core/manifest-loader";
+import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────
 

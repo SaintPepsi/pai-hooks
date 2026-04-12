@@ -16,7 +16,11 @@ function makeDeps(overrides: Partial<VoiceNotificationDeps> = {}): VoiceNotifica
   return {
     fileExists: () => false,
     readJson: <T = unknown>(): Result<T, ResultError> =>
-      err({ name: "ResultError", code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
+      err({
+        name: "ResultError",
+        code: "FILE_NOT_FOUND",
+        message: "not found",
+      } as ResultError),
     appendFile: (): Result<void, ResultError> => ok(undefined),
     ensureDir: (): Result<void, ResultError> => ok(undefined),
     getIdentity: () => ({
@@ -201,7 +205,10 @@ describe("handleVoice", () => {
     const appendMock: Mock<AppendFn> = mock((_path: string, _content: string) => ok(undefined));
     const stderrMock: Mock<StderrFn> = mock((_msg: string) => {});
     const fetchMock = makeFetchMock(
-      new Response("Internal Server Error", { status: 500, statusText: "Internal Server Error" }),
+      new Response("Internal Server Error", {
+        status: 500,
+        statusText: "Internal Server Error",
+      }),
     );
 
     const deps = makeDeps({
@@ -232,7 +239,10 @@ describe("handleVoice", () => {
       appendFile: appendMock,
       fileExists: (path: string) => path.includes("WORK/my-session-dir"),
       readJson: <T = unknown>(): Result<T, ResultError> =>
-        ok({ session_id: "test-session-9", session_dir: "my-session-dir" } as unknown as T),
+        ok({
+          session_id: "test-session-9",
+          session_dir: "my-session-dir",
+        } as unknown as T),
     });
 
     await handleVoice(makeTranscript(), "test-session-9", deps);

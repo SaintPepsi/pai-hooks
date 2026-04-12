@@ -30,7 +30,13 @@ export interface CronSessionFile {
 }
 
 export type CronLogEvent =
-  | { type: "created"; cronId: string; name: string; schedule: string; sessionId: string }
+  | {
+      type: "created";
+      cronId: string;
+      name: string;
+      schedule: string;
+      sessionId: string;
+    }
   | { type: "deleted"; cronId: string; name: string; sessionId: string }
   | { type: "fired"; cronId: string; name: string; fireCount: number }
   | { type: "pruned"; sessionId: string; cronCount: number; reason: string };

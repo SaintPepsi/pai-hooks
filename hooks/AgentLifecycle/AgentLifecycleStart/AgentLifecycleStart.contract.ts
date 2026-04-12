@@ -4,11 +4,11 @@
  * Source: contracts/AgentLifecycle.ts (AgentLifecycleStart export)
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SubagentStartInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   type AgentFileData,
   type AgentLifecycleDeps,
@@ -16,11 +16,7 @@ import {
   defaultDeps,
 } from "@hooks/hooks/AgentLifecycle/shared";
 
-export const AgentLifecycleStart: SyncHookContract<
-  SubagentStartInput,
-  SilentOutput,
-  AgentLifecycleDeps
-> = {
+export const AgentLifecycleStart: SyncHookContract<SubagentStartInput, AgentLifecycleDeps> = {
   name: "AgentLifecycleStart",
   event: "SubagentStart",
 
@@ -28,11 +24,14 @@ export const AgentLifecycleStart: SyncHookContract<
     return true;
   },
 
-  execute(input: SubagentStartInput, deps: AgentLifecycleDeps): Result<SilentOutput, ResultError> {
+  execute(
+    input: SubagentStartInput,
+    deps: AgentLifecycleDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const dirResult = deps.ensureDir(deps.getAgentsDir());
     if (!dirResult.ok) {
       deps.stderr(`[AgentLifecycle] Start: failed to ensure agents dir: ${dirResult.error}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const data: AgentFileData = {
@@ -46,12 +45,12 @@ export const AgentLifecycleStart: SyncHookContract<
 
     if (!writeResult.ok) {
       deps.stderr(`[AgentLifecycle] Start: failed to write agent file: ${writeResult.error}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr(`[AgentLifecycle] Start: agent=${input.session_id}`);
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

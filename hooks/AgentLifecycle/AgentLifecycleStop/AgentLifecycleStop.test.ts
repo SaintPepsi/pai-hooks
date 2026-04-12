@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { fileNotFound, fileWriteFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SubagentStopInput } from "@hooks/core/types/hook-inputs";
-import type { AgentFileData, AgentLifecycleDeps } from "@hooks/hooks/AgentLifecycle/shared";
 import { AgentLifecycleStop } from "@hooks/hooks/AgentLifecycle/AgentLifecycleStop/AgentLifecycleStop.contract";
+import type { AgentFileData, AgentLifecycleDeps } from "@hooks/hooks/AgentLifecycle/shared";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -70,7 +70,7 @@ describe("AgentLifecycleStop", () => {
       });
       const result = AgentLifecycleStop.execute(stopInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("reads existing agent file", () => {
@@ -355,7 +355,7 @@ describe("AgentLifecycleStop", () => {
       });
       const result = AgentLifecycleStop.execute(stopInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("skips non-agent files during cleanup", () => {
@@ -388,7 +388,7 @@ describe("AgentLifecycleStop", () => {
       });
       const result = AgentLifecycleStop.execute(stopInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("returns ok silent when writeFile fails", () => {
@@ -398,7 +398,7 @@ describe("AgentLifecycleStop", () => {
       });
       const result = AgentLifecycleStop.execute(stopInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("returns silent when ensureDir fails", () => {
@@ -411,7 +411,7 @@ describe("AgentLifecycleStop", () => {
       });
       const result = AgentLifecycleStop.execute(stopInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
       expect(stderrMessages.some((m) => m.includes("failed to ensure agents dir"))).toBe(true);
     });
   });

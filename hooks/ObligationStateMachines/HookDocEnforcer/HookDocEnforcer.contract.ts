@@ -1,8 +1,8 @@
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
   buildDocSuggestions,
@@ -14,11 +14,7 @@ import { pickNarrative } from "@hooks/lib/narrative-reader";
 import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 import { checkObligation } from "@hooks/lib/obligation-machine";
 
-export const HookDocEnforcer: SyncHookContract<
-  StopInput,
-  BlockOutput | SilentOutput,
-  ObligationDeps
-> = {
+export const HookDocEnforcer: SyncHookContract<StopInput, ObligationDeps> = {
   name: "HookDocEnforcer",
   event: "Stop",
 
@@ -28,11 +24,11 @@ export const HookDocEnforcer: SyncHookContract<
     return settings.enabled;
   },
 
-  execute(input: StopInput, deps: ObligationDeps): Result<BlockOutput | SilentOutput, ResultError> {
+  execute(input: StopInput, deps: ObligationDeps): Result<SyncHookJSONOutput, ResultError> {
     const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
     if (result.action === "silent" || result.action === "release") {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const settings = readHookDocSettings();
@@ -41,7 +37,7 @@ export const HookDocEnforcer: SyncHookContract<
       deps.stderr(
         `[HookDocEnforcer] ${result.pending.length} hook(s) need docs (non-blocking mode)`,
       );
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const opener = pickNarrative("HookDocEnforcer", result.pending.length, import.meta.dir);
@@ -49,7 +45,8 @@ export const HookDocEnforcer: SyncHookContract<
     const suggestions = buildDocSuggestions(result.pending, settings);
     const reason = `${opener}\n\nHook source files modified without documentation:\n${fileList}\n\n${suggestions}`;
 
-    return ok({ type: "block", decision: "block", reason });
+    // R5: Stop is a NonHookSpecificEvent — block via top-level decision/reason.
+    return ok({ decision: "block", reason });
   },
 
   defaultDeps,

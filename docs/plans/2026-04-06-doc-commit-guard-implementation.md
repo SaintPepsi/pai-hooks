@@ -13,6 +13,7 @@
 ### Task 1: Add IDEA.md checking to pre-commit-gate.ts
 
 **Files:**
+
 - Modify: `scripts/docs/pre-commit-gate.ts`
 - Test: `scripts/docs/pre-commit-gate.test.ts`
 
@@ -46,7 +47,11 @@ it("detects all three missing: doc.md, IDEA.md, and HTML", () => {
 
   const issues = checkDocGate(config, deps);
   expect(issues).toHaveLength(3);
-  expect(issues.map((i) => i.type)).toEqual(["missing-doc", "missing-idea", "missing-html"]);
+  expect(issues.map((i) => i.type)).toEqual([
+    "missing-doc",
+    "missing-idea",
+    "missing-html",
+  ]);
 });
 ```
 
@@ -81,11 +86,13 @@ Expected: FAIL — `"missing-idea"` type doesn't exist yet, and "detects all thr
 In `scripts/docs/pre-commit-gate.ts`:
 
 1. Update `GateIssue.type` union to include `"missing-idea"`:
+
 ```typescript
 type: "missing-doc" | "missing-idea" | "missing-html";
 ```
 
 2. Add IDEA.md check in `checkDocGate` after the doc.md check:
+
 ```typescript
 if (!deps.fileExists(join(hookDir, "IDEA.md"))) {
   issues.push({ hookDir, hookName, groupName, type: "missing-idea" });
@@ -93,6 +100,7 @@ if (!deps.fileExists(join(hookDir, "IDEA.md"))) {
 ```
 
 3. Add IDEA.md section to `formatReport`:
+
 ```typescript
 const missingIdea = issues.filter((i) => i.type === "missing-idea");
 
@@ -103,6 +111,7 @@ for (const i of missingIdea) {
 ```
 
 4. Update the footer message to mention IDEA.md:
+
 ```typescript
 lines.push(
   "\nPre-commit blocked: hook documentation incomplete.\n  - Add doc.md to hook directories that need it\n  - Add IDEA.md to hook directories that need it\n  - Run 'bun run docs:render' to generate HTML",
@@ -126,6 +135,7 @@ git commit -m "feat(pre-commit): add IDEA.md checking to pre-commit gate"
 ### Task 2: Create DocCommitGuard contract (TDD)
 
 **Files:**
+
 - Create: `hooks/CodingStandards/DocCommitGuard/DocCommitGuard.contract.ts`
 - Create: `hooks/CodingStandards/DocCommitGuard/DocCommitGuard.test.ts`
 - Create: `hooks/CodingStandards/DocCommitGuard/hook.json`
@@ -139,8 +149,14 @@ import { describe, expect, it } from "bun:test";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { DocCommitGuard, type DocCommitGuardDeps } from "./DocCommitGuard.contract";
+import type {
+  BlockOutput,
+  ContinueOutput,
+} from "@hooks/core/types/hook-outputs";
+import {
+  DocCommitGuard,
+  type DocCommitGuardDeps,
+} from "./DocCommitGuard.contract";
 
 function makeInput(command: string): ToolHookInput {
   return {
@@ -150,7 +166,9 @@ function makeInput(command: string): ToolHookInput {
   };
 }
 
-function makeDeps(overrides: Partial<DocCommitGuardDeps> = {}): DocCommitGuardDeps {
+function makeDeps(
+  overrides: Partial<DocCommitGuardDeps> = {},
+): DocCommitGuardDeps {
   return {
     stderr: () => {},
     fileExists: () => true,
@@ -179,7 +197,11 @@ describe("DocCommitGuard", () => {
   // ─── accepts() ──────────────────────────────────────────────────────────
 
   it("rejects non-Bash tools", () => {
-    const input: ToolHookInput = { session_id: "s", tool_name: "Edit", tool_input: {} };
+    const input: ToolHookInput = {
+      session_id: "s",
+      tool_name: "Edit",
+      tool_input: {},
+    };
     expect(DocCommitGuard.accepts(input)).toBe(false);
   });
 
@@ -191,13 +213,21 @@ describe("DocCommitGuard", () => {
   });
 
   it("accepts git commit commands", () => {
-    expect(DocCommitGuard.accepts(makeInput("git commit -m 'test'"))).toBe(true);
+    expect(DocCommitGuard.accepts(makeInput("git commit -m 'test'"))).toBe(
+      true,
+    );
     expect(DocCommitGuard.accepts(makeInput("git commit --amend"))).toBe(true);
-    expect(DocCommitGuard.accepts(makeInput('git commit -m "$(cat <<\'EOF\'\nmessage\nEOF\n)"'))).toBe(true);
+    expect(
+      DocCommitGuard.accepts(
+        makeInput("git commit -m \"$(cat <<'EOF'\nmessage\nEOF\n)\""),
+      ),
+    ).toBe(true);
   });
 
   it("accepts chained commands containing git commit", () => {
-    expect(DocCommitGuard.accepts(makeInput("git add . && git commit -m 'test'"))).toBe(true);
+    expect(
+      DocCommitGuard.accepts(makeInput("git add . && git commit -m 'test'")),
+    ).toBe(true);
   });
 
   // ─── execute() — all docs present ──────────────────────────────────────
@@ -317,7 +347,10 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type {
+  BlockOutput,
+  ContinueOutput,
+} from "@hooks/core/types/hook-outputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import { getCommand } from "@hooks/lib/tool-input";
 import { defaultStderr } from "@hooks/lib/paths";
@@ -473,6 +506,7 @@ git commit -m "feat(CodingStandards): add DocCommitGuard — blocks commit witho
 ### Task 3: Create hook entry point and register in settings
 
 **Files:**
+
 - Create: `hooks/CodingStandards/DocCommitGuard/DocCommitGuard.hook.ts`
 - Modify: `hooks/CodingStandards/group.json`
 - Modify: `settings.hooks.json`
@@ -488,7 +522,9 @@ import { DocCommitGuard } from "@hooks/hooks/CodingStandards/DocCommitGuard/DocC
 
 if (import.meta.main) {
   runHook(DocCommitGuard).catch((e) => {
-    process.stderr.write(`[hook] fatal: ${e instanceof Error ? e.message : e}\n`);
+    process.stderr.write(
+      `[hook] fatal: ${e instanceof Error ? e.message : e}\n`,
+    );
     process.exit(0);
   });
 }
@@ -548,6 +584,7 @@ git commit -m "feat(CodingStandards): register DocCommitGuard hook entry point"
 ### Task 4: Write doc.md and IDEA.md for DocCommitGuard
 
 **Files:**
+
 - Create: `hooks/CodingStandards/DocCommitGuard/doc.md`
 - Create: `hooks/CodingStandards/DocCommitGuard/IDEA.md`
 
@@ -580,8 +617,9 @@ Every time Claude Code is about to execute a Bash command containing `git commit
 
 > Committing after adding a new hook without writing docs:
 > "Commit blocked: hook documentation incomplete.
->   - CodingStandards/NewHook: missing doc.md
->   - CodingStandards/NewHook: missing IDEA.md"
+>
+> - CodingStandards/NewHook: missing doc.md
+> - CodingStandards/NewHook: missing IDEA.md"
 
 > Committing when all hooks have docs:
 > Commit proceeds normally.

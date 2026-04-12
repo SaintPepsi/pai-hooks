@@ -7,13 +7,13 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ const defaultDeps: UpdateCountsDeps = {
   stderr: defaultStderr,
 };
 
-export const UpdateCounts: SyncHookContract<SessionEndInput, SilentOutput, UpdateCountsDeps> = {
+export const UpdateCounts: SyncHookContract<SessionEndInput, UpdateCountsDeps> = {
   name: "UpdateCounts",
   event: "SessionEnd",
 
@@ -39,7 +39,10 @@ export const UpdateCounts: SyncHookContract<SessionEndInput, SilentOutput, Updat
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: UpdateCountsDeps): Result<SilentOutput, ResultError> {
+  execute(
+    _input: SessionEndInput,
+    deps: UpdateCountsDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const handlerPath = join(deps.hooksDir, "handlers", "UpdateCounts.ts");
     const result = deps.spawnBackground("bun", [handlerPath]);
 
@@ -47,7 +50,7 @@ export const UpdateCounts: SyncHookContract<SessionEndInput, SilentOutput, Updat
       deps.stderr(`[UpdateCounts] Failed to spawn background: ${result.error.message}`);
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

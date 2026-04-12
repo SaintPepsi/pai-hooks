@@ -59,3 +59,4 @@ return ok(continueOk(formatVerificationReminder(prNumber)));
 | --- | --- | --- |
 | `shared` | shared | Provides `extractPrNumber`, `resolvePrFromBranch`, and `checkCiStatus` helpers |
 | `process` | adapter | Executes `gh` CLI commands to check CI status |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block/advisory via `hookSpecificOutput` (R1+R2+R4 shapes, post-SDK-refactor 1D) |

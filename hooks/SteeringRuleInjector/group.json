@@ -1,8 +1,6 @@
 {
   "name": "SteeringRuleInjector",
   "description": "Contextual steering rule injection based on event type and keyword matching",
-  "hooks": [
-    "SteeringRuleInjector"
-  ],
+  "hooks": ["SteeringRuleInjector"],
   "sharedFiles": []
 }

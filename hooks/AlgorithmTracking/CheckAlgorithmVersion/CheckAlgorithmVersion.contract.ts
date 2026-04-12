@@ -6,13 +6,13 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { isSubagent } from "@hooks/lib/environment";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -94,7 +94,6 @@ const defaultDeps: CheckAlgorithmVersionDeps = {
 
 export const CheckAlgorithmVersion: AsyncHookContract<
   SessionStartInput,
-  SilentOutput,
   CheckAlgorithmVersionDeps
 > = {
   name: "CheckAlgorithmVersion",
@@ -107,9 +106,9 @@ export const CheckAlgorithmVersion: AsyncHookContract<
   async execute(
     _input: SessionStartInput,
     deps: CheckAlgorithmVersionDeps,
-  ): Promise<Result<SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     if (deps.isSubagent()) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     const localVersion = deps.getLocalVersion();
@@ -134,7 +133,7 @@ export const CheckAlgorithmVersion: AsyncHookContract<
       });
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

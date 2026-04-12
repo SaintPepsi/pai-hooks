@@ -17,10 +17,12 @@ An automatic post-session hook that runs a three-stage knowledge pipeline (Filte
 ## Signals
 
 **Input:**
+
 - Session ID and transcript path from the SessionEnd hook event
 - Raw session JSONL file (varies from 1KB to 500KB+)
 
 **Output:**
+
 - Silent hook output (no visible effect on session end)
 - Digest file in `.pipeline/digests/` (compressed session summary)
 - Extraction JSON in `.pipeline/extractions/haiku/` (structured entities, decisions, concepts)

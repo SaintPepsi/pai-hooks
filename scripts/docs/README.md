@@ -4,15 +4,15 @@ HTML documentation generator for pai-hooks. Reads `hook.json`, `group.json`, `do
 
 ## Scripts
 
-| File | Purpose |
-|------|---------|
-| `render.ts` | Main generator — walks `hooks/`, reads manifests + doc.md + IDEA.md, outputs HTML to `docs/` |
-| `check.ts` | Validator — verifies all hooks have doc.md with required sections |
-| `template.ts` | HTML templates — renders hook pages, group pages, and the index |
-| `pre-commit-gate.ts` | Pre-commit check — blocks commits when hooks are missing doc.md, IDEA.md, or rendered HTML |
-| `pre-commit-regen.ts` | Pre-commit auto-regen — regenerates HTML when doc sources are staged |
-| `cli-utils.ts` | Shared CLI helpers (e.g. `getArg`) used by render and check |
-| `style.css` | Stylesheet embedded into generated pages |
+| File                  | Purpose                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `render.ts`           | Main generator — walks `hooks/`, reads manifests + doc.md + IDEA.md, outputs HTML to `docs/` |
+| `check.ts`            | Validator — verifies all hooks have doc.md with required sections                            |
+| `template.ts`         | HTML templates — renders hook pages, group pages, and the index                              |
+| `pre-commit-gate.ts`  | Pre-commit check — blocks commits when hooks are missing doc.md, IDEA.md, or rendered HTML   |
+| `pre-commit-regen.ts` | Pre-commit auto-regen — regenerates HTML when doc sources are staged                         |
+| `cli-utils.ts`        | Shared CLI helpers (e.g. `getArg`) used by render and check                                  |
+| `style.css`           | Stylesheet embedded into generated pages                                                     |
 
 ## Usage
 

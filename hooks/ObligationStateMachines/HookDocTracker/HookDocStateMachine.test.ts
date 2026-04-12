@@ -1,8 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { HookDocEnforcer } from "@hooks/hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.contract";
 import {
   allDocFileNames,
@@ -18,6 +17,12 @@ import {
   validateDocSections,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
 import { HookDocTracker } from "@hooks/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract";
+import {
+  getReasonFromBlock,
+  isSilentNoOp,
+  buildStopInput as makeStopInput,
+  buildToolInput as makeToolInput,
+} from "@hooks/hooks/ObligationStateMachines/test-helpers";
 import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -35,18 +40,6 @@ function makeDeps(overrides: Partial<ObligationDeps> = {}): ObligationDeps {
     stderr: () => {},
     ...overrides,
   };
-}
-
-function makeToolInput(toolName: string, toolInput: Record<string, unknown> = {}): ToolHookInput {
-  return {
-    session_id: "test-session",
-    tool_name: toolName,
-    tool_input: toolInput,
-  };
-}
-
-function makeStopInput(): StopInput {
-  return { session_id: "test-session" };
 }
 
 // ─── Domain Helpers ───────────────────────────────────────────────────────────
@@ -267,7 +260,12 @@ describe("buildDocSuggestions", () => {
       requiredSections: ["## Overview"],
       docFileName: "doc.md",
       watchPatterns: [],
-      additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] }],
+      additionalDocs: [
+        {
+          fileName: "IDEA.md",
+          requiredSections: ["## Problem", "## Solution"],
+        },
+      ],
       mode: "independent" as const,
     };
 
@@ -337,7 +335,10 @@ describe("readHookDocSettings", () => {
       hookConfig: {
         hookDocEnforcer: {
           additionalDocs: [
-            { fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] },
+            {
+              fileName: "IDEA.md",
+              requiredSections: ["## Problem", "## Solution"],
+            },
           ],
         },
       },
@@ -443,7 +444,7 @@ describe("HookDocTracker", () => {
     const result = HookDocTracker.execute(
       makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }),
       deps,
-    ) as Result<ContinueOutput, ResultError>;
+    ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(written).toContain("/hooks/G/H/H.contract.ts:doc.md");
@@ -570,12 +571,12 @@ describe("HookDocEnforcer", () => {
   it("returns silent when no pending flag exists", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilentNoOp(result.value)).toBe(true);
   });
 
   it("returns silent when pending list is empty", () => {
@@ -584,12 +585,12 @@ describe("HookDocEnforcer", () => {
       readPending: () => [],
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilentNoOp(result.value)).toBe(true);
   });
 
   it("returns block when pending files exist", () => {
@@ -598,12 +599,12 @@ describe("HookDocEnforcer", () => {
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("block");
+    expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
   it("block reason includes pending file paths", () => {
@@ -612,12 +613,14 @@ describe("HookDocEnforcer", () => {
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("/hooks/G/H/H.contract.ts");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("/hooks/G/H/H.contract.ts");
   });
 
   it("block reason includes doc.md suggestion", () => {
@@ -626,12 +629,14 @@ describe("HookDocEnforcer", () => {
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("doc.md");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("doc.md");
   });
 
   it("block reason includes required sections", () => {
@@ -640,12 +645,14 @@ describe("HookDocEnforcer", () => {
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.reason).toContain("## Overview");
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    expect(reason ?? "").toContain("## Overview");
   });
 
   it("returns silent after block limit reached (maxBlocks=1)", () => {
@@ -655,12 +662,12 @@ describe("HookDocEnforcer", () => {
       readBlockCount: () => 1,
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
-      BlockOutput | SilentOutput,
+      SyncHookJSONOutput,
       ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("silent");
+    expect(isSilentNoOp(result.value)).toBe(true);
   });
 
   it("increments block count on block", () => {

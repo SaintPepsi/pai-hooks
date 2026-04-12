@@ -72,7 +72,7 @@ describe("AgentCompleteTracker", () => {
     });
     const result = await AgentCompleteTracker.execute(makeSpawnInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
     expect(fetchCalled).toBe(false);
   });
 
@@ -86,7 +86,7 @@ describe("AgentCompleteTracker", () => {
     });
     const result = await AgentCompleteTracker.execute(makeCompletionInput(), deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
     expect(fetchCalled).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe("AgentCompleteTracker", () => {
     };
     const result = await AgentCompleteTracker.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 
   test("returns continue even when fetch fails", async () => {
@@ -121,6 +121,6 @@ describe("AgentCompleteTracker", () => {
     });
     const result = await AgentCompleteTracker.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });

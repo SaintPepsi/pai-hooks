@@ -6,7 +6,7 @@
  */
 
 import { PaihError, PaihErrorCode } from "@hooks/cli/core/error";
-import { type Result, err, ok } from "@hooks/cli/core/result";
+import { err, ok, type Result } from "@hooks/cli/core/result";
 import { tryCatch } from "@hooks/core/result";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 import { getArtifactsDir } from "@hooks/hooks/DuplicationDetection/shared";
@@ -122,7 +122,7 @@ export function inspect(projectDir: string, deps: InspectorDeps): Result<Inspect
 /** Format ISO timestamp to readable date string. */
 function formatBuiltAt(iso: string): string {
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return iso;
   const pad = (n: number): string => n.toString().padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }

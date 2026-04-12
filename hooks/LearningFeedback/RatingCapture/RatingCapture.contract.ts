@@ -10,12 +10,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput } from "@hooks/core/types/hook-outputs";
 import { getIdentity, getPrincipal, getPrincipalName } from "@hooks/lib/identity";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -237,7 +237,10 @@ function defaultSpawnTrending(): void {
   const baseDir = getPaiDir();
   const script = join(baseDir, "tools", "TrendingAnalysis.ts");
   if (fileExists(script)) {
-    Bun.spawn(["bun", script, "--force"], { stdout: "ignore", stderr: "ignore" });
+    Bun.spawn(["bun", script, "--force"], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
   }
 }
 
@@ -267,11 +270,7 @@ const defaultDeps: RatingCaptureDeps = {
   stderr: defaultStderr,
 };
 
-export const RatingCapture: AsyncHookContract<
-  UserPromptSubmitInput,
-  ContextOutput,
-  RatingCaptureDeps
-> = {
+export const RatingCapture: AsyncHookContract<UserPromptSubmitInput, RatingCaptureDeps> = {
   name: "RatingCapture",
   event: "UserPromptSubmit",
 
@@ -282,7 +281,7 @@ export const RatingCapture: AsyncHookContract<
   async execute(
     input: UserPromptSubmitInput,
     deps: RatingCaptureDeps,
-  ): Promise<Result<ContextOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     const prompt = input.prompt || input.user_prompt || "";
     const sessionId = input.session_id;
     const signalsDir = join(deps.baseDir, "MEMORY", "LEARNING", "SIGNALS");
@@ -331,12 +330,24 @@ export const RatingCapture: AsyncHookContract<
         }
       }
 
-      return ok({ type: "context", content: reminder });
+      return ok({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "UserPromptSubmit",
+          additionalContext: reminder,
+        },
+      });
     }
 
     // Path 2: Implicit Sentiment
     if (prompt.length < MIN_PROMPT_LENGTH) {
-      return ok({ type: "context", content: reminder });
+      return ok({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "UserPromptSubmit",
+          additionalContext: reminder,
+        },
+      });
     }
 
     const context = getRecentContext(input.transcript_path || "", deps);
@@ -362,14 +373,26 @@ export const RatingCapture: AsyncHookContract<
       // Null rating means no sentiment detected — skip recording
       if (sentiment.rating === null) {
         deps.stderr("[RatingCapture] Sentiment returned null rating, skipping");
-        return ok({ type: "context", content: reminder });
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit",
+            additionalContext: reminder,
+          },
+        });
       }
 
       if (sentiment.confidence < MIN_CONFIDENCE) {
         deps.stderr(
           `[RatingCapture] Confidence ${sentiment.confidence} below ${MIN_CONFIDENCE}, skipping`,
         );
-        return ok({ type: "context", content: reminder });
+        return ok({
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit",
+            additionalContext: reminder,
+          },
+        });
       }
 
       const entry: RatingEntry = {
@@ -411,7 +434,13 @@ export const RatingCapture: AsyncHookContract<
       );
     }
 
-    return ok({ type: "context", content: reminder });
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "UserPromptSubmit",
+        additionalContext: reminder,
+      },
+    });
   },
 
   defaultDeps,

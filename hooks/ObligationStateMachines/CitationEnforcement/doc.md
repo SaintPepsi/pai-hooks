@@ -33,15 +33,28 @@ It does **not** fire when:
 6. Builds a citation reminder message using a narrative opener and returns it as `additionalContext`
 
 ```typescript
-// Core reminder injection
+// Core reminder injection (R2 — PostToolUse context injection via hookSpecificOutput)
 const reminded = deps.readReminded(remindedPath(deps.stateDir));
 if (reminded.includes(filePath)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 reminded.push(filePath);
 deps.writeReminded(remindedPath(deps.stateDir), reminded);
-return ok({ type: "continue", continue: true, additionalContext: buildCitationReminder() });
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: buildCitationReminder(),
+  },
+});
 ```
+
+> **Bug fix note (SDK Type Foundation refactor — 1E-1):** Pre-refactor, this hook used the legacy
+> `continueOk(buildCitationReminder())` shape, which placed `additionalContext` at the **top
+> level** of the output object. The SDK silently dropped that field for `PostToolUse` events,
+> meaning citation reminders were never actually surfaced to the model. Migration to the R2 recipe
+> (`hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"`) routes the reminder
+> through the channel the SDK actually reads. Same bug class as the PreCompactStatePersist 1A fix.
 
 ## Examples
 
@@ -55,8 +68,8 @@ return ok({ type: "continue", continue: true, additionalContext: buildCitationRe
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `narrative-reader` | lib | Picks narrative opener text for the reminder message |
+| Dependency                   | Type   | Purpose                                                                     |
+| ---------------------------- | ------ | --------------------------------------------------------------------------- |
+| `narrative-reader`           | lib    | Picks narrative opener text for the reminder message                        |
 | `CitationEnforcement.shared` | shared | Provides deps type, flag/reminded path helpers, and `getFilePath` extractor |
-| `result` | core | `ok` wrapper for Result type returns |
+| `result`                     | core   | `ok` wrapper for Result type returns                                        |

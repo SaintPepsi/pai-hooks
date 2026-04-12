@@ -46,7 +46,11 @@ function makeSourceRepo(): Record<string, string> {
 }
 
 function makeArgs(): ParsedArgs {
-  return { command: "install", names: ["TypeStrictness"], flags: { to: "/project" } };
+  return {
+    command: "install",
+    names: ["TypeStrictness"],
+    flags: { to: "/project" },
+  };
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────
@@ -79,14 +83,8 @@ console.log("Test 1: Source mode command string uses $CLAUDE_PROJECT_DIR");
     );
     const cmd = settings.hooks?.PreToolUse?.[0]?.hooks[0]?.command ?? "";
 
-    assert(
-      cmd.includes('$CLAUDE_PROJECT_DIR'),
-      `command contains $CLAUDE_PROJECT_DIR: ${cmd}`,
-    );
-    assert(
-      !cmd.startsWith("bun .claude/"),
-      "command does NOT start with relative 'bun .claude/'",
-    );
+    assert(cmd.includes("$CLAUDE_PROJECT_DIR"), `command contains $CLAUDE_PROJECT_DIR: ${cmd}`);
+    assert(!cmd.startsWith("bun .claude/"), "command does NOT start with relative 'bun .claude/'");
     assert(
       cmd.startsWith('bun "$CLAUDE_PROJECT_DIR"/.claude/'),
       `command starts with 'bun "$CLAUDE_PROJECT_DIR"/.claude/': ${cmd}`,
@@ -105,10 +103,9 @@ console.log("\nTest 2: Old relative path format is absent from staging.ts");
     const settings: SettingsJson = JSON.parse(
       deps.getFiles().get("/project/.claude/settings.json")!,
     );
-    const allCommands =
-      Object.values(settings.hooks ?? {}).flatMap((groups) =>
-        groups.flatMap((g) => g.hooks.map((h) => h.command)),
-      );
+    const allCommands = Object.values(settings.hooks ?? {}).flatMap((groups) =>
+      groups.flatMap((g) => g.hooks.map((h) => h.command)),
+    );
 
     for (const cmd of allCommands) {
       assert(
@@ -128,10 +125,7 @@ console.log("\nTest 3: Simulated worktree path resolution");
     'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts';
 
   // Shell expansion: replace $CLAUDE_PROJECT_DIR with the actual value
-  const expandedCommand = commandTemplate.replace(
-    '"$CLAUDE_PROJECT_DIR"',
-    projectRoot,
-  );
+  const expandedCommand = commandTemplate.replace('"$CLAUDE_PROJECT_DIR"', projectRoot);
 
   assert(
     expandedCommand ===
@@ -140,8 +134,7 @@ console.log("\nTest 3: Simulated worktree path resolution");
   );
 
   // The old relative path would have resolved against CWD (the worktree)
-  const worktreeCwd =
-    "/Users/hogers/Projects/koord/.claude/worktrees/issue-foo";
+  const worktreeCwd = "/Users/hogers/Projects/koord/.claude/worktrees/issue-foo";
   const oldRelativeResolved = `${worktreeCwd}/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts`;
 
   assert(
@@ -157,13 +150,10 @@ console.log("\nTest 3: Simulated worktree path resolution");
 // Test 4: $CLAUDE_PROJECT_DIR is used in existing lib code for environment detection
 console.log("\nTest 4: Existing codebase already depends on CLAUDE_PROJECT_DIR");
 {
-  const fs = await import("fs");
+  const fs = await import("node:fs");
   const file = "lib/environment.ts";
   const content = fs.readFileSync(file, "utf-8");
-  assert(
-    content.includes("CLAUDE_PROJECT_DIR"),
-    `${file} references CLAUDE_PROJECT_DIR`,
-  );
+  assert(content.includes("CLAUDE_PROJECT_DIR"), `${file} references CLAUDE_PROJECT_DIR`);
 }
 
 // Summary

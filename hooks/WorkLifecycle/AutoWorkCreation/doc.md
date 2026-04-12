@@ -59,9 +59,10 @@ if (!isExistingSession) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | Directory creation, file writes, symlinks, stat |
-| `lib/time` | lib | Timestamp and local date components for directory naming |
-| `lib/prd-template` | lib | PRD markdown template and filename generation |
-| `core/result` | core | Result type for error handling |
+| Dependency                       | Type      | Purpose                                                  |
+| -------------------------------- | --------- | -------------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | Directory creation, file writes, symlinks, stat          |
+| `lib/time`                       | lib       | Timestamp and local date components for directory naming |
+| `lib/prd-template`               | lib       | PRD markdown template and filename generation            |
+| `core/result`                    | core      | Result type for error handling                           |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor)     |

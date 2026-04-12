@@ -15,6 +15,7 @@
 ### Task 1: `lib/spawn-agent.ts` — Types and `spawnAgent()` function
 
 **Files:**
+
 - Create: `lib/spawn-agent.ts`
 - Test: `lib/spawn-agent.test.ts`
 
@@ -26,7 +27,11 @@ Create `lib/spawn-agent.test.ts`:
 import { describe, expect, it } from "bun:test";
 import { ok, type Result } from "@hooks/core/result";
 import { type ResultError } from "@hooks/core/error";
-import { spawnAgent, type SpawnAgentConfig, type SpawnAgentDeps } from "@hooks/lib/spawn-agent";
+import {
+  spawnAgent,
+  type SpawnAgentConfig,
+  type SpawnAgentDeps,
+} from "@hooks/lib/spawn-agent";
 
 const BASE_CONFIG: SpawnAgentConfig = {
   prompt: "Test prompt",
@@ -38,18 +43,34 @@ const BASE_CONFIG: SpawnAgentConfig = {
 
 type FakeFS = Map<string, string>;
 
-function fakeDeps(fs: FakeFS, overrides: Partial<SpawnAgentDeps> = {}): SpawnAgentDeps {
+function fakeDeps(
+  fs: FakeFS,
+  overrides: Partial<SpawnAgentDeps> = {},
+): SpawnAgentDeps {
   const spawned: Array<{ cmd: string; args: string[]; cwd?: string }> = [];
   return {
     fileExists: (p) => fs.has(p),
     readFile: (p) => {
       const c = fs.get(p);
-      if (!c) return { ok: false, error: { code: "FILE_NOT_FOUND", message: p } } as any;
+      if (!c)
+        return {
+          ok: false,
+          error: { code: "FILE_NOT_FOUND", message: p },
+        } as any;
       return ok(c);
     },
-    writeFile: (p, c) => { fs.set(p, c); return ok(undefined as void); },
-    appendFile: (p, c) => { fs.set(p, (fs.get(p) || "") + c); return ok(undefined as void); },
-    removeFile: (p) => { fs.delete(p); return ok(undefined as void); },
+    writeFile: (p, c) => {
+      fs.set(p, c);
+      return ok(undefined as void);
+    },
+    appendFile: (p, c) => {
+      fs.set(p, (fs.get(p) || "") + c);
+      return ok(undefined as void);
+    },
+    removeFile: (p) => {
+      fs.delete(p);
+      return ok(undefined as void);
+    },
     spawnBackground: (cmd, args, opts) => {
       spawned.push({ cmd, args, cwd: opts?.cwd });
       return ok(undefined as void);
@@ -105,7 +126,11 @@ describe("spawnAgent", () => {
   });
 
   it("skips spawn if lock file exists and is not stale", () => {
-    const recentLock = JSON.stringify({ ts: new Date().toISOString(), source: "Other", reason: "running" });
+    const recentLock = JSON.stringify({
+      ts: new Date().toISOString(),
+      source: "Other",
+      reason: "running",
+    });
     const fs: FakeFS = new Map([[BASE_CONFIG.lockPath, recentLock]]);
     const deps = fakeDeps(fs);
     const result = spawnAgent(BASE_CONFIG, deps);
@@ -116,7 +141,11 @@ describe("spawnAgent", () => {
 
   it("replaces stale lock and spawns", () => {
     const oldTs = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 min ago
-    const staleLock = JSON.stringify({ ts: oldTs, source: "Other", reason: "stuck" });
+    const staleLock = JSON.stringify({
+      ts: oldTs,
+      source: "Other",
+      reason: "stuck",
+    });
     const fs: FakeFS = new Map([[BASE_CONFIG.lockPath, staleLock]]);
     const deps = fakeDeps(fs);
     const result = spawnAgent(BASE_CONFIG, deps);
@@ -261,7 +290,9 @@ export function spawnAgent(
   if (deps.fileExists(config.lockPath)) {
     const existing = deps.readFile(config.lockPath);
     if (existing.ok && !isLockStale(existing.value)) {
-      deps.stderr(`[spawn-agent] Lock exists and is fresh, skipping: ${config.lockPath}`);
+      deps.stderr(
+        `[spawn-agent] Lock exists and is fresh, skipping: ${config.lockPath}`,
+      );
       return ok(undefined as void);
     }
     // Stale or unreadable — remove and proceed
@@ -299,10 +330,16 @@ export function spawnAgent(
   };
 
   // 5. Spawn
-  deps.stderr(`[spawn-agent] Spawning agent for ${config.source}: ${config.reason}`);
-  return deps.spawnBackground("bun", [deps.runnerPath, JSON.stringify(runnerConfig)], {
-    cwd: config.cwd,
-  });
+  deps.stderr(
+    `[spawn-agent] Spawning agent for ${config.source}: ${config.reason}`,
+  );
+  return deps.spawnBackground(
+    "bun",
+    [deps.runnerPath, JSON.stringify(runnerConfig)],
+    {
+      cwd: config.cwd,
+    },
+  );
 }
 ```
 
@@ -328,6 +365,7 @@ spawn Claude agents without duplicating boilerplate."
 ### Task 2: `runners/agent-runner.ts` — Generic runner with dry-run and BUN_TEST guard
 
 **Files:**
+
 - Create: `runners/agent-runner.ts`
 - Test: `runners/agent-runner.test.ts`
 
@@ -339,7 +377,11 @@ Create `runners/agent-runner.test.ts`:
 import { describe, expect, it } from "bun:test";
 import { ok, type Result } from "@hooks/core/result";
 import type { ResultError } from "@hooks/core/error";
-import { runAgent, type RunnerConfig, type AgentRunnerDeps } from "@hooks/runners/agent-runner";
+import {
+  runAgent,
+  type RunnerConfig,
+  type AgentRunnerDeps,
+} from "@hooks/runners/agent-runner";
 
 const BASE_CONFIG: RunnerConfig = {
   prompt: "Test hardening prompt",
@@ -353,11 +395,23 @@ const BASE_CONFIG: RunnerConfig = {
 
 type FakeFS = Map<string, string>;
 
-function fakeDeps(fs: FakeFS, overrides: Partial<AgentRunnerDeps> = {}): AgentRunnerDeps {
+function fakeDeps(
+  fs: FakeFS,
+  overrides: Partial<AgentRunnerDeps> = {},
+): AgentRunnerDeps {
   return {
-    writeFile: (p, c) => { fs.set(p, c); return ok(undefined as void); },
-    appendFile: (p, c) => { fs.set(p, (fs.get(p) || "") + c); return ok(undefined as void); },
-    removeFile: (p) => { fs.delete(p); return ok(undefined as void); },
+    writeFile: (p, c) => {
+      fs.set(p, c);
+      return ok(undefined as void);
+    },
+    appendFile: (p, c) => {
+      fs.set(p, (fs.get(p) || "") + c);
+      return ok(undefined as void);
+    },
+    removeFile: (p) => {
+      fs.delete(p);
+      return ok(undefined as void);
+    },
     spawnSyncSafe: (_cmd, _args, _opts) => ok({ stdout: "", exitCode: 0 }),
     stderr: () => {},
     env: { BUN_TEST: "1" },
@@ -382,7 +436,10 @@ describe("agent-runner BUN_TEST guard", () => {
 
   it("does not throw if BUN_TEST is not set and dryRun is false", () => {
     const fs: FakeFS = new Map();
-    const deps = fakeDeps(fs, { env: {}, spawnSyncSafe: () => ok({ stdout: "", exitCode: 0 }) });
+    const deps = fakeDeps(fs, {
+      env: {},
+      spawnSyncSafe: () => ok({ stdout: "", exitCode: 0 }),
+    });
     expect(() => runAgent(BASE_CONFIG, false, deps)).not.toThrow();
   });
 });
@@ -406,7 +463,10 @@ describe("agent-runner dry-run", () => {
     const fs: FakeFS = new Map();
     let called = false;
     const deps = fakeDeps(fs, {
-      spawnSyncSafe: () => { called = true; return ok({ stdout: "", exitCode: 0 }); },
+      spawnSyncSafe: () => {
+        called = true;
+        return ok({ stdout: "", exitCode: 0 });
+      },
     });
     runAgent(BASE_CONFIG, true, deps);
     expect(called).toBe(false);
@@ -428,7 +488,10 @@ describe("agent-runner execution", () => {
     let capturedArgs: string[] = [];
     const deps = fakeDeps(fs, {
       env: {},
-      spawnSyncSafe: (_cmd, args) => { capturedArgs = args ?? []; return ok({ stdout: "", exitCode: 0 }); },
+      spawnSyncSafe: (_cmd, args) => {
+        capturedArgs = args ?? [];
+        return ok({ stdout: "", exitCode: 0 });
+      },
     });
     runAgent(BASE_CONFIG, false, deps);
 
@@ -459,7 +522,11 @@ describe("agent-runner execution", () => {
     const fs: FakeFS = new Map();
     const deps = fakeDeps(fs, {
       env: {},
-      spawnSyncSafe: () => ({ ok: false, error: { code: "PROCESS_EXEC_FAILED", message: "boom" } } as any),
+      spawnSyncSafe: () =>
+        ({
+          ok: false,
+          error: { code: "PROCESS_EXEC_FAILED", message: "boom" },
+        }) as any,
     });
     runAgent(BASE_CONFIG, false, deps);
 
@@ -483,7 +550,11 @@ describe("agent-runner execution", () => {
     const fs: FakeFS = new Map([[BASE_CONFIG.lockPath, "lock"]]);
     const deps = fakeDeps(fs, {
       env: {},
-      spawnSyncSafe: () => ({ ok: false, error: { code: "PROCESS_EXEC_FAILED", message: "boom" } } as any),
+      spawnSyncSafe: () =>
+        ({
+          ok: false,
+          error: { code: "PROCESS_EXEC_FAILED", message: "boom" },
+        }) as any,
     });
     runAgent(BASE_CONFIG, false, deps);
     expect(fs.has(BASE_CONFIG.lockPath)).toBe(false);
@@ -568,7 +639,7 @@ export function runAgent(
   if (deps.env.BUN_TEST && !dryRun) {
     throw new Error(
       "BUN_TEST is set but --dry-run was not passed. " +
-      "Refusing to spawn real claude agent in test environment.",
+        "Refusing to spawn real claude agent in test environment.",
     );
   }
 
@@ -576,22 +647,35 @@ export function runAgent(
 
   try {
     if (dryRun) {
-      logEvent(config.logPath, {
-        ts: new Date().toISOString(),
-        event: "dry-run",
-        source: config.source,
-        prompt_length: config.prompt.length,
-        model: config.model,
-        maxTurns: config.maxTurns,
-      }, deps);
-      deps.stderr(`[agent-runner] DRY RUN for ${config.source} — skipping claude`);
+      logEvent(
+        config.logPath,
+        {
+          ts: new Date().toISOString(),
+          event: "dry-run",
+          source: config.source,
+          prompt_length: config.prompt.length,
+          model: config.model,
+          maxTurns: config.maxTurns,
+        },
+        deps,
+      );
+      deps.stderr(
+        `[agent-runner] DRY RUN for ${config.source} — skipping claude`,
+      );
       return;
     }
 
     // Run claude synchronously
     const result = deps.spawnSyncSafe(
       "claude",
-      ["-p", config.prompt, "--max-turns", String(config.maxTurns), "--model", config.model],
+      [
+        "-p",
+        config.prompt,
+        "--max-turns",
+        String(config.maxTurns),
+        "--model",
+        config.model,
+      ],
       {
         cwd: config.cwd,
         timeout: config.timeout,
@@ -602,23 +686,35 @@ export function runAgent(
     const durationMs = Date.now() - startMs;
 
     if (result.ok) {
-      logEvent(config.logPath, {
-        ts: new Date().toISOString(),
-        event: "completed",
-        source: config.source,
-        exitCode: result.value.exitCode,
-        duration_ms: durationMs,
-      }, deps);
-      deps.stderr(`[agent-runner] Completed ${config.source} (exit=${result.value.exitCode}, ${durationMs}ms)`);
+      logEvent(
+        config.logPath,
+        {
+          ts: new Date().toISOString(),
+          event: "completed",
+          source: config.source,
+          exitCode: result.value.exitCode,
+          duration_ms: durationMs,
+        },
+        deps,
+      );
+      deps.stderr(
+        `[agent-runner] Completed ${config.source} (exit=${result.value.exitCode}, ${durationMs}ms)`,
+      );
     } else {
-      logEvent(config.logPath, {
-        ts: new Date().toISOString(),
-        event: "failed",
-        source: config.source,
-        error: result.error.message,
-        duration_ms: durationMs,
-      }, deps);
-      deps.stderr(`[agent-runner] Failed ${config.source}: ${result.error.message}`);
+      logEvent(
+        config.logPath,
+        {
+          ts: new Date().toISOString(),
+          event: "failed",
+          source: config.source,
+          error: result.error.message,
+          duration_ms: durationMs,
+        },
+        deps,
+      );
+      deps.stderr(
+        `[agent-runner] Failed ${config.source}: ${result.error.message}`,
+      );
     }
   } finally {
     // Always clean up lock file
@@ -665,6 +761,7 @@ Throws immediately if BUN_TEST is set without --dry-run."
 ### Task 3: `buildHardeningPrompt()` — Pure function for the hardening agent's prompt
 
 **Files:**
+
 - Create: `hooks/SecurityValidator/SettingsRevert/hardening-prompt.ts`
 - Test: `hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
 
@@ -678,8 +775,12 @@ import { buildHardeningPrompt } from "@hooks/hooks/SecurityValidator/SettingsRev
 
 describe("buildHardeningPrompt", () => {
   it("includes the bypass command", () => {
-    const prompt = buildHardeningPrompt("jq '.hooks = {}' settings.json > tmp && mv tmp settings.json");
-    expect(prompt).toContain("jq '.hooks = {}' settings.json > tmp && mv tmp settings.json");
+    const prompt = buildHardeningPrompt(
+      "jq '.hooks = {}' settings.json > tmp && mv tmp settings.json",
+    );
+    expect(prompt).toContain(
+      "jq '.hooks = {}' settings.json > tmp && mv tmp settings.json",
+    );
   });
 
   it("references patterns.yaml path", () => {
@@ -688,13 +789,17 @@ describe("buildHardeningPrompt", () => {
   });
 
   it("instructs to add under bash.blocked", () => {
-    const prompt = buildHardeningPrompt("python3 -c 'open(\"settings.json\",\"w\")'");
+    const prompt = buildHardeningPrompt(
+      'python3 -c \'open("settings.json","w")\'',
+    );
     expect(prompt).toContain("bash.blocked");
     expect(prompt).toContain("blocked");
   });
 
   it("instructs to include Auto-hardened in reason", () => {
-    const prompt = buildHardeningPrompt("node -e 'fs.writeFileSync(\"settings.json\",\"{}\")'");
+    const prompt = buildHardeningPrompt(
+      'node -e \'fs.writeFileSync("settings.json","{}")\'',
+    );
     expect(prompt).toContain("Auto-hardened");
   });
 
@@ -709,7 +814,9 @@ describe("buildHardeningPrompt", () => {
   });
 
   it("instructs to avoid false positives", () => {
-    const prompt = buildHardeningPrompt("jq . settings.json > tmp && mv tmp settings.json");
+    const prompt = buildHardeningPrompt(
+      "jq . settings.json > tmp && mv tmp settings.json",
+    );
     expect(prompt).toContain("false positive");
   });
 });
@@ -780,6 +887,7 @@ patterns.yaml when SettingsRevert catches a bypass."
 ### Task 4: Wire SettingsRevert to call `spawnAgent()` after revert
 
 **Files:**
+
 - Modify: `hooks/SecurityValidator/SettingsRevert/SettingsRevert.contract.ts:28-35` (deps interface)
 - Modify: `hooks/SecurityValidator/SettingsRevert/SettingsRevert.contract.ts:106-148` (contract)
 - Modify: `hooks/SecurityValidator/SettingsRevert/SettingsRevert.test.ts` (add new tests)
@@ -805,7 +913,10 @@ describe("SettingsRevert.execute — hardening agent spawn", () => {
     ]);
     const spawns: SpawnAgentConfig[] = [];
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { spawns.push(config); return ok(undefined as void); },
+      spawnAgent: (config: SpawnAgentConfig) => {
+        spawns.push(config);
+        return ok(undefined as void);
+      },
     });
     SettingsRevert.execute(bashInput("jq . settings.json"), deps);
 
@@ -821,7 +932,10 @@ describe("SettingsRevert.execute — hardening agent spawn", () => {
     ]);
     const spawns: SpawnAgentConfig[] = [];
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { spawns.push(config); return ok(undefined as void); },
+      spawnAgent: (config: SpawnAgentConfig) => {
+        spawns.push(config);
+        return ok(undefined as void);
+      },
     });
     SettingsRevert.execute(bashInput("git status"), deps);
 
@@ -835,7 +949,10 @@ describe("SettingsRevert.execute — hardening agent spawn", () => {
     ]);
     const spawns: SpawnAgentConfig[] = [];
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { spawns.push(config); return ok(undefined as void); },
+      spawnAgent: (config: SpawnAgentConfig) => {
+        spawns.push(config);
+        return ok(undefined as void);
+      },
     });
     SettingsRevert.execute(bashInput("python3 -c 'write settings'"), deps);
 
@@ -849,7 +966,10 @@ describe("SettingsRevert.execute — hardening agent spawn", () => {
     ]);
     const spawns: SpawnAgentConfig[] = [];
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { spawns.push(config); return ok(undefined as void); },
+      spawnAgent: (config: SpawnAgentConfig) => {
+        spawns.push(config);
+        return ok(undefined as void);
+      },
     });
     SettingsRevert.execute(bashInput("evil cmd"), deps);
 
@@ -869,12 +989,14 @@ Expected: FAIL — `spawnAgent` not in deps type
 In `SettingsRevert.contract.ts`, make these changes:
 
 1. Add import at top:
+
 ```typescript
 import { spawnAgent, type SpawnAgentConfig } from "@hooks/lib/spawn-agent";
 import { buildHardeningPrompt } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
 ```
 
 2. Add `spawnAgent` to `SettingsRevertDeps`:
+
 ```typescript
 export interface SettingsRevertDeps extends AuditLogDeps {
   // ... existing fields ...
@@ -883,11 +1005,13 @@ export interface SettingsRevertDeps extends AuditLogDeps {
 ```
 
 3. Add to `defaultDeps`:
+
 ```typescript
 spawnAgent: (config) => spawnAgent(config),
 ```
 
 4. After the `logSettingsAudit` call, when `reverted.length > 0`, add:
+
 ```typescript
 deps.spawnAgent({
   prompt: buildHardeningPrompt(command),
@@ -925,6 +1049,7 @@ a blocked pattern to patterns.yaml."
 ### Task 5: Full integration test (dry-run) and final verification
 
 **Files:**
+
 - No new files — run existing tests across all touched modules
 
 **Step 1: Run all lib tests**
@@ -1028,6 +1153,7 @@ Expected: `completed 0` — agent finished successfully.
 
 Run: `cd /Users/ian.hogers/.claude/pai-hooks && git diff ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml`
 Expected: A new entry under `bash.blocked` with:
+
 - A pattern targeting the python3 write vector
 - `reason:` containing `Auto-hardened` and today's date
 

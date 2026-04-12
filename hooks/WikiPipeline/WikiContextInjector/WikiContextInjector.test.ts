@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { makeToolInput } from "@hooks/lib/test-helpers";
+import { getInjectedContextFor, makeToolInput } from "@hooks/lib/test-helpers";
 import {
   _resetCache,
   buildDomainIndex,
@@ -95,7 +95,13 @@ describe("buildDomainIndex", () => {
 describe("matchDomain", () => {
   it("matches file path to domain via project directory", () => {
     const index: DomainIndex = {
-      koord: [{ title: "Koord", path: "entities/koord.md", summary: "Multi-agent system." }],
+      koord: [
+        {
+          title: "Koord",
+          path: "entities/koord.md",
+          summary: "Multi-agent system.",
+        },
+      ],
     };
     const result = matchDomain("/Users/hogers/Projects/koord/src/agent.ts", index);
     expect(result).toBeDefined();
@@ -110,7 +116,13 @@ describe("matchDomain", () => {
 
   it("matches case-insensitively", () => {
     const index: DomainIndex = {
-      koord: [{ title: "Koord", path: "entities/koord.md", summary: "Multi-agent system." }],
+      koord: [
+        {
+          title: "Koord",
+          path: "entities/koord.md",
+          summary: "Multi-agent system.",
+        },
+      ],
     };
     const result = matchDomain("/Users/hogers/Projects/Koord/src/agent.ts", index);
     expect(result).toBeDefined();
@@ -301,12 +313,11 @@ Exploring requirements and design before writing implementation code.
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect(result.value.additionalContext).toBeDefined();
-      expect(result.value.additionalContext).toContain("koord");
-      expect(result.value.additionalContext).toContain(
-        "Multi-agent coordination system via Discord.",
-      );
+      expect(result.value.continue).toBe(true);
+      const ctx = getInjectedContextFor(result.value, "PreToolUse");
+      expect(ctx).toBeDefined();
+      expect(ctx).toContain("koord");
+      expect(ctx).toContain("Multi-agent coordination system via Discord.");
     }
   });
 
@@ -316,8 +327,8 @@ Exploring requirements and design before writing implementation code.
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect(result.value.additionalContext).toBeUndefined();
+      expect(result.value.continue).toBe(true);
+      expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
     }
   });
 
@@ -331,7 +342,7 @@ Exploring requirements and design before writing implementation code.
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toBeUndefined();
+      expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
     }
   });
 
@@ -343,7 +354,7 @@ Exploring requirements and design before writing implementation code.
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toBeUndefined();
+      expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
     }
   });
 
@@ -355,9 +366,10 @@ Exploring requirements and design before writing implementation code.
     const result = WikiContextInjector.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toBeDefined();
-      expect(result.value.additionalContext).toContain("Design-first methodology");
-      expect(result.value.additionalContext).toContain(
+      const ctx = getInjectedContextFor(result.value, "PreToolUse");
+      expect(ctx).toBeDefined();
+      expect(ctx).toContain("Design-first methodology");
+      expect(ctx).toContain(
         "Exploring requirements and design before writing implementation code.",
       );
     }
@@ -373,7 +385,7 @@ Exploring requirements and design before writing implementation code.
     const entityResult = WikiContextInjector.execute(entityInput, deps);
     expect(entityResult.ok).toBe(true);
     if (entityResult.ok) {
-      expect(entityResult.value.additionalContext).toContain("koord");
+      expect(getInjectedContextFor(entityResult.value, "PreToolUse")).toContain("koord");
     }
 
     // Second call: concept match (different file path to avoid dedup)
@@ -384,7 +396,9 @@ Exploring requirements and design before writing implementation code.
     const conceptResult = WikiContextInjector.execute(conceptInput, deps);
     expect(conceptResult.ok).toBe(true);
     if (conceptResult.ok) {
-      expect(conceptResult.value.additionalContext).toContain("Design-first methodology");
+      expect(getInjectedContextFor(conceptResult.value, "PreToolUse")).toContain(
+        "Design-first methodology",
+      );
     }
   });
 });
@@ -417,13 +431,13 @@ Multi-agent coordination system via Discord.
     const first = WikiContextInjector.execute(input, deps);
     expect(first.ok).toBe(true);
     if (first.ok) {
-      expect(first.value.additionalContext).toBeDefined();
+      expect(getInjectedContextFor(first.value, "PreToolUse")).toBeDefined();
     }
 
     const second = WikiContextInjector.execute(input, deps);
     expect(second.ok).toBe(true);
     if (second.ok) {
-      expect(second.value.additionalContext).toBeUndefined();
+      expect(getInjectedContextFor(second.value, "PreToolUse")).toBeUndefined();
     }
   });
 
@@ -440,13 +454,19 @@ Multi-agent coordination system via Discord.
       makeToolInput("Write", "/Users/hogers/Projects/koord/src/agent.ts"),
       deps,
     );
-    expect(first.ok && first.value.additionalContext).toBeDefined();
+    expect(first.ok).toBe(true);
+    if (first.ok) {
+      expect(getInjectedContextFor(first.value, "PreToolUse")).toBeDefined();
+    }
 
     const second = WikiContextInjector.execute(
       makeToolInput("Edit", "/Users/hogers/Projects/koord/src/daemon.ts"),
       deps,
     );
-    expect(second.ok && second.value.additionalContext).toBeDefined();
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      expect(getInjectedContextFor(second.value, "PreToolUse")).toBeDefined();
+    }
   });
 });
 

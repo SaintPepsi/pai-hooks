@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
-import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 
 const VALID_CONFIG = {
   version: "1.0",

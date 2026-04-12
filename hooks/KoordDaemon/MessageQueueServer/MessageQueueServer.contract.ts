@@ -17,17 +17,17 @@
  * If no daemon URL is configured, skips silently (not a Koord session).
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   defaultReadFileOrNull,
   getQueueDir,
   readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,7 +61,10 @@ const defaultDeps: MessageQueueServerDeps = {
     return { ok: result.ok };
   },
   fileExists: (path) => {
-    const result = tryCatch(() => Bun.file(path).size > 0, () => null);
+    const result = tryCatch(
+      () => Bun.file(path).size > 0,
+      () => null,
+    );
     return result.ok ? result.value : false;
   },
   stderr: defaultStderr,
@@ -74,11 +77,7 @@ const defaultDeps: MessageQueueServerDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const MessageQueueServer: AsyncHookContract<
-  SessionStartInput,
-  ContextOutput | SilentOutput,
-  MessageQueueServerDeps
-> = {
+export const MessageQueueServer: AsyncHookContract<SessionStartInput, MessageQueueServerDeps> = {
   name: "MessageQueueServer",
   event: "SessionStart",
 
@@ -89,11 +88,11 @@ export const MessageQueueServer: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: MessageQueueServerDeps,
-  ): Promise<Result<ContextOutput | SilentOutput, ResultError>> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     const sessionId = input.session_id;
     if (!sessionId) {
       deps.stderr("[MessageQueueServer] No session_id in hook input");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Only activate if Koord daemon is configured
@@ -101,7 +100,7 @@ export const MessageQueueServer: AsyncHookContract<
     const daemonUrl = envUrl ?? deps.getKoordConfig().url;
     if (!daemonUrl) {
       deps.stderr("[MessageQueueServer] No daemon URL configured — skipping MQ server");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Check if server is already running for this session
@@ -109,7 +108,7 @@ export const MessageQueueServer: AsyncHookContract<
     const portFile = `${queueDir}/port`;
     if (deps.fileExists(portFile)) {
       deps.stderr("[MessageQueueServer] Server already running — skipping spawn");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // Spawn the detached mq-server process
@@ -118,7 +117,7 @@ export const MessageQueueServer: AsyncHookContract<
 
     if (!result.ok) {
       deps.stderr("[MessageQueueServer] Failed to spawn mq-server (non-blocking)");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     deps.stderr(`[MessageQueueServer] Spawned mq-server for session ${sessionId.slice(0, 8)}...`);
@@ -127,22 +126,24 @@ export const MessageQueueServer: AsyncHookContract<
     await Bun.sleep(300);
 
     return ok({
-      type: "context",
-      content: [
-        "## Message Queue Active",
-        "",
-        "A message queue server has been started for this session.",
-        `The Koord daemon can push messages to it for realtime relay.`,
-        "",
-        "**To start listening for messages, run:**",
-        "```",
-        `bun scripts/mq-watcher.ts --session ${sessionId}`,
-        "```",
-        "",
-        "When a message arrives, the watcher will exit with the message content.",
-        "The MessageQueueRelay hook will prompt you to process it and respawn the watcher.",
-        "This creates a persistent message loop for realtime communication.",
-      ].join("\n"),
+      hookSpecificOutput: {
+        hookEventName: "SessionStart",
+        additionalContext: [
+          "## Message Queue Active",
+          "",
+          "A message queue server has been started for this session.",
+          `The Koord daemon can push messages to it for realtime relay.`,
+          "",
+          "**To start listening for messages, run:**",
+          "```",
+          `bun scripts/mq-watcher.ts --session ${sessionId}`,
+          "```",
+          "",
+          "When a message arrives, the watcher will exit with the message content.",
+          "The MessageQueueRelay hook will prompt you to process it and respawn the watcher.",
+          "This creates a persistent message loop for realtime communication.",
+        ].join("\n"),
+      },
     });
   },
 

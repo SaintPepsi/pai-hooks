@@ -134,7 +134,9 @@ export function copyFile(src: string, dest: string): Result<void, ResultError> {
   );
 }
 
-export function stat(path: string): Result<{ mtimeMs: number; isDirectory(): boolean }, ResultError> {
+export function stat(
+  path: string,
+): Result<{ mtimeMs: number; isDirectory(): boolean }, ResultError> {
   return tryCatch(
     () => {
       const s = statSync(path);

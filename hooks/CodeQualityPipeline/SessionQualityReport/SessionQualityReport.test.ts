@@ -13,9 +13,21 @@ let lastWrittenContent: string = "";
 let lastWrittenPath: string = "";
 
 const MOCK_BASELINES = {
-  "/src/app.ts": { score: 8.5, violations: 1, timestamp: "2026-02-27T10:00:00Z" },
-  "/src/bloated.ts": { score: 4.2, violations: 5, timestamp: "2026-02-27T10:05:00Z" },
-  "/src/clean.ts": { score: 10, violations: 0, timestamp: "2026-02-27T10:10:00Z" },
+  "/src/app.ts": {
+    score: 8.5,
+    violations: 1,
+    timestamp: "2026-02-27T10:00:00Z",
+  },
+  "/src/bloated.ts": {
+    score: 4.2,
+    violations: 5,
+    timestamp: "2026-02-27T10:05:00Z",
+  },
+  "/src/clean.ts": {
+    score: 10,
+    violations: 0,
+    timestamp: "2026-02-27T10:10:00Z",
+  },
 };
 
 const MOCK_TIME = {
@@ -119,12 +131,12 @@ describe("SessionQualityReport", () => {
       expect(lastWrittenContent).toContain("clean.ts");
     });
 
-    test("returns SilentOutput", () => {
+    test("returns silent output", () => {
       const deps = makeDeps();
       const result = SessionQualityReport.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
   });
@@ -170,8 +182,16 @@ describe("SessionQualityReport", () => {
       const deps = makeDeps({
         readJson: <T>() =>
           ok({
-            "/src/clean1.ts": { score: 9, violations: 0, timestamp: "2026-02-27T10:00:00Z" },
-            "/src/clean2.ts": { score: 8, violations: 1, timestamp: "2026-02-27T10:00:00Z" },
+            "/src/clean1.ts": {
+              score: 9,
+              violations: 0,
+              timestamp: "2026-02-27T10:00:00Z",
+            },
+            "/src/clean2.ts": {
+              score: 8,
+              violations: 1,
+              timestamp: "2026-02-27T10:00:00Z",
+            },
           }) as Result<T, ResultError>,
       });
       SessionQualityReport.execute(makeInput(), deps);
@@ -182,7 +202,11 @@ describe("SessionQualityReport", () => {
       const deps = makeDeps({
         readJson: <T>() =>
           ok({
-            "/src/messy.ts": { score: 3, violations: 10, timestamp: "2026-02-27T10:00:00Z" },
+            "/src/messy.ts": {
+              score: 3,
+              violations: 10,
+              timestamp: "2026-02-27T10:00:00Z",
+            },
           }) as Result<T, ResultError>,
       });
       SessionQualityReport.execute(makeInput(), deps);

@@ -44,9 +44,11 @@ const writeTargets = extractWriteTargets(command);
 for (const target of writeTargets) {
   const pathResult = validatePath(target, "write", patterns, home, deps);
   if (pathResult.action === "block" || pathResult.action === "confirm") {
-    return err(securityBlockError(
-      `Bash command modifies protected path via tool substitution: ${target}`
-    ));
+    return err(
+      securityBlockError(
+        `Bash command modifies protected path via tool substitution: ${target}`,
+      ),
+    );
   }
 }
 ```
@@ -67,9 +69,9 @@ for (const target of writeTargets) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `narrative-reader` | lib | Picks contextual narrative openers for security messages |
-| `fs` | adapter | Reads security patterns JSON and writes audit logs |
-| `regex` | adapter | Safe regex testing for pattern matching |
-| `patterns-schema` | lib | Effect Schema decoder for patterns.json validation |
+| Dependency         | Type    | Purpose                                                  |
+| ------------------ | ------- | -------------------------------------------------------- |
+| `narrative-reader` | lib     | Picks contextual narrative openers for security messages |
+| `fs`               | adapter | Reads security patterns JSON and writes audit logs       |
+| `regex`            | adapter | Safe regex testing for pattern matching                  |
+| `patterns-schema`  | lib     | Effect Schema decoder for patterns.json validation       |

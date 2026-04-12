@@ -14,12 +14,15 @@
  */
 
 import { join } from "node:path";
-import { buildHardeningPrompt, buildHardeningFollowUp } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
-import { spawnAgent, type SpawnAgentConfig, type SpawnAgentDeps } from "@hooks/lib/spawn-agent";
-import type { Result } from "@hooks/core/result";
 import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import {
+  buildHardeningFollowUp,
+  buildHardeningPrompt,
+} from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
 import { getPaiDir } from "@hooks/lib/paths";
+import { type SpawnAgentConfig, type SpawnAgentDeps, spawnAgent } from "@hooks/lib/spawn-agent";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +53,9 @@ export function runHardening(
   const sessionStatePath = join(import.meta.dir, ".hardening-session");
   const sessionState = fileExists(sessionStatePath) ? readFile(sessionStatePath) : undefined;
   const hasSession = sessionState?.ok && sessionState.value.trim().length > 0;
-  const prompt = hasSession ? buildHardeningFollowUp(bypassCommand) : buildHardeningPrompt(bypassCommand);
+  const prompt = hasSession
+    ? buildHardeningFollowUp(bypassCommand)
+    : buildHardeningPrompt(bypassCommand);
 
   deps.stderr(`[run-hardening] Spawning hardening agent for: ${bypassCommand.slice(0, 100)}`);
 
@@ -66,12 +71,16 @@ export function runHardening(
     cwd: join(import.meta.dir),
     sessionStatePath,
     claudeArgs: [
-      "--setting-sources", "",
+      "--setting-sources",
+      "",
       "--disable-slash-commands",
       "--strict-mcp-config",
-      "--mcp-config", deps.mcpConfigPath,
-      "--settings", deps.settingsPath,
-      "--permission-mode", "dontAsk",
+      "--mcp-config",
+      deps.mcpConfigPath,
+      "--settings",
+      deps.settingsPath,
+      "--permission-mode",
+      "dontAsk",
     ],
   });
 }

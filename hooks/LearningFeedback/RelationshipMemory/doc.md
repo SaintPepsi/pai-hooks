@@ -69,10 +69,10 @@ deps.writeNotes(notes);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
+| Dependency         | Type    | Purpose                                                      |
+| ------------------ | ------- | ------------------------------------------------------------ |
 | `core/adapters/fs` | adapter | File read/write/append, existence checks, directory creation |
-| `lib/identity` | lib | DA name and principal name for note entities |
-| `lib/paths` | lib | Resolves PAI directory path |
-| `lib/time` | lib | Local date components for file naming |
-| `core/error` | core | JSON parse error handling |
+| `lib/identity`     | lib     | DA name and principal name for note entities                 |
+| `lib/paths`        | lib     | Resolves PAI directory path                                  |
+| `lib/time`         | lib     | Local date components for file naming                        |
+| `core/error`       | core    | JSON parse error handling                                    |

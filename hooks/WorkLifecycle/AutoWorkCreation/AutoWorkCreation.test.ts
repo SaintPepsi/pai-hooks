@@ -25,7 +25,7 @@ async function runHook(
 describe("AutoWorkCreation hook shell", () => {
   it("exits 0 and produces silent output for a valid prompt", async () => {
     // accepts() requires prompt.length >= 2. "hello" qualifies.
-    // execute() returns silent output ({ type: "silent" }) which means no stdout.
+    // execute() returns bare {} (silent — no additionalContext, no decision) which means no stdout.
     // See: contracts/AutoWorkCreation.ts accepts() and execute()
     const result = await runHook({
       session_id: "test",

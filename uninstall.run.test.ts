@@ -57,7 +57,10 @@ const settingsWithHooks = JSON.stringify({
       {
         matcher: "Edit",
         hooks: [
-          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" },
+          {
+            type: "command",
+            command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts",
+          },
         ],
       },
       {
@@ -76,7 +79,10 @@ const settingsWithHooksNoEnv = JSON.stringify({
       {
         matcher: "Edit",
         hooks: [
-          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" },
+          {
+            type: "command",
+            command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts",
+          },
         ],
       },
       {

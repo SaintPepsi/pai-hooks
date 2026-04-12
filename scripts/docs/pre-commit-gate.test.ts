@@ -89,7 +89,11 @@ describe("checkDocGate", () => {
 
     const issues = checkDocGate(config, deps);
     expect(issues).toHaveLength(3);
-    expect(issues.map((i) => i.type)).toEqual(["missing-doc", "missing-idea", "missing-html"]);
+    expect(issues.map((i) => i.type)).toEqual([
+      "missing-doc",
+      "missing-idea",
+      "missing-html",
+    ]);
   });
 
   it("handles multiple hooks across groups", () => {
@@ -163,7 +167,9 @@ describe("formatReport", () => {
     ];
 
     const report = formatReport(issues);
-    expect(report).toContain("ERROR: Missing IDEA.md in /repo/hooks/Git/Guard/");
+    expect(report).toContain(
+      "ERROR: Missing IDEA.md in /repo/hooks/Git/Guard/",
+    );
     expect(report).toContain("Pre-commit blocked");
   });
 

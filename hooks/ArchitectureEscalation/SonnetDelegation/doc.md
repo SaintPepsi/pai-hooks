@@ -33,9 +33,11 @@ It does **not** fire when:
 ```typescript
 // Delegation guidance injection
 return ok({
-  type: "continue",
   continue: true,
-  additionalContext: DELEGATION_GUIDANCE,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: DELEGATION_GUIDANCE,
+  },
 });
 ```
 
@@ -51,6 +53,10 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| (none) | -- | This hook has no external dependencies beyond core types |
+| Dependency | Type | Purpose                                                  |
+| ---------- | ---- | -------------------------------------------------------- |
+| (none)     | --   | This hook has no external dependencies beyond core types |
+
+## History
+
+> **2026-04-11 — SDK Type Foundation (1M):** The delegation guidance injection at `SonnetDelegation.contract.ts:84` was using `continueOk(DELEGATION_GUIDANCE)` which routed `additionalContext` at the top level of the hook output. Claude Code's SDK silently dropped this field on PostToolUse. 9th instance of the same bug class found in this refactor. The fix routes `DELEGATION_GUIDANCE` through `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"`. Behaviour change: loading the `executing-plans` skill now actually delivers the Sonnet delegation guidance to Opus. Previously, the stderr log fired and metrics recorded the injection, but the classified instructions were never received by the model.

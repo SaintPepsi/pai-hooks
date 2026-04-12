@@ -4,28 +4,29 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 
 ## Modules
 
-| Module | Purpose |
-|--------|---------|
-| `coding-standards-checks.ts` | Violation detection for coding standards (raw imports, try-catch, process.env, inline import types, as-any, relative imports, export default) |
-| `svelte-utils.ts` | Svelte file classification (`isSvelteFile`) and `<script lang="ts">` block extraction (`extractSvelteScript`) with line-number-preserving padding |
-| `narrative-reader.ts` | Reads narrative templates for hook messages |
-| `signal-logger.ts` | Appends structured signals to JSONL files |
-| `execution-classification.ts` | Command classification for execution evidence verification (state-changing vs read-only, output substantiveness, evidence reminders) |
-| `time.ts` | Timestamp formatting (timezone via `TZ` env var, defaults to UTC) |
-| `identity.ts` | Settings/identity loading (`getIdentity`, `getPrincipal`, `getVoiceId`, `getVoiceProsody`). Uses `IdentityDeps` for testability. |
-| `notifications.ts` | Session notifications (desktop, voice). Uses `NotificationDeps` for testability. |
-| `algorithm-state.ts` | PRD/algorithm state management (active work, stale sweep). Uses `AlgorithmStateDeps` for testability. |
-| `change-detection.ts` | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability. |
-| `paths.ts` | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`. |
-| `tool-input.ts` | Canonical `getFilePath` and `getWriteContent` extractors for `ToolHookInput.tool_input` fields |
-| `test-helpers.ts` | Shared test factories (`makeWriteInput`, `makeEditInput`, `makeToolInput`) and sandboxed hook runner (`runHookScript` — sets `PAI_DIR` to temp dir) for hook test files |
-| `spawn-agent.ts` | Background Claude agent spawning with lock/log/traceability. Supports session resumption via `sessionStatePath`. Principle: least privileged agent to perform task. |
-| `learning-utils.ts` | Learning/feedback utilities for LearningFeedback hooks |
-| `output-validators.ts` | Output format validation for multiple hook groups |
+| Module                        | Purpose                                                                                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `coding-standards-checks.ts`  | Violation detection for coding standards (raw imports, try-catch, process.env, inline import types, as-any, relative imports, export default)                           |
+| `svelte-utils.ts`             | Svelte file classification (`isSvelteFile`) and `<script lang="ts">` block extraction (`extractSvelteScript`) with line-number-preserving padding                       |
+| `narrative-reader.ts`         | Reads narrative templates for hook messages                                                                                                                             |
+| `signal-logger.ts`            | Appends structured signals to JSONL files                                                                                                                               |
+| `execution-classification.ts` | Command classification for execution evidence verification (state-changing vs read-only, output substantiveness, evidence reminders)                                    |
+| `time.ts`                     | Timestamp formatting (timezone via `TZ` env var, defaults to UTC)                                                                                                       |
+| `identity.ts`                 | Settings/identity loading (`getIdentity`, `getPrincipal`, `getVoiceId`, `getVoiceProsody`). Uses `IdentityDeps` for testability.                                        |
+| `notifications.ts`            | Session notifications (desktop, voice). Uses `NotificationDeps` for testability.                                                                                        |
+| `algorithm-state.ts`          | PRD/algorithm state management (active work, stale sweep). Uses `AlgorithmStateDeps` for testability.                                                                   |
+| `change-detection.ts`         | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability.                                                                                     |
+| `paths.ts`                    | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`.                                                                            |
+| `tool-input.ts`               | Canonical `getFilePath` and `getWriteContent` extractors for `ToolHookInput.tool_input` fields                                                                          |
+| `test-helpers.ts`             | Shared test factories (`makeWriteInput`, `makeEditInput`, `makeToolInput`), sandboxed hook runner (`runHookScript` — sets `PAI_DIR` to temp dir, routes env through `buildChildEnv` to strip parent-session markers), and `getInjectedContextFor(eventName)` (typed to `HookEvent` for compile-time typo detection) |
+| `spawn-agent.ts`              | Background Claude agent spawning with lock/log/traceability. Supports session resumption via `sessionStatePath`. Principle: least privileged agent to perform task.     |
+| `learning-utils.ts`           | Learning/feedback utilities for LearningFeedback hooks                                                                                                                  |
+| `output-validators.ts`        | Output format validation for multiple hook groups                                                                                                                       |
 
 ## coding-standards-checks.ts
 
 Shared by two contracts:
+
 - **CodingStandardsEnforcer** (PreToolUse) — blocks Edit/Write with violations
 - **CodingStandardsAdvisor** (PostToolUse) — warns on Read of violating files
 
@@ -57,10 +58,7 @@ Additional exclusion patterns can be configured in `settings.json` without modif
 {
   "codingStandards": {
     "exportDefault": {
-      "allowPatterns": [
-        "\\.config\\.(ts|js|mts|mjs)$",
-        "/\\.storybook/"
-      ]
+      "allowPatterns": ["\\.config\\.(ts|js|mts|mjs)$", "/\\.storybook/"]
     }
   }
 }
@@ -98,6 +96,7 @@ This enables unit testing without filesystem access. Tests provide mock deps, pr
 **Migrated modules:** `identity.ts`, `notifications.ts`, `algorithm-state.ts`, `change-detection.ts`
 
 **Shared factories in `paths.ts`:**
+
 - `getPaiDir()` — resolves `PAI_DIR` env var with `HOME/.claude/pai` fallback
 - `defaultStderr()` — returns a stderr write function for `defaultDeps`
 

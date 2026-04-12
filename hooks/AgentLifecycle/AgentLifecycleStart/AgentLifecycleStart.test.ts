@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { fileWriteFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SubagentStartInput } from "@hooks/core/types/hook-inputs";
-import type { AgentFileData, AgentLifecycleDeps } from "../shared";
+import type { AgentFileData, AgentLifecycleDeps } from "@hooks/hooks/AgentLifecycle/shared";
 import { AgentLifecycleStart } from "./AgentLifecycleStart.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ describe("AgentLifecycleStart", () => {
       const deps = makeDeps();
       const result = AgentLifecycleStart.execute(startInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("ensures agents directory exists", () => {
@@ -131,7 +131,7 @@ describe("AgentLifecycleStart", () => {
       });
       const result = AgentLifecycleStart.execute(startInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("returns ok silent even when writeFile fails", () => {
@@ -140,7 +140,7 @@ describe("AgentLifecycleStart", () => {
       });
       const result = AgentLifecycleStart.execute(startInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("silent");
+      if (result.ok) expect(result.value).toEqual({});
     });
 
     test("logs error when writeFile fails", () => {

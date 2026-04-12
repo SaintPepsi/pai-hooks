@@ -69,7 +69,7 @@ describe("MessageQueueServer", () => {
   test("skips when no daemon URL configured", async () => {
     const deps = makeDeps();
     const result = await MessageQueueServer.execute(baseInput, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 
   test("skips when no session_id", async () => {
@@ -77,7 +77,7 @@ describe("MessageQueueServer", () => {
       getEnv: (name) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
     });
     const result = await MessageQueueServer.execute({ session_id: "" }, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 
   test("skips if server already running (port file exists)", async () => {
@@ -86,7 +86,7 @@ describe("MessageQueueServer", () => {
       fileExists: () => true,
     });
     const result = await MessageQueueServer.execute(baseInput, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 
   test("spawns server and returns context when daemon URL configured", async () => {
@@ -102,11 +102,13 @@ describe("MessageQueueServer", () => {
     const result = await MessageQueueServer.execute(baseInput, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("context");
-      if (result.value.type === "context") {
-        expect(result.value.content).toContain("Message Queue Active");
-        expect(result.value.content).toContain("test-session-mq");
-        expect(result.value.content).toContain("mq-watcher");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "SessionStart") {
+        expect(hso.additionalContext).toContain("Message Queue Active");
+        expect(hso.additionalContext).toContain("test-session-mq");
+        expect(hso.additionalContext).toContain("mq-watcher");
+      } else {
+        throw new Error("Expected SessionStart hookSpecificOutput");
       }
     }
 
@@ -127,7 +129,11 @@ describe("MessageQueueServer", () => {
 
     const result = await MessageQueueServer.execute(baseInput, deps);
     expect(spawned).toBe(true);
-    expect(result.ok && result.value.type).toBe("context");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const hso = result.value.hookSpecificOutput;
+      expect(hso && hso.hookEventName === "SessionStart" && hso.additionalContext).toBeTruthy();
+    }
   });
 
   test("returns silent on spawn failure", async () => {
@@ -137,7 +143,7 @@ describe("MessageQueueServer", () => {
     });
 
     const result = await MessageQueueServer.execute(baseInput, deps);
-    expect(result.ok && result.value.type).toBe("silent");
+    expect(result.ok && result.value).toEqual({});
   });
 });
 
@@ -169,8 +175,8 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(makeInput({ command: "ls -la" }), defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect(result.value.additionalContext).toBeUndefined();
+      expect(result.value.continue).toBe(true);
+      expect(result.value.hookSpecificOutput).toBeUndefined();
     }
   });
 
@@ -183,11 +189,15 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(input, defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect(result.value.additionalContext).toContain("New Message Received");
-      expect(result.value.additionalContext).toContain("Deploy to staging please");
-      expect(result.value.additionalContext).toContain("from koord-daemon");
-      expect(result.value.additionalContext).toContain("--session test-session-abc");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toContain("New Message Received");
+        expect(hso.additionalContext).toContain("Deploy to staging please");
+        expect(hso.additionalContext).toContain("from koord-daemon");
+        expect(hso.additionalContext).toContain("--session test-session-abc");
+      } else {
+        throw new Error("Expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 
@@ -200,8 +210,13 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(input, defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toContain("Hello from the outside");
-      expect(result.value.additionalContext).toContain("respawn the watcher");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toContain("Hello from the outside");
+        expect(hso.additionalContext).toContain("respawn the watcher");
+      } else {
+        throw new Error("Expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 
@@ -214,8 +229,13 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(input, defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toContain("Watcher Timeout");
-      expect(result.value.additionalContext).toContain("--session sess123");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toContain("Watcher Timeout");
+        expect(hso.additionalContext).toContain("--session sess123");
+      } else {
+        throw new Error("Expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 
@@ -227,7 +247,12 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(input, defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toContain("Watcher Timeout");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toContain("Watcher Timeout");
+      } else {
+        throw new Error("Expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 
@@ -240,7 +265,12 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(input, defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toContain("--session my-unique-session");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toContain("--session my-unique-session");
+      } else {
+        throw new Error("Expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 
@@ -253,8 +283,13 @@ describe("MessageQueueRelay", () => {
     const result = MessageQueueRelay.execute(input, defaultDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.additionalContext).toContain("IMPORTANT");
-      expect(result.value.additionalContext).toContain("respawn the watcher");
+      const hso = result.value.hookSpecificOutput;
+      if (hso && hso.hookEventName === "PostToolUse") {
+        expect(hso.additionalContext).toContain("IMPORTANT");
+        expect(hso.additionalContext).toContain("respawn the watcher");
+      } else {
+        throw new Error("Expected PostToolUse hookSpecificOutput");
+      }
     }
   });
 });

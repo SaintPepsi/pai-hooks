@@ -6,12 +6,12 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp, getLocalDate } from "@hooks/lib/time";
@@ -145,135 +145,137 @@ const defaultDeps: WorkCompletionLearningDeps = {
   stderr: defaultStderr,
 };
 
-export const WorkCompletionLearning: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  WorkCompletionLearningDeps
-> = {
-  name: "WorkCompletionLearning",
-  event: "SessionEnd",
+export const WorkCompletionLearning: SyncHookContract<SessionEndInput, WorkCompletionLearningDeps> =
+  {
+    name: "WorkCompletionLearning",
+    event: "SessionEnd",
 
-  accepts(_input: SessionEndInput): boolean {
-    return true;
-  },
+    accepts(_input: SessionEndInput): boolean {
+      return true;
+    },
 
-  execute(
-    input: SessionEndInput,
-    deps: WorkCompletionLearningDeps,
-  ): Result<SilentOutput, ResultError> {
-    const stateDir = join(deps.baseDir, "MEMORY", "STATE");
-    const workDir = join(deps.baseDir, "MEMORY", "WORK");
-    const learningDir = join(deps.baseDir, "MEMORY", "LEARNING");
+    execute(
+      input: SessionEndInput,
+      deps: WorkCompletionLearningDeps,
+    ): Result<SyncHookJSONOutput, ResultError> {
+      const stateDir = join(deps.baseDir, "MEMORY", "STATE");
+      const workDir = join(deps.baseDir, "MEMORY", "WORK");
+      const learningDir = join(deps.baseDir, "MEMORY", "LEARNING");
 
-    // Find session-scoped state file (no legacy fallback — prevents cross-session bleed)
-    let stateFile: string | null = null;
-    if (input.session_id) {
-      const scoped = join(stateDir, `current-work-${input.session_id}.json`);
-      if (deps.fileExists(scoped)) stateFile = scoped;
-    }
-    if (!stateFile) {
-      deps.stderr("[WorkCompletionLearning] No active work session");
-      return ok({ type: "silent" });
-    }
-
-    const currentWorkResult = deps.readJson<CurrentWork>(stateFile);
-    if (!currentWorkResult.ok) {
-      deps.stderr("[WorkCompletionLearning] Failed to read state file");
-      return ok({ type: "silent" });
-    }
-    const currentWork = currentWorkResult.value;
-
-    if (input.session_id && currentWork.session_id !== input.session_id) {
-      deps.stderr("[WorkCompletionLearning] State file belongs to different session, skipping");
-      return ok({ type: "silent" });
-    }
-
-    if (!currentWork.session_dir) {
-      deps.stderr("[WorkCompletionLearning] No work directory in current session");
-      return ok({ type: "silent" });
-    }
-
-    const workPath = join(workDir, currentWork.session_dir);
-    const metaPath = join(workPath, "META.yaml");
-    const metaResult = deps.readFile(metaPath);
-    if (!metaResult.ok) {
-      deps.stderr("[WorkCompletionLearning] No META.yaml found");
-      return ok({ type: "silent" });
-    }
-    const metaContent = metaResult.value;
-    const workMeta = parseYaml(metaContent);
-    if (!workMeta.completed_at) workMeta.completed_at = deps.getTimestamp();
-
-    // Read ISC if available
-    let idealContent = "";
-    const iscPath = join(workPath, "ISC.json");
-    interface IscData {
-      current?: { criteria?: string[]; antiCriteria?: string[] };
-      satisfaction?: { satisfied: number; total: number; partial: number; failed: number };
-    }
-    const iscResult = deps.readJson<IscData>(iscPath);
-    if (iscResult.ok) {
-      const iscData = iscResult.value;
-      const criteria = iscData.current?.criteria;
-      if (criteria && criteria.length > 0) {
-        idealContent = `**Criteria:**\n${criteria.map((c: string) => `- ${c}`).join("\n")}`;
+      // Find session-scoped state file (no legacy fallback — prevents cross-session bleed)
+      let stateFile: string | null = null;
+      if (input.session_id) {
+        const scoped = join(stateDir, `current-work-${input.session_id}.json`);
+        if (deps.fileExists(scoped)) stateFile = scoped;
       }
-      const antiCriteria = iscData.current?.antiCriteria;
-      if (antiCriteria && antiCriteria.length > 0) {
-        idealContent += `\n\n**Anti-Criteria:**\n${antiCriteria.map((c: string) => `- ${c}`).join("\n")}`;
+      if (!stateFile) {
+        deps.stderr("[WorkCompletionLearning] No active work session");
+        return ok({});
       }
-      if (iscData.satisfaction) {
-        const s = iscData.satisfaction;
-        idealContent += `\n\n**Satisfaction:** ${s.satisfied}/${s.total} satisfied, ${s.partial} partial, ${s.failed} failed`;
+
+      const currentWorkResult = deps.readJson<CurrentWork>(stateFile);
+      if (!currentWorkResult.ok) {
+        deps.stderr("[WorkCompletionLearning] Failed to read state file");
+        return ok({});
       }
-    }
+      const currentWork = currentWorkResult.value;
 
-    // Check for significant work
-    const hasSignificantWork =
-      (workMeta.lineage?.files_changed?.length || 0) > 0 ||
-      currentWork.task_count > 1 ||
-      workMeta.source === "MANUAL";
+      if (input.session_id && currentWork.session_id !== input.session_id) {
+        deps.stderr("[WorkCompletionLearning] State file belongs to different session, skipping");
+        return ok({});
+      }
 
-    if (!hasSignificantWork) {
-      deps.stderr("[WorkCompletionLearning] Trivial work session, skipping learning capture");
-      return ok({ type: "silent" });
-    }
+      if (!currentWork.session_dir) {
+        deps.stderr("[WorkCompletionLearning] No work directory in current session");
+        return ok({});
+      }
 
-    // Write learning file
-    const category = deps.getLearningCategory(workMeta.title);
-    const now = new Date();
-    const monthDir = join(
-      learningDir,
-      category,
-      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
-    );
-    deps.ensureDir(monthDir);
+      const workPath = join(workDir, currentWork.session_dir);
+      const metaPath = join(workPath, "META.yaml");
+      const metaResult = deps.readFile(metaPath);
+      if (!metaResult.ok) {
+        deps.stderr("[WorkCompletionLearning] No META.yaml found");
+        return ok({});
+      }
+      const metaContent = metaResult.value;
+      const workMeta = parseYaml(metaContent);
+      if (!workMeta.completed_at) workMeta.completed_at = deps.getTimestamp();
 
-    const dateStr = deps.getLocalDate();
-    const timeStr = now.toISOString().split("T")[1].slice(0, 5).replace(":", "");
-    const titleSlug = workMeta.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .slice(0, 30);
-    const filename = `${dateStr}_${timeStr}_work_${titleSlug}.md`;
-    const filepath = join(monthDir, filename);
+      // Read ISC if available
+      let idealContent = "";
+      const iscPath = join(workPath, "ISC.json");
+      interface IscData {
+        current?: { criteria?: string[]; antiCriteria?: string[] };
+        satisfaction?: {
+          satisfied: number;
+          total: number;
+          partial: number;
+          failed: number;
+        };
+      }
+      const iscResult = deps.readJson<IscData>(iscPath);
+      if (iscResult.ok) {
+        const iscData = iscResult.value;
+        const criteria = iscData.current?.criteria;
+        if (criteria && criteria.length > 0) {
+          idealContent = `**Criteria:**\n${criteria.map((c: string) => `- ${c}`).join("\n")}`;
+        }
+        const antiCriteria = iscData.current?.antiCriteria;
+        if (antiCriteria && antiCriteria.length > 0) {
+          idealContent += `\n\n**Anti-Criteria:**\n${antiCriteria.map((c: string) => `- ${c}`).join("\n")}`;
+        }
+        if (iscData.satisfaction) {
+          const s = iscData.satisfaction;
+          idealContent += `\n\n**Satisfaction:** ${s.satisfied}/${s.total} satisfied, ${s.partial} partial, ${s.failed} failed`;
+        }
+      }
 
-    if (deps.fileExists(filepath)) {
-      deps.stderr(`[WorkCompletionLearning] Learning already exists: ${filename}`);
-      return ok({ type: "silent" });
-    }
+      // Check for significant work
+      const hasSignificantWork =
+        (workMeta.lineage?.files_changed?.length || 0) > 0 ||
+        currentWork.task_count > 1 ||
+        workMeta.source === "MANUAL";
 
-    let duration = "Unknown";
-    if (workMeta.created_at && workMeta.completed_at) {
-      const minutes = Math.round(
-        (new Date(workMeta.completed_at).getTime() - new Date(workMeta.created_at).getTime()) /
-          60000,
+      if (!hasSignificantWork) {
+        deps.stderr("[WorkCompletionLearning] Trivial work session, skipping learning capture");
+        return ok({});
+      }
+
+      // Write learning file
+      const category = deps.getLearningCategory(workMeta.title);
+      const now = new Date();
+      const monthDir = join(
+        learningDir,
+        category,
+        `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
       );
-      duration =
-        minutes < 60 ? `${minutes} minutes` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-    }
+      deps.ensureDir(monthDir);
 
-    const content = `# Work Completion Learning
+      const dateStr = deps.getLocalDate();
+      const timeStr = now.toISOString().split("T")[1].slice(0, 5).replace(":", "");
+      const titleSlug = workMeta.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 30);
+      const filename = `${dateStr}_${timeStr}_work_${titleSlug}.md`;
+      const filepath = join(monthDir, filename);
+
+      if (deps.fileExists(filepath)) {
+        deps.stderr(`[WorkCompletionLearning] Learning already exists: ${filename}`);
+        return ok({});
+      }
+
+      let duration = "Unknown";
+      if (workMeta.created_at && workMeta.completed_at) {
+        const minutes = Math.round(
+          (new Date(workMeta.completed_at).getTime() - new Date(workMeta.created_at).getTime()) /
+            60000,
+        );
+        duration =
+          minutes < 60 ? `${minutes} minutes` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+      }
+
+      const content = `# Work Completion Learning
 
 **Title:** ${workMeta.title}
 **Duration:** ${duration}
@@ -297,15 +299,15 @@ ${idealContent || "Not specified"}
 *Auto-captured by WorkCompletionLearning hook at session end*
 `;
 
-    const writeResult = deps.writeFile(filepath, content);
-    if (!writeResult.ok) {
-      deps.stderr(`[WorkCompletionLearning] Failed to write: ${writeResult.error.message}`);
-      return ok({ type: "silent" });
-    }
-    deps.stderr(`[WorkCompletionLearning] Created learning: ${filename}`);
+      const writeResult = deps.writeFile(filepath, content);
+      if (!writeResult.ok) {
+        deps.stderr(`[WorkCompletionLearning] Failed to write: ${writeResult.error.message}`);
+        return ok({});
+      }
+      deps.stderr(`[WorkCompletionLearning] Created learning: ${filename}`);
 
-    return ok({ type: "silent" });
-  },
+      return ok({});
+    },
 
-  defaultDeps,
-};
+    defaultDeps,
+  };

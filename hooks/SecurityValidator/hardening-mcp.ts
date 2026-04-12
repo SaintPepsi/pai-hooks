@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Hardening MCP Server — Purpose-built tool for the hardening agent.
  *
@@ -12,12 +13,12 @@
  * Run via: --mcp-config with --strict-mcp-config
  */
 
-import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import { join } from "node:path";
-import { ok, type Result } from "@hooks/core/result";
+import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
-import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
+import { ok, type Result } from "@hooks/core/result";
 import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
+import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 
 const PATTERNS_PATH = join(import.meta.dir, "patterns.json");
 const MAX_LINES = 10_000;
@@ -53,7 +54,13 @@ function loadPatterns(): Result<PatternsConfig, ResultError> {
 
   const config = decodePatternsConfig(jsonResult.value);
   if (!config) {
-    return { ok: false, error: { code: "INVALID_INPUT", message: "Failed to decode patterns.json" } as ResultError };
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_INPUT",
+        message: "Failed to decode patterns.json",
+      } as ResultError,
+    };
   }
   return ok(config);
 }
@@ -62,7 +69,8 @@ function getBlockedEntries(): string[] {
   const result = loadPatterns();
   if (!result.ok) return [];
   return result.value.bash.blocked.map(
-    (entry) => `pattern: "${entry.pattern}" reason: "${entry.reason}"${entry.group ? ` group: "${entry.group}"` : ""}`,
+    (entry) =>
+      `pattern: "${entry.pattern}" reason: "${entry.reason}"${entry.group ? ` group: "${entry.group}"` : ""}`,
   );
 }
 
@@ -76,7 +84,11 @@ function getValidGroups(): string[] {
   return [...groups];
 }
 
-function insertBlockedEntry(pattern: string, reason: string, group: string): Result<string, ResultError> {
+function insertBlockedEntry(
+  pattern: string,
+  reason: string,
+  group: string,
+): Result<string, ResultError> {
   const configResult = loadPatterns();
   if (!configResult.ok) return configResult;
   const config = configResult.value;
@@ -86,12 +98,18 @@ function insertBlockedEntry(pattern: string, reason: string, group: string): Res
 
   const validGroups = getValidGroups();
   if (!validGroups.includes(group)) {
-    return { ok: false, error: { code: "INVALID_INPUT", message: `Invalid group "${group}". Valid groups: ${validGroups.join(", ")}` } as ResultError };
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_INPUT",
+        message: `Invalid group "${group}". Valid groups: ${validGroups.join(", ")}`,
+      } as ResultError,
+    };
   }
 
   config.bash.blocked.push({ pattern, reason, group });
 
-  const writeResult = writeFile(PATTERNS_PATH, JSON.stringify(config, null, 2) + "\n");
+  const writeResult = writeFile(PATTERNS_PATH, `${JSON.stringify(config, null, 2)}\n`);
   if (!writeResult.ok) return writeResult;
 
   return ok(`Inserted blocked pattern: ${pattern} (group: ${group})`);
@@ -107,13 +125,24 @@ const TOOLS: McpToolDef[] = [
   },
   {
     name: "insert_blocked_pattern",
-    description: "Appends a new blocked pattern to bash.blocked in patterns.json. Call get_blocked_patterns first to see valid groups.",
+    description:
+      "Appends a new blocked pattern to bash.blocked in patterns.json. Call get_blocked_patterns first to see valid groups.",
     inputSchema: {
       type: "object",
       properties: {
-        pattern: { type: "string", description: "Regex pattern to block (e.g. 'python3.*settings\\\\.json')" },
-        reason: { type: "string", description: "Human-readable reason (e.g. 'Auto-hardened: python3 file write (caught 2026-04-10)')" },
-        group: { type: "string", description: "Group name — must match an existing group from get_blocked_patterns" },
+        pattern: {
+          type: "string",
+          description: "Regex pattern to block (e.g. 'python3.*settings\\\\.json')",
+        },
+        reason: {
+          type: "string",
+          description:
+            "Human-readable reason (e.g. 'Auto-hardened: python3 file write (caught 2026-04-10)')",
+        },
+        group: {
+          type: "string",
+          description: "Group name — must match an existing group from get_blocked_patterns",
+        },
       },
       required: ["pattern", "reason", "group"],
     },
@@ -129,16 +158,30 @@ function handleToolCall(name: string, args: Record<string, string>): McpToolResu
   if (name === "insert_blocked_pattern") {
     const { pattern, reason, group } = args;
     if (!pattern || !reason || !group) {
-      return { content: [{ type: "text", text: "Error: pattern, reason, and group are required" }], isError: true };
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Error: pattern, reason, and group are required",
+          },
+        ],
+        isError: true,
+      };
     }
     const result = insertBlockedEntry(pattern, reason, group);
     if (!result.ok) {
-      return { content: [{ type: "text", text: `Error: ${result.error.message}` }], isError: true };
+      return {
+        content: [{ type: "text", text: `Error: ${result.error.message}` }],
+        isError: true,
+      };
     }
     return { content: [{ type: "text", text: result.value }] };
   }
 
-  return { content: [{ type: "text", text: `Unknown tool: ${name}` }], isError: true };
+  return {
+    content: [{ type: "text", text: `Unknown tool: ${name}` }],
+    isError: true,
+  };
 }
 
 function handleRequest(request: McpRequest): Record<string, unknown> | null {
@@ -154,9 +197,14 @@ function handleRequest(request: McpRequest): Record<string, unknown> | null {
     case "tools/list":
       return { tools: TOOLS };
     case "tools/call":
-      return handleToolCall(request.params?.name ?? "", request.params?.arguments ?? {}) as unknown as Record<string, unknown>;
+      return handleToolCall(
+        request.params?.name ?? "",
+        request.params?.arguments ?? {},
+      ) as unknown as Record<string, unknown>;
     default:
-      return { error: { code: -32601, message: `Unknown method: ${request.method}` } };
+      return {
+        error: { code: -32601, message: `Unknown method: ${request.method}` },
+      };
   }
 }
 
@@ -181,7 +229,7 @@ async function main(): Promise<void> {
       const result = handleRequest(parsed);
       if (result === null) continue;
       const response = { jsonrpc: "2.0", id: parsed.id, result };
-      process.stdout.write(JSON.stringify(response) + "\n");
+      process.stdout.write(`${JSON.stringify(response)}\n`);
     }
   }
 }

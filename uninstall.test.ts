@@ -20,9 +20,17 @@ describe("removeHooksFromSettings", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts",
+              },
+            ],
           },
-          { matcher: "Bash", hooks: [{ type: "command", command: "/other/hook.ts" }] },
+          {
+            matcher: "Bash",
+            hooks: [{ type: "command", command: "/other/hook.ts" }],
+          },
         ],
       },
     };
@@ -41,7 +49,10 @@ describe("removeHooksFromSettings", () => {
           {
             matcher: "*",
             hooks: [
-              { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/GitAutoSync.hook.ts" },
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/GitAutoSync.hook.ts",
+              },
             ],
           },
         ],
@@ -56,7 +67,12 @@ describe("removeHooksFromSettings", () => {
     const settings = {
       env: { SAINTPEPSI_PAI_HOOKS_DIR: "/path" },
       hooks: {
-        PreToolUse: [{ matcher: "Edit", hooks: [{ type: "command", command: "/my/own/hook.ts" }] }],
+        PreToolUse: [
+          {
+            matcher: "Edit",
+            hooks: [{ type: "command", command: "/my/own/hook.ts" }],
+          },
+        ],
       },
     };
 

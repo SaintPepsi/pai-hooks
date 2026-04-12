@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1892,7 +1905,7 @@ After a background agent tool completes, extract the agent's thread identifier f
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>Returns <code>continueOk()</code> regardless of success or failure (never blocks)</p></div>
+          <div class="step-content"><p>Returns <code>ok({})</code> regardless of success or failure (never blocks)</p></div>
         </div>
 </div>
       
@@ -1905,7 +1918,7 @@ After a background agent tool completes, extract the agent's thread identifier f
           <div class="code-block"><span class="code-lang">typescript</span>
 // Skip spawn events — those are handled by AgentSpawnTracker
 if (input.tool_input.run_in_background === true) {
-  return ok(continueOk());
+  return ok({});
 }
 
 const threadId = extractThreadIdFromOutput(record);
@@ -1935,7 +1948,7 @@ const body = JSON.stringify({ thread_id: threadId });</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Agent spawn event (skipped)</h3>
       
       <div class="uc-example">
-        <div>The Agent tool is invoked with <code>run_in_background: true</code> to spawn a new background agent. AgentCompleteTracker detects the spawn flag and immediately returns <code>continueOk()</code>, leaving the notification to AgentSpawnTracker.</div>
+        <div>The Agent tool is invoked with <code>run_in_background: true</code> to spawn a new background agent. AgentCompleteTracker detects the spawn flag and immediately returns <code>ok({})</code>, leaving the notification to AgentSpawnTracker.</div>
       </div>
       </div>
     </div>
@@ -1953,7 +1966,6 @@ const body = JSON.stringify({ thread_id: threadId });</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result wrapping</td></tr>
-          <tr><td><code>types/hook-outputs</code></td><td>core</td><td><code>continueOk()</code> for non-blocking continue output</td></tr>
           <tr><td><code>fetch</code></td><td>adapter</td><td><code>safeFetch</code> for HTTP POST with timeout</td></tr>
           <tr><td><code>KoordDaemon/shared</code></td><td>shared</td><td><code>extractThreadIdFromOutput</code>, <code>readKoordConfig</code>, <code>defaultReadFileOrNull</code></td></tr>
           <tr><td><code>paths</code></td><td>lib</td><td>Path resolution utilities</td></tr>

@@ -4,11 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'hooks/**/doc.md'
-      - 'hooks/**/hook.json'
-      - 'hooks/**/group.json'
-      - 'scripts/docs/**'
-      - '.github/workflows/deploy-docs.yml'
+      - "hooks/**/doc.md"
+      - "hooks/**/hook.json"
+      - "hooks/**/group.json"
+      - "scripts/docs/**"
+      - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
 
 permissions:

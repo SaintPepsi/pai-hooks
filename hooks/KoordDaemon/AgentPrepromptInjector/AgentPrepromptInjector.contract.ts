@@ -20,14 +20,12 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/AgentPrepromptInjector.hook.js
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, UpdatedInputOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { continueOk, updatedInput } from "@hooks/core/types/hook-outputs";
 import {
   defaultReadFileOrNull,
   extractAgentName,
@@ -35,6 +33,7 @@ import {
   extractThreadId,
   readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -62,11 +61,7 @@ const defaultDeps: AgentPrepromptInjectorDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const AgentPrepromptInjector: SyncHookContract<
-  ToolHookInput,
-  UpdatedInputOutput | ContinueOutput,
-  AgentPrepromptInjectorDeps
-> = {
+export const AgentPrepromptInjector: SyncHookContract<ToolHookInput, AgentPrepromptInjectorDeps> = {
   name: "AgentPrepromptInjector",
   event: "PreToolUse",
 
@@ -79,7 +74,7 @@ export const AgentPrepromptInjector: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: AgentPrepromptInjectorDeps,
-  ): Result<UpdatedInputOutput | ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const toolInput = input.tool_input || {};
 
     // Resolve template path: settings.json config first, then cwd fallback
@@ -89,14 +84,14 @@ export const AgentPrepromptInjector: SyncHookContract<
     // Check file exists before attempting read
     if (!deps.fileExists(templatePath)) {
       deps.stderr(`[AgentPrepromptInjector] Template not found: ${templatePath}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Read the template
     const readResult = deps.readFile(templatePath);
     if (!readResult.ok) {
       deps.stderr(`[AgentPrepromptInjector] Failed to read template: ${readResult.error.message}`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const template = readResult.value;
@@ -120,7 +115,12 @@ export const AgentPrepromptInjector: SyncHookContract<
       `[AgentPrepromptInjector] Injected worker preprompt for ${agentName} on thread ${threadId}`,
     );
 
-    return ok(updatedInput({ prompt: updatedPrompt }));
+    return ok({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        updatedInput: { prompt: updatedPrompt },
+      },
+    });
   },
 
   defaultDeps,

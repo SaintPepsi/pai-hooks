@@ -22,18 +22,19 @@ Shared function with this interface:
 ```typescript
 interface SpawnAgentConfig {
   prompt: string;
-  lockPath: string;          // prevents concurrent runs
-  model?: string;            // default: "opus"
-  maxTurns?: number;         // default: 5
-  timeout?: number;          // default: 5 min (300_000 ms)
-  cwd?: string;              // working directory for claude
-  logPath: string;           // JSONL traceability log
-  source: string;            // which hook spawned this
-  reason: string;            // why it was spawned
+  lockPath: string; // prevents concurrent runs
+  model?: string; // default: "opus"
+  maxTurns?: number; // default: 5
+  timeout?: number; // default: 5 min (300_000 ms)
+  cwd?: string; // working directory for claude
+  logPath: string; // JSONL traceability log
+  source: string; // which hook spawned this
+  reason: string; // why it was spawned
 }
 ```
 
 Behavior:
+
 1. Check lock file -- if exists and not stale, return early
 2. Write lock file with `{ ts, source, reason, pid }`
 3. Append `spawned` entry to `logPath`
@@ -69,6 +70,7 @@ spawnAgent({
 ```
 
 The hardening prompt instructs the agent to:
+
 1. Read `hooks/SecurityValidator/patterns.yaml` (collocated with the hook)
 2. Add a `blocked` entry under `bash.blocked` that catches this command
 3. Keep the pattern specific enough to avoid false positives
@@ -86,13 +88,14 @@ The hardening prompt instructs the agent to:
 
 Three layers, no new tooling needed:
 
-| Layer | File | What |
-|-------|------|------|
-| Revert event | `MEMORY/SECURITY/settings-audit.jsonl` | Original bypass detection (already exists) |
-| Agent lifecycle | `MEMORY/SECURITY/hardening-log.jsonl` | `spawned` / `completed` / `failed` / `dry-run` entries |
-| Pattern change | `git log` on `patterns.yaml` | What was added, with bypass command in commit message |
+| Layer           | File                                   | What                                                   |
+| --------------- | -------------------------------------- | ------------------------------------------------------ |
+| Revert event    | `MEMORY/SECURITY/settings-audit.jsonl` | Original bypass detection (already exists)             |
+| Agent lifecycle | `MEMORY/SECURITY/hardening-log.jsonl`  | `spawned` / `completed` / `failed` / `dry-run` entries |
+| Pattern change  | `git log` on `patterns.yaml`           | What was added, with bypass command in commit message  |
 
 Log entry format:
+
 ```json
 {"ts": "...", "event": "spawned", "source": "SettingsRevert", "reason": "bypass: jq ...", "lock": "/tmp/..."}
 {"ts": "...", "event": "completed", "source": "SettingsRevert", "exitCode": 0, "duration_ms": 45000}

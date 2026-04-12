@@ -59,11 +59,35 @@ It does **not** fire when:
 const blockMatches = matches.filter((m) => m.signals.length >= BLOCK_THRESHOLD);
 
 if (blockMatches.length > 0 && deps.blocking) {
-  return ok({ type: "block", decision: "block", reason });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: reason,
+    },
+  });
 }
 // 2-3 signals: log only
-return ok({ type: "continue", continue: true });
+return ok({ continue: true });
 ```
+
+## Bug History
+
+<!-- L14 tombstone: bug #15 (R2 additionalContext drop) — the `continueWithPatterns()` helper
+returned `{ ...continueOk(), additionalContext: parts.join("\n\n") }` on PreToolUse. The
+top-level `additionalContext` field is silently dropped by the SDK on PreToolUse events —
+pattern advisories never reached the agent. Fixed in sdk-type-foundation migration (Task 1Q):
+now returns `{ continue: true, hookSpecificOutput: { hookEventName: "PreToolUse",
+additionalContext: parts.join("\n\n") } }`. Pattern advisories and derivation advisories are
+now actually delivered. -->
+
+<!-- L14 tombstone: bug #16 (R4-vs-R5 class) — the block return on 4/4 matches used
+`{ type: "block", decision: "block", reason }` (R5 shape), which is silently dropped by the
+SDK on PreToolUse events. Duplicate-block enforcement was non-functional. Fixed in
+sdk-type-foundation migration (Task 1Q): now uses `hookSpecificOutput.permissionDecision:
+"deny"` with `permissionDecisionReason` (R4 shape). Exact duplicates are now actually
+blocked when `blocking: true`. -->
 
 ## Pattern Detection
 

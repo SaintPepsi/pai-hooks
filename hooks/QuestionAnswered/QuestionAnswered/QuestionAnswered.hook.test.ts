@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { uniqueSessionId, runHookScript } from "@hooks/lib/test-helpers";
+import { runHookScript, uniqueSessionId } from "@hooks/lib/test-helpers";
 
 const HOOK_PATH = join(import.meta.dir, "QuestionAnswered.hook.ts");
 

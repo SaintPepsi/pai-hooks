@@ -7,10 +7,10 @@
  * - Mock global fetch for sendPush
  */
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { clearCache, getIdentity, type IdentityDeps } from "@hooks/lib/identity";
 import type { ResultError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
-import { ok, type Result, tryCatch, err } from "@hooks/core/result";
+import { err, ok, type Result, tryCatch } from "@hooks/core/result";
+import { clearCache, getIdentity, type IdentityDeps } from "@hooks/lib/identity";
 import type { NotificationDeps } from "@hooks/lib/notifications";
 import {
   defaultNotificationDeps,
@@ -31,7 +31,12 @@ const testIdentityDeps: IdentityDeps = {
   settingsPath: "/tmp/test-notifications-settings.json",
   readJson: () =>
     ok({
-      daidentity: { name: "TestDA", fullName: "Test DA", displayName: "TestDA", color: "#000" },
+      daidentity: {
+        name: "TestDA",
+        fullName: "Test DA",
+        displayName: "TestDA",
+        color: "#000",
+      },
     }),
   fileExists: () => true,
 };
@@ -43,9 +48,14 @@ function seedIdentityCache(): void {
 
 // ─── Mock Deps ─────────────────────────────────────────────────────────────
 
-const mockReadFile = mock((_path: string): Result<string, ResultError> => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError));
+const mockReadFile = mock(
+  (_path: string): Result<string, ResultError> =>
+    err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
+);
 const mockFileExists = mock((_path: string): boolean => false);
-const mockWriteFile = mock((_path: string, _content: string): Result<void, ResultError> => ok(undefined));
+const mockWriteFile = mock(
+  (_path: string, _content: string): Result<void, ResultError> => ok(undefined),
+);
 const mockStderr = mock((_msg: string): void => {});
 
 function createMockDeps(overrides: Partial<NotificationDeps> = {}): NotificationDeps {
@@ -90,7 +100,9 @@ function resetMocks(): void {
   mockWriteFile.mockReset();
   mockStderr.mockReset();
   mockFileExists.mockReturnValue(false);
-  mockReadFile.mockReturnValue(err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError));
+  mockReadFile.mockReturnValue(
+    err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
+  );
   seedIdentityCache();
 }
 
@@ -147,7 +159,11 @@ describe("getNotificationConfig", () => {
         ok(
           JSON.stringify({
             notifications: {
-              ntfy: { enabled: true, topic: "literal-topic", server: "ntfy.sh" },
+              ntfy: {
+                enabled: true,
+                topic: "literal-topic",
+                server: "ntfy.sh",
+              },
             },
           }),
         ),
@@ -169,7 +185,11 @@ describe("getNotificationConfig", () => {
     const stderrMessages: string[] = [];
     const deps = createMockDeps({
       fileExists: () => true,
-      readFile: () => err({ code: "FILE_READ_FAILED", message: "permission denied" } as ResultError),
+      readFile: () =>
+        err({
+          code: "FILE_READ_FAILED",
+          message: "permission denied",
+        } as ResultError),
       stderr: (msg) => {
         stderrMessages.push(msg);
       },
@@ -280,7 +300,9 @@ describe("sendPush", () => {
       readFile: () =>
         ok(
           JSON.stringify({
-            notifications: { ntfy: { enabled: true, topic: "", server: "ntfy.sh" } },
+            notifications: {
+              ntfy: { enabled: true, topic: "", server: "ntfy.sh" },
+            },
           }),
         ),
     });

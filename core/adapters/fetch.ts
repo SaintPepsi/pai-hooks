@@ -13,7 +13,12 @@ export interface FetchResult {
 
 export async function safeFetch(
   url: string,
-  opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string } = {},
+  opts: {
+    timeout?: number;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  } = {},
 ): Promise<Result<FetchResult, ResultError>> {
   const controller = new AbortController();
   const timeoutMs = opts.timeout ?? 5000;

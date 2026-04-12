@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1741,7 +1754,8 @@ section[id] {
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#bug-history"><span class="nav-num">06</span> Bug History</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1922,6 +1936,17 @@ accepts(input: ToolHookInput): boolean {
     </div>
   </section>
 
+  <section id="bug-history">
+    <div class="section-label accent">Bug History</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Bug History</h3>
+      </div>
+      <p><!-- L14 tombstone: bug #11 (R4-vs-R5 class) — the block return on PreToolUse used top-level <code>decision:"block"</code> (R5 shape), which is silently dropped by the SDK on PreToolUse events. Fixed in sdk-type-foundation migration: now uses <code>hookSpecificOutput.permissionDecision:"deny"</code> (R4 shape), which is the correct PreToolUse block mechanism. Subagent voice requests are now actually suppressed rather than silently passing through. --></p>
+    </div>
+  </section>
+
   <section id="dependencies">
     <div class="section-label cyan">Dependencies</div>
     <div class="card cyan">
@@ -1935,6 +1960,7 @@ accepts(input: ToolHookInput): boolean {
         <tbody>
           <tr><td><code>fs</code></td><td>adapter</td><td>Provides <code>fileExists</code> for dependency injection</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code> and <code>Result</code> type for error handling</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> return type; PreToolUse block via <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 shape, bug #11 fix)</td></tr>
         </tbody>
       </table>
     </div>

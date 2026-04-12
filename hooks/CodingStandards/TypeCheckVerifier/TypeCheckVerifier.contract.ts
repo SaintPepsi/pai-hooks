@@ -10,22 +10,21 @@
  */
 
 import { dirname, join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   defaultSignalLoggerDeps,
   logSignal,
   type SignalLoggerDeps,
 } from "@hooks/lib/signal-logger";
 import { isSvelteFile } from "@hooks/lib/svelte-utils";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -266,11 +265,7 @@ const defaultDeps: TypeCheckVerifierDeps = {
   stderr: defaultStderr,
 };
 
-export const TypeCheckVerifier: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  TypeCheckVerifierDeps
-> = {
+export const TypeCheckVerifier: SyncHookContract<ToolHookInput, TypeCheckVerifierDeps> = {
   name: "TypeCheckVerifier",
   event: "PostToolUse",
 
@@ -283,14 +278,17 @@ export const TypeCheckVerifier: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput, deps: TypeCheckVerifierDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    input: ToolHookInput,
+    deps: TypeCheckVerifierDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Discover project type-check command
     const typeCheck = discoverTypeCheck(filePath, deps);
     if (!typeCheck) {
       deps.stderr(`[TypeCheckVerifier] ${filePath}: no type checker found, skipping`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     deps.stderr(
@@ -313,7 +311,7 @@ export const TypeCheckVerifier: SyncHookContract<
         file: filePath,
         outcome: "timeout",
       });
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Parse output for errors in the edited file
@@ -332,13 +330,22 @@ export const TypeCheckVerifier: SyncHookContract<
 
     if (errors.length === 0) {
       deps.stderr(`[TypeCheckVerifier] ${filePath}: no type errors`);
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     deps.stderr(`[TypeCheckVerifier] ${filePath}: ${errors.length} type error(s)`);
     const advisory = formatAdvisory(errors, filePath);
 
-    return ok(continueOk(advisory));
+    // R2: PostToolUse advisory context injection via hookSpecificOutput.additionalContext.
+    // Post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from
+    // `continueOk(advisory)` was silently dropped for PostToolUse events.
+    return ok({
+      continue: true,
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: advisory,
+      },
+    });
   },
 
   defaultDeps,

@@ -8,6 +8,7 @@ import {
   CodeQualityBaseline,
   type CodeQualityBaselineDeps,
 } from "@hooks/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -101,27 +102,37 @@ describe("CodeQualityBaseline", () => {
     });
 
     test("rejects test files", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/app.test.ts" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/app.test.ts" },
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects spec files", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/app.spec.ts" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/app.spec.ts" },
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects files in __tests__ directory", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/__tests__/app.ts" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/__tests__/app.ts" },
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is a string", () => {
-      const input = makeInput({ tool_input: "/src/app.ts" as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: "/src/app.ts" as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is null", () => {
-      const input = makeInput({ tool_input: null as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: null as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
   });
@@ -146,7 +157,12 @@ describe("CodeQualityBaseline", () => {
 
     test("merges with existing baselines", () => {
       const existing = {
-        "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" },
+        "/other/file.ts": {
+          score: 8,
+          violations: 0,
+          checkResults: [],
+          timestamp: "old",
+        },
       };
       const deps = makeDeps({
         readFile: () => ok(LONG_CLEAN),
@@ -177,7 +193,7 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(result.value.continue).toBe(true);
       }
       // Should NOT have written a baseline since we couldn't score
       expect(lastWrittenJson).toBeNull();
@@ -220,10 +236,11 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeDefined();
-        expect(result.value.additionalContext).toContain("quality concerns");
-        expect(result.value.additionalContext).toContain("SOLID quality:");
+        expect(result.value.continue).toBe(true);
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("quality concerns");
+        expect(ctx).toContain("SOLID quality:");
       }
     });
 
@@ -241,8 +258,8 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.continue).toBe(true);
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
 
@@ -251,7 +268,7 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
   });
@@ -268,12 +285,11 @@ describe("CodeQualityBaseline", () => {
   });
 
   describe("never blocks or asks", () => {
-    test("always returns ContinueOutput", () => {
+    test("always returns continue output", () => {
       const deps = makeDeps({ readFile: () => ok(LONG_DIRTY) });
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });
@@ -299,7 +315,7 @@ describe("CodeQualityBaseline", () => {
       const deps = makeDeps({ readFile: () => ok(svelteContent) });
       const result = CodeQualityBaseline.execute(svelteInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("continue");
+      if (result.ok) expect(result.value.continue).toBe(true);
     });
 
     test("continues when .svelte file has no script block", () => {
@@ -308,7 +324,6 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(svelteInput, deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });

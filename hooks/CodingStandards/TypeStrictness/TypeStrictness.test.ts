@@ -8,6 +8,11 @@ import {
   TypeStrictness,
   type TypeStrictnessDeps,
 } from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
+import {
+  getPreToolUseDenyReason as denyReason,
+  getPreToolUseAdvisory as getAdvisory,
+  isPreToolUseDeny as isDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -198,7 +203,10 @@ describe("TypeStrictness.accepts", () => {
   it("accepts Edit on .ts files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.ts", new_string: "" } }),
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/src/foo.ts", new_string: "" },
+        }),
       ),
     ).toBe(true);
   });
@@ -206,7 +214,10 @@ describe("TypeStrictness.accepts", () => {
   it("accepts Write on .tsx files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Write", tool_input: { file_path: "/src/App.tsx", content: "" } }),
+        makeInput({
+          tool_name: "Write",
+          tool_input: { file_path: "/src/App.tsx", content: "" },
+        }),
       ),
     ).toBe(true);
   });
@@ -214,7 +225,10 @@ describe("TypeStrictness.accepts", () => {
   it("rejects Edit on .js files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.js", new_string: "" } }),
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/src/foo.js", new_string: "" },
+        }),
       ),
     ).toBe(false);
   });
@@ -222,7 +236,10 @@ describe("TypeStrictness.accepts", () => {
   it("rejects Edit on .py files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.py", new_string: "" } }),
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/src/foo.py", new_string: "" },
+        }),
       ),
     ).toBe(false);
   });
@@ -241,7 +258,10 @@ describe("TypeStrictness.accepts", () => {
   it("rejects Read tool", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Read", tool_input: { file_path: "/src/foo.ts" } }),
+        makeInput({
+          tool_name: "Read",
+          tool_input: { file_path: "/src/foo.ts" },
+        }),
       ),
     ).toBe(false);
   });
@@ -277,15 +297,16 @@ describe("TypeStrictness.accepts", () => {
 describe("TypeStrictness.execute", () => {
   it("blocks Edit with type annotation violation", () => {
     const input = makeInput({
-      tool_input: { file_path: "/src/foo.ts", new_string: `const x${COLON_ANY} = 5;` },
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: `const x${COLON_ANY} = 5;`,
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("block");
-      if (result.value.type === "block") {
-        expect(result.value.reason).toContain("Line 1");
-      }
+      expect(isDeny(result.value)).toBe(true);
+      expect(denyReason(result.value)).toContain("Line 1");
     }
   });
 
@@ -300,18 +321,21 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("block");
+      expect(isDeny(result.value)).toBe(true);
     }
   });
 
   it("continues for clean TypeScript", () => {
     const input = makeInput({
-      tool_input: { file_path: "/src/foo.ts", new_string: "const x: string = 'hello';" },
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: "const x: string = 'hello';",
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -322,7 +346,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -335,20 +359,25 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
   it("block message includes constructive type guidance", () => {
     const input = makeInput({
-      tool_input: { file_path: "/src/foo.ts", new_string: `const x${COLON_ANY} = 5;` },
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: `const x${COLON_ANY} = 5;`,
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("STOP");
-      expect(result.value.reason).toContain("READ the type definitions");
-      expect(result.value.reason).toContain("Type correctness > speed");
+    if (result.ok) {
+      expect(isDeny(result.value)).toBe(true);
+      const reason = denyReason(result.value);
+      expect(reason).toContain("STOP");
+      expect(reason).toContain("READ the type definitions");
+      expect(reason).toContain("Type correctness > speed");
     }
   });
 
@@ -362,7 +391,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -376,10 +405,8 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
-        "LAZY TYPE WARNING",
-      );
+      expect(result.value.continue).toBe(true);
+      expect(getAdvisory(result.value) ?? "").toContain("LAZY TYPE WARNING");
     }
   });
 });
@@ -468,7 +495,7 @@ describe("TypeStrictness.execute — tool content extraction", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   it("continues for non-Write/non-Edit tools", () => {
@@ -478,7 +505,7 @@ describe("TypeStrictness.execute — tool content extraction", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });
 
@@ -494,20 +521,26 @@ describe("TypeStrictness.execute — Svelte files", () => {
     ].join("\n");
     const input = makeInput({
       tool_name: "Write",
-      tool_input: { file_path: "/project/src/Component.svelte", content: svelteContent },
+      tool_input: {
+        file_path: "/project/src/Component.svelte",
+        content: svelteContent,
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   it("continues when .svelte file has no script block", () => {
     const input = makeInput({
       tool_name: "Write",
-      tool_input: { file_path: "/project/src/NoScript.svelte", content: "<div>Just HTML</div>" },
+      tool_input: {
+        file_path: "/project/src/NoScript.svelte",
+        content: "<div>Just HTML</div>",
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });

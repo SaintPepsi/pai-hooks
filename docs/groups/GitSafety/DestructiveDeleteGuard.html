@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1895,23 +1908,43 @@ Intercept both shell commands and code writes. For shell commands, detect recurs
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Bash destructive delete detection
-if (detectsDestructiveDelete(command)) {
+// Bash: artifact dirs prompt the user (ask), all others are denied
+if (isArtifactDirCleanup(command)) {
   return ok({
-    type: "block",
-    decision: "block",
-    reason: "Destructive delete pattern detected. Use removeDir() adapter.",
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "ask",
+      permissionDecisionReason: `Destructive delete on artifact directory: ${command}. Proceed?`,
+    },
   });
 }
-// Code content destructive delete detection
-if (detectsDestructiveDeleteInCode(content)) {
-  return ok({
-    type: "block",
-    decision: "block",
-    reason: "Code contains a destructive delete pattern. Use safe adapter functions.",
-  });
-}</div>
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "deny",
+    permissionDecisionReason: "Destructive delete pattern detected. Use removeDir() adapter.",
+  },
+});
+// Code content: always deny
+return ok({
+  hookSpecificOutput: {
+    hookEventName: "PreToolUse",
+    permissionDecision: "deny",
+    permissionDecisionReason: "Code contains a destructive delete pattern. Use safe adapter functions.",
+  },
+});</div>
         </div>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>L14 tombstone — Bug #11 (fixed 2026-04-11):</strong> The original implementation returned</div>
+        <div><code>ok({ type: "ask", decision: "ask", message: "..." })</code> for artifact-directory cleanups. The</div>
+        <div>top-level <code>decision</code> field only accepts <code>"approve"</code> or <code>"block"</code> in the SDK schema; <code>"ask"</code> is</div>
+        <div>only valid inside <code>hookSpecificOutput.permissionDecision</code> for PreToolUse events. Passing an</div>
+        <div>invalid top-level <code>decision</code> caused <code>validateHookOutput()</code> to reject the output, the runner</div>
+        <div>silently fell back to <code>{ continue: true }</code>, and the user was never prompted — the destructive</div>
+        <div>command ran unguarded. Fixed by routing through</div>
+        <div><code>hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", ... }</code>.</div>
       </div>
     </div>
   </section>

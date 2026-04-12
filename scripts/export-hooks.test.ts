@@ -9,7 +9,10 @@ describe("extractHooksForRepo", () => {
           {
             matcher: "Edit",
             hooks: [
-              { type: "command", command: "${PAI_DIR}/hooks/CodingStandardsEnforcer.hook.ts" },
+              {
+                type: "command",
+                command: "${PAI_DIR}/hooks/CodingStandardsEnforcer.hook.ts",
+              },
               { type: "command", command: "/other/path/MyHook.hook.ts" },
             ],
           },
@@ -35,7 +38,12 @@ describe("extractHooksForRepo", () => {
         PreToolUse: [
           {
             matcher: "Bash",
-            hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts",
+              },
+            ],
           },
         ],
       },

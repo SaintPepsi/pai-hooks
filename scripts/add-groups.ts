@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
+
 /**
  * One-time script: adds group fields to patterns.json entries.
  * Preserves the YAML comment groupings from the original file.
  */
 
-import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import { join } from "node:path";
+import { readFile, writeFile } from "@hooks/core/adapters/fs";
 
 const path = join(import.meta.dir, "..", "hooks", "SecurityValidator", "patterns.json");
 
@@ -23,9 +24,12 @@ const config = JSON.parse(fileResult.value);
 // etc.
 const blockedGroups: Record<string, string> = {
   "Filesystem destruction": "Filesystem root - absolute block",
-  "Home directory destruction (entire home)": "Home directory - only block entire home, not subdirs",
-  "PAI infrastructure destruction (entire .claude)": "PAI infrastructure - only block entire .claude, not subdirs",
-  "Projects directory destruction (entire Projects)": "Projects directory - only block entire Projects, not subdirs",
+  "Home directory destruction (entire home)":
+    "Home directory - only block entire home, not subdirs",
+  "PAI infrastructure destruction (entire .claude)":
+    "PAI infrastructure - only block entire .claude, not subdirs",
+  "Projects directory destruction (entire Projects)":
+    "Projects directory - only block entire Projects, not subdirs",
   "Filesystem destruction with sudo": "Sudo variants",
   "Home directory destruction with sudo": "Sudo variants",
   "Disk destruction": "Disk operations",
@@ -41,7 +45,8 @@ const blockedGroups: Record<string, string> = {
 for (const entry of config.bash.blocked) {
   const group = blockedGroups[entry.reason];
   if (group) entry.group = group;
-  if (entry.reason.startsWith("Auto-hardened")) entry.group = "Auto-hardened by settings bypass detection";
+  if (entry.reason.startsWith("Auto-hardened"))
+    entry.group = "Auto-hardened by settings bypass detection";
 }
 
 // ─── Confirm groups (from YAML comments) ─────────────────────────────────
@@ -73,7 +78,7 @@ for (const entry of config.bash.alert) {
   entry.group = "Piping remote content to shell";
 }
 
-const writeResult = writeFile(path, JSON.stringify(config, null, 2) + "\n");
+const writeResult = writeFile(path, `${JSON.stringify(config, null, 2)}\n`);
 if (!writeResult.ok) {
   process.stderr.write(`Failed to write: ${writeResult.error.message}\n`);
   process.exit(1);

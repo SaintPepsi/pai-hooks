@@ -86,7 +86,10 @@
 }
 
 body {
-  font-family: "Inter", -apple-system, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.7;
@@ -310,7 +313,11 @@ section {
   line-height: 1.05;
   letter-spacing: -2.5px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--text) 0%,
+    var(--accent-bright) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1160,7 +1167,13 @@ section > p {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: linear-gradient(to bottom, var(--green), var(--blue), var(--accent), var(--pink));
+  background: linear-gradient(
+    to bottom,
+    var(--green),
+    var(--blue),
+    var(--accent),
+    var(--pink)
+  );
   border-radius: 2px;
 }
 
@@ -1710,7 +1723,7 @@ section[id] {
   border-radius: 8px;
   background: var(--surface-2);
   color: var(--text-dim);
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1828,7 +1841,7 @@ This pattern prevents a class of issues where worktrees appear ready but have su
         <h3>Overview</h3>
       </div>
       <p>WorktreeSafetyVerification is a <strong>PostToolUse</strong> hook that runs safety checks after an <code>EnterWorktree</code> tool operation. It performs three tasks: ensuring the worktree directory is in the parent repository's <code>.gitignore</code> (to prevent cross-worktree contamination), installing dependencies in the background based on detected package managers, and running baseline tests in the background to identify pre-existing issues.</p>
-      <p>The hook always returns <code>continue</code> and never blocks worktree creation. All safety checks are best-effort and log warnings on failure.</p>
+      <p>The hook always returns a <code>SyncHookJSONOutput</code> continue (<code>ok({ continue: true })</code>) and never blocks worktree creation. All safety checks are best-effort and log warnings on failure.</p>
     </div>
   </section>
 
@@ -1955,6 +1968,7 @@ return ok({ type: "continue", continue: true });</div>
         <tbody>
           <tr><td><code>fs</code></td><td>adapter</td><td>Checks file existence, appends to <code>.gitignore</code>, creates directories</td></tr>
           <tr><td><code>process</code></td><td>adapter</td><td>Executes git commands, spawns background dependency installs and test runs</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> return type; PostToolUse continue (R1 shape, post-SDK-refactor 1D)</td></tr>
         </tbody>
       </table>
     </div>

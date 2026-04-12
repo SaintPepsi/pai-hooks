@@ -22,7 +22,7 @@ It does **not** fire when:
 - The tool is not the Agent tool
 - `run_in_background` is not set or is false (completion events are handled by AgentCompleteTracker)
 - No valid `thread_id` (Discord snowflake) is found in tool input
-- No daemon URL is configured
+- No daemon URL is configured (returns `ok({})`)
 
 ## What It Does
 
@@ -36,7 +36,7 @@ It does **not** fire when:
 ```typescript
 // Only fire for background agents
 if (!toolInput.run_in_background) {
-  return ok(continueOk());
+  return ok({});
 }
 
 const threadId = extractThreadId(toolInput);
@@ -55,14 +55,13 @@ const url = `${baseUrl}/spawn`;
 
 ### Example 2: Missing thread ID (skipped)
 
-> A background agent is spawned but the tool input does not contain a valid Discord snowflake thread ID. AgentSpawnTracker logs a warning and returns `continueOk()` without calling the daemon, avoiding pollution of delegation tracking with invalid data.
+> A background agent is spawned but the tool input does not contain a valid Discord snowflake thread ID. AgentSpawnTracker logs a warning and returns `ok({})` without calling the daemon, avoiding pollution of delegation tracking with invalid data.
 
 ## Dependencies
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `result` | core | `ok()` for Result wrapping |
-| `types/hook-outputs` | core | `continueOk()` for non-blocking continue output |
 | `fetch` | adapter | `safeFetch` for HTTP POST with timeout |
 | `KoordDaemon/shared` | shared | `extractThreadId`, `extractAgentName`, `extractTask`, `readKoordConfig`, `defaultReadFileOrNull` |
 | `paths` | lib | Path resolution utilities |

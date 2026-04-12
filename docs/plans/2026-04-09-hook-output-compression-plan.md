@@ -11,6 +11,7 @@
 **Design doc:** `docs/plans/2026-04-09-hook-output-compression-design.md`
 
 **Key design decisions (from adversarial review):**
+
 - **No fire count tracker.** Every fire gets the same compressed format with behavioral prefix. ~40 tokens per fire is already 92% reduction; diminishing detail adds complexity for marginal savings.
 - **`"I need to..."` prefix on EVERY fire**, all hooks. Costs ~5 tokens, prevents behavioral regression on both block and advisory hooks.
 - **Verbose stderr, compressed reason.** `deps.stderr()` keeps the full detail for developer logs. The `reason` field (Claude's context) gets the compressed version.
@@ -23,6 +24,7 @@
 ### Task 1: Create compression helpers library
 
 **Files:**
+
 - Create: `lib/output-compress.ts`
 - Create: `lib/output-compress.test.ts`
 
@@ -41,8 +43,9 @@ import {
 
 describe("compressPath", () => {
   it("returns last 2 segments of absolute path", () => {
-    expect(compressPath("/Users/ian/repos/project/src/lib/api/upload.ts"))
-      .toBe("api/upload.ts");
+    expect(compressPath("/Users/ian/repos/project/src/lib/api/upload.ts")).toBe(
+      "api/upload.ts",
+    );
   });
 
   it("returns full path if fewer segments than requested", () => {
@@ -89,8 +92,9 @@ describe("compactLines", () => {
 
 describe("hookLine", () => {
   it("wraps message with hook tag", () => {
-    expect(hookLine("TypeStrictness", "3 violations"))
-      .toBe("[TypeStrictness] 3 violations");
+    expect(hookLine("TypeStrictness", "3 violations")).toBe(
+      "[TypeStrictness] 3 violations",
+    );
   });
 });
 
@@ -150,7 +154,10 @@ export function summarizeByDir(files: string[]): string {
 export function compactLines(lines: number[], max = 5): string {
   if (lines.length === 0) return "";
   if (lines.length <= max) return lines.map((l) => `L${l}`).join(",");
-  const shown = lines.slice(0, max).map((l) => `L${l}`).join(",");
+  const shown = lines
+    .slice(0, max)
+    .map((l) => `L${l}`)
+    .join(",");
   return `${shown} +${lines.length - max} more`;
 }
 
@@ -189,12 +196,14 @@ Compress HookDocEnforcer, DocObligationEnforcer, and TestObligationEnforcer.
 **Pattern:** Each hook splits output into verbose stderr (developer logs) + compressed reason (Claude context). `buildBlockLimitReview` stays verbose (disk file, not context).
 
 **Files:**
+
 - Modify: `hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.contract.ts:47-50`
 - Modify: `hooks/ObligationStateMachines/HookDocStateMachine.shared.ts:189-228`
 - Modify: `hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.contract.ts:58-61`
 - Modify: `hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract.ts:60-84`
 
 **DO NOT modify:**
+
 - `lib/obligation-machine.ts:147-173` (`buildBlockLimitReview`) — keep verbose, it's a disk file
 - `DocObligationStateMachine.shared.ts:78-101` (`buildBlockLimitReview`) — keep verbose
 - `TestObligationStateMachine.shared.ts:90-117` (`buildBlockLimitReview`) — keep verbose
@@ -205,7 +214,11 @@ In `HookDocEnforcer.contract.ts`, replace lines 47-50:
 
 ```typescript
 // Before:
-const opener = pickNarrative("HookDocEnforcer", result.pending.length, import.meta.dir);
+const opener = pickNarrative(
+  "HookDocEnforcer",
+  result.pending.length,
+  import.meta.dir,
+);
 const fileList = result.pending.map((f) => `  - ${f}`).join("\n");
 const suggestions = buildDocSuggestions(result.pending, settings);
 const reason = `${opener}\n\nHook source files modified without documentation:\n${fileList}\n\n${suggestions}`;
@@ -213,11 +226,16 @@ const reason = `${opener}\n\nHook source files modified without documentation:\n
 // After:
 // Verbose detail → stderr (developer logs)
 const fileList = result.pending.map((f) => `  - ${f}`).join("\n");
-deps.stderr(`[HookDocEnforcer] Hook source files modified without documentation:\n${fileList}`);
+deps.stderr(
+  `[HookDocEnforcer] Hook source files modified without documentation:\n${fileList}`,
+);
 
 // Compressed → reason (Claude context)
 const dirSummary = buildCompactDocSuggestions(result.pending, settings);
-const reason = hookLine("HookDocEnforcer", `I need to update docs before finishing. ${dirSummary}`);
+const reason = hookLine(
+  "HookDocEnforcer",
+  `I need to update docs before finishing. ${dirSummary}`,
+);
 ```
 
 Import `hookLine` from `@hooks/lib/output-compress`. Remove `pickNarrative` import. Remove `buildDocSuggestions` import (keep `buildCompactDocSuggestions`).
@@ -251,7 +269,11 @@ In `DocObligationEnforcer.contract.ts`, replace lines 58-61:
 
 ```typescript
 // Before:
-const opener = pickNarrative("DocObligationEnforcer", pending.length, import.meta.dir);
+const opener = pickNarrative(
+  "DocObligationEnforcer",
+  pending.length,
+  import.meta.dir,
+);
 const fileList = pending.map((f) => `  - ${f}`).join("\n");
 const suggestions = buildDocSuggestions(pending, deps);
 const reason = `${opener}\n\nModified files without documentation updates:\n${fileList}\n\n${suggestions}`;
@@ -259,11 +281,16 @@ const reason = `${opener}\n\nModified files without documentation updates:\n${fi
 // After:
 // Verbose → stderr
 const fileList = pending.map((f) => `  - ${f}`).join("\n");
-deps.stderr(`[DocObligationEnforcer] Modified files without doc updates:\n${fileList}`);
+deps.stderr(
+  `[DocObligationEnforcer] Modified files without doc updates:\n${fileList}`,
+);
 
 // Compressed → reason (use compressFileList for file identity, not summarizeByDir)
 const files = compressFileList(pending);
-const reason = hookLine("DocObligationEnforcer", `I need to update docs before finishing. ${files}`);
+const reason = hookLine(
+  "DocObligationEnforcer",
+  `I need to update docs before finishing. ${files}`,
+);
 ```
 
 Import `hookLine`, `compressFileList` from `@hooks/lib/output-compress`. Remove `pickNarrative` and `buildDocSuggestions` imports.
@@ -288,7 +315,9 @@ for (const file of pending) {
 
 // Verbose → stderr
 const verboseList = pending.map((f) => `  - ${f}`).join("\n");
-deps.stderr(`[TestObligationEnforcer] Modified files without tests:\n${verboseList}`);
+deps.stderr(
+  `[TestObligationEnforcer] Modified files without tests:\n${verboseList}`,
+);
 
 // Compressed → reason
 const parts: string[] = [];
@@ -298,7 +327,10 @@ if (needsWriting.length > 0) {
 if (needsRunning.length > 0) {
   parts.push(`Run: ${compressFileList(needsRunning)}`);
 }
-const reason = hookLine("TestObligationEnforcer", `I need to write and run tests before finishing. ${parts.join(". ")}`);
+const reason = hookLine(
+  "TestObligationEnforcer",
+  `I need to write and run tests before finishing. ${parts.join(". ")}`,
+);
 ```
 
 Import `hookLine`, `compressFileList` from `@hooks/lib/output-compress`. Remove `pickNarrative` import.
@@ -309,17 +341,17 @@ Run: `bun test hooks/ObligationStateMachines/`
 
 Breaking assertions to update:
 
-| File | Line | Current Assertion | New Assertion |
-|------|------|------------------|---------------|
-| `HookDocStateMachine.test.ts` | 209 | `toContain("Update \`/hooks/G/H/doc.md\`")` | `toContain("H/ (doc.md)")` |
-| `HookDocStateMachine.test.ts` | 620 | `toContain("/hooks/G/H/H.contract.ts")` | `toContain("[HookDocEnforcer]")` and `toContain("H/")` |
-| `DocObligationStateMachine.test.ts` | 370 | `toContain("/src/handler.ts")` | `toContain("handler.ts")` |
-| `DocObligationStateMachine.test.ts` | 409 | `toContain("/src/utils.ts")` | `toContain("utils.ts")` |
-| `DocObligationStateMachine.test.ts` | 426 | `toContain("/src/handler.ts")` | `toContain("handler.ts")` |
-| `DocObligationStateMachine.test.ts` | 443 | `toContain("/src/utils.ts")` | `toContain("utils.ts")` |
-| `DocObligationStateMachine.test.ts` | 465 | `toContain("/src/handler.ts")` | `toContain("handler.ts")` |
-| `TestObligationEnforcer.test.ts` | 61 | `toContain("Write and run tests for")` | `toContain("Write:")` |
-| `TestObligationEnforcer.test.ts` | 74 | `toContain("Run existing tests for")` | `toContain("Run:")` |
+| File                                | Line | Current Assertion                           | New Assertion                                          |
+| ----------------------------------- | ---- | ------------------------------------------- | ------------------------------------------------------ |
+| `HookDocStateMachine.test.ts`       | 209  | `toContain("Update \`/hooks/G/H/doc.md\`")` | `toContain("H/ (doc.md)")`                             |
+| `HookDocStateMachine.test.ts`       | 620  | `toContain("/hooks/G/H/H.contract.ts")`     | `toContain("[HookDocEnforcer]")` and `toContain("H/")` |
+| `DocObligationStateMachine.test.ts` | 370  | `toContain("/src/handler.ts")`              | `toContain("handler.ts")`                              |
+| `DocObligationStateMachine.test.ts` | 409  | `toContain("/src/utils.ts")`                | `toContain("utils.ts")`                                |
+| `DocObligationStateMachine.test.ts` | 426  | `toContain("/src/handler.ts")`              | `toContain("handler.ts")`                              |
+| `DocObligationStateMachine.test.ts` | 443  | `toContain("/src/utils.ts")`                | `toContain("utils.ts")`                                |
+| `DocObligationStateMachine.test.ts` | 465  | `toContain("/src/handler.ts")`              | `toContain("handler.ts")`                              |
+| `TestObligationEnforcer.test.ts`    | 61   | `toContain("Write and run tests for")`      | `toContain("Write:")`                                  |
+| `TestObligationEnforcer.test.ts`    | 74   | `toContain("Run existing tests for")`       | `toContain("Run:")`                                    |
 
 Note: `DocObligationStateMachine.test.ts` lines 563-564 check `reviewContent` from `buildBlockLimitReview` — these should **NOT** change since we're keeping reviews verbose.
 
@@ -339,6 +371,7 @@ Compress CodingStandardsEnforcer, TypeStrictness, and TypeCheckVerifier. All fir
 **Pattern:** Verbose detail → `deps.stderr()`. Compressed reason → `return`. Existing `logSignal()` calls stay untouched.
 
 **Files:**
+
 - Modify: `hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract.ts:88-141`
 - Modify: `hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts:198-245`
 - Modify: `hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract.ts:223-233`
@@ -349,7 +382,10 @@ Replace `formatBlockMessage` (lines 88-141). The function now returns ONLY the c
 
 ```typescript
 /** Compressed reason for Claude's context. */
-function formatCompressedReason(violations: Violation[], filePath: string): string {
+function formatCompressedReason(
+  violations: Violation[],
+  filePath: string,
+): string {
   const file = compressPath(filePath);
   const grouped: Record<string, number[]> = {};
   for (const v of violations) {
@@ -359,17 +395,24 @@ function formatCompressedReason(violations: Violation[], filePath: string): stri
     .map(([cat, lines]) => `${cat} (${compactLines(lines)})`)
     .join(", ");
 
-  return hookLine("CodingStandardsEnforcer",
-    `I need to fix these violations. ${violations.length} in ${file}: ${parts}`);
+  return hookLine(
+    "CodingStandardsEnforcer",
+    `I need to fix these violations. ${violations.length} in ${file}: ${parts}`,
+  );
 }
 
 /** Verbose detail for developer stderr logs. */
-function formatVerboseStderr(violations: Violation[], filePath: string): string {
+function formatVerboseStderr(
+  violations: Violation[],
+  filePath: string,
+): string {
   const grouped: Record<string, Violation[]> = {};
   for (const v of violations) {
     (grouped[v.category] ??= []).push(v);
   }
-  const sections: string[] = [`[CodingStandardsEnforcer] ${violations.length} violations in ${filePath}:`];
+  const sections: string[] = [
+    `[CodingStandardsEnforcer] ${violations.length} violations in ${filePath}:`,
+  ];
   for (const [category, items] of Object.entries(grouped)) {
     sections.push(`  ${category}:`);
     for (const v of items) {
@@ -403,15 +446,25 @@ Remove: `pickNarrative` import.
 Replace `formatBlockMessage` (lines 218-245):
 
 ```typescript
-function formatCompressedBlockReason(violations: AnyViolation[], filePath: string): string {
+function formatCompressedBlockReason(
+  violations: AnyViolation[],
+  filePath: string,
+): string {
   const file = compressPath(filePath);
   const lines = violations.map((v) => v.line);
-  return hookLine("TypeStrictness",
-    `I need to fix these any types. ${violations.length} in ${file} (${compactLines(lines)}). Read types before replacing.`);
+  return hookLine(
+    "TypeStrictness",
+    `I need to fix these any types. ${violations.length} in ${file} (${compactLines(lines)}). Read types before replacing.`,
+  );
 }
 
-function formatVerboseBlockStderr(violations: AnyViolation[], filePath: string): string {
-  const lines = violations.map((v) => `  Line ${v.line}: ${v.content}\n           → ${v.pattern}`);
+function formatVerboseBlockStderr(
+  violations: AnyViolation[],
+  filePath: string,
+): string {
+  const lines = violations.map(
+    (v) => `  Line ${v.line}: ${v.content}\n           → ${v.pattern}`,
+  );
   return `[TypeStrictness] ${violations.length} \`any\` violations in ${filePath}:\n${lines.join("\n")}`;
 }
 ```
@@ -419,15 +472,25 @@ function formatVerboseBlockStderr(violations: AnyViolation[], filePath: string):
 Replace `formatLazyUnknownAdvisory` (lines 198-213):
 
 ```typescript
-function formatCompressedUnknownAdvisory(warnings: UnknownWarning[], filePath: string): string {
+function formatCompressedUnknownAdvisory(
+  warnings: UnknownWarning[],
+  filePath: string,
+): string {
   const file = compressPath(filePath);
   const lines = warnings.map((w) => w.line);
-  return hookLine("TypeStrictness",
-    `I need to check these unknown types. ${warnings.length} bare \`unknown\` in ${file} (${compactLines(lines)}). Find correct types, don't lazy-replace.`);
+  return hookLine(
+    "TypeStrictness",
+    `I need to check these unknown types. ${warnings.length} bare \`unknown\` in ${file} (${compactLines(lines)}). Find correct types, don't lazy-replace.`,
+  );
 }
 
-function formatVerboseUnknownStderr(warnings: UnknownWarning[], filePath: string): string {
-  const lines = warnings.map((w) => `  Line ${w.line}: ${w.content}\n           → ${w.pattern}`);
+function formatVerboseUnknownStderr(
+  warnings: UnknownWarning[],
+  filePath: string,
+): string {
+  const lines = warnings.map(
+    (w) => `  Line ${w.line}: ${w.content}\n           → ${w.pattern}`,
+  );
   return `[TypeStrictness] ${warnings.length} bare \`unknown\` in ${filePath}:\n${lines.join("\n")}`;
 }
 ```
@@ -455,14 +518,22 @@ Remove: `pickNarrative` import.
 Replace `formatAdvisory` (lines 223-233):
 
 ```typescript
-function formatCompressedAdvisory(errors: TypeCheckError[], filePath: string): string {
+function formatCompressedAdvisory(
+  errors: TypeCheckError[],
+  filePath: string,
+): string {
   const file = compressPath(filePath);
   const lines = errors.map((e) => e.line);
-  return hookLine("TypeCheckVerifier",
-    `I have type errors to fix. ${errors.length} in ${file} (${compactLines(lines)})`);
+  return hookLine(
+    "TypeCheckVerifier",
+    `I have type errors to fix. ${errors.length} in ${file} (${compactLines(lines)})`,
+  );
 }
 
-function formatVerboseStderr(errors: TypeCheckError[], filePath: string): string {
+function formatVerboseStderr(
+  errors: TypeCheckError[],
+  filePath: string,
+): string {
   const lines = errors.map((e) => `  Line ${e.line}:${e.col}: ${e.message}`);
   return `[TypeCheckVerifier] ${errors.length} type errors in ${filePath}:\n${lines.join("\n")}`;
 }
@@ -490,15 +561,16 @@ Run: `bun test hooks/CodingStandards/`
 
 Breaking assertions to update:
 
-| File | Line | Current Assertion | New Assertion |
-|------|------|------------------|---------------|
-| `CodingStandardsEnforcer.test.ts` | 310 | `toContain("/src/bad.ts")` | `toContain("bad.ts")` |
-| `CodingStandardsEnforcer.test.ts` | 317 | `toContain("proper types")` | Remove — guidance block deleted |
-| `CodingStandardsEnforcer.test.ts` | 318 | `not.toContain("adapters")` | Remove — redundant, guidance gone |
-| `CodingStandardsEnforcer.test.ts` | 319 | `not.toContain("try-catch")` | Remove — redundant, guidance gone |
-| `TypeStrictness.test.ts` | 287 | `toContain("Line 1")` | `toContain("L1")` |
+| File                              | Line | Current Assertion            | New Assertion                     |
+| --------------------------------- | ---- | ---------------------------- | --------------------------------- |
+| `CodingStandardsEnforcer.test.ts` | 310  | `toContain("/src/bad.ts")`   | `toContain("bad.ts")`             |
+| `CodingStandardsEnforcer.test.ts` | 317  | `toContain("proper types")`  | Remove — guidance block deleted   |
+| `CodingStandardsEnforcer.test.ts` | 318  | `not.toContain("adapters")`  | Remove — redundant, guidance gone |
+| `CodingStandardsEnforcer.test.ts` | 319  | `not.toContain("try-catch")` | Remove — redundant, guidance gone |
+| `TypeStrictness.test.ts`          | 287  | `toContain("Line 1")`        | `toContain("L1")`                 |
 
 Assertions that survive (no change needed):
+
 - `CodingStandardsEnforcer.test.ts:309` — `toContain("2 violations")` ✓
 - `BashWriteGuard.test.ts:212` — `toContain("Edit")` and `toContain("Write")` ✓
 - `TypeCheckVerifier.test.ts:205-209` — semantic checks ✓
@@ -522,6 +594,7 @@ git commit -m "refactor(coding-standards): compress enforcer output ~92%, verbos
 Compress ArchitectureEscalation, SettingsGuard, and BashWriteGuard.
 
 **Files:**
+
 - Modify: `hooks/ArchitectureEscalation/ArchitectureEscalation/ArchitectureEscalation.contract.ts:81-110`
 - Modify: `hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract.ts:74-88`
 - Create: `hooks/SecurityValidator/SettingsGuard/CHANGES.md`
@@ -532,13 +605,20 @@ Compress ArchitectureEscalation, SettingsGuard, and BashWriteGuard.
 Replace `buildWarningMessage` (lines 81-110). Keep skill references — they're the mechanism that breaks retry loops:
 
 ```typescript
-export function buildWarningMessage(criterionId: string, failedAttempts: number): string {
+export function buildWarningMessage(
+  criterionId: string,
+  failedAttempts: number,
+): string {
   if (failedAttempts >= STOP_THRESHOLD) {
-    return hookLine("ArchEscalation",
-      `I need to rethink my approach. ${criterionId}: ${failedAttempts} failures — stop retrying, use FirstPrinciples or Council skill`);
+    return hookLine(
+      "ArchEscalation",
+      `I need to rethink my approach. ${criterionId}: ${failedAttempts} failures — stop retrying, use FirstPrinciples or Council skill`,
+    );
   }
-  return hookLine("ArchEscalation",
-    `I need to rethink my approach. ${criterionId}: ${failedAttempts} failures — consider different approach`);
+  return hookLine(
+    "ArchEscalation",
+    `I need to rethink my approach. ${criterionId}: ${failedAttempts} failures — consider different approach`,
+  );
 }
 ```
 
@@ -549,12 +629,12 @@ The verbose version goes to stderr in the execute method:
 if (failedAttempts >= STOP_THRESHOLD) {
   deps.stderr(
     `[ArchEscalation] 🚨 STOP: ${criterionId} failed ${failedAttempts} times. ` +
-    `Fundamental architectural problem — stop retrying, use FirstPrinciples/Council skill.`
+      `Fundamental architectural problem — stop retrying, use FirstPrinciples/Council skill.`,
   );
 } else if (failedAttempts >= WARN_THRESHOLD) {
   deps.stderr(
     `[ArchEscalation] ⚠️ WARNING: ${criterionId} failed ${failedAttempts} times. ` +
-    `Consider pausing and questioning the fundamental approach.`
+      `Consider pausing and questioning the fundamental approach.`,
   );
 }
 ```
@@ -591,6 +671,7 @@ at controlling Claude's behavior. The instruction consumed ~80 tokens per fire
 without consistent effect.
 
 **Alternative approaches to explore:**
+
 - CLAUDE.md rule in projects using SettingsGuard
 - Steering rule via SteeringRuleInjector hook
 - Post-denial hook that detects workaround attempts
@@ -620,7 +701,10 @@ const target = tsFileMatch ? compressPath(tsFileMatch[0]) : ".ts file";
 deps.stderr(`[BashWriteGuard] Blocked command: ${command.slice(0, 200)}`);
 
 // Compressed → reason
-const reason = hookLine("BashWriteGuard", `I need to use Edit/Write instead for ${target}`);
+const reason = hookLine(
+  "BashWriteGuard",
+  `I need to use Edit/Write instead for ${target}`,
+);
 ```
 
 Import: `hookLine`, `compressPath` from `@hooks/lib/output-compress`.
@@ -632,15 +716,16 @@ Run: `bun test hooks/ArchitectureEscalation/ hooks/SecurityValidator/ hooks/Codi
 
 Breaking assertions to update:
 
-| File | Line | Current Assertion | New Assertion |
-|------|------|------------------|---------------|
-| `ArchitectureEscalation.test.ts` | 86 | `toContain("ARCHITECTURE ESCALATION WARNING")` | `toContain("[ArchEscalation]")` and `toContain("failures")` |
-| `ArchitectureEscalation.test.ts` | 100 | `toContain("STOP CURRENT APPROACH")` | `toContain("stop retrying")` |
-| `ArchitectureEscalation.test.ts` | 244 | `toContain("STOP CURRENT APPROACH")` | `toContain("stop retrying")` |
-| `SettingsGuard.test.ts` | 144 | `toContain("Settings Protection")` | `toContain("[SettingsGuard]")` and `toContain("Confirm")` |
-| `SettingsGuard.test.ts` | 145 | `toContain("do NOT suggest workarounds")` | Remove entirely — instruction block deleted |
+| File                             | Line | Current Assertion                              | New Assertion                                               |
+| -------------------------------- | ---- | ---------------------------------------------- | ----------------------------------------------------------- |
+| `ArchitectureEscalation.test.ts` | 86   | `toContain("ARCHITECTURE ESCALATION WARNING")` | `toContain("[ArchEscalation]")` and `toContain("failures")` |
+| `ArchitectureEscalation.test.ts` | 100  | `toContain("STOP CURRENT APPROACH")`           | `toContain("stop retrying")`                                |
+| `ArchitectureEscalation.test.ts` | 244  | `toContain("STOP CURRENT APPROACH")`           | `toContain("stop retrying")`                                |
+| `SettingsGuard.test.ts`          | 144  | `toContain("Settings Protection")`             | `toContain("[SettingsGuard]")` and `toContain("Confirm")`   |
+| `SettingsGuard.test.ts`          | 145  | `toContain("do NOT suggest workarounds")`      | Remove entirely — instruction block deleted                 |
 
 Assertions that survive:
+
 - `ArchitectureEscalation.test.ts:256` — `toContain(String(STOP_THRESHOLD + 3))` ✓
 
 **Step 5: Commit**
@@ -682,6 +767,7 @@ After compression, these exported functions have no remaining callers:
 - `DocObligationStateMachine.shared.ts` → `buildDocSuggestions()` (enforcer no longer calls it)
 
 Check each with grep before removing:
+
 ```bash
 grep -rn "buildDocSuggestions" hooks/ lib/ --include="*.ts"
 ```
@@ -696,6 +782,7 @@ The HookDocEnforcer will block session end if hook source files were modified wi
 - Update "What It Does" if it described the verbose output format
 
 Hooks needing doc updates:
+
 - `hooks/ObligationStateMachines/HookDocEnforcer/doc.md`
 - `hooks/ObligationStateMachines/DocObligationEnforcer/doc.md`
 - `hooks/ObligationStateMachines/TestObligationEnforcer/doc.md`
@@ -730,11 +817,13 @@ Verify compressed output works correctly in a real Claude Code session. Intentio
 In a test project (or this repo), modify a hook source file without updating docs. Then attempt to end the session.
 
 Expected context output:
+
 ```
 [HookDocEnforcer] I need to update docs before finishing. <DirName>/ (doc.md)
 ```
 
 Expected stderr (check hook logs):
+
 ```
 [HookDocEnforcer] Hook source files modified without documentation:
   - /full/path/to/file.contract.ts
@@ -747,11 +836,13 @@ Verify: Claude attempts to update docs rather than trying to work around the blo
 Edit a `.ts` file to introduce a raw Node import (e.g., `import { readFile } from "node:fs"`).
 
 Expected context output:
+
 ```
 [CodingStandardsEnforcer] I need to fix these violations. 1 in <file>: raw-import (L<n>)
 ```
 
 Expected stderr:
+
 ```
 [CodingStandardsEnforcer] 1 violations in /full/path/file.ts:
   raw-import:
@@ -765,6 +856,7 @@ Verify: Claude fixes the violation before retrying the edit.
 Edit a different `.ts` file with another violation in the same session.
 
 Expected context output (same format — no diminishing detail):
+
 ```
 [CodingStandardsEnforcer] I need to fix these violations. 1 in <other-file>: raw-import (L<n>)
 ```
@@ -776,6 +868,7 @@ Verify: Same format on every fire. Behavioral prefix present.
 Edit a `.ts` file to include `const x: any = ...`.
 
 Expected context output:
+
 ```
 [TypeStrictness] I need to fix these any types. 1 in <file> (L<n>). Read types before replacing.
 ```
@@ -787,6 +880,7 @@ Verify: Claude reads type context before replacing, not just swapping to `unknow
 Edit a `.ts` file to introduce a type error.
 
 Expected context output:
+
 ```
 [TypeCheckVerifier] I have type errors to fix. 1 in <file> (L<n>)
 ```
@@ -798,11 +892,13 @@ Verify: Advisory only (no block), Claude addresses the type error.
 Set a task to `in_progress` 3+ times in a session.
 
 Expected context output at 3 failures:
+
 ```
 [ArchEscalation] I need to rethink my approach. <criterion>: 3 failures — consider different approach
 ```
 
 At 5 failures:
+
 ```
 [ArchEscalation] I need to rethink my approach. <criterion>: 5 failures — stop retrying, use FirstPrinciples or Council skill
 ```
@@ -814,11 +910,13 @@ Verify: Claude invokes a different skill rather than retrying the same fix.
 Run a bash command that writes to a `.ts` file (e.g., `echo "test" > foo.ts`).
 
 Expected context output:
+
 ```
 [BashWriteGuard] I need to use Edit/Write instead for foo.ts
 ```
 
 Expected stderr:
+
 ```
 [BashWriteGuard] Blocked command: echo "test" > foo.ts
 ```
@@ -828,6 +926,7 @@ Verify: Claude switches to Edit/Write tool.
 **Step 8: Verify verbose logging**
 
 For each hook triggered above, confirm that:
+
 1. `deps.stderr()` output contains full verbose detail (file paths, line content, etc.)
 2. Signal JSONL files (`coding-standards-violations.jsonl`, `type-strictness.jsonl`, `type-check-verifier.jsonl`) continue to log structured data
 3. The compressed `reason` in Claude's context is ~40-50 tokens, not the verbose version
