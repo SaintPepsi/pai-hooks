@@ -147,6 +147,8 @@ async function executePipeline<I extends HookInput, D>(
   }
 
   // Direct serialization — contracts return SyncHookJSONOutput, no mapping needed
+  // Invariant: "{}" is the canonical silent/no-op shape and never carries semantic
+  // meaning. Suppressing it avoids writing empty output to Claude Code's stdin.
   const json = JSON.stringify(result.value);
   if (json !== "{}") {
     io.write(json);

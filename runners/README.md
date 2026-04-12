@@ -23,9 +23,10 @@ All hook-specific agent spawning is handled by thin wrapper functions that call 
 3. Wrapper builds a prompt and calls `spawnAgent()` with hook-specific config
 4. `spawnAgent()` checks lock, writes lock, logs "spawned" event, spawns `agent-runner.ts` as a detached process
 5. `agent-runner.ts` runs `claude -p` synchronously with `--output-format json`
-6. `agent-runner.ts` captures session ID from JSON output
-7. `agent-runner.ts` logs "completed" or "failed" event as JSONL
-8. `agent-runner.ts` removes lock file in finally block
+6. `agent-runner.ts` forwards any non-empty stderr from `claude` to `deps.stderr` (auth failures, rate limits, model errors)
+7. `agent-runner.ts` captures session ID from JSON output
+8. `agent-runner.ts` logs "completed" or "failed" event as JSONL
+9. `agent-runner.ts` removes lock file in finally block
 
 ## Log Files
 

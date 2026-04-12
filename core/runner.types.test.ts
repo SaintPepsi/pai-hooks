@@ -2,10 +2,9 @@
  * Type-level assertions for core/runner.ts signatures.
  *
  * The runner is exercised at runtime by core/runner.test.ts and
- * core/runner.coverage.test.ts, which are currently broken until
- * Task 0D updates them to the SDK shape. This file provides a
- * minimal parallel assertion that the new 2-generic runHook /
- * runHookWith signatures type-check correctly against both
+ * core/runner.coverage.test.ts. This file provides a minimal
+ * parallel assertion that the 2-generic runHook / runHookWith
+ * signatures type-check correctly against both
  * SyncHookContract<I, D> and AsyncHookContract<I, D>.
  *
  * If the runner's signatures regress to the old <I, O, D> form,

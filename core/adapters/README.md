@@ -50,18 +50,19 @@ Stripped by default:
 - `CLAUDE_CODE`
 - `CLAUDE_AGENT_SDK`
 
-**Why:** hooks spawned by `spawnAgent` (background agents) or spawned directly by other hooks would otherwise inherit `CLAUDECODE=1` from the parent session. That causes SessionStart context hooks, `VoiceGate`, and `SkillGuard` to mis-detect their runtime context — treating a fresh subagent invocation as a nested session. Stripping the markers at the adapter layer fixes `spawnAgent` and every other spawn path in one move. Callers that genuinely need the marker in the child can re-inject it via `buildChildEnv({ CLAUDECODE: "1" })` or via the explicit `env` option on `spawnSyncSafe`/`spawnBackground`.
+**Why:** hooks spawned by `spawnAgent` (background agents) or spawned directly by other hooks would otherwise inherit `CLAUDECODE=1` from the parent session. That causes SessionStart context hooks, `VoiceGate`, and `SkillGuard` to mis-detect their runtime context — treating a fresh subagent invocation as a nested session. Stripping the markers at the adapter layer fixes `spawnAgent` and every other spawn path in one move. All spawn adapters route through `buildChildEnv()` unconditionally — explicit `env` options are merged on top of the sanitized base, so parent-session markers are always stripped regardless of caller-provided overrides. Callers that genuinely need the marker in the child must re-inject it explicitly via the `env` option.
 
 ```typescript
 // Default: CLAUDECODE stripped from child
 spawnBackground("bun", ["runner.ts"]);
 
-// Override: strip everything else too, keep explicit keys
+// Explicit env keys are merged on top of sanitized base —
+// CLAUDECODE is still stripped even with custom env
 spawnSyncSafe("bun", ["hook.ts"], {
-  env: { PATH: process.env.PATH }, // explicit env bypasses buildChildEnv
+  env: { PAI_DIR: "/tmp/test", PATH: process.env.PATH },
 });
 
-// Re-inject CLAUDECODE intentionally
+// Re-inject CLAUDECODE intentionally (must be explicit in env option)
 spawnBackground("bun", ["agent.ts"], {
   env: { CLAUDECODE: "1" },
 });
