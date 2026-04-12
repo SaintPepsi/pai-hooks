@@ -4,7 +4,7 @@
  * Source mode (default): Run in source repo, validate manifests match imports.
  *   - Globs all hook.json under hooks/
  *   - Compares declared deps vs actual imports (reuses validator logic from cli/core/validator.ts)
- *   - --fix accepted but is a no-op (auto-rewrite not yet implemented)
+ *   - --fix rewrites stale hook.json fields when stale keys are detected
  *
  * Installed mode (--installed): Run in target project, check files match lockfile.
  *   - Reads lockfile, checks all files exist + match fileHashes (cli/core/lockfile.ts)
@@ -72,8 +72,8 @@ export function verify(
 /**
  * Source-mode verify: validate hook.json manifests match actual imports.
  *
- * Note: --fix is accepted but is a no-op. Auto-rewrite of hook.json is not yet
- * implemented. The flag only suppresses the diagnostic hint below.
+ * When --fix is passed, stale keys in hook.json that are not part of the
+ * HookManifest schema are removed and the file is rewritten.
  */
 function verifySource(
   _args: ParsedArgs,
@@ -89,6 +89,7 @@ function verifySource(
   }
 
   const diagnostics: VerifyDiagnostic[] = [];
+  let fixCount = 0;
 
   // Scan group directories
   const groupDirs = deps.readDir(hooksDir);
@@ -111,10 +112,13 @@ function verifySource(
       const manifestPath = `${hookDir}/hook.json`;
       if (!deps.fileExists(manifestPath)) continue;
 
-      const result = validateHookManifest(hookName, hookDir, manifestPath, groupDir, deps);
+      const result = validateHookManifest(hookName, hookDir, manifestPath, groupDir, deps, fix);
 
       if (result.diagnostics.length > 0) {
         diagnostics.push(...result.diagnostics);
+      }
+      if (result.fixed) {
+        fixCount++;
       }
     }
   }
@@ -128,22 +132,33 @@ function verifySource(
   for (const d of diagnostics) {
     lines.push(`  [${d.code}] ${d.hookName}: ${d.message}`);
   }
-  if (!fix) {
-    lines.push("Note: --fix is accepted but not yet implemented for source mode.");
+  if (fix && fixCount > 0) {
+    lines.push(`Fixed ${fixCount} hook${fixCount === 1 ? "" : "s"}.`);
   }
   return ok(lines.join("\n"));
 }
 
 // ─── Manifest Validation ────────────────────────────────────────────────────
 
+/** Valid keys in a HookManifest (cli/types/manifest.ts). */
+const MANIFEST_VALID_KEYS = [
+  "name",
+  "group",
+  "event",
+  "description",
+  "schemaVersion",
+  "tags",
+  "presets",
+] as const;
+
 interface ManifestValidationResult {
   diagnostics: VerifyDiagnostic[];
+  fixed: boolean;
 }
 
 /**
  * Validate a single hook manifest is well-formed.
- * Dependencies are auto-discovered from imports at install time,
- * so no deps validation is needed here.
+ * When fix=true, stale keys are stripped and the manifest is rewritten.
  */
 function validateHookManifest(
   hookName: string,
@@ -151,12 +166,13 @@ function validateHookManifest(
   manifestPath: string,
   _groupDir: string,
   deps: CliDeps,
+  fix: boolean,
 ): ManifestValidationResult {
   const diagnostics: VerifyDiagnostic[] = [];
 
   // Read manifest
   const manifestContent = deps.readFile(manifestPath);
-  if (!manifestContent.ok) return { diagnostics };
+  if (!manifestContent.ok) return { diagnostics, fixed: false };
 
   const parsed = tryCatch(
     () => JSON.parse(manifestContent.value) as Record<string, unknown>,
@@ -174,7 +190,32 @@ function validateHookManifest(
       code: "MANIFEST_PARSE_ERROR",
       message: "Failed to parse hook.json",
     });
-    return { diagnostics };
+    return { diagnostics, fixed: false };
+  }
+
+  // Detect stale keys not in the HookManifest schema
+  const staleKeys = Object.keys(parsed.value).filter(
+    (k) => !(MANIFEST_VALID_KEYS as readonly string[]).includes(k),
+  );
+
+  if (staleKeys.length > 0) {
+    diagnostics.push({
+      hookName,
+      code: "STALE_FIELDS",
+      message: `Stale keys in hook.json: ${staleKeys.join(", ")}`,
+    });
+
+    if (fix) {
+      // Build cleaned manifest preserving valid-key order
+      const cleaned: Record<string, unknown> = {};
+      for (const key of MANIFEST_VALID_KEYS) {
+        if (key in parsed.value) {
+          cleaned[key] = parsed.value[key];
+        }
+      }
+      deps.writeFile(manifestPath, `${JSON.stringify(cleaned, null, 2)}\n`);
+      return { diagnostics, fixed: true };
+    }
   }
 
   // Verify contract file exists
@@ -187,7 +228,7 @@ function validateHookManifest(
     });
   }
 
-  return { diagnostics };
+  return { diagnostics, fixed: false };
 }
 
 // ─── Installed Mode ─────────────────────────────────────────────────────────

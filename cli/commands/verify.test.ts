@@ -116,9 +116,9 @@ describe("verify source-mode", () => {
     }
   });
 
-  it("--fix mode reports fixed hooks", () => {
+  it("--fix mode rewrites stale fields and reports fixed hooks", () => {
     const repo = makeCleanSourceRepo();
-    // Remove a field that --fix can derive (e.g., empty deps so it re-derives)
+    // Inject a stale field that --fix should strip
     const manifest = JSON.parse(repo["/source/hooks/TestGroup/TestHook/hook.json"]);
     manifest.deps = ["nonexistent-dep"];
     repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify(manifest);
@@ -127,8 +127,16 @@ describe("verify source-mode", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      // Either it fixed something or found it valid
-      expect(typeof result.value).toBe("string");
+      expect(result.value).toContain("Fixed");
+    }
+
+    // Read manifest back and assert stale field was removed
+    const rewritten = deps.readFile("/source/hooks/TestGroup/TestHook/hook.json");
+    expect(rewritten.ok).toBe(true);
+    if (rewritten.ok) {
+      const parsed = JSON.parse(rewritten.value);
+      expect(parsed.deps).toBeUndefined();
+      expect(parsed.name).toBe("TestHook");
     }
   });
 });
@@ -138,7 +146,8 @@ describe("verify source-mode", () => {
 describe("verify installed-mode", () => {
   it("clean install passes", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     const result = verify(installedVerifyArgs({ in: "/project" }), deps);
 
@@ -150,7 +159,8 @@ describe("verify installed-mode", () => {
 
   it("modified file reported", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     // Modify an installed file
     deps.addFile(
@@ -168,7 +178,8 @@ describe("verify installed-mode", () => {
 
   it("missing file reported", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     // Delete an installed file
     deps.deleteFile("/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts");
@@ -213,7 +224,8 @@ describe("verify installed-mode", () => {
 
   it("missing settings entry reported", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     // Clear settings to simulate missing entry
     deps.addFile("/project/.claude/settings.json", "{}");
