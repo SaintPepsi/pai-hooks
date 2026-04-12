@@ -167,7 +167,7 @@ describe("normalizeReturn", () => {
   });
   test("replaces *Output suffix with *Output", () => {
     expect(normalizeReturn("SyncHookJSONOutput")).toBe("*Output");
-    expect(normalizeReturn("SyncHookJSONOutput")).toBe("*Output");
+    expect(normalizeReturn("AsyncHookJSONOutput")).toBe("*Output");
   });
   test("leaves primitive types unchanged", () => {
     expect(normalizeReturn("string")).toBe("string");

@@ -130,7 +130,7 @@ describe("WikiReadTracker.execute()", () => {
     expect(appendedContent.endsWith("\n")).toBe(true);
   });
 
-  it("returns continueOk even when appendFile fails", () => {
+  it("returns bare continue even when appendFile fails", () => {
     const deps = makeDeps({
       appendFile: () => ({
         ok: false as const,
@@ -165,7 +165,7 @@ describe("WikiReadTracker.execute()", () => {
     expect(stderrMessages[0]).toContain("WikiReadTracker");
   });
 
-  it("returns continueOk when session_id is missing", () => {
+  it("returns bare continue when session_id is missing", () => {
     const deps = makeDeps();
     const input: ToolHookInput = {
       session_id: "",
