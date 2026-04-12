@@ -2,11 +2,11 @@
 
 ## Overview
 
-QuestionAnswered is a **PostToolUse** hook that fires after an `AskUserQuestion` tool completes. Following kitty terminal removal in #56, this hook is a no-op that returns `silent` immediately.
+QuestionAnswered is a **PostToolUse** hook that fires after an `AskUserQuestion` tool completes. This hook is a no-op that returns `silent` immediately.
 
 ## Event
 
-`PostToolUse` — fires after an `AskUserQuestion` tool completes. Returns `silent` immediately (no-op after kitty removal).
+`PostToolUse` — fires after an `AskUserQuestion` tool completes. Returns `silent` immediately (no-op).
 
 ## When It Fires
 
