@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
-import {
-  getReasonFromBlock,
-  isSilentNoOp,
-} from "@hooks/hooks/ObligationStateMachines/test-helpers";
+import { getReasonFromBlock, isBareNoOp } from "@hooks/hooks/ObligationStateMachines/test-helpers";
 import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
 
 const mockInput: StopInput = {
@@ -41,14 +38,14 @@ describe("TestObligationEnforcer", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(isSilentNoOp(result.value)).toBe(true);
+    if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
   });
 
   test("returns silent when pending list is empty", () => {
     const deps = makeDeps({ readPending: () => [] });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(isSilentNoOp(result.value)).toBe(true);
+    if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
   });
 
   test("blocks with 'write tests' for files without test files", () => {
@@ -111,7 +108,7 @@ describe("TestObligationEnforcer", () => {
     });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(isSilentNoOp(result.value)).toBe(true);
+    if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
     expect(reviewWritten).toBe(true);
     expect(flagRemoved).toBe(true);
   });

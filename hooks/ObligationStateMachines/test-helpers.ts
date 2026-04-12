@@ -15,10 +15,20 @@ export function getReasonFromBlock(output: SyncHookJSONOutput): string | undefin
 
 /**
  * True when output has no decision and no hookSpecificOutput (R8 silent skip).
- * Used by ObligationStateMachine enforcer tests to assert "no-op" behavior.
+ * Accepts both `{}` and `{ continue: true }` — use for tracker (PostToolUse) tests
+ * where either shape is valid.
  */
 export function isSilentNoOp(output: SyncHookJSONOutput): boolean {
   return !("decision" in output) && !output.hookSpecificOutput;
+}
+
+/**
+ * True when output is strictly an empty object (`{}`).
+ * Use for Stop enforcer tests where the expected output is specifically `{}`
+ * (not `{ continue: true }`), so accidental `{ continue: true }` is caught.
+ */
+export function isBareNoOp(output: SyncHookJSONOutput): boolean {
+  return Object.keys(output).length === 0;
 }
 
 /**

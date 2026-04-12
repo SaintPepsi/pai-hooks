@@ -8,7 +8,7 @@ import {
 } from "@hooks/hooks/ObligationStateMachines/SpotCheckReview/SpotCheckReview.contract";
 import {
   getReasonFromBlock,
-  isSilentNoOp,
+  isBareNoOp,
   buildStopInput as makeStopInput,
 } from "@hooks/hooks/ObligationStateMachines/test-helpers";
 
@@ -63,7 +63,7 @@ describe("SpotCheckReview", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(isSilentNoOp(result.value)).toBe(true);
+    expect(isBareNoOp(result.value)).toBe(true);
   });
 
   // ── unpushed changes → block ──
@@ -175,7 +175,7 @@ describe("SpotCheckReview", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(isSilentNoOp(result.value)).toBe(true);
+    expect(isBareNoOp(result.value)).toBe(true);
   });
 
   it("cleans up state files when block limit reached", () => {
@@ -229,7 +229,7 @@ describe("SpotCheckReview", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(isSilentNoOp(result.value)).toBe(true);
+    expect(isBareNoOp(result.value)).toBe(true);
   });
 
   it("blocks only unreviewed files when some are already reviewed", () => {
@@ -446,11 +446,11 @@ describe("SpotCheckReview defaultDeps", () => {
 
   it("defaultDeps.getFileHashes returns hashes for existing files", () => {
     const tmpPath = `/tmp/pai-test-hash-${Date.now()}.ts`;
-    require("fs").writeFileSync(tmpPath, "test content");
+    require("node:fs").writeFileSync(tmpPath, "test content");
     const hashes = SpotCheckReview.defaultDeps.getFileHashes([tmpPath]);
     expect(hashes.has(tmpPath)).toBe(true);
     expect(hashes.get(tmpPath)!.length).toBeGreaterThan(0);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("defaultDeps.getFileHashes skips missing files", () => {
