@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
-import { getReasonFromBlock, isBareNoOp } from "@hooks/hooks/ObligationStateMachines/test-helpers";
+import { getReasonFromBlock, isBareNoOp } from "@hooks/lib/test-helpers";
 import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
 
 const mockInput: StopInput = {

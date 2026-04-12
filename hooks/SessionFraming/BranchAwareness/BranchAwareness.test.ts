@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import { BranchAwareness, type BranchAwarenessDeps } from "./BranchAwareness.contract";
 
 function makeDeps(overrides: Partial<BranchAwarenessDeps> = {}): BranchAwarenessDeps {
@@ -16,12 +17,8 @@ function makeInput(): SessionStartInput {
   return { session_id: "test-session-123" };
 }
 
-/** Narrow SyncHookJSONOutput to SessionStart additionalContext (Option B pattern from Gate 1). */
-function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
-  const hs = output.hookSpecificOutput;
-  if (!hs || hs.hookEventName !== "SessionStart") return undefined;
-  return hs.additionalContext;
-}
+const getInjectedContext = (output: SyncHookJSONOutput) =>
+  getInjectedContextFor(output, "SessionStart");
 
 describe("BranchAwareness", () => {
   it("has correct name and event", () => {

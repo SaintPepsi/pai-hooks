@@ -6,13 +6,10 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
 import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
-
-/** Narrow SyncHookJSONOutput to PostToolUse additionalContext (R2 channel). */
-function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
-  const hs = output.hookSpecificOutput;
-  if (!hs || hs.hookEventName !== "PostToolUse") return undefined;
-  return "additionalContext" in hs ? hs.additionalContext : undefined;
-}
+import {
+  buildToolInput as makeToolInput,
+  getPostToolUseAdvisory as getInjectedContext,
+} from "@hooks/lib/test-helpers";
 
 const TEST_STATE_DIR = "/tmp/pai-citation-test";
 
@@ -25,14 +22,6 @@ function makeDeps(overrides: Partial<CitationEnforcementDeps> = {}): CitationEnf
     writeReminded: () => {},
     stderr: () => {},
     ...overrides,
-  };
-}
-
-function makeToolInput(toolName: string, toolInput: Record<string, unknown> = {}): ToolHookInput {
-  return {
-    session_id: "test-session",
-    tool_name: toolName,
-    tool_input: toolInput,
   };
 }
 

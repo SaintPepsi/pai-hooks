@@ -17,7 +17,7 @@ import {
   isSilentNoOp,
   buildStopInput as makeStopInput,
   buildToolInput as makeToolInput,
-} from "@hooks/hooks/ObligationStateMachines/test-helpers";
+} from "@hooks/lib/test-helpers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

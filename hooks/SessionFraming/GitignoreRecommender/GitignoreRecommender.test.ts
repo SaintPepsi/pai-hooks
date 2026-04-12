@@ -1,23 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   GitignoreRecommender,
   type GitignoreRecommenderDeps,
 } from "./GitignoreRecommender.contract";
 
-// Test-scoped narrowing helper: extracts additionalContext from the
-// SessionStart hookSpecificOutput discriminated union member, or returns
-// undefined when the shape is bare continue (no injection).
-function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
-  const hs = output.hookSpecificOutput;
-  if (!hs || hs.hookEventName !== "SessionStart") return undefined;
-  return hs.additionalContext;
-}
+const getInjectedContext = (output: SyncHookJSONOutput) =>
+  getInjectedContextFor(output, "SessionStart");
 
 const PAI_ROOT = "/Users/hogers/.claude";
 const PROJECT_DIR = "/Users/hogers/Projects/my-app";

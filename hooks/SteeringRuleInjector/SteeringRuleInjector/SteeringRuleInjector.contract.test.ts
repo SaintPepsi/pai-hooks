@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type {
   SessionStartInput,
   StopInput,
@@ -8,6 +7,12 @@ import type {
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
 import {
+  getAdditionalContext as getInjectedContext,
+  getReasonFromBlock as getBlockReason,
+  isBareContinue,
+  isSilent,
+} from "@hooks/lib/test-helpers";
+import {
   type InjectionTracker,
   matchesKeywords,
   parseFrontmatter,
@@ -15,33 +20,6 @@ import {
   SteeringRuleInjector,
   type SteeringRuleInjectorDeps,
 } from "./SteeringRuleInjector.contract";
-
-// ─── Narrowing Helpers ───────────────────────────────────────────────────────
-
-function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
-  const hs = output.hookSpecificOutput;
-  if (!hs) return undefined;
-  return "additionalContext" in hs ? hs.additionalContext : undefined;
-}
-
-function getBlockReason(output: SyncHookJSONOutput): string | undefined {
-  if ("decision" in output && output.decision === "block") {
-    return "reason" in output ? output.reason : undefined;
-  }
-  return undefined;
-}
-
-function isSilent(output: SyncHookJSONOutput): boolean {
-  return !("decision" in output) && !output.hookSpecificOutput && output.continue !== true;
-}
-
-function isBareContinue(output: SyncHookJSONOutput): boolean {
-  return (
-    output.continue === true &&
-    !output.hookSpecificOutput &&
-    !("decision" in output && output.decision)
-  );
-}
 
 describe("parseFrontmatter", () => {
   it("parses valid frontmatter with all fields", () => {

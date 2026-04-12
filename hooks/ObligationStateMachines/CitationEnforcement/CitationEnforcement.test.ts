@@ -1,15 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+import { getPostToolUseAdvisory as getInjectedContext } from "@hooks/lib/test-helpers";
 import { CitationEnforcement } from "./CitationEnforcement.contract";
-
-/** Narrow SyncHookJSONOutput to PostToolUse additionalContext (R2 channel). */
-function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
-  const hs = output.hookSpecificOutput;
-  if (!hs || hs.hookEventName !== "PostToolUse") return undefined;
-  return "additionalContext" in hs ? hs.additionalContext : undefined;
-}
 
 function makeDeps(overrides: Partial<CitationEnforcementDeps> = {}): CitationEnforcementDeps {
   return {

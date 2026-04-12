@@ -4,14 +4,11 @@ import { ErrorCode, ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import { LoadContext, type LoadContextDeps, loadWikiPointer } from "./LoadContext.contract";
 
-/** Narrow SyncHookJSONOutput to SessionStart additionalContext (Option B pattern from Gate 1). */
-function getInjectedContext(output: SyncHookJSONOutput): string | undefined {
-  const hs = output.hookSpecificOutput;
-  if (!hs || hs.hookEventName !== "SessionStart") return undefined;
-  return hs.additionalContext;
-}
+const getInjectedContext = (output: SyncHookJSONOutput) =>
+  getInjectedContextFor(output, "SessionStart");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

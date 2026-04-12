@@ -1,28 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  isContinue,
+  isPreToolUseDeny as isDeny,
+  getPreToolUseDenyReason as getDenyReason,
+} from "@hooks/lib/test-helpers";
 import { MapleBranding, type MapleBrandingDeps } from "./MapleBranding.contract";
-
-// ─── Narrowing Helpers ───────────────────────────────────────────────────────
-
-function isDeny(output: SyncHookJSONOutput): boolean {
-  const hs = output.hookSpecificOutput;
-  return (
-    hs?.hookEventName === "PreToolUse" &&
-    "permissionDecision" in hs &&
-    hs.permissionDecision === "deny"
-  );
-}
-
-function getDenyReason(output: SyncHookJSONOutput): string {
-  const hs = output.hookSpecificOutput;
-  if (hs?.hookEventName !== "PreToolUse" || !("permissionDecisionReason" in hs)) return "";
-  return hs.permissionDecisionReason ?? "";
-}
-
-function isContinue(output: SyncHookJSONOutput): boolean {
-  return output.continue === true;
-}
 
 const mockDeps: MapleBrandingDeps = {
   stderr: () => {},

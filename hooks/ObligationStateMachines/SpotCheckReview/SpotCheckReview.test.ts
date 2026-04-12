@@ -10,7 +10,7 @@ import {
   getReasonFromBlock,
   isBareNoOp,
   buildStopInput as makeStopInput,
-} from "@hooks/hooks/ObligationStateMachines/test-helpers";
+} from "@hooks/lib/test-helpers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
