@@ -5,7 +5,7 @@
  * 2. Dependency install (background)
  * 3. Baseline tests (background)
  *
- * Always returns ContinueOutput — never blocks worktree creation.
+ * Always returns bare continue (`{ continue: true }`) — never blocks worktree creation.
  */
 
 import { dirname, join } from "node:path";

@@ -4,7 +4,7 @@
  * Reads stored baselines and final scores, generates a quality summary,
  * and writes it to MEMORY/LEARNING/QUALITY/{year}-{month}/.
  *
- * Output: SilentOutput (report written to disk, no stdout needed).
+ * Output: silent no-op (`{}`) (report written to disk, no stdout needed).
  */
 
 import { join } from "node:path";

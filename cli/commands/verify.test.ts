@@ -12,8 +12,32 @@ import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
 import { verify } from "@hooks/cli/commands/verify";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import { PaihErrorCode } from "@hooks/cli/core/error";
+import { PaihError, PaihErrorCode, writeFailed } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err } from "@hooks/cli/core/result";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
+
+// ─── Test Helpers ────────────────────────────────────────────────────────────
+
+/**
+ * InMemoryDeps subclass that injects write failures for specific paths.
+ * Used to test E1: writeFile return value is checked.
+ */
+class FailingWriteDeps extends InMemoryDeps {
+  private failPaths: Set<string>;
+
+  constructor(fileTree: Record<string, string>, cwd = "/test", failPaths: string[] = []) {
+    super(fileTree, cwd);
+    this.failPaths = new Set(failPaths);
+  }
+
+  override writeFile(path: string, content: string): Result<void, PaihError> {
+    if (this.failPaths.has(path)) {
+      return err(writeFailed(path));
+    }
+    return super.writeFile(path, content);
+  }
+}
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -116,9 +140,96 @@ describe("verify source-mode", () => {
     }
   });
 
-  it("--fix mode reports fixed hooks", () => {
+  // E3: non-object JSON (null, array) must not crash
+  it("reports parse error for non-object JSON (null)", () => {
     const repo = makeCleanSourceRepo();
-    // Remove a field that --fix can derive (e.g., empty deps so it re-derives)
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = "null";
+    const deps = new InMemoryDeps(repo, "/source");
+    const result = verify(sourceVerifyArgs(), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("MANIFEST_PARSE_ERROR");
+    }
+  });
+
+  it("reports parse error for non-object JSON (array)", () => {
+    const repo = makeCleanSourceRepo();
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = '["not","an","object"]';
+    const deps = new InMemoryDeps(repo, "/source");
+    const result = verify(sourceVerifyArgs(), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("MANIFEST_PARSE_ERROR");
+    }
+  });
+
+  // E5: manifest with only stale keys must not be rewritten to {}
+  it("--fix with only stale keys reports EMPTY_MANIFEST and does not rewrite file", () => {
+    const repo = makeCleanSourceRepo();
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify({ staleKey: "value" });
+    const deps = new InMemoryDeps(repo, "/source");
+    const result = verify(sourceVerifyArgs({ fix: true }), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("EMPTY_MANIFEST");
+      expect(result.value).not.toContain("Fixed");
+    }
+
+    // File must remain unchanged
+    const rewritten = deps.readFile("/source/hooks/TestGroup/TestHook/hook.json");
+    expect(rewritten.ok).toBe(true);
+    if (rewritten.ok) {
+      expect(JSON.parse(rewritten.value)).toEqual({ staleKey: "value" });
+    }
+  });
+
+  // E1: writeFile failure must not report fixed:true
+  it("--fix reports WRITE_FAILED and does not count as fixed when writeFile fails", () => {
+    const repo = makeCleanSourceRepo();
+    const manifest = JSON.parse(repo["/source/hooks/TestGroup/TestHook/hook.json"]);
+    manifest.staleKey = "value";
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify(manifest);
+
+    const deps = new FailingWriteDeps(repo, "/source", [
+      "/source/hooks/TestGroup/TestHook/hook.json",
+    ]);
+    const result = verify(sourceVerifyArgs({ fix: true }), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("WRITE_FAILED");
+      expect(result.value).not.toContain("Fixed");
+    }
+  });
+
+  // E2: stale keys + missing contract must report both diagnostics
+  it("--fix reports STALE_FIELDS and CONTRACT_MISSING for a hook with both issues", () => {
+    const repo = makeCleanSourceRepo();
+    // Add stale key
+    const manifest = JSON.parse(repo["/source/hooks/TestGroup/TestHook/hook.json"]);
+    manifest.staleKey = "value";
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify(manifest);
+    // Remove contract file
+    delete (repo as Record<string, string>)[
+      "/source/hooks/TestGroup/TestHook/TestHook.contract.ts"
+    ];
+
+    const deps = new InMemoryDeps(repo, "/source");
+    const result = verify(sourceVerifyArgs({ fix: true }), deps, "/source");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toContain("STALE_FIELDS");
+      expect(result.value).toContain("CONTRACT_MISSING");
+    }
+  });
+
+  it("--fix mode rewrites stale fields and reports fixed hooks", () => {
+    const repo = makeCleanSourceRepo();
+    // Inject a stale field that --fix should strip
     const manifest = JSON.parse(repo["/source/hooks/TestGroup/TestHook/hook.json"]);
     manifest.deps = ["nonexistent-dep"];
     repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify(manifest);
@@ -127,8 +238,16 @@ describe("verify source-mode", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      // Either it fixed something or found it valid
-      expect(typeof result.value).toBe("string");
+      expect(result.value).toContain("Fixed");
+    }
+
+    // Read manifest back and assert stale field was removed
+    const rewritten = deps.readFile("/source/hooks/TestGroup/TestHook/hook.json");
+    expect(rewritten.ok).toBe(true);
+    if (rewritten.ok) {
+      const parsed = JSON.parse(rewritten.value);
+      expect(parsed.deps).toBeUndefined();
+      expect(parsed.name).toBe("TestHook");
     }
   });
 });
@@ -138,7 +257,8 @@ describe("verify source-mode", () => {
 describe("verify installed-mode", () => {
   it("clean install passes", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     const result = verify(installedVerifyArgs({ in: "/project" }), deps);
 
@@ -150,7 +270,8 @@ describe("verify installed-mode", () => {
 
   it("modified file reported", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     // Modify an installed file
     deps.addFile(
@@ -168,7 +289,8 @@ describe("verify installed-mode", () => {
 
   it("missing file reported", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     // Delete an installed file
     deps.deleteFile("/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts");
@@ -213,7 +335,8 @@ describe("verify installed-mode", () => {
 
   it("missing settings entry reported", () => {
     const deps = new InMemoryDeps(makeInstalledProject(), "/source");
-    install(installArgs(["TestHook"]), deps, "/source");
+    const installResult = install(installArgs(["TestHook"]), deps, "/source");
+    expect(installResult.ok).toBe(true);
 
     // Clear settings to simulate missing entry
     deps.addFile("/project/.claude/settings.json", "{}");

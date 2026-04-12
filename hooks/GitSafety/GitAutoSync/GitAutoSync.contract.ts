@@ -3,7 +3,7 @@
  *
  * Pipeline: check status → debounce → add → commit → backup → pull → push.
  * Runs as last SessionEnd hook so other hooks have written their changes.
- * Always returns SilentOutput — never blocks session end.
+ * Always returns silent no-op (`{}`) — never blocks session end.
  */
 
 import { join } from "node:path";

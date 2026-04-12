@@ -166,8 +166,8 @@ describe("normalizeReturn", () => {
     expect(normalizeReturn("SessionEndInput")).toBe("*Input");
   });
   test("replaces *Output suffix with *Output", () => {
-    expect(normalizeReturn("ContinueOutput")).toBe("*Output");
-    expect(normalizeReturn("BlockOutput")).toBe("*Output");
+    expect(normalizeReturn("SyncHookJSONOutput")).toBe("*Output");
+    expect(normalizeReturn("AsyncHookJSONOutput")).toBe("*Output");
   });
   test("leaves primitive types unchanged", () => {
     expect(normalizeReturn("string")).toBe("string");

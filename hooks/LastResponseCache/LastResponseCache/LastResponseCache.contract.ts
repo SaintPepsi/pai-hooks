@@ -5,7 +5,7 @@
  * to MEMORY/STATE/last-response.txt (truncated to 2000 chars). RatingCapture
  * (UserPromptSubmit) reads this file to get context on the previous response.
  *
- * Always returns SilentOutput — never blocks or delays the Stop event.
+ * Always returns silent no-op (`{}`) — never blocks or delays the Stop event.
  */
 
 import { join } from "node:path";

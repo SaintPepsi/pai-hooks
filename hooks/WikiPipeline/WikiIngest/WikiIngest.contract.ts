@@ -4,7 +4,7 @@
  * Runs the Filter -> Extract -> Seed pipeline automatically after each session.
  * Gates: size check (<5KB skip), wiki-only guard, dedup check.
  * Calls pipeline tools via shell (they live in MEMORY/WIKI/.pipeline/).
- * Always returns silent() — never blocks session end.
+ * Always returns silent no-op ({}) — never blocks session end.
  */
 
 import { basename, join } from "node:path";

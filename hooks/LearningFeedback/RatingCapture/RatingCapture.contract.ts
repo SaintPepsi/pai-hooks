@@ -2,10 +2,10 @@
  * RatingCapture Contract — Unified Rating & Sentiment Capture.
  *
  * Two responsibilities:
- * 1. Immediate: Output algorithm format reminder (ContextOutput)
+ * 1. Immediate: Output algorithm format reminder (hookSpecificOutput with additionalContext)
  * 2. Async: Parse explicit ratings or run implicit sentiment analysis
  *
- * The contract returns ContextOutput for the algorithm reminder.
+ * The contract returns hookSpecificOutput with additionalContext for the algorithm reminder.
  * Rating/sentiment writes happen as side effects via deps.
  */
 
