@@ -154,10 +154,15 @@ async function executePipeline<I extends HookInput, D>(
   // Direct serialization — contracts return SyncHookJSONOutput, no mapping needed
   // Invariant: "{}" is the canonical silent/no-op shape and never carries semantic
   // meaning. Suppressing it avoids writing empty output to Claude Code's stdin.
+  // Exception: tool events (PostToolUse, PreToolUse, PermissionRequest) require
+  // { continue: true } even when the contract returns the silent no-op shape,
+  // because Claude Code expects an explicit continue signal for tool events.
   const json = JSON.stringify(result.value);
   const hasOutput = json !== "{}";
   if (hasOutput) {
     io.write(json);
+  } else if ("tool_name" in input) {
+    io.write(JSON.stringify({ continue: true }));
   }
   emitLog("ok", undefined, hasOutput ? "output" : "silent");
   io.exit(0);

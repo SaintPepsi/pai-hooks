@@ -3,7 +3,7 @@ import type { HookContract } from "./contract";
 import { invalidInput } from "./error";
 import { err, ok } from "./result";
 import { type RunHookOptions, runHook } from "./runner";
-import type { ToolHookInput } from "./types/hook-inputs";
+import type { StopInput, ToolHookInput } from "./types/hook-inputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -133,8 +133,8 @@ const asyncContract: HookContract<ToolHookInput, {}> = {
   defaultDeps: {},
 };
 
-// Empty output contract (previously "silent")
-const emptyOutput: HookContract<ToolHookInput, {}> = {
+// Empty output contract (previously "silent") — Stop events carry no tool_name
+const emptyOutput: HookContract<StopInput, {}> = {
   name: "TestEmpty",
   event: "Stop",
   accepts: () => true,
@@ -146,6 +146,10 @@ const validToolInput = JSON.stringify({
   session_id: "test-sess",
   tool_name: "TaskUpdate",
   tool_input: { taskId: "C1", status: "in_progress" },
+});
+
+const validStopInput = JSON.stringify({
+  session_id: "test-sess",
 });
 
 // ─── Pipeline Tests ──────────────────────────────────────────────────────────
@@ -245,10 +249,25 @@ describe("runHook — output types", () => {
     expect(output.hookSpecificOutput.additionalContext).toBe("async done");
   });
 
-  it("empty output produces no stdout", async () => {
+  it("empty output produces no stdout for Stop contracts", async () => {
     const io = createMockIO();
-    await runHook(emptyOutput, { ...io, stdinOverride: validToolInput });
+    await runHook(emptyOutput, { ...io, stdinOverride: validStopInput });
     expect(io.stdoutLines.length).toBe(0);
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("PostToolUse ok({}) normalizes to { continue: true }", async () => {
+    const toolEmptyContract: HookContract<ToolHookInput, {}> = {
+      name: "TestToolEmpty",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok({}),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(toolEmptyContract, { ...io, stdinOverride: validToolInput });
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
     expect(io.exitCode).toBe(0);
   });
 });

@@ -4,7 +4,7 @@ import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
-import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { SessionStartInput, StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -274,17 +274,33 @@ describe("runHook — ask output format", () => {
 // ─── runHookWith — silent and updatedInput output ────────────────────────────
 
 describe("runHookWith — output edge cases", () => {
-  it("produces no stdout for silent output", async () => {
-    const silentContract: HookContract<ToolHookInput, {}> = {
+  it("produces no stdout for silent output on Stop contracts", async () => {
+    const silentContract: HookContract<StopInput, {}> = {
       name: "TestSilentWith",
       event: "Stop",
       accepts: () => true,
       execute: () => ok({}),
       defaultDeps: {},
     };
+    const validStopInput: StopInput = { session_id: "test-sess" };
     const io = createMockIO();
-    await runHookWith(silentContract, validToolInput, io);
+    await runHookWith(silentContract, validStopInput, io);
     expect(io.stdoutLines.length).toBe(0);
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("PostToolUse ok({}) normalizes to { continue: true } via runHookWith", async () => {
+    const toolEmptyContract: HookContract<ToolHookInput, {}> = {
+      name: "TestToolEmptyWith",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok({}),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(toolEmptyContract, validToolInput, io);
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
     expect(io.exitCode).toBe(0);
   });
 
