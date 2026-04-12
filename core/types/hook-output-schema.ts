@@ -12,6 +12,7 @@
 
 import type { SyncHookJSONOutput as SDKSyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { Schema } from "effect";
+import type { IsEqual } from "type-fest";
 
 // ─── hookSpecificOutput variants (discriminated on hookEventName) ────────────
 
@@ -159,23 +160,16 @@ export function validateHookOutput(raw: unknown): ReturnType<typeof validateSync
 
 // ─── SDK Drift Protection ───────────────────────────────────────────────────
 //
-// Compile-time assertion: if the SDK adds/removes/renames top-level fields, this fails.
-// The Effect Schema must stay in sync with the SDK type definition.
+// Compile-time assertion: if the SDK and Effect Schema top-level keys diverge, this fails.
+// We check bidirectional key assignability rather than deep structural equality because:
+// - Effect Schema uses `readonly` modifiers the SDK doesn't
+// - We intentionally use `Schema.Unknown` for some nested types (e.g., PermissionUpdate[])
 //
-// We check bidirectional assignability of the top-level keys. This catches:
-// - SDK adds a field we don't have (our type won't satisfy SDK constraint)
-// - SDK removes a field we still have (SDK type won't satisfy our constraint)
-// - Field name typos
-//
-// Note: hookSpecificOutput variants are checked separately via HookSpecificEventName
-// in hook-output-helpers.ts, which derives from the SDK union directly.
+// This catches field additions/removals/renames at the top level.
+// hookSpecificOutput variants are checked via HookSpecificEventName in hook-output-helpers.ts.
 
-type TopLevelKeys<T> = keyof T;
-type SDKKeys = TopLevelKeys<SDKSyncHookJSONOutput>;
-type SchemaKeys = TopLevelKeys<SyncHookJSONOutputType>;
+type SDKKeys = keyof SDKSyncHookJSONOutput;
+type SchemaKeys = keyof SyncHookJSONOutputType;
 
-// These fail to compile if top-level keys diverge
-type _SDKHasAllSchemaKeys = SchemaKeys extends SDKKeys ? true : never;
-type _SchemaHasAllSDKKeys = SDKKeys extends SchemaKeys ? true : never;
-const _keyCheck1: _SDKHasAllSchemaKeys = true;
-const _keyCheck2: _SchemaHasAllSDKKeys = true;
+type _SDKHasAllSchemaKeys = IsEqual<SchemaKeys, SDKKeys>;
+const _keyDriftCheck: _SDKHasAllSchemaKeys = true;
