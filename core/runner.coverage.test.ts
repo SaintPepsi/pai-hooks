@@ -365,6 +365,70 @@ describe("runHook — output validation failure (fail-open path)", () => {
   });
 });
 
+// ─── Semantic Validation Warning Tests ──────────────────────────────────────
+
+describe("runHook — semantic validation warning (warn-and-pass-through)", () => {
+  it("emits stderr warning for continue:true + decision:block contradiction", async () => {
+    const contradictoryContract: HookContract<ToolHookInput, {}> = {
+      name: "TestSemanticWarn",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          continue: true,
+          decision: "block" as const,
+          reason: "some reason",
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(contradictoryContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stderrLines.some((l) => l.includes("semantic validation warning"))).toBe(true);
+    expect(io.stderrLines.some((l) => l.includes("mutually exclusive"))).toBe(true);
+  });
+
+  it("passes the original output through unchanged despite contradiction", async () => {
+    const contradictoryContract: HookContract<ToolHookInput, {}> = {
+      name: "TestSemanticPassThrough",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          continue: true,
+          decision: "block" as const,
+          reason: "pass through me",
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(contradictoryContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stdoutLines.length).toBe(1);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.continue).toBe(true);
+    expect(output.decision).toBe("block");
+    expect(output.reason).toBe("pass through me");
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("does not emit semantic warning for a valid output", async () => {
+    const validContract: HookContract<ToolHookInput, {}> = {
+      name: "TestSemanticClean",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          decision: "block" as const,
+          reason: "clean block",
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(validContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stderrLines.some((l) => l.includes("semantic validation warning"))).toBe(false);
+    expect(io.exitCode).toBe(0);
+  });
+});
+
 // ─── runHook — additional branches ──────────────────────────────────────────
 
 describe("runHook — stdin and dedup branches", () => {

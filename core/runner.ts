@@ -18,7 +18,10 @@ import {
   getEventType as schemaGetEventType,
 } from "@hooks/core/types/hook-input-schema";
 import type { HookEventType, HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
-import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
+import {
+  validateHookOutput,
+  validateOutputSemantics,
+} from "@hooks/core/types/hook-output-schema";
 
 // ─── Event Resolution ──────────────────────────────────────────────────────
 
@@ -149,6 +152,12 @@ async function executePipeline<I extends HookInput, D>(
     io.write(JSON.stringify({ continue: true }));
     io.exit(0);
     return;
+  }
+
+  // Semantic validation — warn on contradictions but pass output through unchanged
+  const semanticWarning = validateOutputSemantics(validated.right);
+  if (semanticWarning !== null) {
+    io.writeErr(`[${contract.name}] semantic validation warning: ${semanticWarning}`);
   }
 
   // Direct serialization — contracts return SyncHookJSONOutput, no mapping needed

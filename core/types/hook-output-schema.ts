@@ -220,6 +220,44 @@ export function validateHookOutput(raw: unknown): ReturnType<typeof validateSync
   return validateSync(raw);
 }
 
+// ─── Semantic Validation ────────────────────────────────────────────────────
+
+/**
+ * Check a validated hook output for contradictory field combinations that are
+ * semantically invalid but pass schema validation.
+ *
+ * Returns the first contradiction message found, or null if no contradictions.
+ */
+export function validateOutputSemantics(output: SyncHookJSONOutputType): string | null {
+  const { continue: cont, decision, reason, stopReason, hookSpecificOutput } = output;
+
+  // 1. continue:true and decision:block are mutually exclusive
+  if (cont === true && decision === "block") {
+    return "continue:true and decision:block are mutually exclusive";
+  }
+
+  // 2. decision:block requires a reason
+  if (decision === "block" && !reason) {
+    return "decision:block requires a reason";
+  }
+
+  // 3. continue:true and stopReason are mutually exclusive
+  if (cont === true && stopReason !== undefined) {
+    return "continue:true and stopReason are mutually exclusive";
+  }
+
+  // 4. PreToolUse permissionDecision:deny should not set continue:true
+  if (
+    cont === true &&
+    hookSpecificOutput?.hookEventName === "PreToolUse" &&
+    hookSpecificOutput.permissionDecision === "deny"
+  ) {
+    return "PreToolUse permissionDecision:deny should not set continue:true";
+  }
+
+  return null;
+}
+
 // ─── SDK Drift Protection ───────────────────────────────────────────────────
 //
 // Compile-time assertion: if the SDK and Effect Schema top-level keys diverge, this fails.

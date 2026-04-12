@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { validateHookOutput } from "./hook-output-schema";
+import { validateHookOutput, validateOutputSemantics } from "./hook-output-schema";
 
 describe("hook-output-schema", () => {
   it("validates a bare continue output (R1)", () => {
@@ -164,5 +164,89 @@ describe("hook-output-schema", () => {
       },
     });
     expect(result._tag).toBe("Left");
+  });
+});
+
+// ─── validateOutputSemantics ─────────────────────────────────────────────────
+
+describe("validateOutputSemantics", () => {
+  // ── Contradiction 1: continue:true + decision:block ──────────────────────
+  it("flags continue:true with decision:block", () => {
+    expect(
+      validateOutputSemantics({ continue: true, decision: "block", reason: "bad" }),
+    ).toBe("continue:true and decision:block are mutually exclusive");
+  });
+
+  it("returns null for continue:true with decision:approve", () => {
+    expect(validateOutputSemantics({ continue: true, decision: "approve" })).toBeNull();
+  });
+
+  // ── Contradiction 2: decision:block without reason ───────────────────────
+  it("flags decision:block without reason", () => {
+    expect(validateOutputSemantics({ decision: "block" })).toBe(
+      "decision:block requires a reason",
+    );
+  });
+
+  it("returns null for decision:block with reason", () => {
+    expect(validateOutputSemantics({ decision: "block", reason: "dangerous" })).toBeNull();
+  });
+
+  // ── Contradiction 3: continue:true + stopReason ──────────────────────────
+  it("flags continue:true with stopReason present", () => {
+    expect(validateOutputSemantics({ continue: true, stopReason: "done" })).toBe(
+      "continue:true and stopReason are mutually exclusive",
+    );
+  });
+
+  it("returns null for continue:true without stopReason", () => {
+    expect(validateOutputSemantics({ continue: true })).toBeNull();
+  });
+
+  // ── Contradiction 4: PreToolUse permissionDecision:deny + continue:true ──
+  it("flags PreToolUse permissionDecision:deny with continue:true", () => {
+    expect(
+      validateOutputSemantics({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+        },
+      }),
+    ).toBe("PreToolUse permissionDecision:deny should not set continue:true");
+  });
+
+  it("returns null for PreToolUse permissionDecision:allow with continue:true", () => {
+    expect(
+      validateOutputSemantics({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "allow",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("returns null for PostToolUse with continue:true (no PreToolUse deny)", () => {
+    expect(
+      validateOutputSemantics({
+        continue: true,
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  // ── Valid combinations ────────────────────────────────────────────────────
+  it("returns null for empty output", () => {
+    expect(validateOutputSemantics({})).toBeNull();
+  });
+
+  it("returns null for continue:false with decision:block and reason", () => {
+    expect(
+      validateOutputSemantics({ continue: false, decision: "block", reason: "blocked" }),
+    ).toBeNull();
   });
 });
