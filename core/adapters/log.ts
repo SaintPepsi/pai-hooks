@@ -22,6 +22,8 @@ export interface HookLogEntry {
   duration_ms: number;
   session_id?: string;
   error?: string;
+  /** Distinguishes hooks that produced output from silent no-ops. */
+  output_type?: "output" | "silent";
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────

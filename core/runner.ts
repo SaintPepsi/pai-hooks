@@ -74,8 +74,12 @@ function makeEmitLog(
   contract: { name: string; event: HookEventType | HookEventType[] },
   sessionId: string | undefined,
   input?: HookInput,
-): (status: HookLogEntry["status"], error?: string) => void {
-  return (status, error?) => {
+): (
+  status: HookLogEntry["status"],
+  error?: string,
+  outputType?: HookLogEntry["output_type"],
+) => void {
+  return (status, error?, outputType?) => {
     io.log({
       ts: new Date().toISOString(),
       hook: contract.name,
@@ -88,6 +92,7 @@ function makeEmitLog(
       duration_ms: Math.round(performance.now() - io.startTime),
       session_id: sessionId,
       ...(error ? { error } : {}),
+      ...(outputType ? { output_type: outputType } : {}),
     });
   };
 }
@@ -150,10 +155,11 @@ async function executePipeline<I extends HookInput, D>(
   // Invariant: "{}" is the canonical silent/no-op shape and never carries semantic
   // meaning. Suppressing it avoids writing empty output to Claude Code's stdin.
   const json = JSON.stringify(result.value);
-  if (json !== "{}") {
+  const hasOutput = json !== "{}";
+  if (hasOutput) {
     io.write(json);
   }
-  emitLog("ok");
+  emitLog("ok", undefined, hasOutput ? "output" : "silent");
   io.exit(0);
 }
 
