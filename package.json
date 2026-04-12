@@ -21,7 +21,6 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.98",
     "effect": "^3.21.0",
-    "lint-staged": "^16.4.0",
     "yaml": "^2.8.2"
   },
   "trustedDependencies": [
