@@ -188,12 +188,11 @@ export function spawnSyncSafe(
   return tryCatch(
     () => {
       const encoding: BufferEncoding = opts.encoding ?? "utf-8";
-      // If the caller passed env explicitly we honor it as-is; otherwise
-      // default to the sanitized child env with parent-session markers
-      // stripped.
-      const env = opts.env
-        ? (opts.env as NodeJS.ProcessEnv)
-        : (buildChildEnv() as NodeJS.ProcessEnv);
+      // Always route through buildChildEnv so parent-session markers
+      // (CLAUDECODE, CLAUDE_CODE, CLAUDE_AGENT_SDK) are stripped. Callers
+      // pass overrides via opts.env — those keys are merged on top after
+      // stripping, consistent with spawnBackground.
+      const env = buildChildEnv(opts.env) as NodeJS.ProcessEnv;
       const result = spawnSync(cmd, args, {
         cwd: opts.cwd,
         timeout: opts.timeout,
@@ -202,6 +201,10 @@ export function spawnSyncSafe(
         env,
         input: opts.input,
       });
+      // spawnSync does not throw on ENOENT or ETIMEDOUT — it returns
+      // normally with result.error set and status === null. Throw so
+      // tryCatch can catch it and return an err() result.
+      if (result.error) throw result.error;
       // With encoding set, spawnSync returns string | null for stdout/stderr.
       return {
         stdout: (result.stdout as string | null) ?? "",

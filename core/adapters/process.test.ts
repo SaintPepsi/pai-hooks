@@ -152,15 +152,43 @@ describe("spawnSyncSafe", () => {
     }
   });
 
-  it("honors explicit env override without stripping", () => {
-    // When caller passes env, they own the whole env map — no implicit
-    // buildChildEnv rewrite. This is important for callers that need a
-    // pristine sandbox.
+  it("merges explicit env override on top of buildChildEnv stripping", () => {
+    // opts.env keys are merged on top of the sanitized env — custom keys
+    // come through, but CLAUDECODE vars are always stripped regardless.
     const r = spawnSyncSafe("sh", ["-c", "echo CUSTOM=$PAI_TEST_KEY"], {
       env: { PAI_TEST_KEY: "pai-value", PATH: process.env.PATH },
     });
     expect(r.ok).toBe(true);
     expect(r.value!.stdout.trim()).toBe("CUSTOM=pai-value");
+  });
+
+  it("strips CLAUDECODE even when caller passes explicit env", () => {
+    // buildChildEnv always runs — re-injecting CLAUDECODE via opts.env
+    // is not possible because overrides are merged after stripping but
+    // the strip list applies to the base process.env, not the overrides.
+    // If the caller explicitly sets CLAUDECODE in overrides, it wins
+    // (that is intentional — see buildChildEnv semantics). But if it
+    // is only in process.env, it must be stripped.
+    const prior = process.env.CLAUDECODE;
+    process.env.CLAUDECODE = "1";
+    try {
+      const r = spawnSyncSafe("sh", ["-c", "echo CC=${CLAUDECODE:-unset}"], {
+        env: { PAI_TEST_KEY: "value", PATH: process.env.PATH },
+      });
+      expect(r.ok).toBe(true);
+      expect(r.value!.stdout.trim()).toBe("CC=unset");
+    } finally {
+      if (prior === undefined) delete process.env.CLAUDECODE;
+      else process.env.CLAUDECODE = prior;
+    }
+  });
+
+  it("returns err for nonexistent command (ENOENT)", () => {
+    // spawnSync sets result.error on ENOENT instead of throwing.
+    // spawnSyncSafe must detect and re-throw so tryCatch wraps it as err().
+    const r = spawnSyncSafe("pai-nonexistent-binary-xyz-abc", []);
+    expect(r.ok).toBe(false);
+    expect(r.error!.code).toBe(ErrorCode.ProcessSpawnFailed);
   });
 });
 
