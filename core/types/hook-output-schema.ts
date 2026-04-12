@@ -10,6 +10,7 @@
  *   if (result._tag === "Left") { ... validation failed ... }
  */
 
+import type { SyncHookJSONOutput as SDKSyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { Schema } from "effect";
 
 // ─── hookSpecificOutput variants (discriminated on hookEventName) ────────────
@@ -144,27 +145,6 @@ export const SyncHookJSONOutput = Schema.Struct({
 });
 
 export type SyncHookJSONOutputType = typeof SyncHookJSONOutput.Type;
-
-// ─── Events that support hookSpecificOutput ─────────────────────────────────
-
-export const HOOK_SPECIFIC_EVENTS = new Set([
-  "PreToolUse",
-  "PostToolUse",
-  "PostToolUseFailure",
-  "UserPromptSubmit",
-  "SessionStart",
-  "Setup",
-  "SubagentStart",
-  "Notification",
-  "PermissionRequest",
-  "PermissionDenied",
-  "Elicitation",
-  "ElicitationResult",
-  "CwdChanged",
-  "FileChanged",
-  "WorktreeCreate",
-] as const);
-
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 const validateSync = Schema.decodeUnknownEither(SyncHookJSONOutput);
@@ -176,3 +156,26 @@ const validateSync = Schema.decodeUnknownEither(SyncHookJSONOutput);
 export function validateHookOutput(raw: unknown): ReturnType<typeof validateSync> {
   return validateSync(raw);
 }
+
+// ─── SDK Drift Protection ───────────────────────────────────────────────────
+//
+// Compile-time assertion: if the SDK adds/removes/renames top-level fields, this fails.
+// The Effect Schema must stay in sync with the SDK type definition.
+//
+// We check bidirectional assignability of the top-level keys. This catches:
+// - SDK adds a field we don't have (our type won't satisfy SDK constraint)
+// - SDK removes a field we still have (SDK type won't satisfy our constraint)
+// - Field name typos
+//
+// Note: hookSpecificOutput variants are checked separately via HookSpecificEventName
+// in hook-output-helpers.ts, which derives from the SDK union directly.
+
+type TopLevelKeys<T> = keyof T;
+type SDKKeys = TopLevelKeys<SDKSyncHookJSONOutput>;
+type SchemaKeys = TopLevelKeys<SyncHookJSONOutputType>;
+
+// These fail to compile if top-level keys diverge
+type _SDKHasAllSchemaKeys = SchemaKeys extends SDKKeys ? true : never;
+type _SchemaHasAllSDKKeys = SDKKeys extends SchemaKeys ? true : never;
+const _keyCheck1: _SDKHasAllSchemaKeys = true;
+const _keyCheck2: _SchemaHasAllSDKKeys = true;
