@@ -1954,7 +1954,7 @@ This is the checking half of a two-part system. A separate index builder maintai
 
         <div class="flow-step">
           <div class="step-dot">8</div>
-          <div class="step-content"><p>At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets</p></div>
+          <div class="step-content"><p>At 4/4 signals and blocking enabled: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise</p></div>
         </div>
 
         <div class="flow-step">
@@ -2072,7 +2072,7 @@ Pattern detected: "makeDeps" (65 files)
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Exact duplicate blocked (4/4 signals)</h3>
       
       <div class="uc-example">
-        <div>The model writes a <code>getFilePath</code> function identical to one in <code>shared.ts</code>. All 4 dimensions match (hash, name, sig, body). DuplicationChecker blocks: "Exact duplicate function(s) detected: getFilePath duplicates shared.ts:getFilePath. Reuse the existing function."</div>
+        <div>The model writes a <code>getFilePath</code> function identical to one in <code>lib/tool-input.ts</code>. All 4 dimensions match (hash, name, sig, body). DuplicationChecker blocks with: "getFilePath duplicates lib/tool-input.ts:getFilePath (line 12) → Import it from lib/tool-input.ts". Because <code>lib/tool-input.ts</code> is a single-export source file whose name matches the function, it is tagged <code>source: true</code> and the guidance directs to import rather than extract.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">

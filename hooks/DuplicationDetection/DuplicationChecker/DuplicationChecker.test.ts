@@ -204,7 +204,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       if (hs && hs.hookEventName === "PreToolUse") {
         expect(hs.permissionDecision).toBe("deny");
         expect(hs.permissionDecisionReason).toContain("duplicates");
-        expect(hs.permissionDecisionReason).toContain("Reuse the existing function");
+        expect(hs.permissionDecisionReason).toContain("Reuse the existing function from");
       }
     });
 

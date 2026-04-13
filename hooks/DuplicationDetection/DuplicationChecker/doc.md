@@ -51,7 +51,7 @@ It does **not** fire when:
 5. Extracts function signatures from the content using SWC parser
 6. Compares extracted functions against the index using `checkFunctions`
 7. Logs all checks to `checker.jsonl` with branch metadata
-8. At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets
+8. At 4/4 signals and blocking enabled: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise
 9. At 2-3/4 signals: logs finding, returns continue
 
 ```typescript
@@ -134,7 +134,7 @@ Pattern detection thresholds are set in `hookConfig.duplicationChecker` in `sett
 
 ### Example 1: Exact duplicate blocked (4/4 signals)
 
-> The model writes a `getFilePath` function identical to one in `shared.ts`. All 4 dimensions match (hash, name, sig, body). DuplicationChecker blocks: "Exact duplicate function(s) detected: getFilePath duplicates shared.ts:getFilePath. Reuse the existing function."
+> The model writes a `getFilePath` function identical to one in `lib/tool-input.ts`. All 4 dimensions match (hash, name, sig, body). DuplicationChecker blocks with: "getFilePath duplicates lib/tool-input.ts:getFilePath (line 12) → Import it from lib/tool-input.ts". Because `lib/tool-input.ts` is a single-export source file whose name matches the function, it is tagged `source: true` and the guidance directs to import rather than extract.
 
 ### Example 2: Partial match logged (2-3 signals)
 

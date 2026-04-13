@@ -38,6 +38,8 @@ It does **not** fire when:
 7. Writes the resulting index as JSON to `/tmp/pai/duplication/{hash}/{branch}/index.json`
 8. Logs build/update statistics (function count, file count, size, and build time) to stderr
 
+Each `IndexEntry` may carry `source: true` when the file is identified as a canonical source: it lives in a `lib/`, `core/`, `utils/`, or `shared/` directory, contains exactly one function, and that function's name matches the filename stem with kebab-to-camelCase normalization (e.g., `lib/hook-config.ts` containing `hookConfig`). DuplicationChecker uses this flag to emit actionable guidance — "Import it from X" instead of "Reuse the existing function or extract both to a shared module".
+
 ```typescript
 // Core flow — surgical update on PostToolUse, full rebuild on SessionStart
 const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();

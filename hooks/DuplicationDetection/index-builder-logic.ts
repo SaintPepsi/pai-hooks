@@ -8,6 +8,7 @@
  * to keep the checker's import surface minimal.
  */
 
+import { basename, extname } from "node:path";
 import type { ParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import {
@@ -31,6 +32,33 @@ export interface IndexBuilderDeps {
   join: (...parts: string[]) => string;
   resolve: (path: string) => string;
   parserDeps: ParserDeps;
+}
+
+// ─── Source Heuristic ───────────────────────────────────────────────────────
+
+const SOURCE_DIRS = new Set(["lib", "core", "utils", "shared"]);
+
+/**
+ * Convert kebab-case to camelCase: "hook-config" → "hookConfig"
+ */
+export function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/**
+ * Returns true when a file is likely a canonical source (not a consumer).
+ * Criteria: lives in a source directory (lib/core/utils/shared), has exactly
+ * one function in the file, and the function name matches the filename stem
+ * (with kebab-case → camelCase normalization).
+ */
+export function isSourceFile(relPath: string, fnName: string, fileEntryCount: number): boolean {
+  if (fileEntryCount !== 1) return false;
+  const parts = relPath.split("/");
+  const inSourceDir = parts.some((p) => SOURCE_DIRS.has(p));
+  if (!inSourceDir) return false;
+  const stem = basename(relPath, extname(relPath));
+  // Match exact (e.g., "pipe" === "pipe") or kebab-to-camel (e.g., "hook-config" → "hookConfig")
+  return stem === fnName || kebabToCamel(stem) === fnName;
 }
 
 // ─── File Scanning ──────────────────────────────────────────────────────────
@@ -93,6 +121,7 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     const functions = extractFunctions(content, isTsx, deps.parserDeps);
 
     for (const fn of functions) {
+      const source = isSourceFile(relPath, fn.name, functions.length) || undefined;
       entries.push({
         f: relPath,
         n: fn.name,
@@ -102,6 +131,7 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
         r: fn.returnType,
         fp: fn.fingerprint,
         s: 0, // body size not needed for checker, keep lightweight
+        source,
       });
     }
   }
@@ -248,6 +278,7 @@ export function updateIndexForFile(
   const functions = extractFunctions(content, isTsx, deps.parserDeps);
 
   for (const fn of functions) {
+    const source = isSourceFile(relPath, fn.name, functions.length) || undefined;
     keptEntries.push({
       f: relPath,
       n: fn.name,
@@ -257,6 +288,7 @@ export function updateIndexForFile(
       r: fn.returnType,
       fp: fn.fingerprint,
       s: 0,
+      source,
     });
   }
 

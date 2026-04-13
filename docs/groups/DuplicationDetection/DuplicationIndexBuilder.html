@@ -1926,6 +1926,7 @@ This is the indexing half of a two-part system. The index builder creates and ma
           <div class="step-content"><p>Logs build/update statistics (function count, file count, size, and build time) to stderr</p></div>
         </div>
 </div>
+      <p>Each <code>IndexEntry</code> may carry <code>source: true</code> when the file is identified as a canonical source: it lives in a <code>lib/</code>, <code>core/</code>, <code>utils/</code>, or <code>shared/</code> directory, contains exactly one function, and that function's name matches the filename stem with kebab-to-camelCase normalization (e.g., <code>lib/hook-config.ts</code> containing <code>hookConfig</code>). DuplicationChecker uses this flag to emit actionable guidance — "Import it from X" instead of "Reuse the existing function or extract both to a shared module".</p>
       
       <div class="code-window">
         <div class="code-window-header">

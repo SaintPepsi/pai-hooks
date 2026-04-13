@@ -23,6 +23,7 @@ export interface IndexEntry {
   r: string;
   fp: string;
   s: number;
+  source?: boolean;
 }
 
 export interface DuplicationIndex {
@@ -48,6 +49,7 @@ export interface DuplicationMatch {
   signals: string[];
   topScore: number;
   derivation?: boolean;
+  targetIsSource?: boolean;
 }
 
 export interface PatternEntry {
@@ -252,7 +254,7 @@ export function checkFunctions(
 
   for (const fn of functions) {
     const signals: string[] = [];
-    let bestTarget: { file: string; name: string; line: number } | null = null;
+    let bestTarget: { file: string; name: string; line: number; source?: boolean } | null = null;
     let topScore = 0;
 
     let isDerivation = false;
@@ -265,12 +267,12 @@ export function checkFunctions(
         const peerSig = `(${peer.p})→${peer.r}`;
         if (fnSig !== peerSig) {
           isDerivation = true;
-          bestTarget = { file: peer.f, name: peer.n, line: peer.l };
+          bestTarget = { file: peer.f, name: peer.n, line: peer.l, source: peer.source };
           topScore = 1.0;
           break;
         }
         signals.push("hash");
-        bestTarget = { file: peer.f, name: peer.n, line: peer.l };
+        bestTarget = { file: peer.f, name: peer.n, line: peer.l, source: peer.source };
         topScore = 1.0;
         break;
       }
@@ -281,7 +283,7 @@ export function checkFunctions(
       signals.push("name");
       if (!bestTarget) {
         const peer = index.entries[namePeers[0]];
-        bestTarget = { file: peer.f, name: peer.n, line: peer.l };
+        bestTarget = { file: peer.f, name: peer.n, line: peer.l, source: peer.source };
       }
       topScore = Math.max(topScore, Math.min(1.0, namePeers.length / 10));
     }
@@ -298,7 +300,7 @@ export function checkFunctions(
           signals.push("body");
           if (sim > topScore) {
             topScore = sim;
-            bestTarget = { file: peer.f, name: peer.n, line: peer.l };
+            bestTarget = { file: peer.f, name: peer.n, line: peer.l, source: peer.source };
           }
           break;
         }
@@ -315,6 +317,7 @@ export function checkFunctions(
         signals: ["hash"],
         topScore,
         derivation: true,
+        targetIsSource: bestTarget.source,
       });
     } else if (signals.length >= LOG_THRESHOLD && bestTarget) {
       matches.push({
@@ -325,6 +328,7 @@ export function checkFunctions(
         targetLine: bestTarget.line,
         signals,
         topScore,
+        targetIsSource: bestTarget.source,
       });
     }
   }
