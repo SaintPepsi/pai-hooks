@@ -30,6 +30,10 @@ describe("getAdapterFor", () => {
     expect(getAdapterFor("/project/src/types.d.ts")).toBeNull();
   });
 
+  test("returns null for .d.tsx declaration file", () => {
+    expect(getAdapterFor("/project/src/types.d.tsx")).toBeNull();
+  });
+
   test("returns null for .js file", () => {
     expect(getAdapterFor("/project/src/utils.js")).toBeNull();
   });

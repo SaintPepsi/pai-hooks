@@ -40,11 +40,17 @@ export function greet(name: string): string {
 `.trim();
 
 describe("typescriptAdapter.extractFunctions", () => {
-  test("produces identical output to extractFunctions for .ts file", () => {
-    const filePath = "/project/src/utils.ts";
-    const adapterResult = typescriptAdapter.extractFunctions(TS_SAMPLE, filePath);
-    const directResult = extractFunctions(TS_SAMPLE, false, defaultParserDeps);
-    expect(adapterResult).toEqual(directResult);
+  test("extracts function with correct structure from a .ts file", () => {
+    const fns = typescriptAdapter.extractFunctions(TS_SAMPLE, "/project/src/utils.ts");
+    expect(fns.length).toBe(1);
+    expect(fns[0].name).toBe("greet");
+    expect(typeof fns[0].line).toBe("number");
+    expect(fns[0].line).toBeGreaterThan(0);
+    expect(typeof fns[0].bodyHash).toBe("string");
+    expect(fns[0].bodyHash.length).toBeGreaterThan(0);
+    expect(fns[0].paramSig).toContain("string");
+    expect(fns[0].returnType).toBe("string");
+    expect(typeof fns[0].fingerprint).toBe("string");
   });
 
   test("extracts function from a .ts file", () => {

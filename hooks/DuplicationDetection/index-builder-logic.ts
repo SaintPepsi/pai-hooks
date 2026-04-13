@@ -9,6 +9,7 @@
  */
 
 import { basename, extname } from "node:path";
+import { tryCatch } from "@hooks/core/result";
 import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import type { LanguageAdapter } from "@hooks/hooks/DuplicationDetection/shared";
 import {
@@ -119,7 +120,16 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     const relPath = filePath.startsWith(root) ? filePath.slice(root.length + 1) : filePath;
     const adapter = deps.getAdapter(filePath);
     if (!adapter) continue;
-    const functions = adapter.extractFunctions(content, filePath);
+    // Adapter may throw — fail open via Result, skip file rather than killing entire build.
+    const extractResult = tryCatch(
+      () => adapter.extractFunctions(content, filePath),
+      (e) => e,
+    );
+    if (!extractResult.ok) {
+      console.warn(`[DuplicationDetection] extractFunctions failed for ${filePath}, skipping`);
+      continue;
+    }
+    const functions = extractResult.value;
 
     for (const fn of functions) {
       const source = isSourceFile(relPath, fn.name, functions.length) || undefined;
@@ -274,9 +284,17 @@ export function updateIndexForFile(
   // Remove old entries for this file
   const keptEntries = existingIndex.entries.filter((e) => e.f !== relPath);
 
-  // Extract new functions from the updated content
+  // Extract new functions from the updated content — fail open if adapter throws.
   const adapter = deps.getAdapter(filePath);
-  const functions = adapter ? adapter.extractFunctions(content, filePath) : [];
+  const functions = adapter
+    ? tryCatch(
+        () => adapter.extractFunctions(content, filePath),
+        (e) => {
+          console.warn(`[DuplicationDetection] extractFunctions failed for ${filePath}, skipping`);
+          return e;
+        },
+      ).value ?? []
+    : [];
 
   for (const fn of functions) {
     const source = isSourceFile(relPath, fn.name, functions.length) || undefined;

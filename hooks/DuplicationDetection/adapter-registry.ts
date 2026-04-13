@@ -25,15 +25,16 @@ const ADAPTERS: LanguageAdapter[] = [typescriptAdapter];
 export function getAdapterFor(filePath: string): LanguageAdapter | null {
   for (const adapter of ADAPTERS) {
     // Exclusion patterns take precedence over extension matching.
-    if (adapter.excludePatterns?.some((pat) => filePath.endsWith(pat))) return null;
+    if (adapter.excludePatterns?.some((pat) => filePath.endsWith(pat))) continue;
     if (adapter.extensions.some((ext) => filePath.endsWith(ext))) return adapter;
   }
   return null;
 }
 
 /**
- * Returns all file extensions registered across all adapters, excluding
- * patterns that are explicitly excluded (e.g. .d.ts is not included).
+ * Returns all file extensions registered across all adapters.
+ * Note: excludePatterns are not filtered out here — use getAdapterFor()
+ * to check whether a specific file will actually be processed.
  */
 export function getRegisteredExtensions(): string[] {
   return ADAPTERS.flatMap((a) => a.extensions);

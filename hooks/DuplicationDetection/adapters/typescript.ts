@@ -12,7 +12,7 @@ import type { LanguageAdapter } from "@hooks/hooks/DuplicationDetection/shared";
 export const typescriptAdapter: LanguageAdapter = {
   name: "typescript",
   extensions: [".ts", ".tsx"],
-  excludePatterns: [".d.ts"],
+  excludePatterns: [".d.ts", ".d.tsx"],
   extractFunctions(content: string, filePath: string) {
     const isTsx = filePath.endsWith(".tsx");
     return extractFunctions(content, isTsx, defaultParserDeps);
