@@ -49,12 +49,8 @@ export const DocObligationTracker: SyncHookContract<ToolHookInput, DocTrackerDep
 
       if (remaining.length === 0) {
         deps.removeFlag(flagFile);
-        deps.stderr("[DocObligationTracker] All pending files documented — clearing flag");
       } else {
         deps.writePending(flagFile, remaining);
-        deps.stderr(
-          `[DocObligationTracker] Cleared documented files, ${remaining.length} still pending`,
-        );
       }
 
       return ok({ continue: true });
@@ -62,7 +58,6 @@ export const DocObligationTracker: SyncHookContract<ToolHookInput, DocTrackerDep
 
     const excludePatterns = deps.getExcludePatterns();
     if (excludePatterns.length > 0 && matchesDocExcludePattern(filePath, excludePatterns)) {
-      deps.stderr(`[DocObligationTracker] Excluded: ${filePath}`);
       return ok({ continue: true });
     }
 
@@ -71,7 +66,6 @@ export const DocObligationTracker: SyncHookContract<ToolHookInput, DocTrackerDep
       pending.push(filePath);
     }
     deps.writePending(flagFile, pending);
-    deps.stderr(`[DocObligationTracker] Code modified: ${filePath} — docs pending`);
 
     return ok({ continue: true });
   },

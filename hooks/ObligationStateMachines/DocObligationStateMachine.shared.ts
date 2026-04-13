@@ -7,9 +7,9 @@ import { dirname, join } from "node:path";
 import {
   fileExists as fsFileExists,
   readDir as fsReadDir,
-  readFile,
+  readJson,
   removeFile,
-  writeFile,
+  writeFileAtomic,
 } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
@@ -60,16 +60,26 @@ export function isNonTestCodeFile(filePath: string): boolean {
 export function isRelatedDoc(docPath: string, codePath: string): boolean {
   const docDir = dirname(docPath);
   const codeDir = dirname(codePath);
+  // E1: root-level dir ("/") would match every absolute path — treat as unrelated
+  if (docDir === "/" || docDir === "" || codeDir === "/" || codeDir === "") return false;
   return codeDir.startsWith(docDir) || docDir.startsWith(codeDir);
 }
 
+/** E4: Sanitize session_id to prevent path traversal via "..", "/", or "\" in file paths. */
+export function sanitizeSessionId(sessionId: string): string {
+  return sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
 export function pendingPath(stateDir: string, sessionId: string): string {
-  return join(stateDir, `docs-pending-${sessionId}.json`);
+  return join(stateDir, `docs-pending-${sanitizeSessionId(sessionId)}.json`);
 }
 
 export function blockCountPath(stateDir: string, sessionId: string): string {
-  return join(stateDir, `docs-block-count-${sessionId}.txt`);
+  return join(stateDir, `docs-block-count-${sanitizeSessionId(sessionId)}.txt`);
 }
+
+/** E6: Maximum number of pending files tracked per session. */
+export const MAX_PENDING_FILES = 100;
 
 export const MAX_BLOCKS = 1;
 
@@ -161,28 +171,34 @@ export const defaultDeps: DocObligationDeps = {
   stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
-    const result = readFile(path);
+    // E2: use readJson (wraps JSON.parse in try-catch) to avoid crashing on corrupt state
+    const result = readJson<unknown>(path);
     if (!result.ok) return [];
-    const parsed = JSON.parse(result.value);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = result.value;
+    if (!Array.isArray(parsed)) return [];
+    // E5: filter to strings only — reject any non-string elements
+    return parsed.filter((x): x is string => typeof x === "string");
   },
   writePending: (path: string, files: string[]) => {
-    writeFile(path, JSON.stringify(files));
+    // E3: atomic write (write-then-rename) to prevent partial-write corruption
+    // E6: cap list to MAX_PENDING_FILES most recent entries
+    const capped = files.slice(-MAX_PENDING_FILES);
+    writeFileAtomic(path, JSON.stringify(capped));
   },
   removeFlag: (path: string) => {
     removeFile(path);
   },
   readBlockCount: (path: string) => {
-    const result = readFile(path);
+    const result = readJson<unknown>(path);
     if (!result.ok) return 0;
-    const n = parseInt(result.value.trim(), 10);
+    const n = parseInt(String(result.value).trim(), 10);
     return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
-    writeFile(path, String(count));
+    writeFileAtomic(path, String(count));
   },
   writeReview: (path: string, content: string) => {
-    writeFile(path, content);
+    writeFileAtomic(path, content);
   },
   stderr: defaultStderr,
 };

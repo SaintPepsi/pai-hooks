@@ -13,6 +13,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -74,6 +75,22 @@ export function writeFileExclusive(path: string, content: string): Result<void, 
   return tryCatch(
     () => {
       writeFileSync(path, content, { flag: "wx" });
+    },
+    (e) => fileWriteFailed(path, e),
+  );
+}
+
+/**
+ * Atomic write. Writes to a temp file then renames into place.
+ * Prevents partial-write corruption and reduces read-modify-write race windows.
+ */
+export function writeFileAtomic(path: string, content: string): Result<void, ResultError> {
+  const tmpPath = `${path}.${process.pid}.tmp`;
+  return tryCatch(
+    () => {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(tmpPath, content, "utf-8");
+      renameSync(tmpPath, path);
     },
     (e) => fileWriteFailed(path, e),
   );
