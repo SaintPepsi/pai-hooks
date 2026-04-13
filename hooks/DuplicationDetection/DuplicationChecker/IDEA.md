@@ -16,7 +16,10 @@ A pre-write hook that extracts functions from incoming code and compares them ag
 2. Extract all function declarations from the new content.
 3. For each function, compute four signals: exact body hash, function name, parameter signature hash, and normalized body hash (ignoring variable names).
 4. Query the duplication index for matches across all four signals.
-5. If 4/4 signals match or the exact body hash matches — block the write with "this function already exists at [location]."
+5. If 4/4 signals match or the exact body hash matches — optionally run inference triage before blocking:
+   - If inference classifies the match as a false positive, allow the write with an advisory explaining the override.
+   - If inference classifies it as a true positive, uncertain, or fails — block the write (fail-safe).
+   - If inference is disabled (default) — block immediately with "this function already exists at [location]."
 6. If 2-3 signals match — inject an advisory warning suggesting the author check the similar function.
 7. If 0-1 signals match — pass silently.
 

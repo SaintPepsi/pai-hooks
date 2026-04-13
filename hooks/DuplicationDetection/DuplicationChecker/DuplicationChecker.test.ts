@@ -8,6 +8,7 @@ import {
   DuplicationCheckerContract,
   type DuplicationCheckerDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract";
+import type { InferenceResult } from "@pai/Tools/Inference";
 import { DuplicationIndexBuilderContract } from "@hooks/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import {
@@ -45,10 +46,19 @@ const mockDeps: DuplicationCheckerDeps = {
   readFile: (path) => require("node:fs").readFileSync(path, "utf-8") as string,
   exists: (path) => require("node:fs").existsSync(path) as boolean,
   appendFile: () => {},
+  writeFile: () => {},
   ensureDir: () => {},
   stderr: () => {},
   now: () => Date.now(),
   blocking: true,
+  inferenceEnabled: false,
+  inference: async (): Promise<InferenceResult> => ({
+    success: false,
+    output: "",
+    latencyMs: 0,
+    level: "fast" as const,
+  }),
+  issueReporting: false,
 };
 
 function unwrap(result: Result<SyncHookJSONOutput, ResultError>): SyncHookJSONOutput {
@@ -88,7 +98,7 @@ describe("DuplicationCheckerContract", () => {
   // ─── execute() ─────────────────────────────────────────────────────────────
 
   describe("execute()", () => {
-    test("returns continue with no additionalContext when no index exists", () => {
+    test("returns continue with no additionalContext when no index exists", async () => {
       const deps: DuplicationCheckerDeps = {
         ...mockDeps,
         exists: () => false,
@@ -97,12 +107,12 @@ describe("DuplicationCheckerContract", () => {
         `${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`,
         "export function foo() { return 1; }",
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       expect(output.continue).toBe(true);
       expect(output.hookSpecificOutput).toBeUndefined();
     });
 
-    test("blocks when writing content with 4/4 signal match (exact duplicate)", () => {
+    test("blocks when writing content with 4/4 signal match (exact duplicate)", async () => {
       // cli/commands/install.test.ts contains makeSourceRepo — a function whose
       // body hash matches across lifecycle.integration.test.ts, update.test.ts,
       // and compiled-install.test.ts → hash signal → block.
@@ -123,7 +133,7 @@ describe("DuplicationCheckerContract", () => {
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       const hs = output.hookSpecificOutput;
       expect(hs?.hookEventName).toBe("PreToolUse");
       if (hs && hs.hookEventName === "PreToolUse") {
@@ -132,7 +142,7 @@ describe("DuplicationCheckerContract", () => {
       }
     });
 
-    test("logs but does not block for 2-3 signal matches", () => {
+    test("logs but does not block for 2-3 signal matches", async () => {
       // Craft content with a function that shares name+sig but NOT body hash
       // with existing functions (2/4 signals = log only, not block)
       const partialMatchContent = `
@@ -153,11 +163,11 @@ export function makeDeps(x: string): Record<string, unknown> {
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         partialMatchContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       expect(output.continue).toBe(true);
     });
 
-    test("returns continue for genuinely unique content", () => {
+    test("returns continue for genuinely unique content", async () => {
       // Use a truly unique signature to avoid sig+body matches
       const uniqueContent = `
 export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: boolean, deltaEpsilon: Map<string, number>): [string, boolean] {
@@ -177,11 +187,11 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         uniqueContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       expect(output.continue).toBe(true);
     });
 
-    test("block reason lists duplicate targets", () => {
+    test("block reason lists duplicate targets", async () => {
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
@@ -198,7 +208,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       const hs = output.hookSpecificOutput;
       expect(hs?.hookEventName).toBe("PreToolUse");
       if (hs && hs.hookEventName === "PreToolUse") {
@@ -208,7 +218,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
       }
     });
 
-    test("blocks regardless of index age (no staleness bypass)", () => {
+    test("blocks regardless of index age (no staleness bypass)", async () => {
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
@@ -218,14 +228,14 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, mockDeps));
       const hs = output.hookSpecificOutput;
       expect(hs?.hookEventName).toBe("PreToolUse");
       if (hs && hs.hookEventName === "PreToolUse") {
         expect(hs.permissionDecision).toBe("deny");
       }
     });
-    test("injects additionalContext when function matches a known pattern", () => {
+    test("injects additionalContext when function matches a known pattern", async () => {
       const patternContent = `
 function makeDeps(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   return { stderr: () => {}, now: () => Date.now(), ...overrides };
@@ -268,7 +278,7 @@ function makeDeps(overrides: Partial<Record<string, unknown>> = {}): Record<stri
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         patternContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       expect(output.continue).toBe(true);
       const hs = output.hookSpecificOutput;
       expect(hs?.hookEventName).toBe("PreToolUse");
@@ -279,7 +289,7 @@ function makeDeps(overrides: Partial<Record<string, unknown>> = {}): Record<stri
       }
     });
 
-    test("no pattern advisory for unique function names", () => {
+    test("no pattern advisory for unique function names", async () => {
       const uniqueContent = `
 function superUniqueSpecialFunction123(): string {
   return "unique";
@@ -319,12 +329,12 @@ function superUniqueSpecialFunction123(): string {
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         uniqueContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       expect(output.continue).toBe(true);
       expect(output.hookSpecificOutput).toBeUndefined();
     });
 
-    test("continues instead of blocking when blocking config is false", () => {
+    test("continues instead of blocking when blocking config is false", async () => {
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
         "utf-8",
@@ -339,8 +349,221 @@ function superUniqueSpecialFunction123(): string {
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
       expect(output.continue).toBe(true);
+    });
+  });
+
+  // ─── false-positive triage ──────────────────────────────────────────────────
+
+  describe("false-positive triage", () => {
+    function makeBlockingInput() {
+      const realContent = require("node:fs").readFileSync(
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
+        "utf-8",
+      ) as string;
+      return {
+        input: makeWriteInput(
+          `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+          realContent,
+        ),
+      };
+    }
+
+    test("inferenceEnabled false — still blocks on duplicate match", async () => {
+      const { input } = makeBlockingInput();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: false,
+      };
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+      }
+    });
+
+    test("false_positive verdict — returns continue with additionalContext", async () => {
+      const { input } = makeBlockingInput();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "false_positive", reason: "distinct purpose" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
+      expect(output.continue).toBe(true);
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBeUndefined();
+        expect(hs.additionalContext).toContain("false positive");
+      }
+    });
+
+    test("true_positive verdict — blocks with deny", async () => {
+      const { input } = makeBlockingInput();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "true_positive", reason: "exact duplicate" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+      }
+    });
+
+    test("inference failure — fails safe with deny", async () => {
+      const { input } = makeBlockingInput();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        inference: async (): Promise<InferenceResult> => {
+          throw new Error("inference service unavailable");
+        },
+      };
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+      }
+    });
+
+    test("uncertain verdict — falls through to block with deny (F4)", async () => {
+      const { input } = makeBlockingInput();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "uncertain", reason: "could not determine" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+      }
+    });
+  });
+
+  // ─── false-positive reporting ───────────────────────────────────────────────
+
+  describe("false-positive reporting", () => {
+    function makeBlockingInput() {
+      const realContent = require("node:fs").readFileSync(
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
+        "utf-8",
+      ) as string;
+      return {
+        input: makeWriteInput(
+          `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+          realContent,
+        ),
+      };
+    }
+
+    test("createFalsePositiveReport writes lock and report when issueReporting is true (F3)", async () => {
+      const { input } = makeBlockingInput();
+      const written: Array<{ path: string; content: string }> = [];
+      const overwritten: Array<{ path: string; content: string }> = [];
+
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        issueReporting: true,
+        exists: (path) => {
+          // Pretend lock file does not exist so reporting runs
+          if (path.endsWith(".lock")) return false;
+          return (require("node:fs").existsSync(path) as boolean);
+        },
+        appendFile: (path, content) => {
+          written.push({ path, content });
+        },
+        writeFile: (path, content) => {
+          overwritten.push({ path, content });
+        },
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "false_positive", reason: "distinct purpose" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+
+      await DuplicationCheckerContract.execute(input, deps);
+
+      // Lock file must be written (overwrite, not append)
+      const lockWrite = overwritten.find((w) => w.path.endsWith(".lock"));
+      expect(lockWrite).toBeDefined();
+      expect(Number(lockWrite!.content)).toBeGreaterThan(0);
+
+      // Report JSON must be appended
+      const reportAppend = written.find((w) => w.path.endsWith(".report.json"));
+      expect(reportAppend).toBeDefined();
+      const report = JSON.parse(reportAppend!.content) as {
+        ts: string;
+        file: string;
+        matches: Array<{ fn: string; target: string; signals: string[] }>;
+      };
+      expect(report.file).toContain("SomeNewHook.ts");
+      expect(Array.isArray(report.matches)).toBe(true);
+    });
+
+    test("createFalsePositiveReport skips when lock is fresh (F3)", async () => {
+      const { input } = makeBlockingInput();
+      const written: Array<{ path: string }> = [];
+
+      const freshTs = String(Date.now()); // within 7-day window
+
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        issueReporting: true,
+        exists: (path) => {
+          if (path.endsWith(".lock")) return true;
+          return (require("node:fs").existsSync(path) as boolean);
+        },
+        readFile: (path) => {
+          if (path.endsWith(".lock")) return freshTs;
+          return (require("node:fs").readFileSync(path, "utf-8") as string);
+        },
+        appendFile: (path) => {
+          written.push({ path });
+        },
+        writeFile: (path) => {
+          written.push({ path });
+        },
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "false_positive", reason: "distinct purpose" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+
+      await DuplicationCheckerContract.execute(input, deps);
+
+      // No lock or report writes should happen — fresh lock suppresses reporting
+      const reportWrites = written.filter((w) => w.path.includes("fp-reports"));
+      expect(reportWrites).toHaveLength(0);
     });
   });
 });

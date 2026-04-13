@@ -51,14 +51,21 @@ It does **not** fire when:
 5. Extracts function signatures from the content using SWC parser
 6. Compares extracted functions against the index using `checkFunctions`
 7. Logs all checks to `checker.jsonl` with branch metadata
-8. At 4/4 signals and blocking enabled: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise
-9. At 2-3/4 signals: logs finding, returns continue
+8. At 4/4 signals and blocking enabled: optionally runs inference triage (`classifyMatches`) when `inferenceEnabled: true`
+   - `false_positive` verdict → returns continue with `additionalContext` explaining the override; optionally writes a report to `/tmp/pai/duplication/fp-reports/` when `issueReporting: true`
+   - `true_positive`, `uncertain`, or inference failure → falls through to deny (fail-safe)
+9. At 4/4 signals, blocking enabled, triage not triggered: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise
+10. At 2-3/4 signals: logs finding, returns continue
 
 ```typescript
-// Tiered response logic
-const blockMatches = matches.filter((m) => m.signals.length >= BLOCK_THRESHOLD);
-
+// Block path with optional inference triage
 if (blockMatches.length > 0 && deps.blocking) {
+  if (deps.inferenceEnabled) {
+    const verdict = await classifyMatches(blockMatches, content, filePath, deps);
+    if (verdict === "false_positive") {
+      return ok({ continue: true, hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: "..." } });
+    }
+  }
   return ok({
     continue: true,
     hookSpecificOutput: {
@@ -148,7 +155,7 @@ Pattern detection thresholds are set in `hookConfig.duplicationChecker` in `sett
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
+| `result` | core | `ok()`, `tryCatchAsync()` for Result-based returns and safe async boundaries |
 | `fs` | adapter | `readFile`, `fileExists`, `readJson`, `appendFile`, `ensureDir` |
 | `lib/paths` | lib | `getSettingsPath` for reading hookConfig |
 | `lib/tool-input` | lib | `getFilePath`, `getWriteContent` for extracting tool input fields |
@@ -157,3 +164,4 @@ Pattern detection thresholds are set in `hookConfig.duplicationChecker` in `sett
 | `lib/narrative-reader` | lib | `pickNarrative` for severity-tiered block message openers |
 | `DuplicationChecker.narrative.jsonl` | data | 9 agent narratives (3 per severity tier) with DRY/WET theming |
 | `inspector.ts` | cli | State inspector for `paih inspect DuplicationChecker` — reads index, returns summary/raw/JSON views |
+| `@pai/Tools/Inference` (injected) | stub | Inference function for false-positive triage — injected via `deps.inference`; disabled by default (`inferenceEnabled: false`) |
