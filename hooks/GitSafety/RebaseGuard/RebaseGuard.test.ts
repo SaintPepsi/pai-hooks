@@ -57,6 +57,16 @@ describe("classifyRebase", () => {
     expect(classifyRebase("git rebase --continue", true)).toBe("allow");
   });
 
+  it("returns allow for git rebase --skip", () => {
+    expect(classifyRebase("git rebase --skip", false)).toBe("allow");
+    expect(classifyRebase("git rebase --skip", true)).toBe("allow");
+  });
+
+  it("returns allow for git rebase --quit", () => {
+    expect(classifyRebase("git rebase --quit", false)).toBe("allow");
+    expect(classifyRebase("git rebase --quit", true)).toBe("allow");
+  });
+
   it("returns allow for git pull --rebase", () => {
     expect(classifyRebase("git pull --rebase origin main", false)).toBe("allow");
     expect(classifyRebase("git pull --rebase origin main", true)).toBe("allow");

@@ -38,8 +38,8 @@ export type RebaseClassification = "allow" | "warn" | "block" | null;
 /** Matches `git rebase` at the start of a command segment. */
 const GIT_REBASE_PATTERN = /^\s*git\s+rebase\b/;
 
-/** Matches `git rebase --abort` or `git rebase --continue` — safe in-progress controls. */
-const REBASE_SAFE_FLAG_PATTERN = /^\s*git\s+rebase\s+(?:--abort|--continue)\b/;
+/** Matches `git rebase --abort`, `--continue`, `--skip`, or `--quit` — safe in-progress controls. */
+const REBASE_SAFE_FLAG_PATTERN = /^\s*git\s+rebase\s+(?:--abort|--continue|--skip|--quit)\b/;
 
 /** Matches `-i` or `--interactive` flag anywhere in a git rebase command. */
 const INTERACTIVE_FLAG_PATTERN = /(?:^|\s)(?:-i|--interactive)(?:\s|$)/;

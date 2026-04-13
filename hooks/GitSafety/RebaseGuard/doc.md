@@ -15,7 +15,7 @@ PreToolUse (fires before Bash commands execute)
 1. Calls `hasUpstream()` to determine if the current branch has a remote upstream tracking ref (`git rev-parse --abbrev-ref @{upstream}`). Fails open — if the check fails, treats the branch as unpublished.
 2. Extracts the command string from the Bash tool input and splits it into individual segments (handling &&, ||, ;, | chains), truncating at heredoc markers to avoid false positives on commit messages.
 3. Classifies each segment and resolves to the highest-risk tier across all segments:
-   - `allow` — `git rebase --abort`, `git rebase --continue`, `git pull --rebase` (any variant)
+   - `allow` — `git rebase --abort`, `git rebase --continue`, `git rebase --skip`, `git rebase --quit`, `git pull --rebase` (any variant)
    - `warn` — any other rebase on an unpublished branch
    - `block` — any other rebase on a published branch
 4. On `allow` or no rebase detected: continues without interference.
@@ -26,6 +26,8 @@ PreToolUse (fires before Bash commands execute)
 
 > **Allowed:** `git rebase --abort` — Safe in-progress control, always allowed
 > **Allowed:** `git rebase --continue` — Safe in-progress control, always allowed
+> **Allowed:** `git rebase --skip` — Safe in-progress control, always allowed
+> **Allowed:** `git rebase --quit` — Safe in-progress control, always allowed
 > **Allowed:** `git pull --rebase origin main` — Pull-rebase is always allowed
 > **Allowed:** `git pull -r origin main` — Short flag variant, always allowed
 > **Advisory (unpublished branch):** `git rebase main` — Warns but continues; branch has no upstream
