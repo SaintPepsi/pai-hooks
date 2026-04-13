@@ -4,7 +4,7 @@
  * Signal thresholds (4 dimensions: hash, name, sig, body):
  *   - 1/4: ignore
  *   - 2/4 or 3/4: log to file only
- *   - 4/4: block
+ *   - 4/4: block (with optional inference triage to suppress false positives)
  *
  * Thin contract shell. Logic lives in:
  *   - shared.ts: index loading, checking, formatting, tool input helpers
@@ -18,9 +18,9 @@ import {
   readFile as adapterReadFile,
   fileExists,
 } from "@hooks/core/adapters/fs";
-import type { SyncHookContract } from "@hooks/core/contract";
+import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok, tryCatchAsync, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import {
@@ -30,6 +30,7 @@ import {
   getArtifactsDir,
   getCurrentBranch,
   loadIndex,
+  type DuplicationMatch,
   type PatternEntry,
   simulateEdit,
 } from "@hooks/hooks/DuplicationDetection/shared";
@@ -37,6 +38,8 @@ import { readHookConfig } from "@hooks/lib/hook-config";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { defaultStderr } from "@hooks/lib/paths";
 import { getFilePath, getWriteContent } from "@hooks/lib/tool-input";
+import type { InferenceOptions, InferenceResult } from "@pai/Tools/Inference";
+import { inference as stubInference } from "@pai/Tools/Inference";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +52,12 @@ export interface DuplicationCheckerDeps {
   now: () => number;
   /** When true, 4/4 signal matches block the operation. When false, they log only. */
   blocking: boolean;
+  /** When true, inference triage runs on block-worthy matches to suppress false positives. */
+  inferenceEnabled: boolean;
+  /** Inference function — injected for testing. */
+  inference: (opts: InferenceOptions) => Promise<InferenceResult>;
+  /** When true, false-positive reports are written to /tmp/pai/duplication/fp-reports/. */
+  issueReporting: boolean;
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -56,6 +65,109 @@ export interface DuplicationCheckerDeps {
 function readBlockingConfig(): boolean {
   const cfg = readHookConfig<{ blocking?: boolean }>("duplicationChecker");
   return cfg?.blocking !== false;
+}
+
+function readInferenceConfig(): boolean {
+  const cfg = readHookConfig<{ inferenceEnabled?: boolean }>("duplicationChecker");
+  return cfg?.inferenceEnabled === true;
+}
+
+// ─── Inference Triage ────────────────────────────────────────────────────────
+
+type TriageVerdict = "true_positive" | "false_positive" | "uncertain";
+
+async function classifyMatches(
+  blockMatches: DuplicationMatch[],
+  content: string,
+  filePath: string,
+  deps: DuplicationCheckerDeps,
+): Promise<TriageVerdict> {
+  const matchDescriptions = blockMatches
+    .map(
+      (m) =>
+        `Function "${m.functionName}" in ${filePath} duplicates "${m.targetName}" in ${m.targetFile} (line ${m.targetLine}, signals: ${m.signals.join(", ")})`,
+    )
+    .join("\n");
+
+  const prompt = [
+    "You are a code duplication triage assistant.",
+    "Determine if the following duplication detection result is a true positive (real duplicate that should be refactored) or a false positive (legitimate code that appears similar but serves a distinct purpose).",
+    "",
+    "Duplication findings:",
+    matchDescriptions,
+    "",
+    "File being written:",
+    "```typescript",
+    content.slice(0, 2000),
+    "```",
+    "",
+    'Respond with JSON only: { "verdict": "true_positive" | "false_positive" | "uncertain", "reason": "brief explanation" }',
+  ].join("\n");
+
+  const result = await tryCatchAsync(
+    () => deps.inference({ prompt, level: "fast", timeout: 4000 }),
+    () => null,
+  );
+
+  if (!result.ok || !result.value || !result.value.success || !result.value.output) {
+    return "uncertain";
+  }
+
+  const parseResult = tryCatchAsync(
+    async () => {
+      const raw = result.value!.parsed ?? JSON.parse(result.value!.output);
+      return (raw as { verdict?: string }).verdict;
+    },
+    () => null,
+  );
+
+  const parsed = await parseResult;
+  if (!parsed.ok || parsed.value === null) return "uncertain";
+
+  const verdict = parsed.value;
+  if (verdict === "true_positive" || verdict === "false_positive" || verdict === "uncertain") {
+    return verdict;
+  }
+  return "uncertain";
+}
+
+// ─── False Positive Reporting ────────────────────────────────────────────────
+
+function createFalsePositiveReport(
+  blockMatches: DuplicationMatch[],
+  filePath: string,
+  deps: DuplicationCheckerDeps,
+): void {
+  if (!deps.issueReporting) return;
+
+  const hash = blockMatches.map((m) => `${m.functionName}:${m.targetFile}`).join("|");
+  const reportDir = "/tmp/pai/duplication/fp-reports";
+  const safeHash = hash.slice(0, 32).replace(/[^a-zA-Z0-9]/g, "_");
+  const lockPath = `${reportDir}/${safeHash}.lock`;
+
+  deps.ensureDir(reportDir);
+
+  if (deps.exists(lockPath)) {
+    const content = deps.readFile(lockPath);
+    if (content) {
+      const ts = parseInt(content.trim(), 10);
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      if (!isNaN(ts) && deps.now() - ts < sevenDays) return;
+    }
+  }
+
+  deps.appendFile(lockPath, String(deps.now()));
+
+  const report = {
+    ts: new Date(deps.now()).toISOString(),
+    file: filePath,
+    matches: blockMatches.map((m) => ({
+      fn: m.functionName,
+      target: `${m.targetFile}:${m.targetName}`,
+      signals: m.signals,
+    })),
+  };
+  deps.appendFile(`${reportDir}/${safeHash}.report.json`, JSON.stringify(report, null, 2));
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -75,9 +187,12 @@ const defaultDeps: DuplicationCheckerDeps = {
   stderr: defaultStderr,
   now: () => Date.now(),
   blocking: readBlockingConfig(),
+  inferenceEnabled: readInferenceConfig(),
+  inference: stubInference,
+  issueReporting: false,
 };
 
-export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, DuplicationCheckerDeps> = {
+export const DuplicationCheckerContract: AsyncHookContract<ToolHookInput, DuplicationCheckerDeps> = {
   name: "DuplicationChecker",
   event: "PreToolUse",
 
@@ -90,10 +205,10 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
     return true;
   },
 
-  execute(
+  async execute(
     input: ToolHookInput,
     deps: DuplicationCheckerDeps,
-  ): Result<SyncHookJSONOutput, ResultError> {
+  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
@@ -226,6 +341,26 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
       ].join("\n");
 
       if (deps.blocking) {
+        if (deps.inferenceEnabled) {
+          const verdict = await classifyMatches(blockMatches, content, filePath, deps);
+          if (verdict === "false_positive") {
+            createFalsePositiveReport(blockMatches, filePath, deps);
+            deps.stderr(
+              `[DuplicationChecker] ${filePath}: inference triage — false positive, allowing write`,
+            );
+            return ok({
+              continue: true,
+              hookSpecificOutput: {
+                hookEventName: "PreToolUse",
+                additionalContext:
+                  "Duplication triage: inference classified this as a false positive — write allowed. The flagged functions appear similar but serve distinct purposes.",
+              },
+            });
+          }
+          deps.stderr(
+            `[DuplicationChecker] ${filePath}: inference triage — ${verdict}, blocking`,
+          );
+        }
         deps.stderr(
           `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
         );

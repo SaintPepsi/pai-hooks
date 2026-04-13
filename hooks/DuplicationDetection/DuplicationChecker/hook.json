@@ -2,7 +2,7 @@
   "name": "DuplicationChecker",
   "group": "DuplicationDetection",
   "event": "PreToolUse",
-  "description": "Tiered duplication guard: 1/4 ignore, 2-3/4 log, 4/4 block (configurable via hookConfig.duplicationChecker.blocking)",
+  "description": "Tiered duplication guard: 1/4 ignore, 2-3/4 log, 4/4 block with optional inference triage to suppress false positives (configurable via hookConfig.duplicationChecker.blocking and inferenceEnabled)",
   "schemaVersion": 1,
   "tags": ["quality", "duplication"],
   "presets": []
