@@ -524,6 +524,7 @@ section > p {
 }
 
 .card-header h3 {
+  flex: 1;
   margin-bottom: 0;
   min-width: 0;
   overflow: hidden;
@@ -535,8 +536,8 @@ section > p {
 .card-badges {
   display: flex;
   gap: 6px;
-  margin-left: auto;
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .card-badge {
@@ -1774,7 +1775,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>AgentLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
         </div>
         <p>Agent spawn, stop, and permission management</p>
       </div>
@@ -1783,7 +1784,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>AlgorithmTracking</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span></div>
         </div>
         <p>PAI Algorithm phase detection</p>
       </div>
@@ -1792,7 +1793,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>ArchitectureEscalation</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span></div>
         </div>
         <p>Failure escalation and model delegation</p>
       </div>
@@ -1801,7 +1802,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>CanaryHook</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Debug canary for verifying hook propagation</p>
       </div>
@@ -1810,7 +1811,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>CodeQualityPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
         </div>
         <p>3 hooks</p>
       </div>
@@ -1819,7 +1820,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>CodingStandards</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span></div>
         </div>
         <p>TypeScript quality enforcement hooks</p>
       </div>
@@ -1828,7 +1829,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>CronStatusLine</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span></div>
         </div>
         <p>Cron job scheduling and status line management</p>
       </div>
@@ -1837,7 +1838,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>DuplicationDetection</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span></div>
         </div>
         <p>Detect and prevent code duplication using SWC-based function analysis</p>
       </div>
@@ -1846,7 +1847,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>ExecutionEvidence</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Execution evidence verification from tool results</p>
       </div>
@@ -1855,7 +1856,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>GitSafety</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span></div>
         </div>
         <p>Git safety, branch protection, and worktree verification</p>
       </div>
@@ -1864,7 +1865,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>IdentityBranding</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
         </div>
         <p>Maple identity branding and usage analytics</p>
       </div>
@@ -1873,7 +1874,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>KoordDaemon</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span></div>
         </div>
         <p>Koord agent-to-agent daemon lifecycle hooks</p>
       </div>
@@ -1882,7 +1883,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>LastResponseCache</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Last response caching for reference</p>
       </div>
@@ -1891,7 +1892,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>LearningFeedback</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
         </div>
         <p>Learning signal capture and relationship memory</p>
       </div>
@@ -1900,7 +1901,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>ObligationStateMachines</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">9 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">9 hooks</span></div>
         </div>
         <p>Documentation, test, citation, and hook-doc obligations</p>
       </div>
@@ -1909,7 +1910,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>QuestionAnswered</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>User question response tracking</p>
       </div>
@@ -1918,7 +1919,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>SecurityValidator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span></div>
         </div>
         <p>Protected file write prevention</p>
       </div>
@@ -1927,7 +1928,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>SessionFraming</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span></div>
         </div>
         <p>Session initialization, context loading, and branch awareness</p>
       </div>
@@ -1936,7 +1937,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>SkillGuard</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Skill invocation validation</p>
       </div>
@@ -1945,7 +1946,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>SteeringRuleInjector</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Contextual steering rule injection based on event type and keyword matching</p>
       </div>
@@ -1954,7 +1955,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>StopOrchestrator</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Stop event coordination</p>
       </div>
@@ -1963,7 +1964,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>VoiceGate</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
         </div>
         <p>Voice notification routing control</p>
       </div>
@@ -1972,7 +1973,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>WikiPipeline</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
         </div>
         <p>Wiki knowledge pipeline: session ingestion, context injection, and read tracking</p>
       </div>
@@ -1981,7 +1982,7 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>WorkLifecycle</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span></div>
         </div>
         <p>Session work tracking, summaries, and content generation</p>
       </div>

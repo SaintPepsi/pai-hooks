@@ -214,6 +214,84 @@ describe("renderHookPage", () => {
   });
 });
 
+// ─── Security: esc() single-quote escaping (E1) ──────────────────────────────
+
+describe("esc() single-quote safety", () => {
+  it("escapes single quotes in hook names used in onclick attributes", () => {
+    // A hook name containing a single quote must not break onclick='...' contexts
+    const group: GroupMeta = {
+      name: "O'Malley",
+      description: "Group with apostrophe in name",
+      hooks: [
+        {
+          name: "Hook'A",
+          group: "O'Malley",
+          event: "PreToolUse",
+          description: "Hook with apostrophe",
+          hasDoc: true,
+        },
+      ],
+    };
+    const html = renderGroupPage(group);
+    // Single quotes must be escaped as &#39; wherever they appear in onclick/href contexts
+    expect(html).not.toContain("Hook'A.html");
+    expect(html).toContain("Hook&#39;A.html");
+  });
+});
+
+// ─── Security: inlineMd() URL validation (E2) ────────────────────────────────
+
+describe("inlineMd() URL safety", () => {
+  it("rejects javascript: URLs", () => {
+    const html = markdownToHtml("[click](javascript:alert(1))");
+    expect(html).not.toContain("javascript:");
+    expect(html).toContain('href="#"');
+  });
+
+  it("rejects javascript: URLs case-insensitively", () => {
+    const html = markdownToHtml("[click](JavaScript:alert(1))");
+    expect(html).not.toContain("JavaScript:");
+    expect(html).toContain('href="#"');
+  });
+
+  it("rejects data: URLs", () => {
+    const html = markdownToHtml("[click](data:text/html,<h1>xss</h1>)");
+    expect(html).not.toContain("data:");
+    expect(html).toContain('href="#"');
+  });
+
+  it("rejects vbscript: URLs", () => {
+    const html = markdownToHtml("[click](vbscript:msgbox(1))");
+    expect(html).not.toContain("vbscript:");
+    expect(html).toContain('href="#"');
+  });
+
+  it("allows https: URLs", () => {
+    const html = markdownToHtml("[click](https://example.com)");
+    expect(html).toContain('href="https://example.com"');
+  });
+
+  it("allows http: URLs", () => {
+    const html = markdownToHtml("[click](http://example.com)");
+    expect(html).toContain('href="http://example.com"');
+  });
+
+  it("allows relative URLs", () => {
+    const html = markdownToHtml("[click](./foo/bar.html)");
+    expect(html).toContain('href="./foo/bar.html"');
+  });
+
+  it("allows anchor URLs", () => {
+    const html = markdownToHtml("[click](#section)");
+    expect(html).toContain('href="#section"');
+  });
+
+  it("allows mailto: URLs", () => {
+    const html = markdownToHtml("[email](mailto:a@b.com)");
+    expect(html).toContain('href="mailto:a@b.com"');
+  });
+});
+
 // ─── renderGroupPage ─────────────────────────────────────────────────────────
 
 describe("renderGroupPage", () => {
@@ -251,6 +329,11 @@ describe("renderGroupPage", () => {
   it("includes summary grid", () => {
     const html = renderGroupPage(group);
     expect(html).toContain("summary-grid");
+  });
+
+  it("wraps event badges in card-badges container", () => {
+    const html = renderGroupPage(group);
+    expect(html).toContain('class="card-badges"');
   });
 });
 
