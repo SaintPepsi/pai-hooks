@@ -18,6 +18,7 @@
 import { join } from "node:path";
 import { appendFile, fileExists, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import { spawnBackground } from "@hooks/core/adapters/process";
+import { OPUS_MODEL } from "@hooks/core/constants";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import { defaultStderr } from "@hooks/lib/paths";
@@ -26,7 +27,7 @@ import { defaultStderr } from "@hooks/lib/paths";
 
 const LOCK_STALE_MS = 6 * 60 * 1000; // 6 minutes
 
-const DEFAULT_MODEL = "opus";
+const DEFAULT_MODEL = OPUS_MODEL;
 const DEFAULT_MAX_TURNS = 5;
 const DEFAULT_TIMEOUT = 300_000; // 5 minutes
 

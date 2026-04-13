@@ -89,7 +89,7 @@ describe("spawnAgent", () => {
     // Second arg should be valid JSON with config
     const parsed = JSON.parse(spawnCalls[0].args[1]);
     expect(parsed.prompt).toBe("Analyze things");
-    expect(parsed.model).toBe("opus");
+    expect(parsed.model).toBe("claude-opus-4-5-20251101");
     expect(parsed.maxTurns).toBe(5);
     expect(parsed.timeout).toBe(300_000);
     expect(parsed.lockPath).toBe(config.lockPath);
@@ -263,7 +263,7 @@ describe("spawnAgent", () => {
 
     expect(spawnCalls).toHaveLength(1);
     const parsed = JSON.parse(spawnCalls[0].args[1]);
-    expect(parsed.model).toBe("opus");
+    expect(parsed.model).toBe("claude-opus-4-5-20251101");
     expect(parsed.maxTurns).toBe(5);
     expect(parsed.timeout).toBe(300_000);
   });

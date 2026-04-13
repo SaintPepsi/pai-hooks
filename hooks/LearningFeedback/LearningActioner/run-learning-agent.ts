@@ -8,6 +8,7 @@
  */
 
 import { join } from "node:path";
+import { OPUS_MODEL } from "@hooks/core/constants";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { buildAgentPrompt } from "@hooks/hooks/LearningFeedback/LearningActioner/LearningActioner.contract";
@@ -47,7 +48,7 @@ export function runLearningAgent(
     logPath,
     source: "LearningActioner",
     reason: "credit-threshold-reached",
-    model: "opus",
+    model: OPUS_MODEL,
     maxTurns: 25,
     timeout: 1_800_000,
   });

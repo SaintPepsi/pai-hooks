@@ -11,6 +11,7 @@
 import { join } from "node:path";
 import { ensureDir, fileExists } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
+import { OPUS_MODEL } from "@hooks/core/constants";
 import { processSpawnFailed, type ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import { buildArticlePrompt } from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
@@ -114,7 +115,7 @@ export function runArticleWriter(
     logPath: join(deps.baseDir, "MEMORY/ARTICLES/article-writer-log.jsonl"),
     source: "ArticleWriter",
     reason: "session-had-substantial-work",
-    model: "opus",
+    model: OPUS_MODEL,
     maxTurns: 25,
     timeout: 600_000,
     cwd: repoDir,

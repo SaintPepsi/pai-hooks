@@ -49,7 +49,7 @@ describe("runLearningAgent", () => {
     const deps = fakeDeps();
     runLearningAgent(deps);
 
-    expect(deps._captured[0].model).toBe("opus");
+    expect(deps._captured[0].model).toBe("claude-opus-4-5-20251101");
     expect(deps._captured[0].maxTurns).toBe(25);
     expect(deps._captured[0].timeout).toBe(1_800_000);
   });

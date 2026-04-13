@@ -152,7 +152,7 @@ describe("runArticleWriter", () => {
     const deps = fakeDeps();
     runArticleWriter("session-123", deps);
 
-    expect(deps._captured[0].model).toBe("opus");
+    expect(deps._captured[0].model).toBe("claude-opus-4-5-20251101");
   });
 
   it("calls ensureDir for cacheDir before cloning", () => {
