@@ -33,6 +33,7 @@ export type { HookContract } from "@hooks/core/contract";
 // Error types
 export {
   cancelled,
+  configValidationFailed,
   contractViolation,
   dirCreateFailed,
   ErrorCode,

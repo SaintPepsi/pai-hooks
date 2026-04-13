@@ -33,6 +33,7 @@ export enum ErrorCode {
   SecurityBlock = "SECURITY_BLOCK",
   ContractViolation = "CONTRACT_VIOLATION",
   StateCorrupted = "STATE_CORRUPTED",
+  ConfigValidationFailed = "CONFIG_VALIDATION_FAILED",
 
   // System
   Unknown = "UNKNOWN",
@@ -131,4 +132,13 @@ export function unknownError(cause: unknown): ResultError {
 
 export function cancelled(reason: string): ResultError {
   return new ResultError(ErrorCode.Cancelled, reason);
+}
+
+export function configValidationFailed(hookName: string, cause: unknown): ResultError {
+  const msg = cause instanceof Error ? cause.message : String(cause);
+  return new ResultError(
+    ErrorCode.ConfigValidationFailed,
+    `Config validation failed for "${hookName}": ${msg}`,
+    cause,
+  );
 }

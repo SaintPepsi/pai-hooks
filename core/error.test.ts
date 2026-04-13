@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   cancelled,
+  configValidationFailed,
   contractViolation,
   dirCreateFailed,
   ErrorCode,
@@ -25,9 +26,9 @@ import {
 // ─── ErrorCode Enum ──────────────────────────────────────────────────────────
 
 describe("ErrorCode", () => {
-  it("has 18 error codes", () => {
+  it("has 19 error codes", () => {
     const codes = Object.keys(ErrorCode).filter((k) => Number.isNaN(Number(k)));
-    expect(codes.length).toBe(18);
+    expect(codes.length).toBe(19);
   });
 
   it("all codes are unique string values", () => {
@@ -192,9 +193,24 @@ describe("factory functions", () => {
     expect(e.code).toBe(ErrorCode.Cancelled);
     expect(e.message).toBe("user abort");
   });
+
+  it("configValidationFailed includes hookName and cause message", () => {
+    const cause = new Error("Expected boolean");
+    const e = configValidationFailed("myHook", cause);
+    expect(e.code).toBe(ErrorCode.ConfigValidationFailed);
+    expect(e.message).toContain("myHook");
+    expect(e.message).toContain("Expected boolean");
+    expect(e.cause).toBe(cause);
+  });
+
+  it("configValidationFailed stringifies non-Error cause", () => {
+    const e = configValidationFailed("myHook", "parse error");
+    expect(e.code).toBe(ErrorCode.ConfigValidationFailed);
+    expect(e.message).toContain("parse error");
+  });
 });
 
-// ─── All 18 factories produce correct codes ──────────────────────────────────
+// ─── All 19 factories produce correct codes ──────────────────────────────────
 
 describe("factory → code mapping", () => {
   const mappings: [() => ResultError, ErrorCode][] = [
@@ -216,10 +232,11 @@ describe("factory → code mapping", () => {
     [() => stateCorrupted("x", null), ErrorCode.StateCorrupted],
     [() => unknownError("x"), ErrorCode.Unknown],
     [() => cancelled("x"), ErrorCode.Cancelled],
+    [() => configValidationFailed("myHook", new Error("bad")), ErrorCode.ConfigValidationFailed],
   ];
 
-  it("has 18 factory mappings", () => {
-    expect(mappings.length).toBe(18);
+  it("has 19 factory mappings", () => {
+    expect(mappings.length).toBe(19);
   });
 
   for (const [factory, expectedCode] of mappings) {
