@@ -15,6 +15,7 @@
 
 import { join } from "node:path";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
+import { SONNET_MODEL } from "@hooks/core/constants";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import {
@@ -65,7 +66,7 @@ export function runHardening(
     logPath: join(deps.baseDir, "MEMORY/SECURITY/hardening-log.jsonl"),
     source: "SettingsRevert",
     reason: `bypass: ${bypassCommand.slice(0, 200)}`,
-    model: "sonnet",
+    model: SONNET_MODEL,
     maxTurns: 5,
     timeout: 120_000,
     cwd: join(import.meta.dir),
