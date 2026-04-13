@@ -3,9 +3,10 @@
  * Used by both TestObligationTracker and TestObligationEnforcer.
  */
 
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import {
   fileExists as fsFileExists,
+  readDir as fsReadDir,
   readFile,
   readJson,
   removeFile,
@@ -18,8 +19,16 @@ import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// TestObligationDeps is ObligationDeps from lib/obligation-machine.ts
-export type TestObligationDeps = ObligationDeps;
+/** Deps for scanning nearby test files for imports of a source file. */
+export interface ImportScanDeps {
+  /** Return filenames (not full paths) in a directory, or [] on error. */
+  readDir: (dirPath: string) => string[];
+  /** Return file content as a string, or null on error. */
+  readFileContent: (filePath: string) => string | null;
+}
+
+// TestObligationDeps extends ObligationDeps with import-scan capabilities.
+export type TestObligationDeps = ObligationDeps & ImportScanDeps;
 
 /** Narrow extension used only by TestObligationTracker (not the enforcer). */
 export interface TestTrackerExcludeDeps {
@@ -150,6 +159,52 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
   return deriveTestPaths(sourcePath).some(fileExists);
 }
 
+/**
+ * Scan the same directory and parent directory for *.test.ts / *.spec.ts files
+ * that import the given source file. Returns the path of the first match, or null.
+ *
+ * The regex matches:
+ *   import ... from '...basename...'
+ *   require('...basename...')
+ *
+ * For `.contract.ts` sources the `.contract` suffix is stripped when deriving
+ * the basename to match, mirroring the convention in `deriveTestPaths`.
+ */
+export function findImportingTestFile(
+  sourcePath: string,
+  deps: ImportScanDeps,
+): string | null {
+  // Derive the import name the test file would use. Strip extension, then strip
+  // `.contract` suffix when present (matches the co-located test convention).
+  const dotIndex = sourcePath.lastIndexOf(".");
+  const withoutExt = dotIndex === -1 ? sourcePath : sourcePath.slice(0, dotIndex);
+  const stem = withoutExt.endsWith(".contract")
+    ? withoutExt.slice(0, -".contract".length)
+    : withoutExt;
+  // Use the final path component as the import basename to match against.
+  const importBasename = basename(stem).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const importPattern = new RegExp(
+    `from\\s+['"][^'"]*${importBasename}['"]|require\\(['"][^'"]*${importBasename}['"]\\)`,
+  );
+
+  const testFilePattern = /\.(?:test|spec)\.\w+$/;
+  const sourceDir = dirname(sourcePath);
+  const parentDir = dirname(sourceDir);
+
+  for (const dir of [sourceDir, parentDir]) {
+    const entries = deps.readDir(dir);
+    for (const entry of entries) {
+      if (!testFilePattern.test(entry)) continue;
+      const fullPath = join(dir, entry);
+      const content = deps.readFileContent(fullPath);
+      if (content !== null && importPattern.test(content)) {
+        return fullPath;
+      }
+    }
+  }
+  return null;
+}
+
 // ─── Exclude Pattern Helpers ──────────────────────────────────────────────────
 
 /** Read excludePatterns from settings.json hookConfig.testObligation.excludePatterns. */
@@ -182,6 +237,14 @@ export const defaultTrackerExcludeDeps: TestTrackerExcludeDeps = {
 export const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
+  readDir: (dirPath: string) => {
+    const result = fsReadDir(dirPath);
+    return result.ok ? result.value : [];
+  },
+  readFileContent: (filePath: string) => {
+    const result = readFile(filePath);
+    return result.ok ? result.value : null;
+  },
   readPending: (path: string) => {
     const result = readJson<unknown>(path);
     if (!result.ok) {

@@ -21,6 +21,8 @@ function makeTrackerDeps(overrides: Partial<TestTrackerDeps> = {}): TestTrackerD
   return {
     stateDir: "/tmp/pai-test-obligation",
     fileExists: () => false,
+    readDir: () => [],
+    readFileContent: () => null,
     readPending: () => [],
     writePending: () => {},
     removeFlag: () => {},

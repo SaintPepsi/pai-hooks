@@ -13,6 +13,8 @@ function makeDeps(overrides: Partial<TestObligationDeps> = {}): TestObligationDe
   return {
     stateDir: "/tmp/test-state",
     fileExists: () => true,
+    readDir: () => [],
+    readFileContent: () => null,
     readPending: () => ["src/module.ts"],
     writePending: () => {},
     removeFlag: () => {},
@@ -111,5 +113,60 @@ describe("TestObligationEnforcer", () => {
     if (result.ok) expect(isBareNoOp(result.value)).toBe(true);
     expect(reviewWritten).toBe(true);
     expect(flagRemoved).toBe(true);
+  });
+
+  test("blocks with 'run tests' when source is imported by a nearby test file", () => {
+    const deps = makeDeps({
+      readPending: () => ["src/utils.ts"],
+      fileExists: (path) => {
+        // Flag file exists, but no co-located test file for src/utils.ts
+        if (
+          path.endsWith(".test.ts") ||
+          path.endsWith(".spec.ts") ||
+          path.endsWith(".test.tsx") ||
+          path.endsWith(".coverage.test.ts")
+        )
+          return false;
+        return true;
+      },
+      // Simulate a nearby test file that imports utils
+      readDir: (_dir) => ["utils.test.ts"],
+      readFileContent: (_path) => `import { something } from './utils';`,
+    });
+    const result = TestObligationEnforcer.execute(mockInput, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const reason = getReasonFromBlock(result.value);
+      expect(reason).toBeDefined();
+      expect(reason ?? "").toContain("Run existing tests");
+      expect(reason ?? "").toContain("src/utils.ts");
+    }
+  });
+
+  test("blocks with 'write tests' when no co-located or importing test file exists", () => {
+    const deps = makeDeps({
+      readPending: () => ["src/orphan.ts"],
+      fileExists: (path) => {
+        // Flag file exists, but no test file variant exists
+        if (
+          path.endsWith(".test.ts") ||
+          path.endsWith(".spec.ts") ||
+          path.endsWith(".test.tsx") ||
+          path.endsWith(".coverage.test.ts")
+        )
+          return false;
+        return true;
+      },
+      readDir: () => [],
+      readFileContent: () => null,
+    });
+    const result = TestObligationEnforcer.execute(mockInput, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const reason = getReasonFromBlock(result.value);
+      expect(reason).toBeDefined();
+      expect(reason ?? "").toContain("Write and run tests");
+      expect(reason ?? "").toContain("src/orphan.ts");
+    }
   });
 });
