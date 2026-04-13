@@ -14,6 +14,7 @@ import {
   categorizeChange,
   determineSignificance,
   generateDescriptiveTitle,
+  getCooldownEndTime,
   hashChanges,
   inferChangeType,
   isDuplicateRun,
@@ -560,6 +561,33 @@ describe("inferChangeType", () => {
       makeChange({ category: "documentation", path: "doc.md" }),
     ];
     expect(inferChangeType(changes)).toBe("hook_update");
+  });
+});
+
+// ─── getCooldownEndTime ───────────────────────────────────────────────────────
+
+describe("getCooldownEndTime", () => {
+  it("returns an ISO 8601 timestamp string", () => {
+    const result = getCooldownEndTime();
+    expect(typeof result).toBe("string");
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
+
+  it("returns a timestamp approximately 2 minutes in the future", () => {
+    const before = Date.now();
+    const result = getCooldownEndTime();
+    const after = Date.now();
+
+    const resultMs = new Date(result).getTime();
+    // Must be at least 1 min 59 sec ahead of before
+    expect(resultMs).toBeGreaterThanOrEqual(before + 119 * 1000);
+    // Must be at most 2 min 1 sec ahead of after (clock drift tolerance)
+    expect(resultMs).toBeLessThanOrEqual(after + 121 * 1000);
+  });
+
+  it("returns a value that is in the future relative to now", () => {
+    const result = getCooldownEndTime();
+    expect(new Date(result).getTime()).toBeGreaterThan(Date.now());
   });
 });
 

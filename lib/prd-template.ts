@@ -19,22 +19,18 @@ interface PRDOptions {
  * Generate a PRD filename: PRD-{YYYYMMDD}-{slug}.md
  */
 export function generatePRDFilename(slug: string): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `PRD-${y}${m}${d}-${slug}.md`;
+  const today = new Date().toISOString().split("T")[0];
+  const datePart = today.replace(/-/g, "");
+  return `PRD-${datePart}-${slug}.md`;
 }
 
 /**
  * Generate a PRD ID: PRD-{YYYYMMDD}-{slug}
  */
 export function generatePRDId(slug: string): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `PRD-${y}${m}${d}-${slug}`;
+  const today = new Date().toISOString().split("T")[0];
+  const datePart = today.replace(/-/g, "");
+  return `PRD-${datePart}-${slug}`;
 }
 
 /**

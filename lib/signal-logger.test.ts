@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { ok } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 import { logSignal, type SignalEntry, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
 
 // ─── Fake deps factory ────────────────────────────────────────────────────────

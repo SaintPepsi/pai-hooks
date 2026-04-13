@@ -16,18 +16,31 @@ import type {
 } from "@hooks/lib/algorithm-state";
 import {
   agentAdd,
+  algorithmAbandon,
   algorithmEnd,
   criteriaAdd,
   criteriaUpdate,
   effortLevelUpdate,
   phaseTransition,
   readState,
+  sweepStaleActive,
   writeState,
 } from "@hooks/lib/algorithm-state";
 
 // ─── Fake deps factory ────────────────────────────────────────────────────────
 
-function makeAlgorithmDeps(baseDir = "/fake/pai"): AlgorithmStateDeps {
+interface AlgorithmDepsOptions {
+  baseDir?: string;
+  /** Per-path mtime overrides for stat(). Falls back to Date.now() if not set. */
+  mtimeOverrides?: Map<string, number>;
+}
+
+function makeAlgorithmDeps(baseDir?: string): AlgorithmStateDeps;
+function makeAlgorithmDeps(opts: AlgorithmDepsOptions): AlgorithmStateDeps;
+function makeAlgorithmDeps(arg?: string | AlgorithmDepsOptions): AlgorithmStateDeps {
+  arg = arg ?? "/fake/pai";
+  const baseDir = typeof arg === "string" ? arg : (arg.baseDir ?? "/fake/pai");
+  const mtimeOverrides = typeof arg === "string" ? undefined : arg.mtimeOverrides;
   const files = new Map<string, string>();
 
   return {
@@ -73,7 +86,8 @@ function makeAlgorithmDeps(baseDir = "/fake/pai"): AlgorithmStateDeps {
     stat: (path: string) => {
       if (!files.has(path))
         return err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError);
-      return ok({ mtimeMs: Date.now(), isDirectory: () => false });
+      const mtimeMs = mtimeOverrides?.get(path) ?? Date.now();
+      return ok({ mtimeMs, isDirectory: () => false });
     },
   };
 }
@@ -534,5 +548,151 @@ describe("algorithmEnd", () => {
     );
     const state = readState("sess-addnew", deps);
     expect(state!.criteria.some((c) => c.id === "ISC-C99")).toBe(true);
+  });
+});
+
+// ─── sweepStaleActive ─────────────────────────────────────────────────────────
+
+describe("sweepStaleActive", () => {
+  const ALGORITHMS_DIR = "/fake/pai/MEMORY/STATE/algorithms";
+
+  /** Write a state file with a specific mtime so sweep sees it as old/fresh. */
+  function seedSession(
+    deps: AlgorithmStateDeps,
+    sessionId: string,
+    state: AlgorithmState,
+    mtimeOverrides: Map<string, number>,
+    ageMs: number,
+  ): void {
+    writeState(state, deps);
+    const filepath = `${ALGORITHMS_DIR}/${sessionId}.json`;
+    mtimeOverrides.set(filepath, Date.now() - ageMs);
+  }
+
+  it("marks a stale active session as complete when it exceeds the phase threshold", () => {
+    const mtimeOverrides = new Map<string, number>();
+    const deps = makeAlgorithmDeps({ baseDir: "/fake/pai", mtimeOverrides });
+
+    const state: AlgorithmState = {
+      active: true,
+      sessionId: "sess-stale",
+      taskDescription: "Old task",
+      currentPhase: "OBSERVE", // threshold = 15 min
+      phaseStartedAt: Date.now() - 20 * 60 * 1000,
+      algorithmStartedAt: Date.now() - 20 * 60 * 1000,
+      sla: "Standard",
+      criteria: [],
+      agents: [],
+      capabilities: [],
+      phaseHistory: [],
+    };
+    seedSession(deps, "sess-stale", state, mtimeOverrides, 20 * 60 * 1000); // 20 min old
+
+    sweepStaleActive("current-session", deps);
+
+    const updated = readState("sess-stale", deps);
+    expect(updated!.active).toBe(false);
+    expect(updated!.currentPhase).toBe("COMPLETE");
+  });
+
+  it("skips the currentSessionId", () => {
+    const mtimeOverrides = new Map<string, number>();
+    const deps = makeAlgorithmDeps({ baseDir: "/fake/pai", mtimeOverrides });
+
+    const state: AlgorithmState = {
+      active: true,
+      sessionId: "current-session",
+      taskDescription: "Current task",
+      currentPhase: "OBSERVE",
+      phaseStartedAt: Date.now() - 20 * 60 * 1000,
+      algorithmStartedAt: Date.now() - 20 * 60 * 1000,
+      sla: "Standard",
+      criteria: [],
+      agents: [],
+      capabilities: [],
+      phaseHistory: [],
+    };
+    seedSession(deps, "current-session", state, mtimeOverrides, 20 * 60 * 1000);
+
+    sweepStaleActive("current-session", deps);
+
+    // Should remain untouched — current session is skipped
+    const updated = readState("current-session", deps);
+    expect(updated!.active).toBe(true);
+  });
+
+  it("deletes completed sessions older than 25 hours", () => {
+    const mtimeOverrides = new Map<string, number>();
+    const deps = makeAlgorithmDeps({ baseDir: "/fake/pai", mtimeOverrides });
+
+    const state: AlgorithmState = {
+      active: false,
+      sessionId: "sess-old-done",
+      taskDescription: "Finished long ago",
+      currentPhase: "COMPLETE",
+      phaseStartedAt: Date.now() - 26 * 60 * 60 * 1000,
+      algorithmStartedAt: Date.now() - 26 * 60 * 60 * 1000,
+      sla: "Standard",
+      criteria: [],
+      agents: [],
+      capabilities: [],
+      phaseHistory: [],
+      completedAt: Date.now() - 26 * 60 * 60 * 1000,
+    };
+    seedSession(deps, "sess-old-done", state, mtimeOverrides, 25 * 60 * 60 * 1000); // 25 hr old
+
+    sweepStaleActive("current-session", deps);
+
+    // File should be deleted — readState returns null
+    const result = readState("sess-old-done", deps);
+    expect(result).toBeNull();
+  });
+
+  it("does not mark a fresh active session as stale", () => {
+    const mtimeOverrides = new Map<string, number>();
+    const deps = makeAlgorithmDeps({ baseDir: "/fake/pai", mtimeOverrides });
+
+    const state: AlgorithmState = {
+      active: true,
+      sessionId: "sess-fresh",
+      taskDescription: "Recent task",
+      currentPhase: "BUILD", // threshold = 60 min
+      phaseStartedAt: Date.now() - 5 * 60 * 1000,
+      algorithmStartedAt: Date.now() - 5 * 60 * 1000,
+      sla: "Standard",
+      criteria: [],
+      agents: [],
+      capabilities: [],
+      phaseHistory: [],
+    };
+    seedSession(deps, "sess-fresh", state, mtimeOverrides, 5 * 60 * 1000); // 5 min old
+
+    sweepStaleActive("current-session", deps);
+
+    const updated = readState("sess-fresh", deps);
+    expect(updated!.active).toBe(true);
+  });
+});
+
+// ─── algorithmAbandon ─────────────────────────────────────────────────────────
+
+describe("algorithmAbandon", () => {
+  it("marks an active session as abandoned and inactive", () => {
+    const deps = makeAlgorithmDeps();
+    phaseTransition("sess-abandon", "BUILD", deps);
+
+    const result = algorithmAbandon("sess-abandon", deps);
+
+    expect(result).toBe(true);
+    const state = readState("sess-abandon", deps);
+    expect(state!.abandoned).toBe(true);
+    expect(state!.active).toBe(false);
+    expect(state!.completedAt).toBeDefined();
+  });
+
+  it("returns false when session does not exist", () => {
+    const deps = makeAlgorithmDeps();
+    const result = algorithmAbandon("nonexistent-session", deps);
+    expect(result).toBe(false);
   });
 });
