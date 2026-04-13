@@ -4,7 +4,7 @@
 
 CodeQualityGuard is a **PostToolUse** hook that provides SOLID quality feedback after Edit and Write operations. It scores the modified file for quality violations and injects advisory warnings as `additionalContext`. It never blocks and never asks — it only advises.
 
-When a baseline score exists (stored by CodeQualityBaseline), it computes the quality delta and reports whether the edit improved or degraded the file's quality. It also deduplicates violation reports, suppressing repeated identical warnings for the same file within a session.
+When a baseline score exists (stored by CodeQualityBaseline), it computes the quality delta and reports whether the edit improved or degraded the file's quality. It deduplicates violation reports within a session using a half-life strategy: identical violations are suppressed until either a configurable number of edits (`dedupHalfLifeEdits`, default 5) or a configurable time window (`dedupHalfLifeMs`, default 5 minutes) has elapsed, at which point the advisory resurfaces. If 3 or more prior sessions have flagged the same file with violations, the advisory is prefixed with a **REPEAT OFFENDER** escalation banner.
 
 ## Event
 
@@ -31,31 +31,35 @@ It does **not** fire when:
 3. Scores the content against the language profile's quality checks
 4. For test files, suppresses known false-positive checks (`type-import-ratio`, `options-object-width`)
 5. Looks up the baseline score from CodeQualityBaseline and computes a quality delta if available
-6. Deduplicates: if the violation set is identical to the last report for this file and there is no delta, skips context injection
-7. Logs every execution to `quality-violations.jsonl` via the signal logger
-8. If there are violations or a meaningful delta, injects the advisory as `additionalContext`
+6. Applies half-life dedup: if the violation set is identical to the last report for this file and no delta exists, suppresses the advisory until either `dedupHalfLifeEdits` (default: 5) edits have accumulated or `dedupHalfLifeMs` (default: 5 minutes) has elapsed since the last report
+7. Checks cross-session history: if 3 or more distinct prior sessions have flagged the same file with violations (via `quality-violations.jsonl`), prepends a **REPEAT OFFENDER** banner to the advisory
+8. Logs every execution to `quality-violations.jsonl` via the signal logger
+9. If there are violations or a meaningful delta, injects the advisory as `additionalContext`
 
 ```typescript
-// Delta computation and dedup check
-const baseline = getBaselineScore(filePath, input.session_id, deps);
-let deltaMessage: string | null = null;
-if (baseline) {
-  deltaMessage = deps.formatDelta(baseline, result, filePath);
-}
-
+// Half-life dedup check
 const hash = violationHash(result.violations);
-if (hash === prevHash && !deltaMessage) {
-  return ok({ continue: true }); // deduped
+const prevEntry = reportedViolations.get(filePath);
+if (prevEntry && prevEntry.hash === hash && !deltaMessage) {
+  const elapsed = Date.now() - prevEntry.timestamp;
+  const nextEditCount = prevEntry.editCount + 1;
+  const halfLifeExpired =
+    nextEditCount >= deps.dedup.halfLifeEdits ||
+    elapsed >= deps.dedup.halfLifeMs;
+  if (!halfLifeExpired) {
+    return ok({ continue: true }); // suppressed within half-life
+  }
+  // half-life expired — fall through to resurface
 }
+reportedViolations.set(filePath, { hash, timestamp: Date.now(), editCount: 0 });
 
-// Advisory path (previously dropped — see History)
-return ok({
-  continue: true,
-  hookSpecificOutput: {
-    hookEventName: "PostToolUse",
-    additionalContext: parts.join("\n"),
-  },
-});
+// Cross-session escalation
+const crossSessionCount = hasViolations
+  ? deps.dedup.countCrossSessionViolations(deps.signal.baseDir, filePath, input.session_id)
+  : 0;
+if (crossSessionCount >= 3) {
+  parts.push(`⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`);
+}
 ```
 
 ## History
@@ -78,16 +82,21 @@ violations and delta advisories were never surfaced to the editor session. Fixed
 
 > You edit `src/utils/format.ts` and the post-edit score is 9.0/10 with zero violations. CodeQualityGuard logs the clean score to `quality-violations.jsonl` but injects no context, keeping the conversation uncluttered.
 
-### Example 3: Deduplicated repeated violations
+### Example 3: Half-life dedup suppresses then resurfaces
 
-> You make three consecutive edits to `src/legacy/parser.ts`, each time triggering the same set of violations. CodeQualityGuard reports the violations on the first edit but suppresses identical reports on the second and third edits, avoiding repetitive noise.
+> You make six consecutive edits to `src/legacy/parser.ts`, each triggering the same violations. CodeQualityGuard reports on edit 1, suppresses edits 2–5 (within the half-life window of 5 edits), then resurfaces the advisory on edit 6 as a reminder that the issues remain unaddressed.
+
+### Example 4: Cross-session repeat offender escalation
+
+> `src/services/api.ts` has been flagged with SOLID violations in 3 previous sessions. When CodeQualityGuard fires again, the advisory begins with "⚠ REPEAT OFFENDER: src/services/api.ts has been flagged in 3 prior sessions." — signalling that this file has a persistent quality problem that warrants deeper attention.
 
 ## Dependencies
 
-| Dependency          | Type    | Purpose                                                        |
-| ------------------- | ------- | -------------------------------------------------------------- |
-| `language-profiles` | core    | Determines scorable files and provides check profiles          |
-| `quality-scorer`    | core    | Scores content, formats advisories and quality deltas          |
-| `signal-logger`     | lib     | Logs execution data to `quality-violations.jsonl` for analysis |
-| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files                   |
-| `fs`                | adapter | Reads file content and baseline store                          |
+| Dependency          | Type    | Purpose                                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `language-profiles` | core    | Determines scorable files and provides check profiles                                |
+| `quality-scorer`    | core    | Scores content, formats advisories and quality deltas                                |
+| `signal-logger`     | lib     | Logs execution data to `quality-violations.jsonl` for analysis                       |
+| `jsonl-reader`      | lib     | Reads cross-session violation counts from `quality-violations.jsonl` for escalation  |
+| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files                                         |
+| `fs`                | adapter | Reads file content and baseline store                                                |

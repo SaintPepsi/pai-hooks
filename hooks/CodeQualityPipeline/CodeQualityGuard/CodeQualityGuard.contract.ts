@@ -31,14 +31,26 @@ import {
 } from "@hooks/lib/signal-logger";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 import { getFilePath } from "@hooks/lib/tool-input";
+import { countCrossSessionViolations } from "@hooks/lib/jsonl-reader";
 
 // ─── Violation Dedup Cache ────────────────────────────────────────────────────
 
-const reportedViolations = new Map<string, string>();
+interface ViolationCacheEntry {
+  hash: string;
+  timestamp: number;
+  editCount: number;
+}
+
+const reportedViolations = new Map<string, ViolationCacheEntry>();
 
 /** Test-only: reset the violation dedup cache so tests start with clean state. */
 export function _resetViolationCache(): void {
   reportedViolations.clear();
+}
+
+/** Test-only: inject a cache entry directly to simulate prior edits or elapsed time. */
+export function _setViolationCacheEntry(filePath: string, entry: ViolationCacheEntry): void {
+  reportedViolations.set(filePath, entry);
 }
 
 function violationHash(violations: Array<{ check: string }>): string {
@@ -58,6 +70,16 @@ interface BaselineStore {
   };
 }
 
+export interface DedupConfig {
+  halfLifeEdits: number;
+  halfLifeMs: number;
+  countCrossSessionViolations: (
+    baseDir: string,
+    filePath: string,
+    sessionId: string,
+  ) => number;
+}
+
 export interface CodeQualityGuardDeps {
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, ResultError>;
@@ -69,6 +91,7 @@ export interface CodeQualityGuardDeps {
   formatDelta: typeof formatDelta;
   signal: SignalLoggerDeps;
   stderr: (msg: string) => void;
+  dedup: DedupConfig;
 }
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
@@ -117,6 +140,11 @@ const defaultDeps: CodeQualityGuardDeps = {
   formatDelta,
   signal: defaultSignalLoggerDeps,
   stderr: defaultStderr,
+  dedup: {
+    halfLifeEdits: 5,
+    halfLifeMs: 300_000,
+    countCrossSessionViolations,
+  },
 };
 
 export const CodeQualityGuard: SyncHookContract<ToolHookInput, CodeQualityGuardDeps> = {
@@ -172,24 +200,35 @@ export const CodeQualityGuard: SyncHookContract<ToolHookInput, CodeQualityGuardD
       deltaMessage = deps.formatDelta(baseline, result, filePath);
     }
 
-    // Dedup: suppress identical violation reports for same file within session
+    // Dedup: suppress identical violation reports for same file within session,
+    // but resurface after half-life (edit count or elapsed time threshold).
     const hash = violationHash(result.violations);
-    const prevHash = reportedViolations.get(filePath);
-    if (hash === prevHash && !deltaMessage) {
-      // Same violations, no delta — skip context injection but still log
-      logSignal(deps.signal, "quality-violations.jsonl", {
-        session_id: input.session_id,
-        hook: "CodeQualityGuard",
-        event: "PostToolUse",
-        tool: input.tool_name,
-        file: filePath,
-        outcome: "continue",
-        score: result.score,
-        deduplicated: true,
-      });
-      return ok({ continue: true });
+    const prevEntry = reportedViolations.get(filePath);
+    if (prevEntry && prevEntry.hash === hash && !deltaMessage) {
+      const elapsed = Date.now() - prevEntry.timestamp;
+      const nextEditCount = prevEntry.editCount + 1;
+      const halfLifeExpired =
+        nextEditCount >= deps.dedup.halfLifeEdits ||
+        elapsed >= deps.dedup.halfLifeMs;
+
+      if (!halfLifeExpired) {
+        // Same violations, no delta, within half-life — suppress and log
+        reportedViolations.set(filePath, { hash, timestamp: prevEntry.timestamp, editCount: nextEditCount });
+        logSignal(deps.signal, "quality-violations.jsonl", {
+          session_id: input.session_id,
+          hook: "CodeQualityGuard",
+          event: "PostToolUse",
+          tool: input.tool_name,
+          file: filePath,
+          outcome: "continue",
+          score: result.score,
+          deduplicated: true,
+        });
+        return ok({ continue: true });
+      }
+      // Half-life expired — resurface; reset the cache entry
     }
-    reportedViolations.set(filePath, hash);
+    reportedViolations.set(filePath, { hash, timestamp: Date.now(), editCount: 0 });
 
     // Only inject context if there are violations or a meaningful delta
     const advisory = deps.formatAdvisory(result, filePath);
@@ -228,7 +267,19 @@ export const CodeQualityGuard: SyncHookContract<ToolHookInput, CodeQualityGuardD
       return ok({ continue: true });
     }
 
+    // Cross-session escalation: prepend REPEAT OFFENDER if 3+ prior sessions flagged this file
+    const crossSessionCount =
+      hasViolations
+        ? deps.dedup.countCrossSessionViolations(
+            deps.signal.baseDir,
+            filePath,
+            input.session_id,
+          )
+        : 0;
+    const repeatOffender = crossSessionCount >= 3;
+
     const parts: string[] = [];
+    if (repeatOffender) parts.push(`⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`);
     if (deltaMessage) parts.push(deltaMessage);
     if (advisory) parts.push(advisory);
 

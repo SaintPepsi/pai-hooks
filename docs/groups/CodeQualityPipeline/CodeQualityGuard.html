@@ -1810,20 +1810,21 @@ Quality violations are easiest to fix at the moment they are introduced — when
 
 ## Solution
 
-After every file write or edit, re-score the file against language-specific quality checks and compare against the session baseline (if one exists). If quality regressed, inject an advisory showing the score change and which checks failed. Deduplicate identical violation reports within a session to avoid noise. Log every score to persistent storage for trend analysis.
+After every file write or edit, re-score the file against language-specific quality checks and compare against the session baseline (if one exists). If quality regressed, inject an advisory showing the score change and which checks failed. Use a half-life dedup strategy to suppress identical violation reports within a session — resurface only after a configurable number of edits or elapsed time, so the author gets periodic reminders without constant noise. Escalate with a "repeat offender" banner when the same file has been flagged across multiple sessions. Log every score to persistent storage for trend analysis.
 
 ## How It Works
 
 1. After a file is written or edited, read the new content and score it against quality checks.
 2. If a baseline exists for this file (from a prior read), compute the quality delta.
 3. If violations exist, format an advisory message listing each violation's category, severity, and suggestion.
-4. If the violations are identical to the last report for this file, suppress the duplicate.
-5. Log the score, violations, and metadata to a persistent signal log for trend analysis.
+4. Apply half-life dedup: if the violation set is identical to the last report, suppress the advisory until either a configurable edit count or time window threshold has been exceeded — then resurface and reset the counter.
+5. Check cross-session history: count distinct prior sessions that logged violations for this file. If 3 or more sessions are found, prepend a "REPEAT OFFENDER" escalation to the advisory.
+6. Log the score, violations, and metadata to a persistent signal log for trend analysis.
 
 ## Signals
 
 - **Input:** File path and content on every file write or edit of a source code file
-- **Output:** Advisory message with quality score, violations, and regression delta, or silent pass if clean
+- **Output:** Advisory message with quality score, violations, regression delta, and optional repeat-offender escalation — or silent pass if clean or within dedup half-life
 </script>
   </div>
 
@@ -1838,7 +1839,7 @@ After every file write or edit, re-score the file against language-specific qual
         <h3>Overview</h3>
       </div>
       <p>CodeQualityGuard is a <strong>PostToolUse</strong> hook that provides SOLID quality feedback after Edit and Write operations. It scores the modified file for quality violations and injects advisory warnings as <code>additionalContext</code>. It never blocks and never asks — it only advises.</p>
-      <p>When a baseline score exists (stored by CodeQualityBaseline), it computes the quality delta and reports whether the edit improved or degraded the file's quality. It also deduplicates violation reports, suppressing repeated identical warnings for the same file within a session.</p>
+      <p>When a baseline score exists (stored by CodeQualityBaseline), it computes the quality delta and reports whether the edit improved or degraded the file's quality. It deduplicates violation reports within a session using a half-life strategy: identical violations are suppressed until either a configurable number of edits (<code>dedupHalfLifeEdits</code>, default 5) or a configurable time window (<code>dedupHalfLifeMs</code>, default 5 minutes) has elapsed, at which point the advisory resurfaces. If 3 or more prior sessions have flagged the same file with violations, the advisory is prefixed with a <strong>REPEAT OFFENDER</strong> escalation banner.</p>
     </div>
   </section>
 
@@ -1907,16 +1908,21 @@ After every file write or edit, re-score the file against language-specific qual
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>Deduplicates: if the violation set is identical to the last report for this file and there is no delta, skips context injection</p></div>
+          <div class="step-content"><p>Applies half-life dedup: if the violation set is identical to the last report for this file and no delta exists, suppresses the advisory until either <code>dedupHalfLifeEdits</code> (default: 5) edits have accumulated or <code>dedupHalfLifeMs</code> (default: 5 minutes) has elapsed since the last report</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Logs every execution to <code>quality-violations.jsonl</code> via the signal logger</p></div>
+          <div class="step-content"><p>Checks cross-session history: if 3 or more distinct prior sessions have flagged the same file with violations (via <code>quality-violations.jsonl</code>), prepends a <strong>REPEAT OFFENDER</strong> banner to the advisory</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">8</div>
+          <div class="step-content"><p>Logs every execution to <code>quality-violations.jsonl</code> via the signal logger</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">9</div>
           <div class="step-content"><p>If there are violations or a meaningful delta, injects the advisory as <code>additionalContext</code></p></div>
         </div>
 </div>
@@ -1928,26 +1934,29 @@ After every file write or edit, re-score the file against language-specific qual
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Delta computation and dedup check
-const baseline = getBaselineScore(filePath, input.session_id, deps);
-let deltaMessage: string | null = null;
-if (baseline) {
-  deltaMessage = deps.formatDelta(baseline, result, filePath);
-}
-
+// Half-life dedup check
 const hash = violationHash(result.violations);
-if (hash === prevHash &amp;&amp; !deltaMessage) {
-  return ok({ continue: true }); // deduped
+const prevEntry = reportedViolations.get(filePath);
+if (prevEntry &amp;&amp; prevEntry.hash === hash &amp;&amp; !deltaMessage) {
+  const elapsed = Date.now() - prevEntry.timestamp;
+  const nextEditCount = prevEntry.editCount + 1;
+  const halfLifeExpired =
+    nextEditCount &gt;= deps.dedup.halfLifeEdits ||
+    elapsed &gt;= deps.dedup.halfLifeMs;
+  if (!halfLifeExpired) {
+    return ok({ continue: true }); // suppressed within half-life
+  }
+  // half-life expired — fall through to resurface
 }
+reportedViolations.set(filePath, { hash, timestamp: Date.now(), editCount: 0 });
 
-// Advisory path (previously dropped — see History)
-return ok({
-  continue: true,
-  hookSpecificOutput: {
-    hookEventName: "PostToolUse",
-    additionalContext: parts.join("\n"),
-  },
-});</div>
+// Cross-session escalation
+const crossSessionCount = hasViolations
+  ? deps.dedup.countCrossSessionViolations(deps.signal.baseDir, filePath, input.session_id)
+  : 0;
+if (crossSessionCount &gt;= 3) {
+  parts.push(`⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`);
+}</div>
         </div>
       </div>
     </div>
@@ -1986,10 +1995,17 @@ return ok({
       </div>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Deduplicated repeated violations</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Half-life dedup suppresses then resurfaces</h3>
       
       <div class="uc-example">
-        <div>You make three consecutive edits to <code>src/legacy/parser.ts</code>, each time triggering the same set of violations. CodeQualityGuard reports the violations on the first edit but suppresses identical reports on the second and third edits, avoiding repetitive noise.</div>
+        <div>You make six consecutive edits to <code>src/legacy/parser.ts</code>, each triggering the same violations. CodeQualityGuard reports on edit 1, suppresses edits 2–5 (within the half-life window of 5 edits), then resurfaces the advisory on edit 6 as a reminder that the issues remain unaddressed.</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 4: Cross-session repeat offender escalation</h3>
+      
+      <div class="uc-example">
+        <div><code>src/services/api.ts</code> has been flagged with SOLID violations in 3 previous sessions. When CodeQualityGuard fires again, the advisory begins with "⚠ REPEAT OFFENDER: src/services/api.ts has been flagged in 3 prior sessions." — signalling that this file has a persistent quality problem that warrants deeper attention.</div>
       </div>
       </div>
     </div>
@@ -2009,6 +2025,7 @@ return ok({
           <tr><td><code>language-profiles</code></td><td>core</td><td>Determines scorable files and provides check profiles</td></tr>
           <tr><td><code>quality-scorer</code></td><td>core</td><td>Scores content, formats advisories and quality deltas</td></tr>
           <tr><td><code>signal-logger</code></td><td>lib</td><td>Logs execution data to <code>quality-violations.jsonl</code> for analysis</td></tr>
+          <tr><td><code>jsonl-reader</code></td><td>lib</td><td>Reads cross-session violation counts from <code>quality-violations.jsonl</code> for escalation</td></tr>
           <tr><td><code>svelte-utils</code></td><td>lib</td><td>Extracts <code><script></code> blocks from Svelte files</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td>Reads file content and baseline store</td></tr>
         </tbody>
