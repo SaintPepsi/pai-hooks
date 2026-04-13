@@ -56,7 +56,7 @@ deps.writePending(flagFile, pending);
 
 ### Example 1: Code file triggers documentation obligation
 
-> You edit `src/utils/parser.ts`. DocObligationTracker detects the write, adds the file to the pending list, and logs "Code modified: src/utils/parser.ts -- docs pending." The obligation is now active for DocObligationEnforcer to enforce at session end.
+> You edit `src/utils/parser.ts`. DocObligationTracker detects the write and adds the file to the pending list. The obligation is now active for DocObligationEnforcer to enforce at session end.
 
 ### Example 2: Writing docs clears the obligation
 
