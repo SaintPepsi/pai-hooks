@@ -8,6 +8,7 @@ import {
   blockCountPath,
   buildBlockLimitReview,
   defaultDeps,
+  findImportingTestFile,
   hasTestFile,
   MAX_BLOCKS,
   pendingPath,
@@ -55,6 +56,8 @@ export const TestObligationEnforcer: SyncHookContract<StopInput, TestObligationD
 
     for (const file of pending) {
       if (hasTestFile(file, deps.fileExists)) {
+        needsRunning.push(file);
+      } else if (findImportingTestFile(file, deps) !== null) {
         needsRunning.push(file);
       } else {
         needsWriting.push(file);

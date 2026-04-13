@@ -21,6 +21,8 @@ function makeTrackerDeps(overrides: Partial<TestTrackerDeps> = {}): TestTrackerD
   return {
     stateDir: "/tmp/pai-test-obligation",
     fileExists: () => false,
+    readDir: () => [],
+    readFileContent: () => null,
     readPending: () => [],
     writePending: () => {},
     removeFlag: () => {},
@@ -1066,5 +1068,40 @@ describe("deriveTestPaths", () => {
       deriveTestPaths,
     } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
     expect(deriveTestPaths("/abs/path/README")).toEqual([]);
+  });
+});
+
+// ─── findImportingTestFile ──────────────────────────────────────────────────
+
+describe("findImportingTestFile", () => {
+  it("returns null when test imports changelog but source is log.ts (substring false-positive)", () => {
+    const {
+      findImportingTestFile,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+
+    const deps = {
+      readDir: (_dir: string) => ["changelog.test.ts"],
+      readFileContent: (_path: string) =>
+        "import { something } from '@hooks/lib/changelog';\n",
+    };
+
+    const result = findImportingTestFile("/src/log.ts", deps);
+    expect(result).toBeNull();
+  });
+
+  it("returns matching test file when test imports Foo and source is Foo.contract.ts", () => {
+    const {
+      findImportingTestFile,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+
+    const deps = {
+      readDir: (_dir: string) => ["Foo.test.ts"],
+      readFileContent: (_path: string) =>
+        "import { Foo } from '@hooks/hooks/SomeGroup/Foo';\n",
+    };
+
+    const result = findImportingTestFile("/src/Foo.contract.ts", deps);
+    expect(result).not.toBeNull();
+    expect(result).toContain("Foo.test.ts");
   });
 });
