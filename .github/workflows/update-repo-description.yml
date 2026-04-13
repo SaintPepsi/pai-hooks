@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: read
-  metadata: write
+  administration: write
 
 jobs:
   update-description:
@@ -28,4 +28,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh repo edit --description "A portable collection of ${{ steps.count.outputs.count }} Claude Code hooks extracted from PAI. Install with a single command."
+          gh repo edit --description "A portable collection of ${{ steps.count.outputs.count }} Claude Code hooks. Install with a single command."
