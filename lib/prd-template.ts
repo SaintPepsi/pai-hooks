@@ -15,26 +15,29 @@ interface PRDOptions {
   prompt?: string;
 }
 
+/** Get local date as YYYY-MM-DD string (avoids timezone issues with toISOString). */
+function getLocalDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Generate a PRD filename: PRD-{YYYYMMDD}-{slug}.md
  */
 export function generatePRDFilename(slug: string): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `PRD-${y}${m}${d}-${slug}.md`;
+  const datePart = getLocalDateString().replace(/-/g, "");
+  return `PRD-${datePart}-${slug}.md`;
 }
 
 /**
  * Generate a PRD ID: PRD-{YYYYMMDD}-{slug}
  */
 export function generatePRDId(slug: string): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `PRD-${y}${m}${d}-${slug}`;
+  const datePart = getLocalDateString().replace(/-/g, "");
+  return `PRD-${datePart}-${slug}`;
 }
 
 /**
@@ -42,7 +45,7 @@ export function generatePRDId(slug: string): string {
  * Frontmatter fields match algorithm.ts readPRD() parser exactly.
  */
 export function generatePRDTemplate(opts: PRDOptions): string {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const id = generatePRDId(opts.slug);
   const effort = opts.effortLevel || "Standard";
   const mode = opts.mode || "interactive";
