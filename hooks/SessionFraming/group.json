@@ -1,6 +1,6 @@
 {
   "name": "SessionFraming",
   "description": "Session initialization, context loading, and branch awareness",
-  "hooks": ["BranchAwareness", "CheckVersion", "GitignoreRecommender", "LoadContext"],
+  "hooks": ["BranchAwareness", "CheckVersion", "GitignoreRecommender", "LoadContext", "SessionAutoRename"],
   "sharedFiles": []
 }

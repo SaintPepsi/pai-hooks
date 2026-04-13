@@ -1,0 +1,9 @@
+{
+  "name": "SessionAutoRename",
+  "group": "SessionFraming",
+  "event": "UserPromptSubmit",
+  "description": "Progressively renames sessions based on conversation content",
+  "schemaVersion": 1,
+  "tags": [],
+  "presets": []
+}

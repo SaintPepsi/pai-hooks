@@ -1754,7 +1754,7 @@ section[id] {
     <h1>SessionFraming</h1>
     <p>Session initialization, context loading, and branch awareness</p>
     <div class="hero-meta">
-      <span>4 hooks</span>
+      <span>5 hooks</span>
       <span>pai-hooks</span>
     </div>
   </div>
@@ -1771,6 +1771,7 @@ section[id] {
 
   <div class="summary-grid">
     <div class="summary-item"><div class="num" style="color:var(--green);">4</div><div class="label">SessionStart</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--accent-bright);">1</div><div class="label">UserPromptSubmit</div></div>
   </div>
 
   <div class="section-label">Hooks</div>
@@ -1819,6 +1820,17 @@ section[id] {
           </div>
         </div>
         <p>Loads PAI context files at session start</p>
+      </div>
+
+      <div class="card accent" style="cursor:pointer;" onclick="location.href='SessionAutoRename.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>SessionAutoRename</h3>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--accent-dim);color:var(--accent);">UserPromptSubmit</span>
+          </div>
+        </div>
+        <p>Progressively renames sessions based on conversation content</p>
       </div>
 
   <footer><p>pai-hooks documentation</p></footer>

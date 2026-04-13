@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>pai-hooks — Documentation</title>
+  <title>SessionAutoRename — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1742,257 +1742,275 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>SessionAutoRename</h4>
+    <p>SessionFraming / UserPromptSubmit</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Documentation</div>
-    <h1>pai-hooks</h1>
-    <p>78 hooks across 24 groups.</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>SessionAutoRename</h1>
+    <p>Progressively renames sessions based on conversation content</p>
     <div class="hero-meta">
-      <span>March 2026</span>
-      <span>78 hooks</span>
-      <span>24 groups</span>
+      <span>SessionFraming</span>
+      <span>UserPromptSubmit</span>
+      <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num">24</div><div class="label">Groups</div></div>
-    <div class="summary-item"><div class="num">78</div><div class="label">Hooks</div></div>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag accent">UserPromptSubmit</span>
+    <span class="tag green">SessionFraming</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SessionFraming/SessionAutoRename/SessionAutoRename.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">SessionAutoRename.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">## Problem
+
+Conversation sessions start with generic or empty titles. After a few exchanges the topic is clear, but there is no mechanism to retroactively name the session. Users end up with a history full of untitled or misleadingly-named sessions that are hard to navigate.
+
+## Solution
+
+A stateful hook that fires on every user prompt, accumulates keyword frequency across the session, and periodically proposes a title derived from the most-used meaningful words. The title evolves as the conversation evolves, then locks in once it stabilises.
+
+## How It Works
+
+1. On each user prompt submission the hook reads the per-session state file (or creates a fresh one).
+2. Keywords are extracted from the prompt: lowercased, punctuation stripped, stop words and tokens under 4 characters removed.
+3. New keywords are merged into a cumulative frequency map stored in state.
+4. Three early-exit guards are checked in order: hook disabled, session has a custom name set by the user (`customName` flag in state — not yet automatically detected; must be set externally), rename interval has not elapsed since last rename.
+5. If none of the guards fire, the top-5 keywords by frequency are joined into a candidate title.
+6. The title is returned as `sessionTitle` in the hook output so the host application can apply it immediately.
+7. The new title is appended to a `titleHistory` list. If the last N titles are identical the session is marked `converged` and no further renames are issued.
+8. Updated state (prompt count, keyword map, title history, convergence flag) is written back to the state file.
+
+## Signals
+
+Input:
+- `session_id` — used to locate the per-session state file
+- `prompt` / `user_prompt` — the raw text to extract keywords from
+- Config: `enabled`, `intervalMinutes` (default 15), `convergenceCount` (default 2)
+
+Output:
+- `hookSpecificOutput.sessionTitle` — the proposed title string, present only when a rename is warranted
+- `continue: true` — always set; this hook never blocks prompt submission
+
+## Context
+
+The first-prompt rename gives an immediate title from minimal signal. Subsequent renames (rate-limited by `intervalMinutes`) refine the title as more context accumulates. Convergence detection prevents churn in long sessions where the topic has settled. Setting `customName: true` in the state file lets other tooling or the user lock the title permanently. Automatic detection of manual renames via the host API is not yet implemented — `customName` is always `false` until set externally.
+</script>
   </div>
 
-  <div class="section-label">Groups</div>
-  <h2>All Hook Groups</h2>
+  
 
   
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AgentLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AgentLifecycle</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
-        </div>
-        <p>Agent spawn, stop, and permission management</p>
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>Progressively renames the active Claude Code session based on keywords extracted from user prompts. The title builds up over time as the conversation evolves, and locks in once it stabilises.</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/AlgorithmTracking/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>AlgorithmTracking</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span></div>
-        </div>
-        <p>PAI Algorithm phase detection</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p>UserPromptSubmit</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ArchitectureEscalation/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ArchitectureEscalation</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span></div>
-        </div>
-        <p>Failure escalation and model delegation</p>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
       </div>
+      <p>On every user prompt submission. Most invocations are no-ops (interval guard, convergence guard). A rename is issued on the first prompt and then at most once per configured interval.</p>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CanaryHook/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CanaryHook</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Debug canary for verifying hook propagation</p>
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
       </div>
+      <div class="reason"><span class="ri">&#x2022;</span> Reads per-session state from <code>MEMORY/STATE/session-rename-{sessionId}.json</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> Extracts meaningful keywords from the incoming prompt (strips stop words and short tokens)</div>
+<div class="reason"><span class="ri">&#x2022;</span> Merges new keywords into the cumulative frequency map stored in state</div>
+<div class="reason"><span class="ri">&#x2022;</span> Decides whether to rename based on three guards: <code>enabled</code> flag, <code>customName</code> flag, and elapsed interval since last rename — note: <code>customName</code> detection is not yet implemented; the flag defaults to <code>false</code> and is never set to <code>true</code> by the current integration</div>
+<div class="reason"><span class="ri">&#x2022;</span> Builds a title from the top-5 most frequent keywords</div>
+<div class="reason"><span class="ri">&#x2022;</span> Returns <code>sessionTitle</code> in <code>hookSpecificOutput</code> when a rename is warranted</div>
+<div class="reason"><span class="ri">&#x2022;</span> Marks the session as <code>converged</code> once the same title appears <code>convergenceCount</code> times in a row — no further renames after that</div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodeQualityPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodeQualityPipeline</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
-        </div>
-        <p>3 hooks</p>
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
       </div>
+      
+      <div class="uc-example">
+        <div>First prompt of a session: "Implement the session auto-rename hook in TypeScript"</div>
+        <div>Title produced: "Implement Session Rename Typescript Hook"</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>After several more prompts on the same topic, the title stabilises and convergence is detected — no further renames are issued for the rest of the session.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>User has manually set a session name — <code>customName: true</code> in state — hook exits immediately without overwriting it. Note: automatic detection of manual renames is not yet implemented; <code>customName</code> must be set externally for this guard to trigger.</div>
+      </div>
+    </div>
+  </section>
 
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CodingStandards/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CodingStandards</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span></div>
-        </div>
-        <p>TypeScript quality enforcement hooks</p>
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
       </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/CronStatusLine/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>CronStatusLine</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span></div>
-        </div>
-        <p>Cron job scheduling and status line management</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/DuplicationDetection/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>DuplicationDetection</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">2 hooks</span></div>
-        </div>
-        <p>Detect and prevent code duplication using SWC-based function analysis</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ExecutionEvidence/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ExecutionEvidence</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Execution evidence verification from tool results</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/GitSafety/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>GitSafety</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">7 hooks</span></div>
-        </div>
-        <p>Git safety, branch protection, and worktree verification</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/IdentityBranding/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>IdentityBranding</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
-        </div>
-        <p>Maple identity branding and usage analytics</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/KoordDaemon/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>KoordDaemon</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span></div>
-        </div>
-        <p>Koord agent-to-agent daemon lifecycle hooks</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LastResponseCache/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LastResponseCache</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Last response caching for reference</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/LearningFeedback/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>LearningFeedback</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
-        </div>
-        <p>Learning signal capture and relationship memory</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/ObligationStateMachines/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>ObligationStateMachines</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">9 hooks</span></div>
-        </div>
-        <p>Documentation, test, citation, and hook-doc obligations</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/QuestionAnswered/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>QuestionAnswered</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>User question response tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SecurityValidator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SecurityValidator</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">4 hooks</span></div>
-        </div>
-        <p>Protected file write prevention</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SessionFraming/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SessionFraming</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">5 hooks</span></div>
-        </div>
-        <p>Session initialization, context loading, and branch awareness</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SkillGuard/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SkillGuard</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Skill invocation validation</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/SteeringRuleInjector/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>SteeringRuleInjector</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Contextual steering rule injection based on event type and keyword matching</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/StopOrchestrator/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>StopOrchestrator</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Stop event coordination</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/VoiceGate/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>VoiceGate</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">1 hooks</span></div>
-        </div>
-        <p>Voice notification routing control</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WikiPipeline/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WikiPipeline</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">3 hooks</span></div>
-        </div>
-        <p>Wiki knowledge pipeline: session ingestion, context injection, and read tracking</p>
-      </div>
-
-      <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/WorkLifecycle/index.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F4C1;</div>
-          <h3>WorkLifecycle</h3>
-          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">6 hooks</span></div>
-        </div>
-        <p>Session work tracking, summaries, and content generation</p>
-      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>MEMORY/STATE/session-rename-{sessionId}.json</code> — per-session keyword and title state</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>hookConfig.sessionAutoRename</code> in <code>settings.json</code> — optional config:</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>enabled</code> (boolean, default <code>true</code>)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>intervalMinutes</code> (number, default <code>15</code>)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>convergenceCount</code> (number, default <code>2</code>)</div>
+    </div>
+  </section>
 
   <footer>
-    <p>pai-hooks documentation</p>
-    <div class="collab"><span>pai-hooks</span></div>
+    <p>Generated from <code>SessionAutoRename/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>
