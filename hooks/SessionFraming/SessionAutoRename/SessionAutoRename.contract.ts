@@ -130,6 +130,8 @@ export function shouldRename(
   nowMs: number,
 ): boolean {
   if (state.converged) return false;
+  // TODO: customName is always false — no integration sets it to true yet.
+  // Future: detect manual renames via the host API and set customName: true in state.
   if (state.customName) return false;
 
   const intervalMs = (config.intervalMinutes ?? DEFAULT_INTERVAL_MINUTES) * 60 * 1000;
@@ -217,8 +219,14 @@ export const SessionAutoRename: SyncHookContract<UserPromptSubmitInput, SessionA
 
     // Persist state
     const stateDir = join(deps.baseDir, "MEMORY", "STATE");
-    deps.ensureDir(stateDir);
-    deps.writeJson(statePath, state);
+    const dirResult = deps.ensureDir(stateDir);
+    if (!dirResult.ok) {
+      deps.stderr(`[SessionAutoRename] Failed to ensure state directory: ${dirResult.error.message}`);
+    }
+    const writeResult = deps.writeJson(statePath, state);
+    if (!writeResult.ok) {
+      deps.stderr(`[SessionAutoRename] Failed to save state: ${writeResult.error.message}`);
+    }
 
     if (sessionTitle) {
       return ok({

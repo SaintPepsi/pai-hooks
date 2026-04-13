@@ -11,7 +11,7 @@ A stateful hook that fires on every user prompt, accumulates keyword frequency a
 1. On each user prompt submission the hook reads the per-session state file (or creates a fresh one).
 2. Keywords are extracted from the prompt: lowercased, punctuation stripped, stop words and tokens under 4 characters removed.
 3. New keywords are merged into a cumulative frequency map stored in state.
-4. Three early-exit guards are checked in order: hook disabled, session has a custom name set by the user, rename interval has not elapsed since last rename.
+4. Three early-exit guards are checked in order: hook disabled, session has a custom name set by the user (`customName` flag in state — not yet automatically detected; must be set externally), rename interval has not elapsed since last rename.
 5. If none of the guards fire, the top-5 keywords by frequency are joined into a candidate title.
 6. The title is returned as `sessionTitle` in the hook output so the host application can apply it immediately.
 7. The new title is appended to a `titleHistory` list. If the last N titles are identical the session is marked `converged` and no further renames are issued.
@@ -30,4 +30,4 @@ Output:
 
 ## Context
 
-The first-prompt rename gives an immediate title from minimal signal. Subsequent renames (rate-limited by `intervalMinutes`) refine the title as more context accumulates. Convergence detection prevents churn in long sessions where the topic has settled. Setting `customName: true` in the state file lets other tooling or the user lock the title permanently.
+The first-prompt rename gives an immediate title from minimal signal. Subsequent renames (rate-limited by `intervalMinutes`) refine the title as more context accumulates. Convergence detection prevents churn in long sessions where the topic has settled. Setting `customName: true` in the state file lets other tooling or the user lock the title permanently. Automatic detection of manual renames via the host API is not yet implemented — `customName` is always `false` until set externally.
