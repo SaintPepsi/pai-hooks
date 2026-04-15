@@ -150,12 +150,16 @@ WHEN TO RETURN null FOR RATING:
 }
 
 /** Parse a single JSONL line, returning null on invalid JSON. */
-function parseJsonlEntry(line: string): TranscriptEntry | null {
+function parseJsonlEntry(line: string, onError?: (line: string) => void): TranscriptEntry | null {
   const result = tryCatch(
     () => JSON.parse(line) as TranscriptEntry,
     () => null,
   );
-  return result.ok ? result.value : null;
+  if (!result.ok) {
+    onError?.(line);
+    return null;
+  }
+  return result.value;
 }
 
 /** Extract text content from a transcript message entry. */
@@ -182,7 +186,7 @@ function getRecentContext(transcriptPath: string, deps: RatingCaptureDeps): stri
 
   for (const line of lines) {
     if (!line.trim()) continue;
-    const entry = parseJsonlEntry(line);
+    const entry = parseJsonlEntry(line, (l) => deps.stderr(`[RatingCapture] parseJsonlEntry failed: ${l.slice(0, 80)}`));
     if (!entry) continue;
 
     if (entry.type === "user" && entry.message?.content) {
@@ -218,7 +222,7 @@ function getLastAssistantContext(
   let lastAssistant = "";
 
   for (const line of lines) {
-    const entry = parseJsonlEntry(line);
+    const entry = parseJsonlEntry(line, (l) => deps.stderr(`[RatingCapture] parseJsonlEntry failed: ${l.slice(0, 80)}`));
     if (!entry) continue;
 
     if (entry.type === "assistant" && entry.message?.content) {
