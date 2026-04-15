@@ -88,7 +88,10 @@ export function appendHookLog(
 
   if (!dirEnsured || logDir !== undefined) {
     const mkResult = ensureDir(dir);
-    if (!mkResult.ok) return ok(undefined);
+    if (!mkResult.ok) {
+      if (stderr) stderr(`[hook-log] ensureDir failed: ${dir} — ${mkResult.error.message}`);
+      return ok(undefined);
+    }
     if (logDir === undefined) dirEnsured = true;
   }
 
