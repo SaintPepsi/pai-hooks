@@ -17,6 +17,7 @@ import {
   readFile,
   stat,
 } from "@hooks/core/adapters/fs";
+import { safeJsonParse } from "@hooks/core/adapters/json";
 import { exec } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
@@ -140,8 +141,17 @@ export function hasExistingExtraction(sessionId: string, deps: WikiIngestDeps): 
 export function parseFilterOutput(stdout: string): FilterResultJson | null {
   const trimmed = stdout.trim();
   if (!trimmed.startsWith("{")) return null;
-  const result = JSON.parse(trimmed) as Record<string, unknown>;
+  const parseResult = safeJsonParse(trimmed);
+  if (!parseResult.ok) return null;
+  const result = parseResult.value;
   if (typeof result.sessionId !== "string") return null;
+  if (typeof result.classification !== "string") return null;
+  if (result.digestPath !== null && typeof result.digestPath !== "string") return null;
+  if (typeof result.messageCount !== "number") return null;
+  if (typeof result.keptMessageCount !== "number") return null;
+  if (typeof result.decisionsFound !== "number") return null;
+  if (!Array.isArray(result.entitiesFound)) return null;
+  if (typeof result.confidence !== "string") return null;
   return result as unknown as FilterResultJson;
 }
 
@@ -151,8 +161,19 @@ export function parseFilterOutput(stdout: string): FilterResultJson | null {
 export function parseExtractionFile(content: string): ExtractionJson | null {
   const trimmed = content.trim();
   if (!trimmed.startsWith("{")) return null;
-  const result = JSON.parse(trimmed) as Record<string, unknown>;
+  const parseResult = safeJsonParse(trimmed);
+  if (!parseResult.ok) return null;
+  const result = parseResult.value;
   if (typeof result.sessionId !== "string") return null;
+  if (!Array.isArray(result.entities)) return null;
+  if (!Array.isArray(result.decisions)) return null;
+  if (!Array.isArray(result.concepts)) return null;
+  if (typeof result.confidence !== "string") return null;
+  if (typeof result.cost !== "object" || result.cost === null) return null;
+  const cost = result.cost as Record<string, unknown>;
+  if (typeof cost.inputTokens !== "number") return null;
+  if (typeof cost.outputTokens !== "number") return null;
+  if (typeof cost.totalCost !== "number") return null;
   return result as unknown as ExtractionJson;
 }
 
