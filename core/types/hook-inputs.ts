@@ -28,7 +28,7 @@ export interface HookInputBase {
 export interface ToolHookInput extends HookInputBase {
   tool_name: string;
   tool_input: Record<string, unknown>;
-  tool_response?: unknown;
+  tool_response?: string | Record<string, unknown>;
 }
 
 // ─── Session Inputs ──────────────────────────────────────────────────────────

@@ -61,7 +61,7 @@ export function makePreToolUseInput(toolName: string, filePath: string): ToolHoo
 export function makePostToolUseInput(
   toolName: string,
   filePath: string,
-  toolResponse?: unknown,
+  toolResponse?: ToolHookInput["tool_response"],
 ): ToolHookInput {
   return {
     hook_type: "PostToolUse",
