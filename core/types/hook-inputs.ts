@@ -28,7 +28,10 @@ export interface HookInputBase {
 export interface ToolHookInput extends HookInputBase {
   tool_name: string;
   tool_input: Record<string, unknown>;
+  /** Typed response field used by hook contracts and tests. */
   tool_response?: unknown;
+  /** Raw field name sent by Claude Code at runtime (mirrors tool_response). */
+  tool_output?: unknown;
 }
 
 // ─── Session Inputs ──────────────────────────────────────────────────────────

@@ -74,13 +74,27 @@ export function extractThreadId(toolInput: Record<string, unknown>): string | nu
   return null;
 }
 
+/** Fields read by extractThreadIdFromOutput.
+ *  All three fields are narrowed to string via typeof guards inside the function.
+ *  ToolHookInput (core/types/hook-inputs.ts) is a structural superset of this type;
+ *  callers with ToolHookInput should cast with `input as ThreadIdOutputInput` since
+ *  ToolHookInput.tool_response is typed as unknown rather than string|object|null. */
+export interface ThreadIdOutputInput {
+  /** Discord snowflake ID, present at the top level on Stop events. */
+  thread_id?: string;
+  /** Raw output field name sent by Claude Code at runtime. */
+  tool_output?: string | object | null;
+  /** Typed response field used by hook contracts and tests. */
+  tool_response?: string | object | null;
+}
+
 /**
  * Extract a thread ID from tool_output text (for completion detection).
  * Does NOT check tool_input — spawn-time params would cause false positives.
  *
  * Source logic: /Users/hogers/Projects/koord/.claude/hooks/AgentCompleteTracker.hook.js:123-136
  */
-export function extractThreadIdFromOutput(input: Record<string, unknown>): string | null {
+export function extractThreadIdFromOutput(input: ThreadIdOutputInput): string | null {
   // For Stop event: check top-level thread_id
   if (typeof input.thread_id === "string" && DISCORD_ID_PATTERN.test(input.thread_id)) {
     return input.thread_id;

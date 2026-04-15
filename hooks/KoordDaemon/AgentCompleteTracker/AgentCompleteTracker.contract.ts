@@ -28,6 +28,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ThreadIdOutputInput } from "@hooks/hooks/KoordDaemon/shared";
 import {
   defaultReadFileOrNull,
   extractThreadIdFromOutput,
@@ -76,15 +77,11 @@ export const AgentCompleteTracker: AsyncHookContract<ToolHookInput, AgentComplet
     }
 
     // Extract thread_id from output and top-level only (NOT tool_input).
-    // Build a record that maps both tool_response (typed ToolHookInput field)
-    // and tool_output (raw Claude Code JSON field) so extraction works in
-    // both production (raw JSON has tool_output) and tests (typed fixture has tool_response).
-    const raw = input as unknown as Record<string, unknown>;
-    const record: Record<string, unknown> = { ...raw };
-    if (!("tool_output" in record) && typeof input.tool_response === "string") {
-      record.tool_output = input.tool_response;
-    }
-    const threadId = extractThreadIdFromOutput(record);
+    // ToolHookInput is a structural superset of ThreadIdOutputInput — the only
+    // variance is tool_response: unknown vs string|object|null. The cast is safe
+    // because extractThreadIdFromOutput narrows all fields with typeof guards and
+    // now reads both tool_output and tool_response directly (core/types/hook-inputs.ts).
+    const threadId = extractThreadIdFromOutput(input as ThreadIdOutputInput);
     if (!threadId) {
       return ok({ continue: true });
     }
