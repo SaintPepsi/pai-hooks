@@ -1,6 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeDir,
+  setFileTimes,
+  stat,
+  writeFile,
+} from "@hooks/core/adapters/fs";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import type { LoadContextDeps } from "./LoadContext.contract";
+import { loadPendingProposals } from "./LoadContext.contract";
 
 const TEST_DIR = join(import.meta.dir, "__test-load-context-proposals__");
 
@@ -8,17 +21,15 @@ const TEST_DIR = join(import.meta.dir, "__test-load-context-proposals__");
 
 describe("Proposal format parsing", () => {
   beforeEach(() => {
-    mkdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), {
-      recursive: true,
-    });
+    ensureDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"));
   });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    removeDir(TEST_DIR);
   });
 
   it("directory structure is created correctly", () => {
-    expect(existsSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"))).toBe(true);
+    expect(fileExists(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"))).toBe(true);
   });
 
   it("proposal title regex extracts correctly", () => {
@@ -46,87 +57,67 @@ describe("Proposal format parsing", () => {
 
   it("can create 8 proposals and count them correctly", () => {
     for (let i = 0; i < 8; i++) {
-      writeFileSync(
+      writeFile(
         join(TEST_DIR, `MEMORY/LEARNING/PROPOSALS/pending/20260227-17000${i}-proposal-${i}.md`),
         `---\ncategory: memory\n---\n\n# Proposal: Proposal number ${i}\n`,
       );
     }
-    const files = readdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending")).filter(
-      (f: string) => f.endsWith(".md") && f !== ".gitkeep",
-    );
+    const filesResult = readDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"));
+    const files = filesResult.ok
+      ? filesResult.value.filter((f: string) => f.endsWith(".md") && f !== ".gitkeep")
+      : [];
     expect(files.length).toBe(8);
   });
 });
 
-// ─── Section 2: Integration tests (red until Task 3 modifies LoadContext) ────
-
-import { ok } from "@hooks/core/result";
-import type { LoadContextDeps } from "./LoadContext.contract";
-import { loadPendingProposals } from "./LoadContext.contract";
+// ─── Section 2: Integration tests ────────────────────────────────────────────
 
 const INT_TEST_DIR = join(import.meta.dir, "__test-lc-proposals-integration__");
 
-function makeProposalDeps(
-  overrides: Partial<LoadContextDeps> = {},
-): Pick<LoadContextDeps, "fileExists" | "readFile" | "readDir" | "stat" | "getDAName"> {
+type ProposalDeps = Pick<LoadContextDeps, "fileExists" | "readFile" | "readDir" | "stat">;
+
+function makeProposalDeps(overrides: Partial<ProposalDeps> = {}): ProposalDeps {
   return {
-    fileExists: (path: string) => existsSync(path),
-    readFile: (path: string) => {
-      try {
-        return ok(require("node:fs").readFileSync(path, "utf-8"));
-      } catch {
-        return {
-          ok: false,
-          error: { code: "READ_FAILED", message: "not found", context: {} },
-        } as any;
+    fileExists: (path: string) => fileExists(path),
+    readFile: (path: string): Result<string, ResultError> => readFile(path),
+    readDir: (
+      path: string,
+      opts?: { withFileTypes: true },
+    ): Result<{ name: string; isDirectory(): boolean }[], ResultError> => {
+      if (opts?.withFileTypes) {
+        return readDir(path, { withFileTypes: true }) as Result<
+          { name: string; isDirectory(): boolean }[],
+          ResultError
+        >;
       }
+      return err(new ResultError(ErrorCode.FileReadFailed, "withFileTypes required"));
     },
-    readDir: (path: string, opts?: any) => {
-      try {
-        const entries = readdirSync(path, opts);
-        return ok(entries);
-      } catch {
-        return {
-          ok: false,
-          error: { code: "READ_DIR_FAILED", message: "not found", context: {} },
-        } as any;
-      }
+    stat: (path: string): Result<{ mtimeMs: number }, ResultError> => {
+      const s = stat(path);
+      if (!s.ok) return s;
+      return ok({ mtimeMs: s.value.mtimeMs });
     },
-    stat: (path: string) => {
-      try {
-        const s = require("node:fs").statSync(path);
-        return ok({ mtimeMs: s.mtimeMs });
-      } catch {
-        return {
-          ok: false,
-          error: { code: "STAT_FAILED", message: "not found", context: {} },
-        } as any;
-      }
-    },
-    getDAName: () => "Maple",
     ...overrides,
   };
 }
 
 describe("LoadContext proposals integration", () => {
   beforeEach(() => {
-    mkdirSync(join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"), {
-      recursive: true,
-    });
+    ensureDir(join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"));
   });
 
   afterEach(() => {
-    rmSync(INT_TEST_DIR, { recursive: true, force: true });
+    removeDir(INT_TEST_DIR);
   });
 
   it("returns string with 'Pending Improvement Proposals' when proposals exist", () => {
-    writeFileSync(
+    writeFile(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test-proposal.md"),
       "---\ncategory: steering-rule\npriority: medium\n---\n\n# Proposal: Add retry limit to agent loops\n\n## What was learned\nAgents retry indefinitely.\n",
     );
 
     const deps = makeProposalDeps();
-    const result = loadPendingProposals(INT_TEST_DIR, deps as any);
+    const result = loadPendingProposals(INT_TEST_DIR, deps);
 
     expect(result).not.toBeNull();
     expect(result).toContain("Pending Improvement Proposals");
@@ -135,40 +126,37 @@ describe("LoadContext proposals integration", () => {
   });
 
   it("returns null when .analyzing lock file is fresh", () => {
-    writeFileSync(
+    writeFile(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test.md"),
       "---\ncategory: memory\n---\n\n# Proposal: Test\n",
     );
-    writeFileSync(
+    writeFile(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
       new Date().toISOString(),
     );
 
     const deps = makeProposalDeps();
-    const result = loadPendingProposals(INT_TEST_DIR, deps as any);
+    const result = loadPendingProposals(INT_TEST_DIR, deps);
 
     expect(result).toBeNull();
   });
 
   it("returns proposals when .analyzing lock file is stale (>10min)", () => {
-    writeFileSync(
+    writeFile(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test.md"),
       "---\ncategory: memory\n---\n\n# Proposal: Stale lock test\n",
     );
-    writeFileSync(
+    const staleTime = new Date(Date.now() - 11 * 60 * 1000);
+    writeFile(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
-      new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+      staleTime.toISOString(),
     );
     // Backdate the lock file mtime
     const lockPath = join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing");
-    require("node:fs").utimesSync(
-      lockPath,
-      new Date(Date.now() - 11 * 60 * 1000),
-      new Date(Date.now() - 11 * 60 * 1000),
-    );
+    setFileTimes(lockPath, staleTime, staleTime);
 
     const deps = makeProposalDeps();
-    const result = loadPendingProposals(INT_TEST_DIR, deps as any);
+    const result = loadPendingProposals(INT_TEST_DIR, deps);
 
     expect(result).not.toBeNull();
     expect(result).toContain("Stale lock test");
@@ -176,14 +164,14 @@ describe("LoadContext proposals integration", () => {
 
   it("shows max 5 proposals with overflow count when more exist", () => {
     for (let i = 0; i < 7; i++) {
-      writeFileSync(
+      writeFile(
         join(INT_TEST_DIR, `MEMORY/LEARNING/PROPOSALS/pending/20260227-12000${i}-proposal-${i}.md`),
         `---\ncategory: hook\n---\n\n# Proposal: Improvement number ${i}\n`,
       );
     }
 
     const deps = makeProposalDeps();
-    const result = loadPendingProposals(INT_TEST_DIR, deps as any);
+    const result = loadPendingProposals(INT_TEST_DIR, deps);
 
     expect(result).not.toBeNull();
     expect(result).toContain("**7**");

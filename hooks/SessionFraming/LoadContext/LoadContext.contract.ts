@@ -323,7 +323,10 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   return summary;
 }
 
-export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): string | null {
+export function loadPendingProposals(
+  baseDir: string,
+  deps: Pick<LoadContextDeps, "fileExists" | "stat" | "readDir" | "readFile">,
+): string | null {
   const proposalsDir = join(baseDir, "MEMORY/LEARNING/PROPOSALS/pending");
   const lockPath = join(baseDir, "MEMORY/LEARNING/PROPOSALS/.analyzing");
 
