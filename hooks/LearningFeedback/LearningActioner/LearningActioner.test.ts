@@ -497,6 +497,29 @@ describe("evaluateCredit", () => {
     expect(result.shouldSpawn).toBe(true);
     expect(result.newCredit).toBe(0);
   });
+
+  it("logs stderr when usage-cache.json read fails", () => {
+    const stderrCalls: string[] = [];
+    const deps = { ...makeCreditDeps({ usageMissing: true, credit: 0 }), stderr: (msg: string) => stderrCalls.push(msg) };
+    evaluateCredit("/tmp/test", deps);
+    expect(stderrCalls.length).toBe(1);
+    expect(stderrCalls[0]).toContain("usage-cache.json read failed");
+  });
+
+  it("logs stderr when learning-agent-credit.json read fails", () => {
+    const stderrCalls: string[] = [];
+    const deps = { ...makeCreditDeps({ utilization: 50, creditMissing: true }), stderr: (msg: string) => stderrCalls.push(msg) };
+    evaluateCredit("/tmp/test", deps);
+    expect(stderrCalls.length).toBe(1);
+    expect(stderrCalls[0]).toContain("learning-agent-credit.json read failed");
+  });
+
+  it("does not call stderr when both reads succeed", () => {
+    const stderrCalls: string[] = [];
+    const deps = { ...makeCreditDeps({ utilization: 50, credit: 3.0 }), stderr: (msg: string) => stderrCalls.push(msg) };
+    evaluateCredit("/tmp/test", deps);
+    expect(stderrCalls.length).toBe(0);
+  });
 });
 
 describe("LearningActioner defaultDeps", () => {

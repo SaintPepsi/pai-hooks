@@ -300,8 +300,16 @@ export function evaluateCredit(baseDir: string, deps: LearningActionerDeps): Cre
 
   // Read usage cache
   const usageResult = deps.readJson<UsageCache>(usagePath);
-  const utilization = usageResult.ok ? (usageResult.value.five_hour?.utilization ?? 0) : 0;
-  const resetsAt = usageResult.ok ? (usageResult.value.five_hour?.resets_at ?? "") : "";
+  let utilization: number;
+  let resetsAt: string;
+  if (usageResult.ok) {
+    utilization = usageResult.value.five_hour?.utilization ?? 0;
+    resetsAt = usageResult.value.five_hour?.resets_at ?? "";
+  } else {
+    deps.stderr(`[LearningActioner] usage-cache.json read failed (${usageResult.error.message}), defaulting utilization=0`);
+    utilization = 0;
+    resetsAt = "";
+  }
 
   // Projection gate: if projected 5h usage >= 100%, hard block
   if (resetsAt) {
@@ -317,7 +325,13 @@ export function evaluateCredit(baseDir: string, deps: LearningActionerDeps): Cre
 
   // Read current credit
   const creditResult = deps.readJson<CreditState>(creditPath);
-  const currentCredit = creditResult.ok ? creditResult.value.credit : 0;
+  let currentCredit: number;
+  if (creditResult.ok) {
+    currentCredit = creditResult.value.credit;
+  } else {
+    deps.stderr(`[LearningActioner] learning-agent-credit.json read failed (${creditResult.error.message}), defaulting credit=0`);
+    currentCredit = 0;
+  }
 
   // Accumulate: credit += (100 - utilization) / 100
   const increment = (100 - utilization) / 100;
