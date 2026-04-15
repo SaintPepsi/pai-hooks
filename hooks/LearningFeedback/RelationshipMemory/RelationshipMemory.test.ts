@@ -830,4 +830,31 @@ describe("safeParseTranscriptLine", () => {
     expect(result).not.toBeNull();
     expect(result!.type).toBe("assistant");
   });
+
+  test("returns null when message is a string (not an object)", () => {
+    const line = JSON.stringify({ type: "user", message: "plain string" });
+    expect(safeParseTranscriptLine(line)).toBeNull();
+  });
+
+  test("returns null when message is a number", () => {
+    const line = JSON.stringify({ type: "user", message: 42 });
+    expect(safeParseTranscriptLine(line)).toBeNull();
+  });
+
+  test("returns null when message is an object without content field", () => {
+    const line = JSON.stringify({ type: "user", message: { role: "user" } });
+    expect(safeParseTranscriptLine(line)).toBeNull();
+  });
+
+  test("returns null when message.content is a number", () => {
+    const line = JSON.stringify({ type: "user", message: { content: 99 } });
+    expect(safeParseTranscriptLine(line)).toBeNull();
+  });
+
+  test("returns non-null when message field is absent (optional field)", () => {
+    const line = JSON.stringify({ type: "user" });
+    const result = safeParseTranscriptLine(line);
+    expect(result).not.toBeNull();
+    expect(result!.type).toBe("user");
+  });
 });
