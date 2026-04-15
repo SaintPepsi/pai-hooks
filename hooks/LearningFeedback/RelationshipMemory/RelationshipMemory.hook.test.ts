@@ -34,10 +34,9 @@ describe("RelationshipMemory hook shell", () => {
       transcript_path: "/tmp/nonexistent",
     });
     expect(result.exitCode).toBe(0);
-    // Stop event with silent output produces no stdout
-    if (result.stdout.length > 0) {
-      expect(() => JSON.parse(result.stdout)).not.toThrow();
-    }
+    // Stop event: ok({}) with no tool_name produces no stdout.
+    // See core/runner.ts lines 169-175 — "{}" is suppressed for non-tool events.
+    expect(result.stdout).toBe("");
   });
 
   it("exits 0 when transcript_path is missing (rejected by accepts)", async () => {

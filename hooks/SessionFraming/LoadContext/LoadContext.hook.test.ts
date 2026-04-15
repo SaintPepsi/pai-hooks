@@ -38,10 +38,10 @@ describe("LoadContext hook shell", () => {
       session_id: uniqueSessionId("lc"),
     });
     expect(result.exitCode).toBe(0);
-    // Output is either the JSON envelope (contains system-reminder) or {} (silent/subagent)
-    if (result.stdout.length > 0) {
-      expect(result.stdout).toContain("system-reminder");
-    }
+    // LoadContext always produces output when context files exist (hooks/SessionFraming/LoadContext/LoadContext.contract.ts:478).
+    // Assert output is non-empty and contains the system-reminder wrapper unconditionally.
+    expect(result.stdout.length).toBeGreaterThan(0);
+    expect(result.stdout).toContain("system-reminder");
   });
 
   it("does not crash with minimal input", async () => {

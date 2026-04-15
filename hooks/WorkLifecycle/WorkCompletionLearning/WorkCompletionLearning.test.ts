@@ -29,10 +29,9 @@ describe("WorkCompletionLearning hook shell", () => {
       transcript_path: "/tmp/nonexistent",
     });
     expect(result.exitCode).toBe(0);
-    // SessionEnd with silent output produces no stdout
-    if (result.stdout.length > 0) {
-      expect(() => JSON.parse(result.stdout)).not.toThrow();
-    }
+    // SessionEnd event: ok({}) with no tool_name produces no stdout.
+    // See hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.contract.ts — execute() returns ok({}) when no current-work file exists, and core/runner.ts:169-175 suppresses "{}" for non-tool events.
+    expect(result.stdout).toBe("");
   });
 
   it("exits 0 with no active work session", async () => {

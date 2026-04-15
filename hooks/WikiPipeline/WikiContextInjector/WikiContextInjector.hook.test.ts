@@ -11,10 +11,9 @@ describe("WikiContextInjector hook shell", () => {
       tool_input: { file_path: "/tmp/test-file.ts", content: "test" },
     });
     expect(result.exitCode).toBe(0);
-    // Output should be parseable JSON ({ continue: true } or empty)
-    if (result.stdout.length > 0) {
-      expect(() => JSON.parse(result.stdout)).not.toThrow();
-    }
+    // PreToolUse hook: execute() returns ok({ continue: true }) when no wiki domain matches.
+    // See hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.contract.ts:271 and core/runner.ts:169-175.
+    expect(result.stdout).toBe(JSON.stringify({ continue: true }));
   });
 
   it("exits 0 for an Edit tool input", async () => {
