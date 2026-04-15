@@ -18,9 +18,10 @@ import {
 // ─── getLocalTimestamp ────────────────────────────────────────────────────────
 
 describe("getLocalTimestamp", () => {
-  it("returns a string", () => {
+  it("returns a non-empty string", () => {
     const result = getLocalTimestamp();
     expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("matches YYYY-MM-DD HH:MM:SS TZ format", () => {
@@ -74,9 +75,10 @@ describe("getLocalTimestamp", () => {
 // ─── getLocalDate ────────────────────────────────────────────────────────────
 
 describe("getLocalDate", () => {
-  it("returns a string", () => {
+  it("returns a non-empty string", () => {
     const result = getLocalDate();
     expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("matches YYYY-MM-DD format", () => {
@@ -114,9 +116,10 @@ describe("getLocalDate", () => {
 // ─── getYearMonth ────────────────────────────────────────────────────────────
 
 describe("getYearMonth", () => {
-  it("returns a string", () => {
+  it("returns a non-empty string", () => {
     const result = getYearMonth();
     expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("matches YYYY-MM format", () => {
@@ -146,9 +149,10 @@ describe("getYearMonth", () => {
 // ─── getISOTimestamp ─────────────────────────────────────────────────────────
 
 describe("getISOTimestamp", () => {
-  it("returns a string", () => {
+  it("returns a non-empty string", () => {
     const result = getISOTimestamp();
     expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("matches ISO8601 format with timezone offset", () => {
@@ -205,9 +209,10 @@ describe("getISOTimestamp", () => {
 // ─── getFilenameTimestamp ────────────────────────────────────────────────────
 
 describe("getFilenameTimestamp", () => {
-  it("returns a string", () => {
+  it("returns a non-empty string", () => {
     const result = getFilenameTimestamp();
     expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it("matches YYYY-MM-DD-HHMMSS format", () => {
@@ -254,10 +259,13 @@ describe("getFilenameTimestamp", () => {
 // ─── getLocalComponents ──────────────────────────────────────────────────────
 
 describe("getLocalComponents", () => {
-  it("returns an object", () => {
+  it("returns an object with string and number fields", () => {
     const result = getLocalComponents();
     expect(typeof result).toBe("object");
     expect(result).not.toBeNull();
+    expect(typeof result.year).toBe("number");
+    expect(typeof result.month).toBe("string");
+    expect(result.month.length).toBe(2);
   });
 
   it("has all expected keys", () => {
@@ -337,13 +345,9 @@ describe("getLocalComponents", () => {
 // ─── getTimezoneDisplay ──────────────────────────────────────────────────────
 
 describe("getTimezoneDisplay", () => {
-  it("returns a string", () => {
-    const result = getTimezoneDisplay();
-    expect(typeof result).toBe("string");
-  });
-
   it("returns a non-empty string", () => {
     const result = getTimezoneDisplay();
+    expect(typeof result).toBe("string");
     expect(result.length).toBeGreaterThan(0);
   });
 

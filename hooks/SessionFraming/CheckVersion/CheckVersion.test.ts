@@ -128,8 +128,10 @@ describe("CheckVersion defaultDeps", () => {
     expect(typeof result.ok).toBe("boolean");
   });
 
-  test("isSubagent returns a boolean", () => {
-    expect(typeof CheckVersion.defaultDeps.isSubagent()).toBe("boolean");
+  test("isSubagent returns a boolean with a defined value", () => {
+    const result = CheckVersion.defaultDeps.isSubagent();
+    expect(typeof result).toBe("boolean");
+    expect(result === true || result === false).toBe(true);
   });
 
   test("stderr writes without throwing", () => {

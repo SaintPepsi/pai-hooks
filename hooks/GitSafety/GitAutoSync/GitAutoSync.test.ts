@@ -155,15 +155,24 @@ describe("GitAutoSync defaultDeps", () => {
     expect(() => GitAutoSync.defaultDeps.stderr("test")).not.toThrow();
   });
 
-  it("defaultDeps.dateNow returns a number", () => {
-    expect(typeof GitAutoSync.defaultDeps.dateNow()).toBe("number");
+  it("defaultDeps.dateNow returns a positive number close to Date.now()", () => {
+    const before = Date.now();
+    const result = GitAutoSync.defaultDeps.dateNow();
+    const after = Date.now();
+    expect(typeof result).toBe("number");
+    expect(result).toBeGreaterThanOrEqual(before);
+    expect(result).toBeLessThanOrEqual(after);
   });
 
-  it("defaultDeps.fileExists returns a boolean", () => {
-    expect(typeof GitAutoSync.defaultDeps.fileExists("/tmp")).toBe("boolean");
+  it("defaultDeps.fileExists returns true for /tmp", () => {
+    const result = GitAutoSync.defaultDeps.fileExists("/tmp");
+    expect(typeof result).toBe("boolean");
+    expect(result).toBe(true);
   });
 
-  it("defaultDeps.getTimestamp returns a string", () => {
-    expect(typeof GitAutoSync.defaultDeps.getTimestamp()).toBe("string");
+  it("defaultDeps.getTimestamp returns a non-empty string", () => {
+    const result = GitAutoSync.defaultDeps.getTimestamp();
+    expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
   });
 });
