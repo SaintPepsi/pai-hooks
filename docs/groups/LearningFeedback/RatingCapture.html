@@ -1756,7 +1756,8 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
-    <li class="wiki-nav-item"><a href="#history"><span class="nav-num">07</span> History</a></li>
+    <li class="wiki-nav-item"><a href="#error-logging"><span class="nav-num">07</span> Error Logging</a></li>
+    <li class="wiki-nav-item"><a href="#history"><span class="nav-num">08</span> History</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1985,6 +1986,17 @@ if (sentiment.rating !== null &amp;&amp; sentiment.confidence &gt;= MIN_CONFIDEN
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File read/write/append for ratings and learning files</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="error-logging">
+    <div class="section-label accent">Error Logging</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Error Logging</h3>
+      </div>
+      <p><code>parseJsonlEntry</code> accepts an optional <code>onError?: (line: string) => void</code> callback. When JSONL parsing fails, the callback receives the truncated line for debugging. Both <code>getRecentContext</code> and <code>getLastAssistantContext</code> wire this to <code>deps.stderr</code> to surface parse failures without breaking the fail-open pattern.</p>
     </div>
   </section>
 

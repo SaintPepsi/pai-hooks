@@ -83,6 +83,10 @@ if (sentiment.rating !== null && sentiment.confidence >= MIN_CONFIDENCE) {
 | `lib/time`           | lib     | Timestamps and date components for file naming        |
 | `core/adapters/fs`   | adapter | File read/write/append for ratings and learning files |
 
+## Error Logging
+
+`parseJsonlEntry` accepts an optional `onError?: (line: string) => void` callback. When JSONL parsing fails, the callback receives the truncated line for debugging. Both `getRecentContext` and `getLastAssistantContext` wire this to `deps.stderr` to surface parse failures without breaking the fail-open pattern.
+
 ## History
 
 > **2026-04-11 — SDK Type Foundation (1J):** All 5 return sites in `RatingCapture.contract.ts` (lines 334, 339, 365, 372, 414) were using `ok({ type: "context", content: reminder })`. This shape is not part of `SyncHookJSONOutput`. After Phase 0 Task 0C deleted the runner's `formatOutput()` adapter at commit `3705810`, the runner passes the contract result verbatim to stdout, where `validateHookOutput` fail-opens on the unknown shape and drops it. The algorithm format reminder (ALGORITHM FORMAT REQUIRED text, version string, `<user-prompt-submit-hook>` wrapping) has not been reaching users since commit `3705810`. Bugs #17-21 (one per site) — same bug class as 1A/1C/1E-1/1B/1X/1M. Fix applied via R7 at all 5 sites: context now routes through `hookSpecificOutput.additionalContext` with `hookEventName: "UserPromptSubmit"`. Behaviour change: every user prompt now receives the algorithm reminder again as originally intended.
