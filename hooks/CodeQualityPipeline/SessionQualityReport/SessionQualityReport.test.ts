@@ -220,27 +220,27 @@ describe("SessionQualityReport defaultDeps", () => {
     expect(typeof SessionQualityReport.defaultDeps.fileExists("/tmp")).toBe("boolean");
   });
 
-  test("defaultDeps.readFile returns a Result", () => {
+  test("defaultDeps.readFile fails on nonexistent file", () => {
     const result = SessionQualityReport.defaultDeps.readFile("/tmp/nonexistent-pai-12345.txt");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(false);
   });
 
-  test("defaultDeps.readJson returns a Result", () => {
+  test("defaultDeps.readJson fails on nonexistent file", () => {
     const result = SessionQualityReport.defaultDeps.readJson("/tmp/nonexistent-pai-12345.json");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(false);
   });
 
-  test("defaultDeps.writeFile returns a Result", () => {
+  test("defaultDeps.writeFile succeeds and creates file", () => {
     const result = SessionQualityReport.defaultDeps.writeFile(
       "/tmp/pai-test-sqr-12345.txt",
       "test",
     );
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
-  test("defaultDeps.ensureDir returns a Result", () => {
+  test("defaultDeps.ensureDir succeeds on existing directory", () => {
     const result = SessionQualityReport.defaultDeps.ensureDir("/tmp");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
   test("defaultDeps.getLocalComponents returns time components", () => {

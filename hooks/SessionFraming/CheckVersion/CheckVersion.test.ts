@@ -117,15 +117,22 @@ describe("CheckVersion", () => {
 // ─── defaultDeps ────────────────────────────────────────────────────────────
 
 describe("CheckVersion defaultDeps", () => {
-  test("getCurrentVersion returns a Result", async () => {
+  test("getCurrentVersion returns ok:true with a version string or ok:false with an error", async () => {
     const result = await CheckVersion.defaultDeps.getCurrentVersion();
-    // May succeed or fail depending on whether claude CLI is installed
-    expect(typeof result.ok).toBe("boolean");
+    if (result.ok) {
+      expect(typeof result.value).toBe("string");
+    } else {
+      expect(result.error).toBeDefined();
+    }
   });
 
-  test("getLatestVersion returns a Result", async () => {
+  test("getLatestVersion returns ok:true with a version string or ok:false with an error", async () => {
     const result = await CheckVersion.defaultDeps.getLatestVersion();
-    expect(typeof result.ok).toBe("boolean");
+    if (result.ok) {
+      expect(typeof result.value).toBe("string");
+    } else {
+      expect(result.error).toBeDefined();
+    }
   });
 
   test("isSubagent returns a boolean", () => {
