@@ -21,6 +21,21 @@ describe("safeRegexTest", () => {
   it("supports flags parameter", () => {
     expect(safeRegexTest("Hello", "hello", "i")).toBe(true);
   });
+
+  it("calls stderr with invalid pattern message when stderr is provided", () => {
+    const spy: string[] = [];
+    const result = safeRegexTest("test", "[invalid((", "", (msg) => spy.push(msg));
+    expect(result).toBe(false);
+    expect(spy).toHaveLength(1);
+    expect(spy[0]).toBe("[regex] Invalid pattern: [invalid((");
+  });
+
+  it("does not call stderr when pattern is valid", () => {
+    const spy: string[] = [];
+    const result = safeRegexTest("hello", "hello", "", (msg) => spy.push(msg));
+    expect(result).toBe(true);
+    expect(spy).toHaveLength(0);
+  });
 });
 
 describe("createRegex", () => {
@@ -38,5 +53,20 @@ describe("createRegex", () => {
     const re = createRegex("hello", "gi");
     expect(re).not.toBeNull();
     expect(re!.flags).toContain("i");
+  });
+
+  it("calls stderr with invalid pattern message when stderr is provided", () => {
+    const spy: string[] = [];
+    const result = createRegex("[invalid((", "", (msg) => spy.push(msg));
+    expect(result).toBeNull();
+    expect(spy).toHaveLength(1);
+    expect(spy[0]).toBe("[regex] Invalid pattern: [invalid((");
+  });
+
+  it("does not call stderr when pattern is valid", () => {
+    const spy: string[] = [];
+    const result = createRegex("^hello$", "", (msg) => spy.push(msg));
+    expect(result).not.toBeNull();
+    expect(spy).toHaveLength(0);
   });
 });
