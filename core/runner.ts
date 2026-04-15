@@ -29,10 +29,17 @@ import {
  * Normalize contract.event for logging/formatting.
  * When a contract declares multiple events, infer the actual event from input shape.
  */
-function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
+function resolveEvent(
+  contractEvent: HookEventType | HookEventType[],
+  input: HookInput,
+  warn?: (msg: string) => void,
+): string {
   if (!Array.isArray(contractEvent)) return contractEvent;
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right);
+  warn?.(
+    `resolveEvent: parseHookInput failed — using fallback event type "${contractEvent[0]}"`,
+  );
   return contractEvent[0];
 }
 
@@ -87,7 +94,7 @@ function makeEmitLog(
       ts: new Date().toISOString(),
       hook: contract.name,
       event: input
-        ? resolveEvent(contract.event, input)
+        ? resolveEvent(contract.event, input, (msg) => io.writeErr(`[${contract.name}] ${msg}`))
         : Array.isArray(contract.event)
           ? contract.event[0]
           : contract.event,
@@ -272,7 +279,7 @@ export async function runHook<I extends HookInput, D>(
     inputIsToolEvent = "tool_name" in inputResult.value;
 
     if (contractHandlesToolEvents && !inputIsToolEvent && events.length === 1) {
-      const resolvedEvent = resolveEvent(contract.event, input);
+      const resolvedEvent = resolveEvent(contract.event, input, (msg) => io.writeErr(`[${contract.name}] ${msg}`));
       io.writeErr(
         `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
       );
