@@ -13,14 +13,13 @@ describe("QuestionAnswered hook shell", () => {
       session_id: uniqueSessionId("test-qa"),
     });
     expect(exitCode).toBe(0);
-    // QuestionAnswered returns silent — runner writes nothing to stdout
-    expect(stdout).toBe("");
+    // QuestionAnswered returns ok({}) — runner outputs default continue
+    expect(stdout).toBe('{"continue":true}');
   });
 
-  it("produces silent output for any accepted input (accepts all, settings.json filters)", async () => {
+  it("produces default continue output for any accepted input", async () => {
     // QuestionAnswered.accepts() returns true for all inputs — the AskUserQuestion
-    // filtering happens in settings.json matcher, not the contract. So even a Bash
-    // tool_name produces silent output (no stdout).
+    // filtering happens in settings.json matcher, not the contract.
     const { stdout, exitCode } = await runHookScript(HOOK_PATH, {
       tool_name: "AskUserQuestion",
       tool_input: { question: "Another question" },
@@ -28,6 +27,7 @@ describe("QuestionAnswered hook shell", () => {
       session_id: uniqueSessionId("test-qa"),
     });
     expect(exitCode).toBe(0);
-    expect(stdout).toBe("");
+    // Runner outputs default continue for ok({})
+    expect(stdout).toBe('{"continue":true}');
   });
 });

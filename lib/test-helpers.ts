@@ -47,7 +47,35 @@ export function makeEditInput(filePath: string, oldString = "a", newString = "b"
   };
 }
 
-/** Create a generic tool input for testing. */
+/** Create a PreToolUse input for testing. */
+export function makePreToolUseInput(toolName: string, filePath: string): ToolHookInput {
+  return {
+    hook_type: "PreToolUse",
+    session_id: "test-sess",
+    tool_name: toolName,
+    tool_input: { file_path: filePath },
+  };
+}
+
+/** Create a PostToolUse input for testing. */
+export function makePostToolUseInput(
+  toolName: string,
+  filePath: string,
+  toolResponse?: unknown,
+): ToolHookInput {
+  return {
+    hook_type: "PostToolUse",
+    session_id: "test-sess",
+    tool_name: toolName,
+    tool_input: { file_path: filePath },
+    tool_response: toolResponse,
+  };
+}
+
+/**
+ * @deprecated Use makePreToolUseInput or makePostToolUseInput instead.
+ * This function doesn't include hook_type which causes event detection failures.
+ */
 export function makeToolInput(toolName: string, filePath: string): ToolHookInput {
   return {
     session_id: "test-sess",
@@ -58,7 +86,7 @@ export function makeToolInput(toolName: string, filePath: string): ToolHookInput
 
 /** Create a SessionStart input for testing. */
 export function makeSessionStartInput(sessionId = "test-sess"): SessionStartInput {
-  return { session_id: sessionId };
+  return { hook_type: "SessionStart", session_id: sessionId };
 }
 
 // ─── Hook Shell Runner ───────────────────────────────────────────────────────
