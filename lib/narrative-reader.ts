@@ -49,6 +49,7 @@ function parseEntries(content: string): NarrativeEntry[] {
       );
       if (!result.ok) return [];
       const parsed = result.value;
+      if (typeof parsed !== "object" || parsed === null) return [];
       const entry = {
         message: String(parsed.message),
         score: Number(parsed.score),
