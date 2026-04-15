@@ -22,6 +22,7 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | `spawn-agent.ts`              | Background Claude agent spawning with lock/log/traceability. Supports session resumption via `sessionStatePath`. Principle: least privileged agent to perform task.     |
 | `learning-utils.ts`           | Learning/feedback utilities for LearningFeedback hooks                                                                                                                  |
 | `output-validators.ts`        | Output format validation for multiple hook groups                                                                                                                       |
+| `hook-config.ts`              | Reads hook config from `settings.json` under `hookConfig.{hookName}`. Two overloads: untyped returns `T | null`, typed (with Effect Schema) returns `Result<T, ResultError>`. Optional `stderr` parameter logs read/parse failures for debugging |
 
 ## coding-standards-checks.ts
 

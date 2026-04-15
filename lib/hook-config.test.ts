@@ -179,3 +179,86 @@ describe("readHookConfig overload resolution", () => {
     expect(result).toHaveProperty("ok");
   });
 });
+
+// ─── Stderr logging ───────────────────────────────────────────────────────────
+
+describe("readHookConfig stderr logging (untyped)", () => {
+  it("does not call stderr on success", () => {
+    const reader = makeReader({ hookConfig: { myHook: { x: 1 } } });
+    const stderrMessages: string[] = [];
+    readHookConfig("myHook", reader, undefined, (msg) => stderrMessages.push(msg));
+    expect(stderrMessages).toHaveLength(0);
+  });
+
+  it("calls stderr when file cannot be read", () => {
+    const stderrMessages: string[] = [];
+    readHookConfig("myHook", makeFailReader(), undefined, (msg) => stderrMessages.push(msg));
+    expect(stderrMessages).toHaveLength(1);
+    expect(stderrMessages[0]).toBeTruthy();
+  });
+
+  it("calls stderr when JSON is invalid", () => {
+    const stderrMessages: string[] = [];
+    readHookConfig("myHook", makeInvalidJsonReader(), undefined, (msg) =>
+      stderrMessages.push(msg),
+    );
+    expect(stderrMessages).toHaveLength(1);
+  });
+
+  it("calls stderr when hookConfig key is missing", () => {
+    const stderrMessages: string[] = [];
+    readHookConfig("missingHook", makeReader({ hookConfig: {} }), undefined, (msg) =>
+      stderrMessages.push(msg),
+    );
+    expect(stderrMessages).toHaveLength(1);
+  });
+
+  it("passes settingsPath and stderr correctly together", () => {
+    let capturedPath: string | null = null;
+    const stderrMessages: string[] = [];
+    const reader = (path: string): string | null => {
+      capturedPath = path;
+      return JSON.stringify({ hookConfig: { myHook: { val: 1 } } });
+    };
+    readHookConfig("myHook", reader, "/custom/path/settings.json", (msg) =>
+      stderrMessages.push(msg),
+    );
+    expect(capturedPath!).toBe("/custom/path/settings.json");
+    expect(stderrMessages).toHaveLength(0);
+  });
+});
+
+describe("readHookConfig stderr logging (with Schema)", () => {
+  it("does not call stderr on success", () => {
+    const reader = makeReader({ hookConfig: { myHook: { blocking: true } } });
+    const stderrMessages: string[] = [];
+    readHookConfig("myHook", TestSchema, reader, undefined, (msg) => stderrMessages.push(msg));
+    expect(stderrMessages).toHaveLength(0);
+  });
+
+  it("calls stderr when file cannot be read", () => {
+    const stderrMessages: string[] = [];
+    readHookConfig("myHook", TestSchema, makeFailReader(), undefined, (msg) =>
+      stderrMessages.push(msg),
+    );
+    expect(stderrMessages).toHaveLength(1);
+    expect(stderrMessages[0]).toContain("myHook");
+  });
+
+  it("calls stderr when schema validation fails", () => {
+    const reader = makeReader({ hookConfig: { myHook: { blocking: "not-a-boolean" } } });
+    const stderrMessages: string[] = [];
+    readHookConfig("myHook", TestSchema, reader, undefined, (msg) => stderrMessages.push(msg));
+    expect(stderrMessages).toHaveLength(1);
+    expect(stderrMessages[0]).toContain("myHook");
+  });
+
+  it("calls stderr when hookConfig key is missing", () => {
+    const stderrMessages: string[] = [];
+    readHookConfig("missingHook", TestSchema, makeReader({ hookConfig: {} }), undefined, (msg) =>
+      stderrMessages.push(msg),
+    );
+    expect(stderrMessages).toHaveLength(1);
+    expect(stderrMessages[0]).toContain("missingHook");
+  });
+});
