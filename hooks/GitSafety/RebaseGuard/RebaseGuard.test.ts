@@ -281,7 +281,7 @@ describe("RebaseGuard", () => {
   // ── fail-open — hasUpstream fails → treat as unpublished (warn) ──
 
   it("warns (not blocks) when hasUpstream throws", () => {
-    const deps = makeDeps({
+    const _deps = makeDeps({
       hasUpstream: () => {
         throw new Error("git not found");
       },

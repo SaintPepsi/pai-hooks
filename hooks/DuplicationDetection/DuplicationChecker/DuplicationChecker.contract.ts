@@ -128,7 +128,7 @@ async function classifyMatches(
     () => null,
   );
 
-  if (!result.ok || !result.value || !result.value.success || !result.value.output) {
+  if (!result.ok || !result.value?.success || !result.value.output) {
     return "uncertain";
   }
 
@@ -171,7 +171,7 @@ function createFalsePositiveReport(
     if (content) {
       const ts = parseInt(content.trim(), 10);
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      if (!isNaN(ts) && deps.now() - ts < sevenDays) return;
+      if (!Number.isNaN(ts) && deps.now() - ts < sevenDays) return;
     }
   }
 

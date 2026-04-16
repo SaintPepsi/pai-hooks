@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
-import { err, ok, type Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 
 /** Wrap a state value so its readJson mock satisfies the generic dep signature. */

@@ -10,7 +10,6 @@
 
 import { basename, extname } from "node:path";
 import { tryCatch } from "@hooks/core/result";
-import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import type { LanguageAdapter } from "@hooks/hooks/DuplicationDetection/shared";
 import {
   type DuplicationIndex,

@@ -86,7 +86,7 @@ describe("typescriptAdapter.extractFunctions", () => {
     let capturedSyntax = "";
     const mockDeps = {
       ...defaultParserDeps,
-      parseSync: (source: string, opts: { syntax: string; target: string }) => {
+      parseSync: (_source: string, opts: { syntax: string; target: string }) => {
         capturedSyntax = opts.syntax;
         // Return empty body — we only care about what opts were passed
         return { body: [] };
