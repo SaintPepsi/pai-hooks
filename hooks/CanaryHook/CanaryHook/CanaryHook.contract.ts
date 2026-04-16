@@ -6,6 +6,7 @@ import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ export interface CanaryHookDeps {
 const defaultDeps: CanaryHookDeps = {
   appendFile,
   ensureDir,
-  baseDir: join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────

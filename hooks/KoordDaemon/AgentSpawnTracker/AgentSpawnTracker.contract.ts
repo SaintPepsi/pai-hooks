@@ -22,6 +22,7 @@
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -50,7 +51,10 @@ export interface AgentSpawnTrackerDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: AgentSpawnTrackerDeps = {
-  getEnv: (name) => process.env[name],
+  getEnv: (name) => {
+    const result = getEnvAdapter(name);
+    return result.ok ? result.value : undefined;
+  },
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   stderr: defaultStderr,

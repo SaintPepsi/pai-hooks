@@ -17,7 +17,7 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getHomeDir, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ const defaultDeps: SecurityValidatorDeps = {
   ensureDir,
   safeRegexTest,
   createRegex,
-  homedir: () => process.env.HOME || "/",
+  homedir: getHomeDir,
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };

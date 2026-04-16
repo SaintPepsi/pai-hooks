@@ -19,6 +19,7 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
@@ -140,7 +141,10 @@ function safeParseCronFile(raw: string): Result<CronSessionFile | null, ResultEr
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
 const defaultDeps: CronPruneDeps = {
-  getEnv: (key) => process.env[key],
+  getEnv: (key) => {
+    const result = getEnvAdapter(key);
+    return result.ok ? result.value : undefined;
+  },
   readFile,
   writeFile,
   fileExists,

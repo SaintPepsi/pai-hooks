@@ -15,7 +15,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { isSubagentDefault } from "@hooks/lib/environment";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -423,7 +423,7 @@ const defaultDeps: LoadContextDeps = {
     });
     return r.ok ? r.value.stdout.trim() : new Date().toISOString();
   },
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  isSubagent: isSubagentDefault,
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };

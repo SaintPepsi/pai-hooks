@@ -24,7 +24,7 @@ import type {
   ToolHookInput,
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { getEnvOrUndefined, isSubagentDefault } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
@@ -158,10 +158,9 @@ function expandEnvVars(pattern: string, getEnv: (key: string) => string | undefi
 
 const defaultDeps: SteeringRuleInjectorDeps = {
   resolveGlobs: (patterns: string[]): string[] => {
-    const getEnv = (k: string): string | undefined => process.env[k];
     const files: string[] = [];
     for (const pattern of patterns) {
-      const expanded = expandEnvVars(pattern, getEnv);
+      const expanded = expandEnvVars(pattern, getEnvOrUndefined);
       const glob = new Bun.Glob(expanded);
       for (const path of glob.scanSync({ absolute: true })) {
         files.push(path);
@@ -200,7 +199,7 @@ const defaultDeps: SteeringRuleInjectorDeps = {
     return { ...DEFAULT_CONFIG, ...userConfig };
   },
 
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  isSubagent: isSubagentDefault,
 
   stderr: defaultStderr,
 };

@@ -17,6 +17,7 @@ import {
   readFile,
   stat,
 } from "@hooks/core/adapters/fs";
+import { safeJsonParse } from "@hooks/core/adapters/json";
 import { exec } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
@@ -140,7 +141,9 @@ export function hasExistingExtraction(sessionId: string, deps: WikiIngestDeps): 
 export function parseFilterOutput(stdout: string): FilterResultJson | null {
   const trimmed = stdout.trim();
   if (!trimmed.startsWith("{")) return null;
-  const result = JSON.parse(trimmed) as Record<string, unknown>;
+  const parsed = safeJsonParse(trimmed);
+  if (!parsed.ok) return null;
+  const result = parsed.value;
   if (typeof result.sessionId !== "string") return null;
   return result as unknown as FilterResultJson;
 }
@@ -151,7 +154,9 @@ export function parseFilterOutput(stdout: string): FilterResultJson | null {
 export function parseExtractionFile(content: string): ExtractionJson | null {
   const trimmed = content.trim();
   if (!trimmed.startsWith("{")) return null;
-  const result = JSON.parse(trimmed) as Record<string, unknown>;
+  const parsed = safeJsonParse(trimmed);
+  if (!parsed.ok) return null;
+  const result = parsed.value;
   if (typeof result.sessionId !== "string") return null;
   return result as unknown as ExtractionJson;
 }

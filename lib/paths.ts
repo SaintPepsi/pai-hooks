@@ -27,6 +27,14 @@ export function expandPath(path: string): string {
 }
 
 /**
+ * Get the user's home directory.
+ * Wraps node:os homedir() for dependency injection in contracts.
+ */
+export function getHomeDir(): string {
+  return homedir();
+}
+
+/**
  * Get the PAI directory (expanded)
  * Priority: PAI_DIR env var (expanded) → ~/.claude
  */
