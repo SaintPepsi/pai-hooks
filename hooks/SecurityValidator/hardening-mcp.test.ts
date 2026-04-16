@@ -42,6 +42,7 @@ describe("hardening-mcp patterns.json integration", () => {
 
   it("all blocked entries have pattern and reason fields", () => {
     const result = readFile(PATTERNS_PATH);
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const config = JSON.parse(result.value);
@@ -55,6 +56,7 @@ describe("hardening-mcp patterns.json integration", () => {
 
   it("all blocked entries have group fields", () => {
     const result = readFile(PATTERNS_PATH);
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const config = JSON.parse(result.value);
@@ -66,6 +68,7 @@ describe("hardening-mcp patterns.json integration", () => {
 
   it("inserting a duplicate pattern is rejected gracefully", () => {
     const result = readFile(PATTERNS_PATH);
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const config = JSON.parse(result.value);
@@ -80,6 +83,7 @@ describe("hardening-mcp patterns.json integration", () => {
 
     // Re-read and count occurrences
     const reread = readFile(PATTERNS_PATH);
+    expect(reread.ok).toBe(true);
     if (!reread.ok) return;
     const reconfig = JSON.parse(reread.value);
     const matches = reconfig.bash.blocked.filter(
@@ -92,6 +96,7 @@ describe("hardening-mcp patterns.json integration", () => {
 
   it("invalid group would not match any existing group", () => {
     const result = readFile(PATTERNS_PATH);
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const config = JSON.parse(result.value);
@@ -106,6 +111,7 @@ describe("hardening-mcp patterns.json integration", () => {
 
   it("group field values are consistent within groups", () => {
     const result = readFile(PATTERNS_PATH);
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
 
     const config = JSON.parse(result.value);

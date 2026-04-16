@@ -138,6 +138,7 @@ describe("ArchitectureEscalation", () => {
   it("output shape matches Claude Code expectations", () => {
     const deps = makeDeps();
     const result = ArchitectureEscalation.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
     const output = result.value;
     const json = JSON.stringify(output);

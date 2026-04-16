@@ -90,6 +90,7 @@ describe("SonnetDelegation", () => {
       deps,
     ) as Result<SyncHookJSONOutput, ResultError>;
 
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
     const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("sonnet");
@@ -103,6 +104,7 @@ describe("SonnetDelegation", () => {
       deps,
     ) as Result<SyncHookJSONOutput, ResultError>;
 
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
     const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("NEVER");

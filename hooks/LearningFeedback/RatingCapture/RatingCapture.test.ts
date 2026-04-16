@@ -221,6 +221,7 @@ describe("RatingCapture algorithm reminder", () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain("v1.8.0");
   });
@@ -229,6 +230,7 @@ describe("RatingCapture algorithm reminder", () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain(
       "ALGORITHM FORMAT REQUIRED",
@@ -242,6 +244,7 @@ describe("RatingCapture algorithm reminder", () => {
       deps,
     );
 
+    expect(result.ok).toBe(true);
     if (!result.ok) return;
     const ctx = getInjectedContextFor(result.value, "UserPromptSubmit") ?? "";
     expect(ctx).toContain("<user-prompt-submit-hook>");
