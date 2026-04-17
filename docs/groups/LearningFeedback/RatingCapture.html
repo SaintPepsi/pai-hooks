@@ -1838,7 +1838,7 @@ Intercept every user message and run two detection paths. First, check for expli
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>RatingCapture is a dual-purpose hook that captures both explicit user ratings (e.g., "8" or "3 - too verbose") and implicit sentiment from natural language prompts. On every prompt, it also injects an algorithm format reminder into the context so Claude follows the PAI Algorithm structure in its responses.</p>
+      <p>RatingCapture captures both explicit user ratings (e.g., "8" or "3 - too verbose") and implicit sentiment from natural language prompts.</p>
       <p>Explicit ratings are parsed directly from the prompt text. Implicit sentiment is analyzed via a fast inference call that scores the user's emotional state on a 1-10 scale. Low ratings (below 5) trigger learning capture to MEMORY/LEARNING/, and very low ratings (3 or below) trigger the FailureCapture system for deeper analysis. Rating data is appended to <code>MEMORY/LEARNING/SIGNALS/ratings.jsonl</code> and a trending analysis is spawned after each capture.</p>
     </div>
   </section>
@@ -1850,7 +1850,7 @@ Intercept every user message and run two detection paths. First, check for expli
         <div class="card-icon">&#x26A1;</div>
         <h3>Event</h3>
       </div>
-      <p><code>UserPromptSubmit</code> — fires on every user prompt, returning an algorithm format reminder as context and asynchronously capturing any rating or sentiment signal.</p>
+      <p><code>UserPromptSubmit</code> — fires on every user prompt, capturing any rating or sentiment signal.</p>
     </div>
   </section>
 
@@ -1867,7 +1867,7 @@ Intercept every user message and run two detection paths. First, check for expli
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> Implicit sentiment analysis returns a null rating (no sentiment detected)</div>
 <div class="reason"><span class="ri">&#x2022;</span> Implicit sentiment confidence is below 0.5</div>
-<div class="reason"><span class="ri">&#x2022;</span> The prompt is shorter than 3 characters (implicit path skipped, but algorithm reminder still returned)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The prompt is shorter than 3 characters (implicit path skipped)</div>
     </div>
   </section>
 
@@ -1881,11 +1881,6 @@ Intercept every user message and run two detection paths. First, check for expli
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Reads the current algorithm version and builds the format reminder (always returned as context)</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">2</div>
           <div class="step-content"><p><strong>Explicit path</strong>: Parses the prompt for a leading number 1-10</p></div>
         </div>
 </div>
@@ -1916,13 +1911,7 @@ const explicitResult = parseExplicitRating(prompt);
 if (explicitResult) {
   writeRating(entry, signalsDir, ratingsFile, deps);
   if (explicitResult.rating &lt; 5) captureLowRatingLearning(...);
-  return ok({
-    continue: true,
-    hookSpecificOutput: {
-      hookEventName: "UserPromptSubmit",
-      additionalContext: reminder,
-    },
-  });
+  return ok({ continue: true });
 }
 
 // Implicit: inference-based sentiment analysis
@@ -1946,7 +1935,7 @@ if (sentiment.rating !== null &amp;&amp; sentiment.confidence &gt;= MIN_CONFIDEN
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Explicit high rating</h3>
       
       <div class="uc-example">
-        <div>You type "8 - great refactoring approach". RatingCapture parses this as rating 8 with comment "great refactoring approach", appends it to ratings.jsonl, spawns trending analysis, and returns the algorithm format reminder. No learning file is created since the rating is above 5.</div>
+        <div>You type "8 - great refactoring approach". RatingCapture parses this as rating 8 with comment "great refactoring approach", appends it to ratings.jsonl, and spawns trending analysis. No learning file is created since the rating is above 5.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1960,7 +1949,7 @@ if (sentiment.rating !== null &amp;&amp; sentiment.confidence &gt;= MIN_CONFIDEN
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Neutral prompt skipped</h3>
       
       <div class="uc-example">
-        <div>You type "Can you check the test output?" The inference model returns <code>{rating: null, sentiment: "neutral", confidence: 0.9}</code>. Since the rating is null, no rating entry is recorded. Only the algorithm format reminder is returned.</div>
+        <div>You type "Can you check the test output?" The inference model returns <code>{rating: null, sentiment: "neutral", confidence: 0.9}</code>. Since the rating is null, no rating entry is recorded.</div>
       </div>
       </div>
     </div>
@@ -1997,7 +1986,11 @@ if (sentiment.rating !== null &amp;&amp; sentiment.confidence &gt;= MIN_CONFIDEN
       </div>
       
       <div class="uc-example">
-        <div><strong>2026-04-11 — SDK Type Foundation (1J):</strong> All 5 return sites in <code>RatingCapture.contract.ts</code> (lines 334, 339, 365, 372, 414) were using <code>ok({ type: "context", content: reminder })</code>. This shape is not part of <code>SyncHookJSONOutput</code>. After Phase 0 Task 0C deleted the runner's <code>formatOutput()</code> adapter at commit <code>3705810</code>, the runner passes the contract result verbatim to stdout, where <code>validateHookOutput</code> fail-opens on the unknown shape and drops it. The algorithm format reminder (ALGORITHM FORMAT REQUIRED text, version string, <code><user-prompt-submit-hook></code> wrapping) has not been reaching users since commit <code>3705810</code>. Bugs #17-21 (one per site) — same bug class as 1A/1C/1E-1/1B/1X/1M. Fix applied via R7 at all 5 sites: context now routes through <code>hookSpecificOutput.additionalContext</code> with <code>hookEventName: "UserPromptSubmit"</code>. Behaviour change: every user prompt now receives the algorithm reminder again as originally intended.</div>
+        <div><strong>2026-04-17 — Remove algorithm reminder (#243):</strong> Analysis of 413 sessions showed only 15% format compliance with the reminder active. The ~120 tokens/prompt added no measurable value. Removed <code>buildAlgorithmReminder</code>, <code>readAlgoVersion</code> from deps, and simplified all return paths to <code>{ continue: true }</code>.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>2026-04-11 — SDK Type Foundation (1J):</strong> Fixed return type from legacy <code>{ type: "context", content }</code> to SDK-compliant <code>hookSpecificOutput.additionalContext</code>. (Now moot after reminder removal.)</div>
       </div>
     </div>
   </section>
