@@ -196,6 +196,81 @@ describe("CronCreateContract.execute() -- existing session file", () => {
   });
 });
 
+// ─── execute() — duplicate prompt replacement (#244) ────────────────────────
+
+describe("CronCreateContract.execute() -- duplicate prompt replacement", () => {
+  it("replaces existing cron with same prompt instead of duplicating (#244)", () => {
+    const existingSession: CronSessionFile = {
+      sessionId: "test-session-001",
+      crons: [
+        {
+          id: "cron-old",
+          name: "Old job",
+          schedule: "*/10 * * * *",
+          recurring: true,
+          prompt: "Check server status", // Same prompt as new cron
+          createdAt: 1700000000000,
+          fireCount: 5,
+          lastFired: 1700003600000,
+        },
+      ],
+    };
+
+    const sessionPath = "/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json";
+    const deps = makeDeps();
+    deps._files[sessionPath] = JSON.stringify(existingSession);
+
+    const input = makeInput(); // prompt: "Check server status"
+    const result = CronCreateContract.execute(input, deps);
+
+    expect(result.ok).toBe(true);
+
+    const written = JSON.parse(deps._files[sessionPath]) as CronSessionFile;
+    // Should have only 1 cron (replaced, not duplicated)
+    expect(written.crons).toHaveLength(1);
+    // The new cron replaced the old one
+    expect(written.crons[0].id).toBe("cron-abc-123");
+    expect(written.crons[0].schedule).toBe("*/5 * * * *");
+    expect(written.crons[0].fireCount).toBe(0); // Reset
+  });
+
+  it("logs deleted event when replacing duplicate cron (#244)", () => {
+    const existingSession: CronSessionFile = {
+      sessionId: "test-session-001",
+      crons: [
+        {
+          id: "cron-old",
+          name: "Old job",
+          schedule: "*/10 * * * *",
+          recurring: true,
+          prompt: "Check server status",
+          createdAt: 1700000000000,
+          fireCount: 5,
+          lastFired: 1700003600000,
+        },
+      ],
+    };
+
+    const sessionPath = "/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json";
+    const deps = makeDeps();
+    deps._files[sessionPath] = JSON.stringify(existingSession);
+
+    const input = makeInput();
+    CronCreateContract.execute(input, deps);
+
+    // Should have 2 log entries: deleted (old) + created (new)
+    expect(deps._appendLog).toHaveLength(2);
+
+    const deletedLog = JSON.parse(deps._appendLog[0]);
+    expect(deletedLog.type).toBe("deleted");
+    expect(deletedLog.cronId).toBe("cron-old");
+
+    const createdLog = JSON.parse(deps._appendLog[1]);
+    expect(createdLog.type).toBe("created");
+    expect(createdLog.cronId).toBe("cron-abc-123");
+  });
+});
+
 // ─── execute() — JSONL log ──────────────────────────────────────────────────
 
 describe("CronCreateContract.execute() -- JSONL logging", () => {

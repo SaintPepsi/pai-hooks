@@ -397,6 +397,131 @@ describe("CronPrune — readDir error path", () => {
   });
 });
 
+// ─── Stale cron pruning within active sessions (#244) ───────────────────────
+
+describe("CronPrune — stale individual crons (#244)", () => {
+  it("prunes never-fired crons older than 24h from active session", () => {
+    const logged: string[] = [];
+    const written: Record<string, string> = {};
+    const now = Date.now();
+    const twentyFiveHoursAgo = now - 25 * 60 * 60 * 1000;
+
+    const sessionFile: CronSessionFile = {
+      sessionId: "active-session",
+      crons: [
+        {
+          id: "fresh-cron",
+          name: "Fresh job",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "fresh",
+          createdAt: now - 60 * 1000, // 1 minute ago
+          fireCount: 0,
+          lastFired: null,
+        },
+        {
+          id: "stale-cron",
+          name: "Stale job",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "stale",
+          createdAt: twentyFiveHoursAgo, // >24h ago, never fired
+          fireCount: 0,
+          lastFired: null,
+        },
+        {
+          id: "active-cron",
+          name: "Active job",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "active",
+          createdAt: twentyFiveHoursAgo, // >24h ago but has fired
+          fireCount: 3,
+          lastFired: now - 60 * 1000,
+        },
+      ],
+    };
+
+    const deps = makeDeps({
+      // Session file is recent (active)
+      stat: () => ok({ mtimeMs: now - 60 * 1000 }),
+      readFile: () => ok(JSON.stringify(sessionFile)),
+      writeFile: (path: string, content: string) => {
+        written[path] = content;
+        return ok(undefined);
+      },
+      appendFile: (_path: string, content: string) => {
+        logged.push(content);
+        return ok(undefined);
+      },
+      now: () => now,
+    });
+
+    const result = CronPrune.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+
+    // Should have written the updated session file
+    const writtenPath = Object.keys(written).find((p) => p.endsWith(".json"));
+    expect(writtenPath).toBeDefined();
+
+    if (writtenPath) {
+      const updatedSession = JSON.parse(written[writtenPath]) as CronSessionFile;
+      // Stale cron removed, fresh and active remain
+      expect(updatedSession.crons).toHaveLength(2);
+      expect(updatedSession.crons.map((c) => c.id)).toEqual(["fresh-cron", "active-cron"]);
+    }
+
+    // Should have logged deletion of stale cron
+    expect(logged.some((l) => l.includes('"type":"deleted"'))).toBe(true);
+    expect(logged.some((l) => l.includes("stale-cron"))).toBe(true);
+  });
+
+  it("does not prune crons that have fireCount > 0", () => {
+    const logged: string[] = [];
+    const written: Record<string, string> = {};
+    const now = Date.now();
+    const twentyFiveHoursAgo = now - 25 * 60 * 60 * 1000;
+
+    const sessionFile: CronSessionFile = {
+      sessionId: "active-session",
+      crons: [
+        {
+          id: "old-active",
+          name: "Old but active",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "active",
+          createdAt: twentyFiveHoursAgo,
+          fireCount: 1, // Has fired at least once
+          lastFired: twentyFiveHoursAgo + 60 * 1000,
+        },
+      ],
+    };
+
+    const deps = makeDeps({
+      stat: () => ok({ mtimeMs: now - 60 * 1000 }),
+      readFile: () => ok(JSON.stringify(sessionFile)),
+      writeFile: (path: string, content: string) => {
+        written[path] = content;
+        return ok(undefined);
+      },
+      appendFile: (_path: string, content: string) => {
+        logged.push(content);
+        return ok(undefined);
+      },
+      now: () => now,
+    });
+
+    const result = CronPrune.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+
+    // Should NOT have written the file (no changes)
+    expect(Object.keys(written).length).toBe(0);
+    // Should NOT have logged any deletions
+    expect(logged.filter((l) => l.includes('"type":"deleted"')).length).toBe(0);
+  });
+});
+
 describe("CronPrune defaultDeps", () => {
   it("defaultDeps.readDir returns string[] for existing directory", () => {
     const result = CronPrune.defaultDeps.readDir("/tmp");

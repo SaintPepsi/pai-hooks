@@ -37,6 +37,9 @@ import { defaultStderr } from "@hooks/lib/paths";
 
 export const DEFAULT_PRUNE_THRESHOLD_MS = 5 * 60 * 1000;
 
+/** Crons that never fired and are older than this are pruned (#244). */
+export const STALE_CRON_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
 /** Parse a 5-field cron expression and return the approximate interval in ms.
  *  Used to compute dynamic prune thresholds (2x longest cron interval). */
 export function cronIntervalMs(schedule: string): number {
@@ -96,13 +99,15 @@ function pruneStaleFiles(
     let longestCronMs = 0;
 
     const readResult = deps.readFile(filePath);
+    let sessionFile: CronSessionFile | null = null;
     if (readResult.ok) {
       const parsed = safeParseCronFile(readResult.value);
       if (parsed.ok && parsed.value) {
-        sessionId = parsed.value.sessionId;
-        cronCount = parsed.value.crons.length;
+        sessionFile = parsed.value;
+        sessionId = sessionFile.sessionId;
+        cronCount = sessionFile.crons.length;
         // Compute 2x the longest cron interval as the prune threshold
-        for (const cron of parsed.value.crons) {
+        for (const cron of sessionFile.crons) {
           const intervalMs = cronIntervalMs(cron.schedule);
           if (intervalMs > longestCronMs) longestCronMs = intervalMs;
         }
@@ -112,13 +117,36 @@ function pruneStaleFiles(
     // Dynamic threshold: 2x longest cron interval, or default if no crons parseable
     const pruneThreshold = longestCronMs > 0 ? longestCronMs * 2 : DEFAULT_PRUNE_THRESHOLD_MS;
 
-    if (ageMs <= pruneThreshold) continue;
+    // If session file is stale (dead session), delete entire file
+    if (ageMs > pruneThreshold) {
+      deps.removeFile(filePath);
+      appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_dead" }, deps, deps);
+      continue;
+    }
 
-    // File is stale — delete it
-    deps.removeFile(filePath);
+    // Session is alive — prune individual stale crons (#244)
+    // Remove crons that never fired (fireCount: 0) and are older than 24h
+    if (sessionFile && sessionFile.crons.length > 0) {
+      const originalCount = sessionFile.crons.length;
+      sessionFile.crons = sessionFile.crons.filter((cron) => {
+        if (cron.fireCount > 0) return true;
+        const cronAge = now - cron.createdAt;
+        if (cronAge > STALE_CRON_THRESHOLD_MS) {
+          appendCronLog(
+            { type: "deleted", cronId: cron.id, name: cron.name, sessionId },
+            deps,
+            deps,
+          );
+          return false;
+        }
+        return true;
+      });
 
-    // Log the pruning event
-    appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_dead" }, deps, deps);
+      // Write back if we removed any stale crons
+      if (sessionFile.crons.length < originalCount) {
+        deps.writeFile(filePath, JSON.stringify(sessionFile, null, 2));
+      }
+    }
   }
 
   return ok({});

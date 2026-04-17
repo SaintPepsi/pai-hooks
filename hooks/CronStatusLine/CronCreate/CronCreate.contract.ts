@@ -133,6 +133,19 @@ export const CronCreateContract: SyncHookContract<ToolHookInput, CronCreateDeps>
       crons: [],
     };
 
+    // Check for existing cron with same prompt — replace it instead of duplicating (#244)
+    const existingIndex = session.crons.findIndex((c) => c.prompt === prompt);
+    if (existingIndex !== -1) {
+      const existing = session.crons[existingIndex];
+      deps.stderr(`[CronCreate] Replacing duplicate cron ${existing.id} with same prompt`);
+      appendCronLog(
+        { type: "deleted", cronId: existing.id, name: existing.name, sessionId },
+        deps,
+        deps,
+      );
+      session.crons.splice(existingIndex, 1);
+    }
+
     // Append new entry
     session.crons.push(entry);
 
