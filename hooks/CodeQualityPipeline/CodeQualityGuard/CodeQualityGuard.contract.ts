@@ -98,7 +98,7 @@ export interface CodeQualityGuardDeps {
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
 const TEST_FILE_PATTERN =
-  /(?:\.(test|spec)\.(ts|tsx|js|jsx)$|Test\.php$|_test\.go$|test_.*\.py$|_spec\.rb$)/;
+  /(?:\.(test|spec)\.(ts|tsx|js|jsx|py|rb|php)$|_test\.(py|go)$|_spec\.rb$|Test\.php$)/;
 const TEST_SUPPRESSED_CHECKS = new Set([
   "type-import-ratio",
   "options-object-width",
