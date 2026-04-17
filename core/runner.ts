@@ -8,6 +8,7 @@
  */
 
 import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
+import { getEnv } from "@hooks/core/adapters/process";
 import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
 import { isDuplicate } from "@hooks/core/dedup";
@@ -57,10 +58,12 @@ interface PipelineIO {
   checkDuplicate: (hookName: string, sessionId: string, input: HookInput) => boolean;
   log: (entry: HookLogEntry) => void;
   startTime: number;
+  debugOutput: boolean;
 }
 
 function createPipelineIO(options: RunHookOptions): PipelineIO {
   const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
+  const envDebug = getEnv("PAI_DEBUG_HOOK_OUTPUT");
   return {
     write: options.stdout ?? ((msg: string) => process.stdout.write(msg)),
     writeErr,
@@ -72,6 +75,7 @@ function createPipelineIO(options: RunHookOptions): PipelineIO {
         appendHookLog(entry, undefined, undefined, writeErr);
       }),
     startTime: performance.now(),
+    debugOutput: options.debugOutput ?? (envDebug.ok && envDebug.value === "1"),
   };
 }
 
@@ -171,6 +175,13 @@ async function executePipeline<I extends HookInput, D>(
   // because Claude Code expects an explicit continue signal for tool events.
   const json = JSON.stringify(result.value);
   const hasOutput = json !== "{}";
+
+  // Debug logging for #245 — set PAI_DEBUG_HOOK_OUTPUT=1 to see actual JSON output
+  if (io.debugOutput) {
+    const outputJson = hasOutput ? json : "tool_name" in input ? '{"continue":true}' : "(silent)";
+    io.writeErr(`[${contract.name}] OUTPUT: ${outputJson}`);
+  }
+
   if (hasOutput) {
     io.write(json);
   } else if ("tool_name" in input) {
@@ -197,6 +208,8 @@ export interface RunHookOptions {
   appendLog?: (entry: HookLogEntry) => void;
   /** Override dedup guard for testing. Return true to skip as duplicate. */
   isDuplicate?: (hookName: string, sessionId: string, input: HookInput) => boolean;
+  /** Log JSON output to stderr for debugging (#245). Set via PAI_DEBUG_HOOK_OUTPUT=1. */
+  debugOutput?: boolean;
 }
 
 /**
