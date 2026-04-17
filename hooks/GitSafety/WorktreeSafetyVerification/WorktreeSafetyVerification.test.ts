@@ -199,8 +199,9 @@ describe("extractWorktreePath", () => {
   });
 
   it("returns null for non-string, non-object response", () => {
+    // Testing edge case: runtime may receive unexpected types despite TS type
     const input = makeInput({
-      tool_response: 42,
+      tool_response: 42 as unknown as string,
       tool_input: {},
     });
     expect(extractWorktreePath(input)).toBeNull();

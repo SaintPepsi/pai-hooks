@@ -83,7 +83,7 @@ export function makePreToolUseInput(toolName: string, filePath: string): ToolHoo
 export function makePostToolUseInput(
   toolName: string,
   filePath: string,
-  toolResponse?: unknown,
+  toolResponse?: string | object,
 ): ToolHookInput {
   return {
     hook_event_name: "PostToolUse",

@@ -28,7 +28,13 @@ export interface HookInputBase {
 export interface ToolHookInput extends HookInputBase {
   tool_name: string;
   tool_input: Record<string, unknown>;
-  tool_response?: unknown;
+  /**
+   * Tool response varies by tool (#181):
+   * - String: serialized JSON from Claude Code runtime
+   * - Object: parsed response in test fixtures or some tools
+   * Use typeof check before accessing properties.
+   */
+  tool_response?: string | object;
 }
 
 // ─── Session Inputs ──────────────────────────────────────────────────────────
