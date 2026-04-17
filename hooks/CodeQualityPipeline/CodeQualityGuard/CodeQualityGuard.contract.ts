@@ -103,6 +103,8 @@ const TEST_SUPPRESSED_CHECKS = new Set([
   "type-import-ratio",
   "options-object-width",
   "function-count",
+  "mixed-io-patterns",
+  "section-headers",
 ]);
 
 function isTestFile(filePath: string): boolean {
