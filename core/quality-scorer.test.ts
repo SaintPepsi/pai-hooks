@@ -216,6 +216,30 @@ function process(deps: MyDeps) {}
       const depsViolation = result.violations.find((v) => v.check === "missing-deps-interface");
       expect(depsViolation).toBeUndefined();
     });
+
+    test("exempts mixed-io-patterns in .contract.ts with defaultDeps (#239)", () => {
+      const contractWithAdapters = `
+import { readFile, writeFile } from "../adapters/fs";
+import { execSyncSafe, spawnBackground } from "../adapters/process";
+export const MyHook = {
+  defaultDeps: { fs: { readFile, writeFile }, process: { execSyncSafe, spawnBackground } },
+};
+`;
+      const result = scoreFile(contractWithAdapters, tsProfile, "hooks/MyHook/MyHook.contract.ts");
+      const ioViolation = result.violations.find((v) => v.check === "mixed-io-patterns");
+      expect(ioViolation).toBeUndefined();
+    });
+
+    test("flags mixed-io-patterns in .contract.ts without defaultDeps (#239)", () => {
+      const contractNoDefaultDeps = `
+import { readFile } from "fs";
+import { exec } from "child_process";
+export function doWork() { readFile("x"); exec("ls"); }
+`;
+      const result = scoreFile(contractNoDefaultDeps, tsProfile, "hooks/Bad/Bad.contract.ts");
+      const ioViolation = result.violations.find((v) => v.check === "mixed-io-patterns");
+      expect(ioViolation).toBeDefined();
+    });
   });
 
   describe("scoreFile — type import ratio", () => {

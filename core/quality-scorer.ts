@@ -312,7 +312,12 @@ const CHECKS: CheckSpec[] = [
     severity: "major",
     threshold: 1,
     direction: "above",
-    compute: (c) => countMixedIOPatterns(c),
+    compute: (c, _p, f) => {
+      // Contract files with defaultDeps legitimately wire multiple adapters (#239)
+      if (f?.endsWith(".contract.ts") && /\bdefaultDeps\b/.test(c)) return -1;
+      return countMixedIOPatterns(c);
+    },
+    skip: (_p, v) => v === -1,
   },
   {
     name: "section-headers",
