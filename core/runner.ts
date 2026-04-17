@@ -18,21 +18,24 @@ import {
   getEventType as schemaGetEventType,
 } from "@hooks/core/types/hook-input-schema";
 import type { HookEventType, HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
-import {
-  validateHookOutput,
-  validateOutputSemantics,
-} from "@hooks/core/types/hook-output-schema";
+import { validateHookOutput, validateOutputSemantics } from "@hooks/core/types/hook-output-schema";
 
 // ─── Event Resolution ──────────────────────────────────────────────────────
 
 /**
  * Normalize contract.event for logging/formatting.
  * When a contract declares multiple events, infer the actual event from input shape.
+ * Logs warning on fallback if onFallback provided (#180).
  */
-function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
+function resolveEvent(
+  contractEvent: HookEventType | HookEventType[],
+  input: HookInput,
+  onFallback?: (msg: string) => void,
+): string {
   if (!Array.isArray(contractEvent)) return contractEvent;
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right);
+  onFallback?.(`[runner] event type fallback: using ${contractEvent[0]} (input parse failed)`);
   return contractEvent[0];
 }
 
@@ -87,7 +90,7 @@ function makeEmitLog(
       ts: new Date().toISOString(),
       hook: contract.name,
       event: input
-        ? resolveEvent(contract.event, input)
+        ? resolveEvent(contract.event, input, io.writeErr)
         : Array.isArray(contract.event)
           ? contract.event[0]
           : contract.event,
@@ -272,7 +275,7 @@ export async function runHook<I extends HookInput, D>(
     inputIsToolEvent = "tool_name" in inputResult.value;
 
     if (contractHandlesToolEvents && !inputIsToolEvent && events.length === 1) {
-      const resolvedEvent = resolveEvent(contract.event, input);
+      const resolvedEvent = resolveEvent(contract.event, input, io.writeErr);
       io.writeErr(
         `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
       );
