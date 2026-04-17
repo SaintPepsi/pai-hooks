@@ -2,7 +2,6 @@ import { describe, expect, it, mock } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import type { RatingCaptureDeps } from "./RatingCapture.contract";
 import { parseExplicitRating, RatingCapture } from "./RatingCapture.contract";
 
@@ -64,7 +63,6 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
     appendFile: mock(() => ok(undefined)),
     ensureDir: mock(() => ok(undefined)),
     spawnTrending: mock(() => {}),
-    readAlgoVersion: mock(() => "v1.8.0"),
     baseDir: "/tmp/test",
     stderr: mock(() => {}),
     ...overrides,
@@ -135,15 +133,13 @@ describe("RatingCapture.accepts", () => {
 // ─── execute: explicit rating ─────────────────────────────────────────────────
 
 describe("RatingCapture.execute — explicit rating", () => {
-  it("returns ok with additionalContext containing algorithm reminder", async () => {
+  it("returns ok with continue: true", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    const ctx = getInjectedContextFor(result.value, "UserPromptSubmit");
-    expect(typeof ctx).toBe("string");
-    expect((ctx ?? "").length).toBeGreaterThan(0);
+    expect(result.value.continue).toBe(true);
   });
 
   it("writes rating to appendFile", async () => {
@@ -186,23 +182,23 @@ describe("RatingCapture.execute — explicit rating", () => {
 // ─── execute: short prompt ────────────────────────────────────────────────────
 
 describe("RatingCapture.execute — short prompt", () => {
-  it("returns additionalContext for empty prompt without running sentiment", async () => {
+  it("returns continue: true for empty prompt without running sentiment", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput(""), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
+    expect(result.value.continue).toBe(true);
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
-  it("returns additionalContext for 2-char prompt without running sentiment", async () => {
+  it("returns continue: true for 2-char prompt without running sentiment", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("hi"), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
+    expect(result.value.continue).toBe(true);
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
@@ -211,44 +207,6 @@ describe("RatingCapture.execute — short prompt", () => {
     await RatingCapture.execute(makeInput("hi"), deps);
 
     expect((deps.appendFile as ReturnType<typeof mock>).mock.calls.length).toBe(0);
-  });
-});
-
-// ─── execute: algorithm reminder content ─────────────────────────────────────
-
-describe("RatingCapture algorithm reminder", () => {
-  it("contains the version string from readAlgoVersion", async () => {
-    const deps = makeDeps();
-    const result = await RatingCapture.execute(makeInput("8"), deps);
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain("v1.8.0");
-  });
-
-  it("contains ALGORITHM FORMAT REQUIRED text", async () => {
-    const deps = makeDeps();
-    const result = await RatingCapture.execute(makeInput("8"), deps);
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain(
-      "ALGORITHM FORMAT REQUIRED",
-    );
-  });
-
-  it("wraps content in user-prompt-submit-hook tags", async () => {
-    const deps = makeDeps();
-    const result = await RatingCapture.execute(
-      makeInput("hello world this is a long enough prompt"),
-      deps,
-    );
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    const ctx = getInjectedContextFor(result.value, "UserPromptSubmit") ?? "";
-    expect(ctx).toContain("<user-prompt-submit-hook>");
-    expect(ctx).toContain("</user-prompt-submit-hook>");
   });
 });
 
@@ -262,13 +220,13 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(1);
   });
 
-  it("returns additionalContext after sentiment analysis", async () => {
+  it("returns continue: true after sentiment analysis", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("great job today"), deps);
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
+    expect(result.value.continue).toBe(true);
   });
 
   it("writes implicit rating entry when confidence >= 0.5", async () => {
@@ -304,7 +262,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     expect((deps.appendFile as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
-  it("returns additionalContext even when inference fails", async () => {
+  it("returns continue: true even when inference fails", async () => {
     const deps = makeDeps({
       inference: mock(async () => {
         throw new Error("inference error");
@@ -314,7 +272,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
+    expect(result.value.continue).toBe(true);
   });
 });
 

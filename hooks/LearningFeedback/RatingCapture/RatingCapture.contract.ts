@@ -1,12 +1,9 @@
 /**
  * RatingCapture Contract — Unified Rating & Sentiment Capture.
  *
- * Two responsibilities:
- * 1. Immediate: Output algorithm format reminder (hookSpecificOutput with additionalContext)
- * 2. Async: Parse explicit ratings or run implicit sentiment analysis
- *
- * The contract returns hookSpecificOutput with additionalContext for the algorithm reminder.
- * Rating/sentiment writes happen as side effects via deps.
+ * Parses explicit ratings (e.g., "7 - good work") or runs implicit sentiment
+ * analysis on user prompts. Records ratings to ratings.jsonl and triggers
+ * learning capture for low ratings.
  */
 
 import { join } from "node:path";
@@ -72,7 +69,6 @@ export interface RatingCaptureDeps {
   appendFile: (path: string, content: string) => Result<void, ResultError>;
   ensureDir: (path: string) => Result<void, ResultError>;
   spawnTrending: () => void;
-  readAlgoVersion: () => string;
   baseDir: string;
   stderr: (msg: string) => void;
 }
@@ -100,24 +96,6 @@ export function parseExplicitRating(prompt: string): { rating: number; comment?:
   }
 
   return { rating, comment };
-}
-
-function buildAlgorithmReminder(version: string): string {
-  return `<user-prompt-submit-hook>
-🚨 ALGORITHM FORMAT REQUIRED - EVERY RESPONSE 🚨
-
-START WITH:
-♻️ Entering the PAI ALGORITHM… (${version} | github.com/danielmiessler/TheAlgorithm) ═════════════
-
-EXECUTE VOICE CURLS at each phase (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN)
-
-USE TaskCreate for ISC criteria. USE TaskList to display them. NEVER manual tables.
-
-END WITH:
-🗣️ {DAIDENTITY.NAME}: [12-24 word spoken summary]
-
-For MINIMAL tasks (pure greetings, ratings): Use abbreviated format but STILL include header and voice line.
-</user-prompt-submit-hook>`;
 }
 
 function buildSentimentPrompt(principalName: string, assistantName: string): string {
@@ -244,12 +222,6 @@ function defaultSpawnTrending(): void {
   }
 }
 
-function defaultReadAlgoVersion(): string {
-  const baseDir = getPaiDir();
-  const result = readFile(join(baseDir, "PAI", "Algorithm", "LATEST"));
-  return result.ok ? result.value.trim() : "v?.?.?";
-}
-
 const defaultDeps: RatingCaptureDeps = {
   inference,
   captureFailure,
@@ -265,7 +237,6 @@ const defaultDeps: RatingCaptureDeps = {
   appendFile,
   ensureDir,
   spawnTrending: defaultSpawnTrending,
-  readAlgoVersion: defaultReadAlgoVersion,
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };
@@ -286,9 +257,6 @@ export const RatingCapture: AsyncHookContract<UserPromptSubmitInput, RatingCaptu
     const sessionId = input.session_id;
     const signalsDir = join(deps.baseDir, "MEMORY", "LEARNING", "SIGNALS");
     const ratingsFile = join(signalsDir, "ratings.jsonl");
-
-    const algoVersion = deps.readAlgoVersion();
-    const reminder = buildAlgorithmReminder(algoVersion);
 
     // Path 1: Explicit Rating
     const explicitResult = parseExplicitRating(prompt);
@@ -330,24 +298,12 @@ export const RatingCapture: AsyncHookContract<UserPromptSubmitInput, RatingCaptu
         }
       }
 
-      return ok({
-        continue: true,
-        hookSpecificOutput: {
-          hookEventName: "UserPromptSubmit",
-          additionalContext: reminder,
-        },
-      });
+      return ok({ continue: true });
     }
 
     // Path 2: Implicit Sentiment
     if (prompt.length < MIN_PROMPT_LENGTH) {
-      return ok({
-        continue: true,
-        hookSpecificOutput: {
-          hookEventName: "UserPromptSubmit",
-          additionalContext: reminder,
-        },
-      });
+      return ok({ continue: true });
     }
 
     const context = getRecentContext(input.transcript_path || "", deps);
@@ -373,26 +329,14 @@ export const RatingCapture: AsyncHookContract<UserPromptSubmitInput, RatingCaptu
       // Null rating means no sentiment detected — skip recording
       if (sentiment.rating === null) {
         deps.stderr("[RatingCapture] Sentiment returned null rating, skipping");
-        return ok({
-          continue: true,
-          hookSpecificOutput: {
-            hookEventName: "UserPromptSubmit",
-            additionalContext: reminder,
-          },
-        });
+        return ok({ continue: true });
       }
 
       if (sentiment.confidence < MIN_CONFIDENCE) {
         deps.stderr(
           `[RatingCapture] Confidence ${sentiment.confidence} below ${MIN_CONFIDENCE}, skipping`,
         );
-        return ok({
-          continue: true,
-          hookSpecificOutput: {
-            hookEventName: "UserPromptSubmit",
-            additionalContext: reminder,
-          },
-        });
+        return ok({ continue: true });
       }
 
       const entry: RatingEntry = {
@@ -434,13 +378,7 @@ export const RatingCapture: AsyncHookContract<UserPromptSubmitInput, RatingCaptu
       );
     }
 
-    return ok({
-      continue: true,
-      hookSpecificOutput: {
-        hookEventName: "UserPromptSubmit",
-        additionalContext: reminder,
-      },
-    });
+    return ok({ continue: true });
   },
 
   defaultDeps,
