@@ -23,7 +23,7 @@ function makeDeps(overrides: Partial<AgentPrepromptInjectorDeps> = {}): AgentPre
 function makeInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
     session_id: "test",
-    hook_type: "PreToolUse",
+    hook_event_name: "PreToolUse",
     tool_name: "Agent",
     tool_input: {
       prompt: "implement feature X",
@@ -53,7 +53,7 @@ describe("AgentPrepromptInjector", () => {
     test("rejects non-Agent tools", () => {
       const input: ToolHookInput = {
         session_id: "test",
-        hook_type: "PreToolUse",
+        hook_event_name: "PreToolUse",
         tool_name: "Bash",
         tool_input: { command: "ls", run_in_background: true },
       };

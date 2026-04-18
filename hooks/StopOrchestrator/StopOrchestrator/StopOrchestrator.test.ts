@@ -43,10 +43,8 @@ describe("StopOrchestrator hook shell", () => {
       transcript_path: "/tmp/nonexistent",
     });
     expect(result.exitCode).toBe(0);
-    // Stop event with silent output produces no stdout
-    if (result.stdout.length > 0) {
-      expect(() => JSON.parse(result.stdout)).not.toThrow();
-    }
+    // Stop event with nonexistent transcript produces empty output
+    expect(result.stdout).toBe("");
   });
 
   it("exits 0 when transcript_path is missing (rejected by accepts)", async () => {

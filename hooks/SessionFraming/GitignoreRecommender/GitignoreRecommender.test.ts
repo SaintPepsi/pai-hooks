@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { getInjectedContextFor } from "@hooks/lib/test-helpers";
-import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   GitignoreRecommender,
   type GitignoreRecommenderDeps,

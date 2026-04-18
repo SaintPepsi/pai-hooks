@@ -189,7 +189,9 @@ export const RebaseGuard: SyncHookContract<ToolHookInput, RebaseGuardDeps> = {
     }
 
     if (tier === "warn") {
-      deps.stderr(`[RebaseGuard] ADVISORY: rebase on unpublished branch — ${command.slice(0, 100)}`);
+      deps.stderr(
+        `[RebaseGuard] ADVISORY: rebase on unpublished branch — ${command.slice(0, 100)}`,
+      );
       return ok({
         continue: true,
         hookSpecificOutput: {

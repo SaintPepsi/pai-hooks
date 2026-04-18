@@ -51,6 +51,15 @@ All logs use structured JSONL: `{"ts":"...","event":"completed","source":"...","
 
 This reduces token cost on repeated runs by leveraging Claude's prompt cache.
 
+## Safe Parsing
+
+`agent-runner.ts` uses `safeJsonParse` from `core/adapters/json.ts` for all JSON parsing:
+
+- **Session ID extraction** (line ~135): parses Claude's JSON output; logs to stderr and continues with empty session ID on failure
+- **Config argument** (line ~185): parses the config JSON argument; exits with error on failure
+
+This replaces bare `JSON.parse` calls that could throw on malformed input.
+
 ## Testing
 
 ```bash

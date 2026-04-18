@@ -35,7 +35,7 @@ describe("BranchAwareness", () => {
     const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("main");
@@ -46,7 +46,7 @@ describe("BranchAwareness", () => {
     const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("feature/auth-refactor");
@@ -57,7 +57,7 @@ describe("BranchAwareness", () => {
     const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
     expect(result.value.continue).toBeUndefined();
   });
@@ -67,7 +67,7 @@ describe("BranchAwareness", () => {
     const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -76,7 +76,7 @@ describe("BranchAwareness", () => {
     const result = BranchAwareness.execute(makeInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 

@@ -99,7 +99,7 @@ describe("install --compiled", () => {
     const result = install(makeArgs(["TypeStrictness"], { compiled: true }), deps, "/source");
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = (deps as CompilerDeps & { getFiles: () => Map<string, string> }).getFiles();
 
@@ -127,7 +127,7 @@ describe("install --compiled-ts", () => {
     const result = install(makeArgs(["TypeStrictness"], { compiledTs: true }), deps, "/source");
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = (deps as CompilerDeps & { getFiles: () => Map<string, string> }).getFiles();
 
@@ -258,7 +258,7 @@ describe("install source mode unchanged", () => {
     const result = install(makeArgs(["TypeStrictness"]), memDeps, "/source");
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = memDeps.getFiles();
     expect(
