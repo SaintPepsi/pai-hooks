@@ -150,6 +150,7 @@ export function parseFilterOutput(stdout: string): FilterResultJson | null {
   // Validate required fields (#159)
   if (typeof obj.sessionId !== "string") return null;
   if (typeof obj.classification !== "string") return null;
+  if (obj.digestPath !== null && typeof obj.digestPath !== "string") return null;
   if (typeof obj.messageCount !== "number") return null;
   if (typeof obj.keptMessageCount !== "number") return null;
   if (typeof obj.decisionsFound !== "number") return null;
@@ -177,6 +178,10 @@ export function parseExtractionFile(content: string): ExtractionJson | null {
   if (!Array.isArray(obj.concepts)) return null;
   if (typeof obj.confidence !== "string") return null;
   if (typeof obj.cost !== "object" || obj.cost === null) return null;
+  const cost = obj.cost as Record<string, unknown>;
+  if (typeof cost.inputTokens !== "number") return null;
+  if (typeof cost.outputTokens !== "number") return null;
+  if (typeof cost.totalCost !== "number") return null;
   return obj as unknown as ExtractionJson;
 }
 
