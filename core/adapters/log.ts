@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { appendFile, ensureDir, readDir, removeFile } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
+import { getHomeDir } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,12 +85,13 @@ export function appendHookLog(
   forceCleanup?: boolean,
   stderr?: (msg: string) => void,
 ): Result<void, ResultError> {
-  const dir = logDir ?? join(process.env.HOME!, ".claude", "MEMORY", "STATE", "logs");
+  const dir = logDir ?? join(getHomeDir(), ".claude", "MEMORY", "STATE", "logs");
 
   if (!dirEnsured || logDir !== undefined) {
     const mkResult = ensureDir(dir);
     if (!mkResult.ok) {
-      if (stderr) stderr(`[hook-log] ensureDir failed: ${dir} — ${mkResult.error.message}`);
+      // Surface failure but don't break hook execution (#170)
+      stderr?.(`[hook-log] ensureDir failed: ${dir} — ${mkResult.error.message}`);
       return ok(undefined);
     }
     if (logDir === undefined) dirEnsured = true;

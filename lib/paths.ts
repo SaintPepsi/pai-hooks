@@ -27,6 +27,19 @@ export function expandPath(path: string): string {
 }
 
 /**
+ * Get the user's home directory.
+ * Wraps node:os homedir() for dependency injection in contracts.
+ * Throws if HOME is unset to prevent incorrect path resolution (#174).
+ */
+export function getHomeDir(): string {
+  const home = homedir();
+  if (!home) {
+    throw new Error("HOME environment variable is not set — cannot resolve paths");
+  }
+  return home;
+}
+
+/**
  * Get the PAI directory (expanded)
  * Priority: PAI_DIR env var (expanded) → ~/.claude
  */

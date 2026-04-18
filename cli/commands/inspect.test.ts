@@ -49,7 +49,7 @@ describe("inspect command", () => {
   it("returns summary for DuplicationChecker (default output)", () => {
     const result = inspect(makeArgs(["DuplicationChecker"]), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("DuplicationChecker");
     expect(result.value).toContain("/tmp/proj");
@@ -84,7 +84,7 @@ describe("inspect command", () => {
 
     const result = inspect(makeArgs(["DuplicationChecker"], { project: "/other/project" }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // Should reflect the --project dir, not cwd
     expect(result.value).toContain("/other/project");
@@ -94,7 +94,7 @@ describe("inspect command", () => {
   it("returns raw output with --raw flag", () => {
     const result = inspect(makeArgs(["DuplicationChecker"], { raw: true }), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // Raw output is the full JSON string from the index file
     const parsed = JSON.parse(result.value);
@@ -106,7 +106,7 @@ describe("inspect command", () => {
   it("returns JSON with --json flag", () => {
     const result = inspect(makeArgs(["DuplicationChecker"], { json: true }), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const parsed = JSON.parse(result.value);
     expect(parsed.fileCount).toBe(10);
