@@ -1953,21 +1953,38 @@ return ok({ decision: "block", reason });</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: New code without tests</h3>
       
       <div class="uc-example">
-        <div>You create <code>src/validator.ts</code> but do not write any tests. When you try to end the session, TestObligationEnforcer blocks with: "Write and run tests for (no test file exists): src/validator.ts"</div>
+        <div>You create <code>src/validator.ts</code> but do not write any tests. When you try to end the session, TestObligationEnforcer blocks with a tree-formatted message:</div>
+        <div>```</div>
+        <div>Write and run tests for (no test file exists):</div>
+        <div>  src/</div>
+        <div>    validator.ts</div>
+        <div>```</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Existing tests not run</h3>
       
       <div class="uc-example">
-        <div>You modify <code>src/parser.ts</code> which already has <code>src/parser.test.ts</code>. TestObligationEnforcer detects the test file exists but hasn't been run, and blocks with: "Run existing tests for: src/parser.ts"</div>
+        <div>You modify <code>src/parser.ts</code> which already has <code>src/parser.test.ts</code>. TestObligationEnforcer detects the test file exists but hasn't been run:</div>
+        <div>```</div>
+        <div>Run existing tests for:</div>
+        <div>  src/</div>
+        <div>    parser.ts</div>
+        <div>```</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Block limit reached</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Svelte component detection</h3>
       
       <div class="uc-example">
-        <div>After being blocked once without running tests, you attempt to end the session again. The enforcer reaches its block limit, writes a review document, clears pending flags, and releases the session.</div>
+        <div>You modify <code>src/components/Button.svelte</code>. The hook correctly detects <code>Button.svelte.test.ts</code> as the test file (Svelte convention), not <code>Button.test.svelte</code>.</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 4: Block limit reached</h3>
+      
+      <div class="uc-example">
+        <div>After being blocked twice without running tests, the enforcer reaches its block limit, writes a review document, clears pending flags, and releases the session.</div>
       </div>
       </div>
     </div>
@@ -1985,8 +2002,9 @@ return ok({ decision: "block", reason });</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td>Picks escalating narrative tone for block messages</td></tr>
-          <tr><td><code>TestObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>pendingPath</code>, <code>blockCountPath</code>, <code>MAX_BLOCKS</code>, <code>buildBlockLimitReview</code>, <code>hasTestFile</code></td></tr>
+          <tr><td><code>TestObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>pendingPath</code>, <code>blockCountPath</code>, <code>MAX_BLOCKS</code>, <code>buildBlockLimitReview</code>, <code>hasTestFile</code>, <code>formatAsTree</code> (tree-formatted output), <code>deriveTestPaths</code> (includes Svelte/Vue patterns)</td></tr>
           <tr><td><code>result</code></td><td>core</td><td><code>ok</code> wrapper for Result type returns</td></tr>
+          <tr><td><code>process.cwd()</code></td><td>runtime</td><td>Gets current working directory to convert absolute paths to relative for compact output</td></tr>
           <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type. R5 block path uses top-level <code>decision: "block"</code> + <code>reason</code> because Stop is a NonHookSpecificEvent and has no <code>hookSpecificOutput</code> wrapping (contrast with PreToolUse where deny goes through <code>hookSpecificOutput.permissionDecision</code>). R8 silent path is a bare <code>{}</code>. Post-SDK-refactor migration.</td></tr>
         </tbody>
       </table>

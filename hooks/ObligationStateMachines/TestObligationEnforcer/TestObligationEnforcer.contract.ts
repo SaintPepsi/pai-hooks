@@ -7,16 +7,26 @@ import type { StopInput } from "@hooks/core/types/hook-inputs";
 import {
   blockCountPath,
   buildBlockLimitReview,
-  defaultDeps,
   findImportingTestFile,
+  formatAsTree,
   hasTestFile,
   MAX_BLOCKS,
   pendingPath,
+  defaultDeps as sharedDefaultDeps,
   type TestObligationDeps,
 } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
-export const TestObligationEnforcer: SyncHookContract<StopInput, TestObligationDeps> = {
+export interface TestEnforcerDeps extends TestObligationDeps {
+  getCwd: () => string;
+}
+
+const defaultDeps: TestEnforcerDeps = {
+  ...sharedDefaultDeps,
+  getCwd: () => process.cwd(),
+};
+
+export const TestObligationEnforcer: SyncHookContract<StopInput, TestEnforcerDeps> = {
   name: "TestObligationEnforcer",
   event: "Stop",
 
@@ -24,7 +34,7 @@ export const TestObligationEnforcer: SyncHookContract<StopInput, TestObligationD
     return true;
   },
 
-  execute(input: StopInput, deps: TestObligationDeps): Result<SyncHookJSONOutput, ResultError> {
+  execute(input: StopInput, deps: TestEnforcerDeps): Result<SyncHookJSONOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (!deps.fileExists(flagFile)) {
@@ -64,17 +74,18 @@ export const TestObligationEnforcer: SyncHookContract<StopInput, TestObligationD
       }
     }
 
+    const cwd = deps.getCwd();
     const opener = pickNarrative("TestObligationEnforcer", pending.length, import.meta.dir);
     const sections: string[] = [];
 
     if (needsWriting.length > 0) {
-      const list = needsWriting.map((f) => `  - ${f}`).join("\n");
-      sections.push(`Write and run tests for (no test file exists):\n${list}`);
+      sections.push(
+        `Write and run tests for (no test file exists):\n${formatAsTree(needsWriting, cwd)}`,
+      );
     }
 
     if (needsRunning.length > 0) {
-      const list = needsRunning.map((f) => `  - ${f}`).join("\n");
-      sections.push(`Run existing tests for:\n${list}`);
+      sections.push(`Run existing tests for:\n${formatAsTree(needsRunning, cwd)}`);
     }
 
     const reason = `${opener}\n\n${sections.join("\n\n")}`;

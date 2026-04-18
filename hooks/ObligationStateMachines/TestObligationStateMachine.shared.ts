@@ -151,6 +151,10 @@ export function deriveTestPaths(sourcePath: string): string[] {
   if (ext === ".php") {
     paths.push(`${base}Test${ext}`);
   }
+  // Svelte/Vue convention: Component.svelte → Component.svelte.test.ts
+  if (ext === ".svelte" || ext === ".vue") {
+    paths.push(`${base}${ext}.test.ts`, `${base}${ext}.spec.ts`);
+  }
   return paths;
 }
 
@@ -217,6 +221,39 @@ export function readTestExcludePatterns(settingsPath?: string): string[] {
 /** Returns true if filePath matches any of the given glob patterns. */
 export function matchesExcludePattern(filePath: string, patterns: string[]): boolean {
   return patterns.some((pattern) => new Bun.Glob(pattern).match(filePath));
+}
+
+// ─── Output Formatting ────────────────────────────────────────────────────────
+
+/** Convert absolute path to relative, stripping cwd prefix. */
+export function toRelativePath(absPath: string, cwd: string): string {
+  const cwdWithSlash = cwd.endsWith("/") ? cwd : `${cwd}/`;
+  return absPath.startsWith(cwdWithSlash) ? absPath.slice(cwdWithSlash.length) : absPath;
+}
+
+/** Format file list as compact tree structure grouped by directory. */
+export function formatAsTree(files: string[], cwd: string): string {
+  const relative = files.map((f) => toRelativePath(f, cwd));
+  const byDir = new Map<string, string[]>();
+
+  for (const file of relative) {
+    const dir = dirname(file);
+    const existing = byDir.get(dir);
+    if (existing) {
+      existing.push(basename(file));
+    } else {
+      byDir.set(dir, [basename(file)]);
+    }
+  }
+
+  const lines: string[] = [];
+  for (const [dir, names] of byDir) {
+    lines.push(`  ${dir}/`);
+    for (const name of names) {
+      lines.push(`    ${name}`);
+    }
+  }
+  return lines.join("\n");
 }
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────

@@ -1,15 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import { getReasonFromBlock, isBareNoOp } from "@hooks/lib/test-helpers";
-import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
+import { type TestEnforcerDeps, TestObligationEnforcer } from "./TestObligationEnforcer.contract";
 
 const mockInput: StopInput = {
   hook_event_name: "Stop",
   session_id: "test-session-123",
 };
 
-function makeDeps(overrides: Partial<TestObligationDeps> = {}): TestObligationDeps {
+function makeDeps(overrides: Partial<TestEnforcerDeps> = {}): TestEnforcerDeps {
   return {
     stateDir: "/tmp/test-state",
     fileExists: () => true,
@@ -22,6 +21,7 @@ function makeDeps(overrides: Partial<TestObligationDeps> = {}): TestObligationDe
     writeBlockCount: () => {},
     writeReview: () => {},
     stderr: () => {},
+    getCwd: () => "/project",
     ...overrides,
   };
 }
@@ -67,7 +67,7 @@ describe("TestObligationEnforcer", () => {
       const reason = getReasonFromBlock(result.value);
       expect(reason).toBeDefined();
       expect(reason ?? "").toContain("Write and run tests");
-      expect(reason ?? "").toContain("src/new-module.ts");
+      expect(reason ?? "").toContain("new-module.ts");
     }
   });
 
@@ -139,7 +139,7 @@ describe("TestObligationEnforcer", () => {
       const reason = getReasonFromBlock(result.value);
       expect(reason).toBeDefined();
       expect(reason ?? "").toContain("Run existing tests");
-      expect(reason ?? "").toContain("src/utils.ts");
+      expect(reason ?? "").toContain("utils.ts");
     }
   });
 
@@ -166,7 +166,7 @@ describe("TestObligationEnforcer", () => {
       const reason = getReasonFromBlock(result.value);
       expect(reason).toBeDefined();
       expect(reason ?? "").toContain("Write and run tests");
-      expect(reason ?? "").toContain("src/orphan.ts");
+      expect(reason ?? "").toContain("orphan.ts");
     }
   });
 });

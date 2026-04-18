@@ -6,6 +6,8 @@ TestObligationEnforcer is a **Stop-event** hook that blocks session end when cod
 
 The hook distinguishes between files that need new tests written (no test file exists) and files that already have tests but need them to be run. It uses an escalating block mechanism with a configurable limit, writing a review document and releasing the session after the limit is reached.
 
+Output uses a compact tree format with relative paths grouped by directory, reducing token usage compared to full absolute paths.
+
 ## Event
 
 `Stop` — fires when the user attempts to end a Claude Code session, blocking if test obligations remain unfulfilled.
@@ -53,21 +55,36 @@ return ok({ decision: "block", reason });
 
 ### Example 1: New code without tests
 
-> You create `src/validator.ts` but do not write any tests. When you try to end the session, TestObligationEnforcer blocks with: "Write and run tests for (no test file exists): src/validator.ts"
+> You create `src/validator.ts` but do not write any tests. When you try to end the session, TestObligationEnforcer blocks with a tree-formatted message:
+> ```
+> Write and run tests for (no test file exists):
+>   src/
+>     validator.ts
+> ```
 
 ### Example 2: Existing tests not run
 
-> You modify `src/parser.ts` which already has `src/parser.test.ts`. TestObligationEnforcer detects the test file exists but hasn't been run, and blocks with: "Run existing tests for: src/parser.ts"
+> You modify `src/parser.ts` which already has `src/parser.test.ts`. TestObligationEnforcer detects the test file exists but hasn't been run:
+> ```
+> Run existing tests for:
+>   src/
+>     parser.ts
+> ```
 
-### Example 3: Block limit reached
+### Example 3: Svelte component detection
 
-> After being blocked once without running tests, you attempt to end the session again. The enforcer reaches its block limit, writes a review document, clears pending flags, and releases the session.
+> You modify `src/components/Button.svelte`. The hook correctly detects `Button.svelte.test.ts` as the test file (Svelte convention), not `Button.test.svelte`.
+
+### Example 4: Block limit reached
+
+> After being blocked twice without running tests, the enforcer reaches its block limit, writes a review document, clears pending flags, and releases the session.
 
 ## Dependencies
 
 | Dependency                          | Type      | Purpose                                                                                                                                                                                                                                                                                                                               |
 | ----------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `narrative-reader`                  | lib       | Picks escalating narrative tone for block messages                                                                                                                                                                                                                                                                                    |
-| `TestObligationStateMachine.shared` | shared    | Provides `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `hasTestFile`                                                                                                                                                                                                                                        |
+| `TestObligationStateMachine.shared` | shared    | Provides `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `hasTestFile`, `formatAsTree` (tree-formatted output), `deriveTestPaths` (includes Svelte/Vue patterns)                                                                                                                                             |
 | `result`                            | core      | `ok` wrapper for Result type returns                                                                                                                                                                                                                                                                                                  |
+| `process.cwd()`                     | runtime   | Gets current working directory to convert absolute paths to relative for compact output                                                                                                                                                                                                                                               |
 | `@anthropic-ai/claude-agent-sdk`    | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |

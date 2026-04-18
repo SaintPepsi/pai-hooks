@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import { TestObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
+import {
+  type TestEnforcerDeps,
+  TestObligationEnforcer,
+} from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
 import { readTestExcludePatterns } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import {
   TestObligationTracker,
@@ -31,6 +34,14 @@ function makeTrackerDeps(overrides: Partial<TestTrackerDeps> = {}): TestTrackerD
     writeReview: () => {},
     stderr: () => {},
     getExcludePatterns: () => [],
+    ...overrides,
+  };
+}
+
+function makeEnforcerDeps(overrides: Partial<TestEnforcerDeps> = {}): TestEnforcerDeps {
+  return {
+    ...makeTrackerDeps(),
+    getCwd: () => "/project",
     ...overrides,
   };
 }
@@ -483,7 +494,7 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("returns silent when no pending flag exists", () => {
-    const deps = makeTrackerDeps({ fileExists: () => false });
+    const deps = makeEnforcerDeps({ fileExists: () => false });
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       SyncHookJSONOutput,
@@ -496,7 +507,7 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("returns block when pending flag exists", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts", "/src/utils.ts"],
     });
@@ -512,7 +523,7 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("block reason includes file paths", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
     });
@@ -526,11 +537,11 @@ describe("TestObligationEnforcer", () => {
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
-    expect(reason ?? "").toContain("/src/handler.ts");
+    expect(reason ?? "").toContain("handler.ts");
   });
 
   it("block reason mentions tests", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/app.ts"],
     });
@@ -551,7 +562,7 @@ describe("TestObligationEnforcer", () => {
 
   it("says 'write' for files without existing test files", () => {
     const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: (path: string) => path === flagPath,
       readPending: () => ["/src/handler.ts"],
     });
@@ -566,12 +577,12 @@ describe("TestObligationEnforcer", () => {
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("write");
-    expect(reason ?? "").toContain("/src/handler.ts");
+    expect(reason ?? "").toContain("handler.ts");
   });
 
   it("says 'run' for files with existing test files", () => {
     const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: (path: string) => {
         if (path === flagPath) return true;
         if (path === "/src/handler.test.ts") return true;
@@ -596,7 +607,7 @@ describe("TestObligationEnforcer", () => {
 
   it("matches PHP Test variant (FooTest.php) as existing test file", () => {
     const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: (path: string) => {
         if (path === flagPath) return true;
         if (path === "/app/Console/Commands/SeedTestIneligibleMatterTest.php") return true;
@@ -620,7 +631,7 @@ describe("TestObligationEnforcer", () => {
 
   it("matches .spec. variant as existing test file", () => {
     const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: (path: string) => {
         if (path === flagPath) return true;
         if (path === "/src/handler.spec.ts") return true;
@@ -642,9 +653,33 @@ describe("TestObligationEnforcer", () => {
     expect((reason ?? "").toLowerCase()).not.toMatch(/write.*handler/);
   });
 
+  it("matches Svelte test file pattern (Component.svelte.test.ts)", () => {
+    const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
+    const deps = makeEnforcerDeps({
+      fileExists: (path: string) => {
+        if (path === flagPath) return true;
+        if (path === "/src/components/Button.svelte.test.ts") return true;
+        return false;
+      },
+      readPending: () => ["/src/components/Button.svelte"],
+    });
+
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      SyncHookJSONOutput,
+      ResultError
+    >;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    const reason = getReasonFromBlock(result.value);
+    expect(reason).toBeDefined();
+    // Has a test (.svelte.test.ts), so should say run, not write
+    expect((reason ?? "").toLowerCase()).not.toMatch(/write.*button/i);
+  });
+
   it("separates write and run instructions in mixed scenario", () => {
     const flagPath = "/tmp/pai-test-obligation/tests-pending-test-session.json";
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: (path: string) => {
         if (path === flagPath) return true;
         if (path === "/src/handler.test.ts") return true;
@@ -664,8 +699,8 @@ describe("TestObligationEnforcer", () => {
     expect(reason).not.toBe("");
     // handler.ts has a test → run instruction
     // utils.ts has no test → write instruction
-    expect(reason).toContain("/src/handler.ts");
-    expect(reason).toContain("/src/utils.ts");
+    expect(reason).toContain("handler.ts");
+    expect(reason).toContain("utils.ts");
     expect(reason.toLowerCase()).toContain("write");
     expect(reason.toLowerCase()).toContain("run");
   });
@@ -673,7 +708,7 @@ describe("TestObligationEnforcer", () => {
   // ── Block limit (escape valve) ──
 
   it("blocks on first stop attempt (blockCount=0)", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 0,
@@ -692,7 +727,7 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("blocks on second stop attempt (blockCount=1)", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 1,
@@ -711,7 +746,7 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("returns silent on third stop attempt (blockCount=2)", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 2,
@@ -732,7 +767,7 @@ describe("TestObligationEnforcer", () => {
 
   it("increments block count when blocking", () => {
     let writtenCount = -1;
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 0,
@@ -750,7 +785,7 @@ describe("TestObligationEnforcer", () => {
   it("writes review doc when block limit reached", () => {
     let reviewWritten = false;
     let reviewContent = "";
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts", "/src/utils.ts"],
       readBlockCount: () => 2,
@@ -771,7 +806,7 @@ describe("TestObligationEnforcer", () => {
 
   it("cleans up state files when block limit reached", () => {
     const removedPaths: string[] = [];
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 2,
@@ -789,7 +824,7 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("returns silent when pending list is empty", () => {
-    const deps = makeTrackerDeps({
+    const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => [],
     });
