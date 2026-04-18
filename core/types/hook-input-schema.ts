@@ -53,7 +53,9 @@ export const PostToolUseInput = Schema.Struct({
   hook_event_name: Schema.Literal("PostToolUse"),
   tool_name: Schema.String,
   tool_input: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-  tool_response: Schema.optional(Schema.Unknown),
+  tool_response: Schema.optional(
+    Schema.Union(Schema.String, Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+  ),
 });
 
 export const StopInput = Schema.Struct({

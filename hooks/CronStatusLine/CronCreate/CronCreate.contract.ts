@@ -43,7 +43,7 @@ export interface CronCreateDeps extends CronFileDeps, CronPathDeps {
 // ─── Response Shape ─────────────────────────────────────────────────────────
 
 /** Expected shape of CronCreate tool_response from Claude Code. */
-interface CronCreateToolResponse {
+interface CronCreateToolResponse extends Record<string, unknown> {
   id?: string;
   humanSchedule?: string;
 }
