@@ -27,7 +27,9 @@ describe("QuestionAnswered", () => {
     expect(QuestionAnswered.accepts(stubInput)).toBe(true);
   });
 
-  it("returns ok with silent no-op", () => {
+  it("returns ok with silent no-op (#182)", () => {
+    // QuestionAnswered is intentionally a no-op — tab manipulation was removed.
+    // If future behavior is added, assert: output.additionalContext or output.continue.
     const result = QuestionAnswered.execute(stubInput, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value).toEqual({});

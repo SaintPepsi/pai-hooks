@@ -71,7 +71,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps();
     const result = ApprovalGate.execute(makeInput("gh pr review 441 --comment -b 'lgtm'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -79,7 +79,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps();
     const result = ApprovalGate.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -87,7 +87,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps();
     const result = ApprovalGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -97,7 +97,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
     const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(false);
     const advisory = getPreToolUseAdvisory(result.value);
     expect(advisory).toContain("Before approving PR #441");
@@ -111,7 +111,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps({ ciResponse: CI_ONE_FAILURE });
     const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("APPROVAL BLOCKED");
     expect(getPreToolUseDenyReason(result.value)).toContain("tests: FAILURE");
@@ -123,7 +123,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps({ ciResponse: CI_ONE_PENDING });
     const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(false);
     expect(getPreToolUseAdvisory(result.value)).toContain("CI checks are still running");
   });
@@ -140,7 +140,7 @@ describe("ApprovalGate", () => {
     };
     const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("WARNING"))).toBe(true);
   });
@@ -151,7 +151,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
     const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getPreToolUseAdvisory(result.value)).toContain("PR #441");
   });
 
@@ -159,7 +159,7 @@ describe("ApprovalGate", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
     const result = ApprovalGate.execute(makeInput("gh pr review --approve 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getPreToolUseAdvisory(result.value)).toContain("PR #441");
   });
 
@@ -174,7 +174,7 @@ describe("ApprovalGate", () => {
     };
     const result = ApprovalGate.execute(makeInput("gh pr review --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getPreToolUseAdvisory(result.value)).toContain("PR #441");
   });
 
@@ -202,7 +202,7 @@ describe("ApprovalGate", () => {
     };
     const result = ApprovalGate.execute(makeInput("gh pr review --approve"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
   });

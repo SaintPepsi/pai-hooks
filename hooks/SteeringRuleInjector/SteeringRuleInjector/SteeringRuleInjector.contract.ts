@@ -24,7 +24,7 @@ import type {
   ToolHookInput,
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { getEnvOrUndefined, isSubagentDefault } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
@@ -119,19 +119,23 @@ export function matchesKeywords(prompt: string, keywords: string[]): boolean {
 
 // ─── Event Detection (Effect Schema) ────────────────────────────────────────
 
-function resolveEvent(input: SteeringRuleInput): SteeringEventType {
+function resolveEvent(input: SteeringRuleInput, stderr?: (msg: string) => void): SteeringEventType {
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right) as SteeringEventType;
-  // Schema requires hook_type — should always be present from Claude Code
+  // Schema requires hook_event_name — should always be present from Claude Code (#172)
+  stderr?.("[SteeringRuleInjector] event parse failed, defaulting to SessionStart");
   return "SessionStart";
 }
 
-function getMatchText(input: SteeringRuleInput): string {
+function getMatchText(input: SteeringRuleInput, stderr?: (msg: string) => void): string {
   const parsed = parseHookInput(input);
-  if (parsed._tag !== "Right") return "";
+  if (parsed._tag !== "Right") {
+    stderr?.("[SteeringRuleInjector] input parse failed for keyword matching");
+    return "";
+  }
   const p = parsed.right;
 
-  switch (p.hook_type) {
+  switch (p.hook_event_name) {
     case "PreToolUse":
     case "PostToolUse": {
       const filePath = typeof p.tool_input.file_path === "string" ? p.tool_input.file_path : "";
@@ -158,10 +162,9 @@ function expandEnvVars(pattern: string, getEnv: (key: string) => string | undefi
 
 const defaultDeps: SteeringRuleInjectorDeps = {
   resolveGlobs: (patterns: string[]): string[] => {
-    const getEnv = (k: string): string | undefined => process.env[k];
     const files: string[] = [];
     for (const pattern of patterns) {
-      const expanded = expandEnvVars(pattern, getEnv);
+      const expanded = expandEnvVars(pattern, getEnvOrUndefined);
       const glob = new Bun.Glob(expanded);
       for (const path of glob.scanSync({ absolute: true })) {
         files.push(path);
@@ -183,6 +186,9 @@ const defaultDeps: SteeringRuleInjectorDeps = {
     );
     if (!fileExists(trackerPath)) return { sessionId, injected: {} };
     const result = readJson<InjectionTracker>(trackerPath);
+    if (!result.ok) {
+      defaultStderr(`[SteeringRuleInjector] tracker read failed: ${result.error.message}`);
+    }
     return result.ok ? result.value : { sessionId, injected: {} };
   },
 
@@ -200,7 +206,7 @@ const defaultDeps: SteeringRuleInjectorDeps = {
     return { ...DEFAULT_CONFIG, ...userConfig };
   },
 
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  isSubagent: isSubagentDefault,
 
   stderr: defaultStderr,
 };
@@ -228,8 +234,8 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
       return ok({});
     }
 
-    const eventType = resolveEvent(input);
-    const matchText = getMatchText(input);
+    const eventType = resolveEvent(input, deps.stderr);
+    const matchText = getMatchText(input, deps.stderr);
     const isToolEventType = eventType === "PreToolUse" || eventType === "PostToolUse";
 
     // Resolve glob patterns to file paths

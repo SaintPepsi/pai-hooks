@@ -1754,7 +1754,7 @@ section[id] {
     <h1>CodingStandards</h1>
     <p>TypeScript quality enforcement hooks</p>
     <div class="hero-meta">
-      <span>7 hooks</span>
+      <span>8 hooks</span>
       <span>pai-hooks</span>
     </div>
   </div>
@@ -1770,7 +1770,7 @@ section[id] {
   </div>
 
   <div class="summary-grid">
-    <div class="summary-item"><div class="num" style="color:var(--orange);">5</div><div class="label">PreToolUse</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--orange);">6</div><div class="label">PreToolUse</div></div>
     <div class="summary-item"><div class="num" style="color:var(--blue);">2</div><div class="label">PostToolUse</div></div>
   </div>
 
@@ -1800,17 +1800,6 @@ section[id] {
         <p>Suggests improvements post-Read</p>
       </div>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='DocCommitGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>DocCommitGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Blocks git commit when hooks are missing doc.md or IDEA.md</p>
-      </div>
-
       <div class="card orange" style="cursor:pointer;" onclick="location.href='CodingStandardsEnforcer.html'">
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
@@ -1820,6 +1809,28 @@ section[id] {
           </div>
         </div>
         <p>Enforces coding standards on Write/Edit</p>
+      </div>
+
+      <div class="card orange" style="cursor:pointer;" onclick="location.href='CodingStandardsInjector.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>CodingStandardsInjector</h3>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
+          </div>
+        </div>
+        <p>Injects coding standards files as context on first Write/Edit</p>
+      </div>
+
+      <div class="card orange" style="cursor:pointer;" onclick="location.href='DocCommitGuard.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>DocCommitGuard</h3>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
+          </div>
+        </div>
+        <p>Blocks git commit when hooks are missing doc.md or IDEA.md</p>
       </div>
 
       <div class="card blue" style="cursor:pointer;" onclick="location.href='TypeCheckVerifier.html'">

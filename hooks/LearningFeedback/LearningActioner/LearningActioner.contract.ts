@@ -298,8 +298,11 @@ export function evaluateCredit(baseDir: string, deps: LearningActionerDeps): Cre
   const usagePath = join(baseDir, "MEMORY/STATE/usage-cache.json");
   const creditPath = join(baseDir, "MEMORY/STATE/learning-agent-credit.json");
 
-  // Read usage cache
+  // Read usage cache (#173: log failures instead of silent zero)
   const usageResult = deps.readJson<UsageCache>(usagePath);
+  if (!usageResult.ok) {
+    deps.stderr(`[LearningActioner] usage-cache read failed: ${usageResult.error.message}`);
+  }
   const utilization = usageResult.ok ? (usageResult.value.five_hour?.utilization ?? 0) : 0;
   const resetsAt = usageResult.ok ? (usageResult.value.five_hour?.resets_at ?? "") : "";
 
@@ -315,8 +318,11 @@ export function evaluateCredit(baseDir: string, deps: LearningActionerDeps): Cre
     }
   }
 
-  // Read current credit
+  // Read current credit (#173: log failures instead of silent zero)
   const creditResult = deps.readJson<CreditState>(creditPath);
+  if (!creditResult.ok) {
+    deps.stderr(`[LearningActioner] credit read failed: ${creditResult.error.message}`);
+  }
   const currentCredit = creditResult.ok ? creditResult.value.credit : 0;
 
   // Accumulate: credit += (100 - utilization) / 100

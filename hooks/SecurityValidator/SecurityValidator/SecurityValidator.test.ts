@@ -303,6 +303,29 @@ describe("SecurityValidator.execute() — Bash commands", () => {
       expect(result.value.continue).toBe(true);
     }
   });
+
+  it("allows pbcopy even when piped content contains SQL keywords (#240)", () => {
+    const deps = makeDeps();
+    // This would otherwise trigger TRUNCATE pattern match
+    const input = makeInput("Bash", {
+      command: 'echo "TRUNCATE TABLE users" | pbcopy',
+    });
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.continue).toBe(true);
+    }
+  });
+
+  it("allows pbpaste regardless of content", () => {
+    const deps = makeDeps();
+    const input = makeInput("Bash", { command: "pbpaste | grep pattern" });
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.continue).toBe(true);
+    }
+  });
 });
 
 // ─── Path validation ──────────────────────────────────────────────────────────

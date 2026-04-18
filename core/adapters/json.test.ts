@@ -14,7 +14,7 @@ describe("safeJsonParse", () => {
     const result = safeJsonParse('{"a": {"b": [1, 2]}}');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.a).toEqual({ b: [1, 2] });
+      expect((result.value as Record<string, unknown>).a).toEqual({ b: [1, 2] });
     }
   });
 

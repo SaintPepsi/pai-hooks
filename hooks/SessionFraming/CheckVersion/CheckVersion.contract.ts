@@ -11,7 +11,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { isSubagentDefault } from "@hooks/lib/environment";
 import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ async function defaultGetLatestVersion(): Promise<Result<string, ResultError>> {
 const defaultDeps: CheckVersionDeps = {
   getCurrentVersion: defaultGetCurrentVersion,
   getLatestVersion: defaultGetLatestVersion,
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  isSubagent: isSubagentDefault,
   stderr: defaultStderr,
 };
 

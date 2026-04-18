@@ -86,7 +86,7 @@ describe("compileHook", () => {
     const result = compileHook(makeOpts({ mode: "compiled" }), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value.outputPath).toEndWith(".js");
     expect(result.value.shebang).toBe("#!/usr/bin/env node");
@@ -102,7 +102,7 @@ describe("compileHook", () => {
     const result = compileHook(makeOpts({ mode: "compiled-ts" }), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value.outputPath).toEndWith(".ts");
     expect(result.value.shebang).toBe("#!/usr/bin/env bun");
@@ -129,7 +129,7 @@ describe("compileHook", () => {
 
     const result = compileHook(makeOpts({ mode: "compiled" }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // Read the final file via the rename dest
     const finalContent = deps.readFile(result.value.outputPath);

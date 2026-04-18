@@ -11,7 +11,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { isSubagentDefault } from "@hooks/lib/environment";
 
 export interface VoiceGateDeps {
   existsSync: (path: string) => boolean;
@@ -20,7 +20,7 @@ export interface VoiceGateDeps {
 
 const defaultDeps: VoiceGateDeps = {
   existsSync: fileExists,
-  getIsSubagent: () => isSubagent((k) => process.env[k]),
+  getIsSubagent: isSubagentDefault,
 };
 
 export const VoiceGate: SyncHookContract<ToolHookInput, VoiceGateDeps> = {
