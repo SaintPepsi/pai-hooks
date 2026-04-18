@@ -60,7 +60,7 @@ describe("catalog command — default view", () => {
     const deps = makeValidDeps();
     const result = catalog(makeArgs(), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("TestHook");
     expect(result.value).toContain("TestGroup");
@@ -73,7 +73,7 @@ describe("catalog command — default view", () => {
     const deps = makeValidDeps();
     const result = catalog(makeArgs({ json: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const parsed = JSON.parse(result.value) as HookManifest[];
     expect(parsed).toHaveLength(1);
@@ -86,7 +86,7 @@ describe("catalog command — default view", () => {
     const deps = new InMemoryDeps({ "/repo/hooks/.keep": "" });
     const result = catalog(makeArgs(), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("No hook manifests found");
   });
@@ -95,7 +95,7 @@ describe("catalog command — default view", () => {
     const deps = new InMemoryDeps({ "/repo/hooks/.keep": "" });
     const result = catalog(makeArgs({ json: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toBe("[]");
   });
@@ -106,7 +106,7 @@ describe("catalog command — --groups view", () => {
     const deps = makeValidDeps();
     const result = catalog(makeArgs({ groups: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("TestGroup");
     expect(result.value).toContain("1");
@@ -117,7 +117,7 @@ describe("catalog command — --groups view", () => {
     const deps = makeValidDeps();
     const result = catalog(makeArgs({ groups: true, json: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const parsed = JSON.parse(result.value) as GroupManifest[];
     expect(parsed).toHaveLength(1);
@@ -129,7 +129,7 @@ describe("catalog command — --groups view", () => {
     const deps = new InMemoryDeps({ "/repo/hooks/.keep": "" });
     const result = catalog(makeArgs({ groups: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("No group manifests found");
   });
@@ -140,7 +140,7 @@ describe("catalog command — --presets view", () => {
     const deps = makeValidDeps();
     const result = catalog(makeArgs({ presets: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("default");
     expect(result.value).toContain("minimal");
@@ -152,7 +152,7 @@ describe("catalog command — --presets view", () => {
     const deps = makeValidDeps();
     const result = catalog(makeArgs({ presets: true, json: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const parsed = JSON.parse(result.value) as Record<string, PresetEntry>;
     expect(parsed.default.description).toBe("Default preset with all standard hooks");
@@ -167,7 +167,7 @@ describe("catalog command — --presets view", () => {
     });
     const result = catalog(makeArgs({ presets: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("No presets found");
   });
@@ -180,7 +180,7 @@ describe("catalog command — malformed manifests", () => {
     });
     const result = catalog(makeArgs(), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("Warning: Skipping malformed hook.json");
     expect(result.value).toContain("No hook manifests found");
@@ -193,7 +193,7 @@ describe("catalog command — malformed manifests", () => {
     });
     const result = catalog(makeArgs({ groups: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("Warning: Skipping malformed group.json");
   });
@@ -205,7 +205,7 @@ describe("catalog command — malformed manifests", () => {
     });
     const result = catalog(makeArgs({ presets: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("Warning: Skipping malformed presets.json");
   });
@@ -216,7 +216,7 @@ describe("catalog command — malformed manifests", () => {
     });
     const result = catalog(makeArgs({ json: true }), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // JSON mode: no warnings in output, just empty array
     expect(result.value).toBe("[]");
@@ -229,7 +229,7 @@ describe("catalog command — no hooks dir", () => {
     const deps = new InMemoryDeps({ "/repo/README.md": "" });
     const result = catalog(makeArgs(), deps, "/repo");
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("No hook manifests found");
   });

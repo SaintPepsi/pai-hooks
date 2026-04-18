@@ -32,7 +32,7 @@ describe("hardening-mcp patterns.json integration", () => {
   it("patterns.json is valid and has blocked entries", () => {
     const result = readFile(PATTERNS_PATH);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const config = JSON.parse(result.value);
     expect(config.bash.blocked.length).toBeGreaterThan(0);
@@ -43,7 +43,7 @@ describe("hardening-mcp patterns.json integration", () => {
   it("all blocked entries have pattern and reason fields", () => {
     const result = readFile(PATTERNS_PATH);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const config = JSON.parse(result.value);
     for (const entry of config.bash.blocked) {
@@ -57,7 +57,7 @@ describe("hardening-mcp patterns.json integration", () => {
   it("all blocked entries have group fields", () => {
     const result = readFile(PATTERNS_PATH);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const config = JSON.parse(result.value);
     for (const entry of config.bash.blocked) {
@@ -69,7 +69,7 @@ describe("hardening-mcp patterns.json integration", () => {
   it("inserting a duplicate pattern is rejected gracefully", () => {
     const result = readFile(PATTERNS_PATH);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const config = JSON.parse(result.value);
     const existingPattern = config.bash.blocked[0].pattern;
@@ -84,7 +84,7 @@ describe("hardening-mcp patterns.json integration", () => {
     // Re-read and count occurrences
     const reread = readFile(PATTERNS_PATH);
     expect(reread.ok).toBe(true);
-    if (!reread.ok) throw new Error(reread.error.message);
+    if (!reread.ok) return;
     const reconfig = JSON.parse(reread.value);
     const matches = reconfig.bash.blocked.filter(
       (e: { pattern: string }) => e.pattern === existingPattern,
@@ -97,7 +97,7 @@ describe("hardening-mcp patterns.json integration", () => {
   it("invalid group would not match any existing group", () => {
     const result = readFile(PATTERNS_PATH);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const config = JSON.parse(result.value);
     const groups = new Set<string>();
@@ -112,7 +112,7 @@ describe("hardening-mcp patterns.json integration", () => {
   it("group field values are consistent within groups", () => {
     const result = readFile(PATTERNS_PATH);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const config = JSON.parse(result.value);
     const groupCounts = new Map<string, number>();

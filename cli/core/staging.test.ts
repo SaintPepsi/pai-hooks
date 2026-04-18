@@ -51,13 +51,13 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     const deps = makeMinimalDeps(claudeDir);
     const ctxResult = createStaging(claudeDir, deps);
     expect(ctxResult.ok).toBe(true);
-    if (!ctxResult.ok) throw new Error(ctxResult.error.message);
+    if (!ctxResult.ok) return;
 
     const hookDef = makeHookDef("GitSafety", "MergeGate", "/source/hooks/GitSafety/MergeGate");
     const result = stageHook(ctxResult.value, hookDef, [], deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const { commandString } = result.value;
     expect(commandString).toBe(
@@ -73,7 +73,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     const deps = makeMinimalDeps(claudeDir);
     const ctxResult = createStaging(claudeDir, deps);
     expect(ctxResult.ok).toBe(true);
-    if (!ctxResult.ok) throw new Error(ctxResult.error.message);
+    if (!ctxResult.ok) return;
 
     const hookDef = makeHookDef(
       "CodingStandards",
@@ -90,11 +90,11 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     );
     const ctx2Result = createStaging(claudeDir, deps2);
     expect(ctx2Result.ok).toBe(true);
-    if (!ctx2Result.ok) throw new Error(ctx2Result.error.message);
+    if (!ctx2Result.ok) return;
 
     const result = stageHook(ctx2Result.value, hookDef, [], deps2);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value.commandString).toBe(
       'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
@@ -118,12 +118,12 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
 
     const ctxResult = createStaging(claudeDir, deps);
     expect(ctxResult.ok).toBe(true);
-    if (!ctxResult.ok) throw new Error(ctxResult.error.message);
+    if (!ctxResult.ok) return;
 
     const hookDef = makeHookDef("GitSafety", "MergeGate", "/source/hooks/GitSafety/MergeGate");
     const result = stageHook(ctxResult.value, hookDef, [], deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // The command uses $CLAUDE_PROJECT_DIR — not hardcoded claudeDir, not cwd
     expect(result.value.commandString).toBe(

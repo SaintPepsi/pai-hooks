@@ -14,7 +14,7 @@ describe("parseHookInput", () => {
   it("parses SessionStart input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "SessionStart",
+      hook_event_name: "SessionStart",
     });
     expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
@@ -25,7 +25,7 @@ describe("parseHookInput", () => {
   it("parses UserPromptSubmit input with prompt", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "UserPromptSubmit",
+      hook_event_name: "UserPromptSubmit",
       prompt: "hello",
     });
     expect(Either.isRight(result)).toBe(true);
@@ -38,7 +38,7 @@ describe("parseHookInput", () => {
   it("parses PreToolUse input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "PreToolUse",
+      hook_event_name: "PreToolUse",
       tool_name: "Edit",
       tool_input: { file_path: "foo.ts" },
     });
@@ -51,7 +51,7 @@ describe("parseHookInput", () => {
   it("parses PostToolUse input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "PostToolUse",
+      hook_event_name: "PostToolUse",
       tool_name: "Edit",
       tool_input: { file_path: "foo.ts" },
       tool_response: "done",
@@ -65,7 +65,7 @@ describe("parseHookInput", () => {
   it("parses Stop input with last_assistant_message", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "Stop",
+      hook_event_name: "Stop",
       last_assistant_message: "quick fix here",
       stop_hook_active: true,
     });
@@ -81,7 +81,7 @@ describe("parseHookInput", () => {
   it("parses PreCompact input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "PreCompact",
+      hook_event_name: "PreCompact",
       trigger: "auto",
     });
     expect(Either.isRight(result)).toBe(true);
@@ -93,7 +93,7 @@ describe("parseHookInput", () => {
   it("parses SubagentStart input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "SubagentStart",
+      hook_event_name: "SubagentStart",
       transcript_path: "/tmp/t.jsonl",
     });
     expect(Either.isRight(result)).toBe(true);
@@ -105,7 +105,7 @@ describe("parseHookInput", () => {
   it("parses SubagentStop input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "SubagentStop",
+      hook_event_name: "SubagentStop",
     });
     expect(Either.isRight(result)).toBe(true);
     if (Either.isRight(result)) {
@@ -116,7 +116,7 @@ describe("parseHookInput", () => {
   it("parses PermissionRequest input", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "PermissionRequest",
+      hook_event_name: "PermissionRequest",
       tool_name: "Bash",
       tool_input: { command: "echo hello" },
     });
@@ -127,19 +127,19 @@ describe("parseHookInput", () => {
   });
 
   it("rejects input with missing session_id", () => {
-    const result = parseHookInput({ hook_type: "SessionStart" });
+    const result = parseHookInput({ hook_event_name: "SessionStart" });
     expect(Either.isLeft(result)).toBe(true);
   });
 
-  it("rejects input with invalid hook_type", () => {
+  it("rejects input with invalid hook_event_name", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "InvalidEvent",
+      hook_event_name: "InvalidEvent",
     });
     expect(Either.isLeft(result)).toBe(true);
   });
 
-  it("rejects input with missing hook_type", () => {
+  it("rejects input with missing hook_event_name", () => {
     const result = parseHookInput({ session_id: "s1" });
     expect(Either.isLeft(result)).toBe(true);
   });
@@ -147,7 +147,7 @@ describe("parseHookInput", () => {
   it("rejects PreToolUse without tool_name", () => {
     const result = parseHookInput({
       session_id: "s1",
-      hook_type: "PreToolUse",
+      hook_event_name: "PreToolUse",
       tool_input: {},
     });
     expect(Either.isLeft(result)).toBe(true);
@@ -155,20 +155,20 @@ describe("parseHookInput", () => {
 });
 
 describe("getEventType", () => {
-  it("returns the hook_type directly from parsed input", () => {
-    const cases: Array<{ hook_type: string }> = [
-      { hook_type: "SessionStart" },
-      { hook_type: "UserPromptSubmit" },
-      { hook_type: "PreToolUse" },
-      { hook_type: "PostToolUse" },
-      { hook_type: "Stop" },
-      { hook_type: "PreCompact" },
-      { hook_type: "SubagentStart" },
-      { hook_type: "SubagentStop" },
-      { hook_type: "PermissionRequest" },
+  it("returns the hook_event_name directly from parsed input", () => {
+    const cases: Array<{ hook_event_name: string }> = [
+      { hook_event_name: "SessionStart" },
+      { hook_event_name: "UserPromptSubmit" },
+      { hook_event_name: "PreToolUse" },
+      { hook_event_name: "PostToolUse" },
+      { hook_event_name: "Stop" },
+      { hook_event_name: "PreCompact" },
+      { hook_event_name: "SubagentStart" },
+      { hook_event_name: "SubagentStop" },
+      { hook_event_name: "PermissionRequest" },
     ];
     for (const c of cases) {
-      expect(getEventType(c as ParsedHookInput)).toBe(c.hook_type);
+      expect(getEventType(c as ParsedHookInput)).toBe(c.hook_event_name);
     }
   });
 });

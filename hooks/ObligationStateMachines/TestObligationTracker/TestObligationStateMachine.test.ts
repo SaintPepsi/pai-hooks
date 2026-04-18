@@ -491,7 +491,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -507,7 +507,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -523,7 +523,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("/src/handler.ts");
@@ -541,7 +541,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("test");
@@ -562,7 +562,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("write");
@@ -586,7 +586,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("run");
@@ -611,7 +611,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     // Has a test (FooTest.php), so should say run, not write
@@ -635,7 +635,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     // Has a test (.spec.), so should say run, not write
@@ -659,7 +659,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value) ?? "";
     expect(reason).not.toBe("");
     // handler.ts has a test → run instruction
@@ -687,7 +687,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -706,7 +706,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -726,7 +726,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -800,7 +800,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 });
@@ -1081,8 +1081,7 @@ describe("findImportingTestFile", () => {
 
     const deps = {
       readDir: (_dir: string) => ["changelog.test.ts"],
-      readFileContent: (_path: string) =>
-        "import { something } from '@hooks/lib/changelog';\n",
+      readFileContent: (_path: string) => "import { something } from '@hooks/lib/changelog';\n",
     };
 
     const result = findImportingTestFile("/src/log.ts", deps);
@@ -1096,8 +1095,7 @@ describe("findImportingTestFile", () => {
 
     const deps = {
       readDir: (_dir: string) => ["Foo.test.ts"],
-      readFileContent: (_path: string) =>
-        "import { Foo } from '@hooks/hooks/SomeGroup/Foo';\n",
+      readFileContent: (_path: string) => "import { Foo } from '@hooks/hooks/SomeGroup/Foo';\n",
     };
 
     const result = findImportingTestFile("/src/Foo.contract.ts", deps);

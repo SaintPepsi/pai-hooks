@@ -139,7 +139,7 @@ describe("CronDeleteContract.execute() -- removes cron by ID", () => {
     const result = CronDeleteContract.execute(makeInput("cron-a"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
 
     // Session file should still exist with only cron-b
@@ -180,7 +180,7 @@ describe("CronDeleteContract.execute() -- deletes file when last cron removed", 
     const result = CronDeleteContract.execute(makeInput("cron-only"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
 
     // removeFile should have been called
@@ -203,7 +203,7 @@ describe("CronDeleteContract.execute() -- no-op when session file missing", () =
     const result = CronDeleteContract.execute(makeInput("cron-1"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
 
     // No writes, no removes, no log
@@ -273,7 +273,7 @@ describe("CronDeleteContract.execute() -- JSONL logging", () => {
     const result = CronDeleteContract.execute(makeInput("cron-not-found"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
 
     // No log because nothing was deleted

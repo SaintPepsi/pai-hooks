@@ -25,6 +25,7 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
@@ -51,7 +52,10 @@ const defaultDeps: CronFireDeps = {
   removeFile,
   appendFile,
   stderr: defaultStderr,
-  getEnv: (key: string) => process.env[key],
+  getEnv: (key: string) => {
+    const result = getEnvAdapter(key);
+    return result.ok ? result.value : undefined;
+  },
   now: () => Date.now(),
 };
 

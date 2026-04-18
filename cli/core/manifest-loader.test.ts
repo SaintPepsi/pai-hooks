@@ -33,7 +33,7 @@ describe("loadManifests", () => {
     });
     const result = loadManifests("/repo", deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.hooks.has("TestHook")).toBe(true);
     expect(result.value.groups.has("TestGroup")).toBe(true);
   });
@@ -46,7 +46,7 @@ describe("loadManifests", () => {
     });
     const result = loadManifests("/repo", deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.hooks.has("BadHook")).toBe(false);
     expect(result.value.hooks.has("GoodHook")).toBe(true);
   });
@@ -58,7 +58,7 @@ describe("loadManifests", () => {
     });
     const result = loadManifests("/repo", deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.groups.has("BadGroup")).toBe(false);
     expect(result.value.hooks.has("TestHook")).toBe(true);
   });
@@ -67,7 +67,7 @@ describe("loadManifests", () => {
     const deps = new InMemoryDeps({});
     const result = loadManifests("/repo", deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.hooks.size).toBe(0);
     expect(result.value.groups.size).toBe(0);
   });

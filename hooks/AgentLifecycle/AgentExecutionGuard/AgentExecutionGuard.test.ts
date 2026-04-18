@@ -26,7 +26,7 @@ describe("AgentExecutionGuard", () => {
   it("passes when run_in_background is true", () => {
     const result = AgentExecutionGuard.execute(makeInput({ run_in_background: true }), noDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
@@ -34,7 +34,7 @@ describe("AgentExecutionGuard", () => {
   it("passes for Explore agent type", () => {
     const result = AgentExecutionGuard.execute(makeInput({ subagent_type: "Explore" }), noDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
@@ -42,7 +42,7 @@ describe("AgentExecutionGuard", () => {
   it("passes for haiku model", () => {
     const result = AgentExecutionGuard.execute(makeInput({ model: "haiku" }), noDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
@@ -53,7 +53,7 @@ describe("AgentExecutionGuard", () => {
       noDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PreToolUse")).toBeUndefined();
   });
@@ -61,7 +61,7 @@ describe("AgentExecutionGuard", () => {
   it("warns for foreground non-fast agent", () => {
     const result = AgentExecutionGuard.execute(makeInput(), noDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContextFor(result.value, "PreToolUse");
     expect(ctx).toContain("FOREGROUND AGENT DETECTED");
     expect(ctx).toContain("run_in_background");
@@ -70,7 +70,7 @@ describe("AgentExecutionGuard", () => {
   it("warning includes agent description", () => {
     const result = AgentExecutionGuard.execute(makeInput({ description: "research task" }), noDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContextFor(result.value, "PreToolUse");
     expect(ctx).toContain("research task");
   });

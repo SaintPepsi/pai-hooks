@@ -6,40 +6,32 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/LoadContext/LoadContext.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/CheckVersion/CheckVersion.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/CheckVersion/CheckVersion.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/CheckAlgorithmVersion/CheckAlgorithmVersion.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/CheckAlgorithmVersion/CheckAlgorithmVersion.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/BranchAwareness/BranchAwareness.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/BranchAwareness/BranchAwareness.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/GitignoreRecommender/GitignoreRecommender.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/GitignoreRecommender/GitignoreRecommender.hook.ts",
             "once": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "hooks": [
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+          },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts"
           }
         ]
       }
@@ -49,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
           }
         ]
       },
@@ -58,39 +50,39 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/VoiceGate/VoiceGate/VoiceGate.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/VoiceGate/VoiceGate/VoiceGate.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/MapleBranding/MapleBranding.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/MapleBranding/MapleBranding.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/DocCommitGuard/DocCommitGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/DocCommitGuard/DocCommitGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/RebaseGuard/RebaseGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/RebaseGuard/RebaseGuard.hook.ts"
           }
         ]
       },
@@ -99,35 +91,35 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.hook.ts"
           }
         ]
       },
@@ -136,35 +128,35 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.hook.ts"
           }
         ]
       },
@@ -173,7 +165,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
           }
         ]
       },
@@ -182,7 +174,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.hook.ts"
           }
         ]
       },
@@ -191,7 +183,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SkillGuard/SkillGuard/SkillGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SkillGuard/SkillGuard/SkillGuard.hook.ts"
           }
         ]
       }
@@ -201,7 +193,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
           }
         ]
       },
@@ -210,7 +202,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.hook.ts"
           }
         ]
       },
@@ -219,15 +211,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsRevert/SettingsRevert.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsRevert/SettingsRevert.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.hook.ts"
           }
         ]
       },
@@ -236,7 +228,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
           }
         ]
       },
@@ -245,11 +237,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArchitectureEscalation/ArchitectureEscalation/ArchitectureEscalation.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArchitectureEscalation/ArchitectureEscalation/ArchitectureEscalation.hook.ts"
           }
         ]
       },
@@ -258,7 +250,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
           }
         ]
       },
@@ -267,15 +259,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiReadTracker/WikiReadTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiReadTracker/WikiReadTracker.hook.ts"
           }
         ]
       },
@@ -284,7 +276,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/WorktreeSafetyVerification/WorktreeSafetyVerification.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/WorktreeSafetyVerification/WorktreeSafetyVerification.hook.ts"
           }
         ]
       },
@@ -293,19 +285,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PRDSync/PRDSync.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PRDSync/PRDSync.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       },
@@ -314,23 +306,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PRDSync/PRDSync.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PRDSync/PRDSync.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/HookExecutePermission/HookExecutePermission.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/HookExecutePermission/HookExecutePermission.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       },
@@ -339,7 +331,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
           }
         ]
       },
@@ -348,7 +340,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
           }
         ]
       },
@@ -357,11 +349,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArchitectureEscalation/SonnetDelegation/SonnetDelegation.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArchitectureEscalation/SonnetDelegation/SonnetDelegation.hook.ts"
           }
         ]
       },
@@ -370,7 +362,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
           }
         ]
       },
@@ -379,7 +371,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
           }
         ]
       },
@@ -388,7 +380,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
           }
         ]
       },
@@ -397,7 +389,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
           }
         ]
       },
@@ -406,7 +398,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.hook.ts"
           }
         ]
       },
@@ -415,7 +407,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.hook.ts"
           }
         ]
       },
@@ -424,7 +416,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
           }
         ]
       },
@@ -433,7 +425,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
           }
         ]
       },
@@ -442,7 +434,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronCreate/CronCreate.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronCreate/CronCreate.hook.ts"
           }
         ]
       }
@@ -452,7 +444,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
           }
         ]
       },
@@ -460,7 +452,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts"
           }
         ]
       }
@@ -470,7 +462,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentLifecycleStop/AgentLifecycleStop.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentLifecycleStop/AgentLifecycleStop.hook.ts"
           }
         ]
       }
@@ -480,57 +472,42 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/SessionSummary/SessionSummary.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/SessionSummary/SessionSummary.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/UpdateCounts/UpdateCounts.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/UpdateCounts/UpdateCounts.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/GitAutoSync/GitAutoSync.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiIngest/WikiIngest.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/SessionQualityReport/SessionQualityReport.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/GitAutoSync/GitAutoSync.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronSessionEnd/CronSessionEnd.hook.ts",
             "async": true
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/SessionQualityReport/SessionQualityReport.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronSessionEnd/CronSessionEnd.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/LearningActioner/LearningActioner.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.hook.ts",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.hook.ts",
             "async": true
           }
         ]
@@ -541,23 +518,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/AutoWorkCreation/AutoWorkCreation.hook.ts"
-          }
-        ]
-      },
-      {
-        "hooks": [
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/AutoWorkCreation/AutoWorkCreation.hook.ts"
+          },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronFire/CronFire.hook.ts"
-          }
-        ]
-      },
-      {
-        "hooks": [
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronFire/CronFire.hook.ts"
+          },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
           }
         ]
       }
@@ -567,7 +536,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PreCompactStatePersist/PreCompactStatePersist.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PreCompactStatePersist/PreCompactStatePersist.hook.ts"
           }
         ]
       }
@@ -577,23 +546,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/StopOrchestrator/StopOrchestrator/StopOrchestrator.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/StopOrchestrator/StopOrchestrator/StopOrchestrator.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LastResponseCache/LastResponseCache/LastResponseCache.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LastResponseCache/LastResponseCache/LastResponseCache.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.hook.ts"
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.hook.ts"
           }
         ]
       }
@@ -603,7 +572,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/PermissionPromptLogger/PermissionPromptLogger.hook.ts"
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/PermissionPromptLogger/PermissionPromptLogger.hook.ts"
           }
         ]
       }

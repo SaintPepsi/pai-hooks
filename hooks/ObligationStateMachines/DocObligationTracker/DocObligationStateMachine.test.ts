@@ -317,7 +317,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -333,7 +333,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -349,7 +349,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -365,7 +365,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("/src/handler.ts");
@@ -383,7 +383,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("documentation");
@@ -408,7 +408,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("Update `/src/README.md`");
@@ -427,7 +427,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("Create or update documentation in `/src/`");
@@ -446,7 +446,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("/src/auth/");
@@ -470,7 +470,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("Update `/src/CHANGELOG.md`");
@@ -493,7 +493,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -512,7 +512,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -532,7 +532,7 @@ describe("DocObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 

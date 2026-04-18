@@ -1,18 +1,25 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
+import { runHookScript, uniqueSessionId } from "@hooks/lib/test-helpers";
 
 const HOOK_PATH = join(import.meta.dir, "GitignoreRecommender.hook.ts");
 
-describe("GitignoreRecommender hook shell", () => {
-  it("hook shim file exists", async () => {
-    const file = Bun.file(HOOK_PATH);
-    expect(await file.exists()).toBe(true);
+describe("GitignoreRecommender hook shell (#182)", () => {
+  it("exits 0 and returns valid JSON", async () => {
+    const result = await runHookScript(HOOK_PATH, {
+      session_id: uniqueSessionId("gr"),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.length).toBeGreaterThan(0);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
   });
 
-  it("shim contains correct contract import", async () => {
-    const file = Bun.file(HOOK_PATH);
-    const content = await file.text();
-    expect(content).toContain("GitignoreRecommender");
-    expect(content).toContain("runHook");
+  it("output contains continue: true", async () => {
+    const result = await runHookScript(HOOK_PATH, {
+      session_id: uniqueSessionId("gr"),
+    });
+    expect(result.exitCode).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.continue).toBe(true);
   });
 });

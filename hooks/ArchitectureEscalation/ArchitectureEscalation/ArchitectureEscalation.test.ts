@@ -67,7 +67,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(makeInput(), deps);
     expect(result).not.toBeInstanceOf(Promise);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
@@ -82,7 +82,7 @@ describe("ArchitectureEscalation", () => {
 
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toContain(
       "ARCHITECTURE ESCALATION WARNING",
     );
@@ -98,7 +98,7 @@ describe("ArchitectureEscalation", () => {
 
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toContain("STOP CURRENT APPROACH");
   });
 
@@ -109,7 +109,7 @@ describe("ArchitectureEscalation", () => {
     });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
@@ -120,7 +120,7 @@ describe("ArchitectureEscalation", () => {
     });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
@@ -131,14 +131,15 @@ describe("ArchitectureEscalation", () => {
     });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
   it("output shape matches Claude Code expectations", () => {
     const deps = makeDeps();
     const result = ArchitectureEscalation.execute(makeInput(), deps);
-    if (!result.ok) throw new Error(result.error.message);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const output = result.value;
     const json = JSON.stringify(output);
     const parsed = JSON.parse(json);
@@ -162,7 +163,7 @@ describe("ArchitectureEscalation", () => {
     // C2 should still be clean
     const result = ArchitectureEscalation.execute(inputC2, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
@@ -309,20 +310,20 @@ describe("ArchitectureEscalation defaultDeps", () => {
     );
   });
 
-  it("defaultDeps.readJson returns a Result", () => {
+  it("defaultDeps.readJson returns err for nonexistent file", () => {
     const result = ArchitectureEscalation.defaultDeps.readJson("/tmp/nonexistent-pai-12345.json");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(false);
   });
 
-  it("defaultDeps.writeJson returns a Result", () => {
+  it("defaultDeps.writeJson succeeds for valid path", () => {
     const result = ArchitectureEscalation.defaultDeps.writeJson("/tmp/pai-test-write-12345.json", {
       test: true,
     });
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.ensureDir returns a Result", () => {
+  it("defaultDeps.ensureDir succeeds for existing directory", () => {
     const result = ArchitectureEscalation.defaultDeps.ensureDir("/tmp");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 });

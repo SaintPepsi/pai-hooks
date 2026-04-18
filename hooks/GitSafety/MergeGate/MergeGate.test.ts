@@ -95,7 +95,7 @@ describe("MergeGate", () => {
     const deps = makeDeps();
     const result = MergeGate.execute(makeInput("gh pr list"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -103,7 +103,7 @@ describe("MergeGate", () => {
     const deps = makeDeps();
     const result = MergeGate.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -116,7 +116,7 @@ describe("MergeGate", () => {
     });
     const result = MergeGate.execute(makeInput("gh pr merge 441 --squash"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe("MergeGate", () => {
     });
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("CI checks are not passing");
     expect(getPreToolUseDenyReason(result.value)).toContain("tests: FAILURE");
@@ -144,7 +144,7 @@ describe("MergeGate", () => {
     });
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("CI checks are not passing");
     expect(getPreToolUseDenyReason(result.value)).toContain("build: PENDING");
@@ -159,7 +159,7 @@ describe("MergeGate", () => {
     });
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("No approving review found");
     expect(getPreToolUseDenyReason(result.value)).toContain("COMMENTED reviews do not count");
@@ -172,7 +172,7 @@ describe("MergeGate", () => {
     });
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("No approving review found");
   });
@@ -186,7 +186,7 @@ describe("MergeGate", () => {
     });
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("CI checks are not passing");
     expect(getPreToolUseDenyReason(result.value)).toContain("No approving review found");
@@ -204,7 +204,7 @@ describe("MergeGate", () => {
     };
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("WARNING"))).toBe(true);
   });
@@ -222,7 +222,7 @@ describe("MergeGate", () => {
     };
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("WARNING"))).toBe(true);
   });
@@ -233,7 +233,7 @@ describe("MergeGate", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING, reviewResponse: REVIEWS_ONE_APPROVED });
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -241,7 +241,7 @@ describe("MergeGate", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING, reviewResponse: REVIEWS_ONE_APPROVED });
     const result = MergeGate.execute(makeInput("gh pr merge --squash 441"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -257,7 +257,7 @@ describe("MergeGate", () => {
     };
     const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -271,7 +271,7 @@ describe("MergeGate", () => {
     };
     const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
   });

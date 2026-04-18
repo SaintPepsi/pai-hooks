@@ -18,6 +18,7 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -42,7 +43,7 @@ export interface CronCreateDeps extends CronFileDeps, CronPathDeps {
 // ─── Response Shape ─────────────────────────────────────────────────────────
 
 /** Expected shape of CronCreate tool_response from Claude Code. */
-interface CronCreateToolResponse {
+interface CronCreateToolResponse extends Record<string, unknown> {
   id?: string;
   humanSchedule?: string;
 }
@@ -81,7 +82,10 @@ const defaultDeps: CronCreateDeps = {
   removeFile,
   appendFile,
   stderr: defaultStderr,
-  getEnv: (key) => process.env[key],
+  getEnv: (key) => {
+    const result = getEnvAdapter(key);
+    return result.ok ? result.value : undefined;
+  },
   now: () => Date.now(),
 };
 
@@ -128,6 +132,19 @@ export const CronCreateContract: SyncHookContract<ToolHookInput, CronCreateDeps>
       sessionId,
       crons: [],
     };
+
+    // Check for existing cron with same prompt — replace it instead of duplicating (#244)
+    const existingIndex = session.crons.findIndex((c) => c.prompt === prompt);
+    if (existingIndex !== -1) {
+      const existing = session.crons[existingIndex];
+      deps.stderr(`[CronCreate] Replacing duplicate cron ${existing.id} with same prompt`);
+      appendCronLog(
+        { type: "deleted", cronId: existing.id, name: existing.name, sessionId },
+        deps,
+        deps,
+      );
+      session.crons.splice(existingIndex, 1);
+    }
 
     // Append new entry
     session.crons.push(entry);

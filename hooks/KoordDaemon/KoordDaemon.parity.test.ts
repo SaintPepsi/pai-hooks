@@ -46,7 +46,7 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
 
     const result = AgentPrepromptInjector.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // Original JS hook (AgentPrepromptInjector.hook.js:64-67) does:
     //   .replace(/\{\{agent_name\}\}/g, agentName)

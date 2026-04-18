@@ -6,6 +6,7 @@ import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ export interface CanaryHookDeps {
 const defaultDeps: CanaryHookDeps = {
   appendFile,
   ensureDir,
-  baseDir: join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -40,8 +41,11 @@ export const CanaryHook: SyncHookContract<SessionStartInput, CanaryHookDeps> = {
     const logDir = join(deps.baseDir, "MEMORY", "STATE", "logs");
     const logFile = join(logDir, "canary-hook.log");
 
-    deps.ensureDir(logDir);
-    deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+    const ensureResult = deps.ensureDir(logDir);
+    if (!ensureResult.ok) return ensureResult;
+
+    const appendResult = deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+    if (!appendResult.ok) return appendResult;
 
     return ok({ continue: true });
   },

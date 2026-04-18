@@ -8,7 +8,7 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `coding-standards-checks.ts`  | Violation detection for coding standards (raw imports, try-catch, process.env, inline import types, as-any, relative imports, export default)                           |
 | `svelte-utils.ts`             | Svelte file classification (`isSvelteFile`) and `<script lang="ts">` block extraction (`extractSvelteScript`) with line-number-preserving padding                       |
-| `narrative-reader.ts`         | Reads narrative templates for hook messages                                                                                                                             |
+| `narrative-reader.ts`         | Reads narrative templates for hook messages. Includes type guard after JSON.parse to validate object shape before processing.                                          |
 | `signal-logger.ts`            | Appends structured signals to JSONL files                                                                                                                               |
 | `execution-classification.ts` | Command classification for execution evidence verification (state-changing vs read-only, output substantiveness, evidence reminders)                                    |
 | `time.ts`                     | Timestamp formatting (timezone via `TZ` env var, defaults to UTC)                                                                                                       |
@@ -18,10 +18,11 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | `change-detection.ts`         | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability.                                                                                     |
 | `paths.ts`                    | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`.                                                                            |
 | `tool-input.ts`               | Canonical `getFilePath` and `getWriteContent` extractors for `ToolHookInput.tool_input` fields                                                                          |
-| `test-helpers.ts`             | Shared test factories (`makeWriteInput`, `makeEditInput`, `makeToolInput`), sandboxed hook runner (`runHookScript` — sets `PAI_DIR` to temp dir, routes env through `buildChildEnv` to strip parent-session markers), and `getInjectedContextFor(eventName)` (typed to `HookEvent` for compile-time typo detection) |
+| `test-helpers.ts`             | Shared test factories (`makeWriteInput`, `makeEditInput`, `makeToolInput`), sandboxed hook runner (`runHookScript` — sets `PAI_DIR` to temp dir, routes env through `buildChildEnv` to strip parent-session markers), `getInjectedContextFor(eventName)` (typed to `HookEvent` for compile-time typo detection), and `assertOk(result)` (throws on Result error — use instead of `if (!result.ok) return` to make test failures explicit) |
 | `spawn-agent.ts`              | Background Claude agent spawning with lock/log/traceability. Supports session resumption via `sessionStatePath`. Principle: least privileged agent to perform task.     |
 | `learning-utils.ts`           | Learning/feedback utilities for LearningFeedback hooks                                                                                                                  |
 | `output-validators.ts`        | Output format validation for multiple hook groups                                                                                                                       |
+| `hook-config.ts`              | Reads hook config from `settings.json` under `hookConfig.{hookName}`. Two overloads: untyped returns `T | null`, typed (with Effect Schema) returns `Result<T, ResultError>`. Optional `stderr` parameter logs read/parse failures for debugging |
 
 ## coding-standards-checks.ts
 

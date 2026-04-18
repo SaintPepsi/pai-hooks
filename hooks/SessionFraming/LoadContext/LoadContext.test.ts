@@ -98,7 +98,7 @@ describe("LoadContext — subagent path", () => {
     const deps = makeDeps({ isSubagent: () => true });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
     expect(result.value.continue).toBeUndefined();
   });
@@ -143,7 +143,7 @@ describe("LoadContext — settings loading", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("TestPrincipal");
@@ -160,7 +160,7 @@ describe("LoadContext — settings loading", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("SpecialDA");
@@ -177,7 +177,7 @@ describe("LoadContext — settings loading", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("User");
@@ -228,7 +228,7 @@ describe("LoadContext — context files loading", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("My Skill Content");
@@ -275,7 +275,7 @@ describe("LoadContext — context files loading", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("Content A");
@@ -291,7 +291,7 @@ describe("LoadContext — context files loading", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
     expect(result.value.continue).toBeUndefined();
   });
@@ -497,7 +497,7 @@ Below threshold.
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("They prefer concise responses");
@@ -531,7 +531,7 @@ Just below threshold.
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").not.toContain("Low confidence opinion");
@@ -562,7 +562,7 @@ Very confident.
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("Relationship Context");
@@ -619,7 +619,7 @@ describe("LoadContext — work sessions", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("ACTIVE WORK");
@@ -642,7 +642,7 @@ describe("LoadContext — work sessions", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").not.toContain("ACTIVE WORK");
@@ -687,7 +687,7 @@ describe("LoadContext — work sessions", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").not.toContain("ACTIVE WORK");
@@ -701,7 +701,7 @@ describe("LoadContext — full execute happy path", () => {
     const deps = makeDeps();
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeDefined();
     expect(result.value.continue).toBe(true);
   });
@@ -710,7 +710,7 @@ describe("LoadContext — full execute happy path", () => {
     const deps = makeDeps();
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("<system-reminder>");
@@ -721,7 +721,7 @@ describe("LoadContext — full execute happy path", () => {
     const deps = makeDeps();
     const result = await LoadContext.execute(makeInput({ session_id: "my-unique-session" }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("my-unique-session");
@@ -731,7 +731,7 @@ describe("LoadContext — full execute happy path", () => {
     const deps = makeDeps();
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("penguin");
@@ -743,7 +743,7 @@ describe("LoadContext — full execute happy path", () => {
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error.message);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContext(result.value);
     expect(ctx).toBeDefined();
     expect(ctx ?? "").toContain("2026-03-30");

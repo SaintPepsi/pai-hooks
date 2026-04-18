@@ -13,6 +13,9 @@ Contracts never import Node builtins directly — all I/O goes through these ada
 | `stdin.ts`   | `process.stdin`                              | `readStdin(timeoutMs)` — reads stdin with timeout, returns `Result<string, E>`                                                                                                                                   |
 | `log.ts`     | `fs.appendFileSync`                          | `appendHookLog(entry: HookLogEntry)` — structured JSON logging for hook execution. `HookLogEntry` = `{ ts, hook, event, status, duration_ms, session_id?, error?, output_type? }` (8 fields; `output_type` distinguishes "output" vs "silent" hooks) |
 | `fetch.ts`   | `globalThis.fetch`                           | `fetchJson`, `fetchText` — HTTP requests with timeout, returns `Result<T, E>`                                                                                                                                    |
+| `json.ts`    | `JSON.parse`                                 | `safeJsonParse(content)` — returns `Result<unknown, E>` instead of throwing                                                                                                                                      |
+| `yaml.ts`    | `yaml.parse`                                 | `safeParseYaml(content, stderr?)` — returns parsed object or null; optional `stderr` logs parse errors                                                                                                           |
+| `regex.ts`   | `RegExp`                                     | `safeRegexTest(pattern, text, stderr?)`, `createRegex(pattern, flags?, stderr?)` — safe regex ops; optional `stderr` logs invalid patterns                                                                       |
 
 ## Pattern
 
@@ -67,6 +70,16 @@ spawnBackground("bun", ["agent.ts"], {
   env: { CLAUDECODE: "1" },
 });
 ```
+
+## Optional Logging
+
+Several adapters accept an optional `stderr?: (msg: string) => void` parameter for logging failures that would otherwise be silent:
+
+- `yaml.ts` — `safeParseYaml(content, stderr?)` logs YAML parse errors
+- `regex.ts` — `safeRegexTest` and `createRegex` log invalid regex patterns
+- `log.ts` — `appendHookLog` logs `ensureDir` failures when `stderr` is provided
+
+This pattern preserves fail-open behavior while enabling visibility into silent failures for debugging.
 
 ## Stdin Plumbing
 

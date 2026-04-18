@@ -8,6 +8,7 @@
  */
 
 import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
+import { getEnv } from "@hooks/core/adapters/process";
 import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
 import { isDuplicate } from "@hooks/core/dedup";
@@ -18,21 +19,24 @@ import {
   getEventType as schemaGetEventType,
 } from "@hooks/core/types/hook-input-schema";
 import type { HookEventType, HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
-import {
-  validateHookOutput,
-  validateOutputSemantics,
-} from "@hooks/core/types/hook-output-schema";
+import { validateHookOutput, validateOutputSemantics } from "@hooks/core/types/hook-output-schema";
 
 // ─── Event Resolution ──────────────────────────────────────────────────────
 
 /**
  * Normalize contract.event for logging/formatting.
  * When a contract declares multiple events, infer the actual event from input shape.
+ * Logs warning on fallback if onFallback provided (#180).
  */
-function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
+function resolveEvent(
+  contractEvent: HookEventType | HookEventType[],
+  input: HookInput,
+  onFallback?: (msg: string) => void,
+): string {
   if (!Array.isArray(contractEvent)) return contractEvent;
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right);
+  onFallback?.(`[runner] event type fallback: using ${contractEvent[0]} (input parse failed)`);
   return contractEvent[0];
 }
 
@@ -54,10 +58,12 @@ interface PipelineIO {
   checkDuplicate: (hookName: string, sessionId: string, input: HookInput) => boolean;
   log: (entry: HookLogEntry) => void;
   startTime: number;
+  debugOutput: boolean;
 }
 
 function createPipelineIO(options: RunHookOptions): PipelineIO {
   const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
+  const envDebug = getEnv("PAI_DEBUG_HOOK_OUTPUT");
   return {
     write: options.stdout ?? ((msg: string) => process.stdout.write(msg)),
     writeErr,
@@ -69,6 +75,7 @@ function createPipelineIO(options: RunHookOptions): PipelineIO {
         appendHookLog(entry, undefined, undefined, writeErr);
       }),
     startTime: performance.now(),
+    debugOutput: options.debugOutput ?? (envDebug.ok && envDebug.value === "1"),
   };
 }
 
@@ -87,7 +94,7 @@ function makeEmitLog(
       ts: new Date().toISOString(),
       hook: contract.name,
       event: input
-        ? resolveEvent(contract.event, input)
+        ? resolveEvent(contract.event, input, io.writeErr)
         : Array.isArray(contract.event)
           ? contract.event[0]
           : contract.event,
@@ -168,6 +175,13 @@ async function executePipeline<I extends HookInput, D>(
   // because Claude Code expects an explicit continue signal for tool events.
   const json = JSON.stringify(result.value);
   const hasOutput = json !== "{}";
+
+  // Debug logging for #245 — set PAI_DEBUG_HOOK_OUTPUT=1 to see actual JSON output
+  if (io.debugOutput) {
+    const outputJson = hasOutput ? json : "tool_name" in input ? '{"continue":true}' : "(silent)";
+    io.writeErr(`[${contract.name}] OUTPUT: ${outputJson}`);
+  }
+
   if (hasOutput) {
     io.write(json);
   } else if ("tool_name" in input) {
@@ -194,6 +208,8 @@ export interface RunHookOptions {
   appendLog?: (entry: HookLogEntry) => void;
   /** Override dedup guard for testing. Return true to skip as duplicate. */
   isDuplicate?: (hookName: string, sessionId: string, input: HookInput) => boolean;
+  /** Log JSON output to stderr for debugging (#245). Set via PAI_DEBUG_HOOK_OUTPUT=1. */
+  debugOutput?: boolean;
 }
 
 /**
@@ -272,7 +288,7 @@ export async function runHook<I extends HookInput, D>(
     inputIsToolEvent = "tool_name" in inputResult.value;
 
     if (contractHandlesToolEvents && !inputIsToolEvent && events.length === 1) {
-      const resolvedEvent = resolveEvent(contract.event, input);
+      const resolvedEvent = resolveEvent(contract.event, input, io.writeErr);
       io.writeErr(
         `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
       );
