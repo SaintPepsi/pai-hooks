@@ -4,9 +4,10 @@ import { buildAgentPrompt } from "./LearningActioner.contract";
 describe("buildAgentPrompt", () => {
   const baseDir = "/home/testuser/.claude";
 
-  it("returns a string containing the baseDir", () => {
+  it("returns a non-empty string containing the baseDir", () => {
     const prompt = buildAgentPrompt(baseDir);
     expect(typeof prompt).toBe("string");
+    expect(prompt.length).toBeGreaterThan(0);
     expect(prompt).toContain(baseDir);
   });
 

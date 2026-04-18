@@ -29,7 +29,6 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ThreadIdOutputInput } from "@hooks/hooks/KoordDaemon/shared";
 import {
   defaultReadFileOrNull,
   extractThreadIdFromOutput,
