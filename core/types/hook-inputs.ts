@@ -20,7 +20,7 @@ export type HookEventType =
 
 export interface HookInputBase {
   session_id: string;
-  hook_type?: string;
+  hook_event_name?: string;
 }
 
 // ─── Tool Inputs (Pre/PostToolUse) ───────────────────────────────────────────
@@ -28,7 +28,19 @@ export interface HookInputBase {
 export interface ToolHookInput extends HookInputBase {
   tool_name: string;
   tool_input: Record<string, unknown>;
-  tool_response?: string | Record<string, unknown>;
+  /**
+   * Tool response varies by tool (#181):
+   * - String: serialized JSON from Claude Code runtime
+   * - Object: parsed response in test fixtures or some tools
+   * Use typeof check before accessing properties.
+   */
+  tool_response?: string | object;
+  /**
+   * Legacy alias for tool_response in raw Claude Code JSON (#161).
+   * Some runtime versions emit tool_output instead of tool_response.
+   * Hooks should check both fields.
+   */
+  tool_output?: string | object;
 }
 
 // ─── Session Inputs ──────────────────────────────────────────────────────────

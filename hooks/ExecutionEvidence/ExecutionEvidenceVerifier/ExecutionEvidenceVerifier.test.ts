@@ -395,10 +395,7 @@ describe("buildReminder", () => {
 describe("ExecutionEvidenceVerifier contract", () => {
   const mockDeps = { stderr: () => {} };
 
-  function makeInput(
-    command: string,
-    toolResponse?: ToolHookInput["tool_response"],
-  ): ToolHookInput {
+  function makeInput(command: string, toolResponse?: string | object): ToolHookInput {
     return {
       session_id: "test-sess",
       tool_name: "Bash",
@@ -476,7 +473,7 @@ describe("ExecutionEvidenceVerifier contract", () => {
     }
   });
 
-  it("injects additionalContext for null response on state-changing command", () => {
+  it("injects additionalContext for undefined response on state-changing command", () => {
     const input = makeInput("git merge feature/auth", undefined);
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
       SyncHookJSONOutput,

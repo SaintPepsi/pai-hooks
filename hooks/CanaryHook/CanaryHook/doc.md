@@ -18,12 +18,16 @@ This is a debug/diagnostic hook, not a production enforcement hook. Useful for v
 
 1. Ensures the log directory exists at `~/.claude/MEMORY/STATE/logs/`
 2. Appends the current ISO timestamp to `canary-hook.log`
-3. Opens the log file in VS Code via `code` command
+3. Returns error if either step fails (fail-fast error propagation)
 
 ```typescript
-deps.ensureDir(logDir);
-deps.appendFile(logFile, `${new Date().toISOString()}\n`);
-deps.execSyncSafe(`code "${logFile}"`);
+const ensureResult = deps.ensureDir(logDir);
+if (!ensureResult.ok) return ensureResult;
+
+const appendResult = deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+if (!appendResult.ok) return appendResult;
+
+return ok({ continue: true });
 ```
 
 ## Examples
@@ -38,8 +42,7 @@ deps.execSyncSafe(`code "${logFile}"`);
 
 ## Dependencies
 
-| Dependency                       | Type      | Purpose                                              |
-| -------------------------------- | --------- | ---------------------------------------------------- |
-| `core/adapters/fs`               | adapter   | `appendFile`, `ensureDir` for log file operations    |
-| `core/adapters/process`          | adapter   | `execSyncSafe` to open the log in VS Code            |
-| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor) |
+| Dependency                       | Type      | Purpose                                           |
+| -------------------------------- | --------- | ------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | `appendFile`, `ensureDir` for log file operations |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type                  |

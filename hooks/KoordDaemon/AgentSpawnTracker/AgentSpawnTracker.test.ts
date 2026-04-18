@@ -20,7 +20,7 @@ function makeDeps(overrides: Partial<AgentSpawnTrackerDeps> = {}): AgentSpawnTra
 function makeSpawnInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
     session_id: "test",
-    hook_type: "PostToolUse",
+    hook_event_name: "PostToolUse",
     tool_name: "Agent",
     tool_input: {
       prompt: "implement feature",
@@ -45,7 +45,7 @@ describe("AgentSpawnTracker", () => {
   test("rejects non-Agent tool inputs", () => {
     const input: ToolHookInput = {
       session_id: "test",
-      hook_type: "PostToolUse",
+      hook_event_name: "PostToolUse",
       tool_name: "Bash",
       tool_input: { command: "ls" },
     };

@@ -84,11 +84,17 @@ export function appendHookLog(
   forceCleanup?: boolean,
   stderr?: (msg: string) => void,
 ): Result<void, ResultError> {
-  const dir = logDir ?? join(process.env.HOME!, ".claude", "MEMORY", "STATE", "logs");
+  const home = process.env.HOME;
+  const dir = logDir ?? (home ? join(home, ".claude", "MEMORY", "STATE", "logs") : null);
+  if (!dir) return ok(undefined);
 
   if (!dirEnsured || logDir !== undefined) {
     const mkResult = ensureDir(dir);
-    if (!mkResult.ok) return ok(undefined);
+    if (!mkResult.ok) {
+      // Surface failure but don't break hook execution (#170)
+      stderr?.(`[hook-log] ensureDir failed: ${dir} — ${mkResult.error.message}`);
+      return ok(undefined);
+    }
     if (logDir === undefined) dirEnsured = true;
   }
 

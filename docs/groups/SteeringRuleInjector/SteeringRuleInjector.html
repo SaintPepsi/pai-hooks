@@ -1756,6 +1756,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#error-logging"><span class="nav-num">07</span> Error Logging</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -2035,6 +2036,21 @@ Rule content injected as context...</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>readJson</code>, <code>writeJson</code>, <code>fileExists</code> for rule and tracker I/O</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>core/types/hook-input-schema</code> — Effect Schema for discriminated input parsing (replaces field-sniffing)</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>Bun.Glob</code> — resolves include patterns to file paths</div>
+    </div>
+  </section>
+
+  <section id="error-logging">
+    <div class="section-label accent">Error Logging</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Error Logging</h3>
+      </div>
+      <p>The contract logs fallback events to stderr via <code>deps.stderr</code>:</p>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>resolveEvent</code> logs when Effect Schema parsing fails and falls back to <code>"SessionStart"</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>getMatchText</code> logs when input parsing fails and falls back to empty string</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>readTracker</code> logs when tracker JSON parsing fails and falls back to empty tracker</div>
+      <p>This surfaces silent failures for debugging while preserving fail-open behavior.</p>
     </div>
   </section>
 

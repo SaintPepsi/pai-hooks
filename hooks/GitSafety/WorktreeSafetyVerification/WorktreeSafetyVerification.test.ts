@@ -34,14 +34,14 @@ function makeDeps(overrides: Partial<WorktreeSafetyDeps> = {}): WorktreeSafetyDe
   };
 }
 
-function makeInput(overrides: Omit<Partial<ToolHookInput>, "tool_response"> & Record<string, unknown> = {}): ToolHookInput {
+function makeInput(overrides: Partial<ToolHookInput> = {}): ToolHookInput {
   return {
     session_id: "test",
     tool_name: "EnterWorktree",
     tool_input: {},
     tool_response: "Created worktree at /tmp/test-wt",
     ...overrides,
-  } as ToolHookInput;
+  };
 }
 
 describe("WorktreeSafetyVerification contract", () => {
@@ -199,9 +199,11 @@ describe("extractWorktreePath", () => {
   });
 
   it("returns null for non-string, non-object response", () => {
-    // tool_response: 42 simulates a malformed runtime payload outside the typed domain.
-    // makeInput accepts Record<string, unknown> overrides to allow such defensive-path tests.
-    const input = makeInput({ tool_response: 42, tool_input: {} });
+    // Testing edge case: runtime may receive unexpected types despite TS type
+    const input = makeInput({
+      tool_response: 42 as unknown as string,
+      tool_input: {},
+    });
     expect(extractWorktreePath(input)).toBeNull();
   });
 });
