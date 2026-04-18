@@ -76,6 +76,10 @@ if (sentiment.rating !== null && sentiment.confidence >= MIN_CONFIDENCE) {
 | `lib/time`           | lib     | Timestamps and date components for file naming        |
 | `core/adapters/fs`   | adapter | File read/write/append for ratings and learning files |
 
+## Error Logging
+
+`parseJsonlEntry` accepts an optional `onError?: (line: string) => void` callback. When JSONL parsing fails, the callback receives the truncated line for debugging. Both `getRecentContext` and `getLastAssistantContext` wire this to `deps.stderr` to surface parse failures without breaking the fail-open pattern.
+
 ## History
 
 > **2026-04-17 — Remove algorithm reminder (#243):** Analysis of 413 sessions showed only 15% format compliance with the reminder active. The ~120 tokens/prompt added no measurable value. Removed `buildAlgorithmReminder`, `readAlgoVersion` from deps, and simplified all return paths to `{ continue: true }`.
