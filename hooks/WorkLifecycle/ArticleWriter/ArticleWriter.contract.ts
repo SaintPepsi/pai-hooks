@@ -34,6 +34,10 @@ import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface ArticleWriterConfig {
+  repo: string;
+}
+
 export interface ArticleWriterDeps {
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, ResultError>;
@@ -47,6 +51,37 @@ export interface ArticleWriterDeps {
   principalName: string;
   daName: string;
   stderr: (msg: string) => void;
+}
+
+// ─── Config ─────────────────────────────────────────────────────────────────
+
+const DEFAULT_CONFIG: ArticleWriterConfig = {
+  repo: "",
+};
+
+/** Load config: defaults from config.json, overrides from hookConfig.articleWriter */
+function loadConfig(): ArticleWriterConfig {
+  const config = { ...DEFAULT_CONFIG };
+
+  // Load defaults from config.json next to this file
+  const configPath = join(__dirname, "config.json");
+  const localConfig = readFile(configPath);
+  if (localConfig.ok) {
+    try {
+      const parsed = JSON.parse(localConfig.value) as Partial<ArticleWriterConfig>;
+      if (parsed.repo !== undefined) config.repo = parsed.repo;
+    } catch {
+      // Ignore parse errors, use defaults
+    }
+  }
+
+  // Override with hookConfig.articleWriter from settings.json
+  const hookConfig = readHookConfig<Partial<ArticleWriterConfig>>("articleWriter");
+  if (hookConfig) {
+    if (hookConfig.repo !== undefined) config.repo = hookConfig.repo;
+  }
+
+  return config;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -291,7 +326,7 @@ const defaultDeps: ArticleWriterDeps = {
   stat,
   runArticleWriter: (sessionId) => runArticleWriter(sessionId),
   baseDir: getPaiDir(),
-  websiteRepo: readHookConfig<{ repo?: string }>("articleWriter")?.repo || "",
+  websiteRepo: loadConfig().repo,
   principalName: getPrincipalName(),
   daName: getDAName(),
   stderr: defaultStderr,

@@ -11,6 +11,7 @@
  *   - parser.ts: SWC function extraction
  */
 
+import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   appendFile as adapterAppendFile,
@@ -65,14 +66,50 @@ export interface DuplicationCheckerDeps {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
+interface DuplicationCheckerConfig {
+  blocking: boolean;
+  inferenceEnabled: boolean;
+}
+
+const DEFAULT_CONFIG: DuplicationCheckerConfig = {
+  blocking: true,
+  inferenceEnabled: false,
+};
+
+/** Load config: defaults from config.json, overrides from hookConfig.duplicationChecker */
+function loadConfig(): DuplicationCheckerConfig {
+  const config = { ...DEFAULT_CONFIG };
+
+  // Load defaults from config.json next to this file
+  const configPath = join(__dirname, "config.json");
+  const localConfig = adapterReadFile(configPath);
+  if (localConfig.ok) {
+    try {
+      const parsed = JSON.parse(localConfig.value) as Partial<DuplicationCheckerConfig>;
+      if (parsed.blocking !== undefined) config.blocking = parsed.blocking;
+      if (parsed.inferenceEnabled !== undefined) config.inferenceEnabled = parsed.inferenceEnabled;
+    } catch {
+      // Ignore parse errors, use defaults
+    }
+  }
+
+  // Override with hookConfig.duplicationChecker from settings.json
+  const hookConfig = readHookConfig<Partial<DuplicationCheckerConfig>>("duplicationChecker");
+  if (hookConfig) {
+    if (hookConfig.blocking !== undefined) config.blocking = hookConfig.blocking;
+    if (hookConfig.inferenceEnabled !== undefined)
+      config.inferenceEnabled = hookConfig.inferenceEnabled;
+  }
+
+  return config;
+}
+
 function readBlockingConfig(): boolean {
-  const cfg = readHookConfig<{ blocking?: boolean }>("duplicationChecker");
-  return cfg?.blocking !== false;
+  return loadConfig().blocking;
 }
 
 function readInferenceConfig(): boolean {
-  const cfg = readHookConfig<{ inferenceEnabled?: boolean }>("duplicationChecker");
-  return cfg?.inferenceEnabled === true;
+  return loadConfig().inferenceEnabled;
 }
 
 // ─── Inference Triage ────────────────────────────────────────────────────────

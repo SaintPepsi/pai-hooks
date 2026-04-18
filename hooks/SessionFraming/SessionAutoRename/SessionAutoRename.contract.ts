@@ -9,7 +9,7 @@
 
 import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
-import { ensureDir, fileExists, readJson, writeJson } from "@hooks/core/adapters/fs";
+import { ensureDir, fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -35,6 +35,43 @@ interface SessionAutoRenameConfig {
   enabled?: boolean;
   intervalMinutes?: number;
   convergenceCount?: number;
+}
+
+const DEFAULT_CONFIG: SessionAutoRenameConfig = {
+  enabled: true,
+  intervalMinutes: 15,
+  convergenceCount: 2,
+};
+
+/** Load config: defaults from config.json, overrides from hookConfig.sessionAutoRename */
+function loadConfig(): SessionAutoRenameConfig {
+  const config = { ...DEFAULT_CONFIG };
+
+  // Load defaults from config.json next to this file
+  const configPath = join(__dirname, "config.json");
+  const localConfig = readFile(configPath);
+  if (localConfig.ok) {
+    try {
+      const parsed = JSON.parse(localConfig.value) as Partial<SessionAutoRenameConfig>;
+      if (parsed.enabled !== undefined) config.enabled = parsed.enabled;
+      if (parsed.intervalMinutes !== undefined) config.intervalMinutes = parsed.intervalMinutes;
+      if (parsed.convergenceCount !== undefined) config.convergenceCount = parsed.convergenceCount;
+    } catch {
+      // Ignore parse errors, use defaults
+    }
+  }
+
+  // Override with hookConfig.sessionAutoRename from settings.json
+  const hookConfig = readHookConfig<Partial<SessionAutoRenameConfig>>("sessionAutoRename");
+  if (hookConfig) {
+    if (hookConfig.enabled !== undefined) config.enabled = hookConfig.enabled;
+    if (hookConfig.intervalMinutes !== undefined)
+      config.intervalMinutes = hookConfig.intervalMinutes;
+    if (hookConfig.convergenceCount !== undefined)
+      config.convergenceCount = hookConfig.convergenceCount;
+  }
+
+  return config;
 }
 
 export interface SessionAutoRenameDeps {
@@ -240,7 +277,7 @@ const defaultDeps: SessionAutoRenameDeps = {
   readJson,
   writeJson,
   ensureDir,
-  readConfig: () => readHookConfig<SessionAutoRenameConfig>("sessionAutoRename"),
+  readConfig: () => loadConfig(),
   now: () => Date.now(),
   baseDir: getPaiDir(),
   stderr: defaultStderr,

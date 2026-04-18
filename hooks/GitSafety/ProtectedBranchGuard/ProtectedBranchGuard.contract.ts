@@ -12,7 +12,9 @@
  * Pattern: pai-hooks/contracts/BashWriteGuard.ts
  */
 
+import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
@@ -31,9 +33,42 @@ export interface ProtectedBranchGuardDeps {
   stderr: (msg: string) => void;
 }
 
+interface ProtectedBranchGuardConfig {
+  exemptDirs: string[];
+}
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const PROTECTED_BRANCHES = ["main", "master"];
+
+const DEFAULT_CONFIG: ProtectedBranchGuardConfig = {
+  exemptDirs: [],
+};
+
+/** Load config: defaults from config.json, overrides from hookConfig.protectedBranchGuard */
+function loadConfig(): ProtectedBranchGuardConfig {
+  const config = { ...DEFAULT_CONFIG };
+
+  // Load defaults from config.json next to this file
+  const configPath = join(__dirname, "config.json");
+  const localConfig = readFile(configPath);
+  if (localConfig.ok) {
+    try {
+      const parsed = JSON.parse(localConfig.value) as Partial<ProtectedBranchGuardConfig>;
+      if (Array.isArray(parsed.exemptDirs)) config.exemptDirs = parsed.exemptDirs;
+    } catch {
+      // Ignore parse errors, use defaults
+    }
+  }
+
+  // Override with hookConfig.protectedBranchGuard from settings.json
+  const hookConfig = readHookConfig<Partial<ProtectedBranchGuardConfig>>("protectedBranchGuard");
+  if (hookConfig) {
+    if (Array.isArray(hookConfig.exemptDirs)) config.exemptDirs = hookConfig.exemptDirs;
+  }
+
+  return config;
+}
 
 /**
  * Built-in exempt directories. These are always exempt regardless of settings.
@@ -77,9 +112,8 @@ const defaultDeps: ProtectedBranchGuardDeps = {
   },
   getCwd: () => process.cwd(),
   getExemptDirs: () => {
-    const cfg = readHookConfig<{ exemptDirs?: string[] }>("protectedBranchGuard");
-    const dirs = cfg?.exemptDirs;
-    if (!Array.isArray(dirs)) return [];
+    const cfg = loadConfig();
+    const dirs = cfg.exemptDirs;
     if (!dirs.every((d): d is string => typeof d === "string")) return [];
     return dirs;
   },

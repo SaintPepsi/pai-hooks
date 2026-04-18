@@ -81,6 +81,35 @@ const DEFAULT_CONFIG: SteeringRuleConfig = {
   trackerDir: "MEMORY/STATE/.injections",
 };
 
+/** Load config: defaults from config.json, overrides from hookConfig.steeringRuleInjector */
+function loadConfig(): SteeringRuleConfig {
+  const config = { ...DEFAULT_CONFIG };
+
+  // Load defaults from config.json next to this file
+  const configPath = join(__dirname, "config.json");
+  const localConfig = readFile(configPath);
+  if (localConfig.ok) {
+    try {
+      const parsed = JSON.parse(localConfig.value) as Partial<SteeringRuleConfig>;
+      if (parsed.enabled !== undefined) config.enabled = parsed.enabled;
+      if (Array.isArray(parsed.includes)) config.includes = parsed.includes;
+      if (parsed.trackerDir !== undefined) config.trackerDir = parsed.trackerDir;
+    } catch {
+      // Ignore parse errors, use defaults
+    }
+  }
+
+  // Override with hookConfig.steeringRuleInjector from settings.json
+  const hookConfig = readHookConfig<Partial<SteeringRuleConfig>>("steeringRuleInjector");
+  if (hookConfig) {
+    if (hookConfig.enabled !== undefined) config.enabled = hookConfig.enabled;
+    if (Array.isArray(hookConfig.includes)) config.includes = hookConfig.includes;
+    if (hookConfig.trackerDir !== undefined) config.trackerDir = hookConfig.trackerDir;
+  }
+
+  return config;
+}
+
 // ─── Frontmatter Parser ─────────────────────────────────────────────────────
 
 export function parseFrontmatter(content: string): RuleFrontmatter | null {
@@ -201,10 +230,7 @@ const defaultDeps: SteeringRuleInjectorDeps = {
     writeJson(trackerPath, tracker);
   },
 
-  getConfig: (): SteeringRuleConfig => {
-    const userConfig = readHookConfig<Partial<SteeringRuleConfig>>("steeringRuleInjector");
-    return { ...DEFAULT_CONFIG, ...userConfig };
-  },
+  getConfig: (): SteeringRuleConfig => loadConfig(),
 
   isSubagent: isSubagentDefault,
 
