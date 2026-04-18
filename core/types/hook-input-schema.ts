@@ -1,8 +1,8 @@
 /**
- * Effect Schema for hook inputs — discriminated union on hook_type.
+ * Effect Schema for hook inputs — discriminated union on hook_event_name.
  *
  * Replaces fragile `"field" in input` / `as SomeType` casts with
- * proper schema-validated parsing. The hook_type field from Claude Code
+ * proper schema-validated parsing. The hook_event_name field from Claude Code
  * is the discriminator — no field-sniffing needed.
  *
  * Usage:
@@ -17,25 +17,25 @@ import { Schema } from "effect";
 
 const HookInputBase = {
   session_id: Schema.String,
-  hook_type: Schema.String,
+  hook_event_name: Schema.String,
 };
 
 // ─── Per-event schemas ─────────────────────────────────────────────────────
 
 export const SessionStartInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("SessionStart"),
+  hook_event_name: Schema.Literal("SessionStart"),
 });
 
 export const SessionEndInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("SessionEnd"),
+  hook_event_name: Schema.Literal("SessionEnd"),
   transcript_path: Schema.optional(Schema.String),
 });
 
 export const UserPromptSubmitInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("UserPromptSubmit"),
+  hook_event_name: Schema.Literal("UserPromptSubmit"),
   prompt: Schema.optional(Schema.String),
   user_prompt: Schema.optional(Schema.String),
   transcript_path: Schema.optional(Schema.String),
@@ -43,14 +43,14 @@ export const UserPromptSubmitInput = Schema.Struct({
 
 export const PreToolUseInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("PreToolUse"),
+  hook_event_name: Schema.Literal("PreToolUse"),
   tool_name: Schema.String,
   tool_input: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
 });
 
 export const PostToolUseInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("PostToolUse"),
+  hook_event_name: Schema.Literal("PostToolUse"),
   tool_name: Schema.String,
   tool_input: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
   tool_response: Schema.optional(Schema.Unknown),
@@ -58,7 +58,7 @@ export const PostToolUseInput = Schema.Struct({
 
 export const StopInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("Stop"),
+  hook_event_name: Schema.Literal("Stop"),
   transcript_path: Schema.optional(Schema.String),
   last_assistant_message: Schema.optional(Schema.String),
   stop_hook_active: Schema.optional(Schema.Boolean),
@@ -66,25 +66,25 @@ export const StopInput = Schema.Struct({
 
 export const PreCompactInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("PreCompact"),
+  hook_event_name: Schema.Literal("PreCompact"),
   trigger: Schema.optional(Schema.String),
 });
 
 export const SubagentStartInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("SubagentStart"),
+  hook_event_name: Schema.Literal("SubagentStart"),
   transcript_path: Schema.optional(Schema.String),
 });
 
 export const SubagentStopInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("SubagentStop"),
+  hook_event_name: Schema.Literal("SubagentStop"),
   transcript_path: Schema.optional(Schema.String),
 });
 
 export const PermissionRequestInput = Schema.Struct({
   ...HookInputBase,
-  hook_type: Schema.Literal("PermissionRequest"),
+  hook_event_name: Schema.Literal("PermissionRequest"),
   tool_name: Schema.String,
   tool_input: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
   permission_mode: Schema.optional(Schema.String),
@@ -120,9 +120,9 @@ export function parseHookInput(raw: unknown): ReturnType<typeof decode> {
 }
 
 /**
- * Extract the hook_type from a parsed input.
+ * Extract the hook_event_name from a parsed input.
  * After schema validation, this is always a valid HookEventType string.
  */
 export function getEventType(input: ParsedHookInput): string {
-  return input.hook_type;
+  return input.hook_event_name;
 }

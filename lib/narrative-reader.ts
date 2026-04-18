@@ -44,14 +44,16 @@ function parseEntries(content: string): NarrativeEntry[] {
     .filter((line) => line.trim().length > 0)
     .flatMap((line) => {
       const result = tryCatch(
-        () => JSON.parse(line) as Record<string, unknown>,
+        () => JSON.parse(line) as unknown,
         () => null,
       );
       if (!result.ok) return [];
       const parsed = result.value;
+      if (typeof parsed !== "object" || parsed === null) return [];
+      const obj = parsed as Record<string, unknown>;
       const entry = {
-        message: String(parsed.message),
-        score: Number(parsed.score),
+        message: String(obj.message),
+        score: Number(obj.score),
       };
       return entry.message && [1, 2, 3].includes(entry.score) ? [entry] : [];
     });

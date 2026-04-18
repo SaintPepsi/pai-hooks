@@ -20,14 +20,25 @@ interface SettingsWithHookConfig {
 }
 
 /**
- * Read a hook's config section from settings.json.
+ * Read a hook's config section from settings.json (untyped, fail-open).
+ *
+ * **ESCAPE HATCH**: This overload returns unvalidated data. Prefer the
+ * schema-validated overload for type safety at the config boundary.
  *
  * Navigates to `hookConfig.{hookName}` and returns the value,
  * or null if not configured / on any read or parse error.
+ * Callers must validate the returned shape before use.
  *
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
+ * @returns T | null — caller is responsible for validating shape
+ *
+ * @example
+ * // Prefer schema-validated version:
+ * const result = readHookConfig("myHook", MyConfigSchema);
+ * if (!result.ok) return handleError(result.error);
+ * const config = result.value; // typed and validated
  */
 export function readHookConfig<T = Record<string, unknown>>(
   hookName: string,
@@ -36,16 +47,20 @@ export function readHookConfig<T = Record<string, unknown>>(
 ): T | null;
 
 /**
- * Read and validate a hook's config section from settings.json.
+ * Read and validate a hook's config section from settings.json (PREFERRED).
  *
- * Like the untyped overload but validates against `schema` using Effect Schema.
- * Returns `Result<T, ResultError>` — ok on success, err with
+ * Validates against `schema` using Effect Schema and returns
+ * `Result<T, ResultError>` — ok on success, err with
  * `ConfigValidationFailed` if the config is missing or fails validation.
+ *
+ * This is the recommended API: validation happens at the config boundary,
+ * ensuring type safety without caller-side casts.
  *
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param schema - Effect Schema to validate against
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
+ * @returns Result<T, ResultError> — validated config or typed error
  */
 export function readHookConfig<T>(
   hookName: string,
@@ -63,8 +78,7 @@ export function readHookConfig<T>(
   // Detect which overload was called by checking if second arg is an Effect Schema.
   // Schemas are functions (not plain functions) — Schema.isSchema correctly distinguishes
   // them from the readFileFn option in the untyped overload.
-  const isSchemaOverload =
-    schemaOrReadFileFn !== undefined && Schema.isSchema(schemaOrReadFileFn);
+  const isSchemaOverload = schemaOrReadFileFn !== undefined && Schema.isSchema(schemaOrReadFileFn);
 
   if (isSchemaOverload) {
     const schema = schemaOrReadFileFn as Schema.Schema<T>;
@@ -89,11 +103,13 @@ export function readHookConfig<T>(
 /**
  * Internal helper: reads and extracts the raw hookConfig.{hookName} object.
  * Returns the raw value (unknown object) or null on any error.
+ * Logs distinct failure modes to stderr if provided (#171).
  */
 function readRaw(
   hookName: string,
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
+  stderr?: (msg: string) => void,
 ): Record<string, unknown> | null {
   const path = settingsPath ?? getSettingsPath();
   const reader =
@@ -103,15 +119,24 @@ function readRaw(
       return r.ok ? r.value : null;
     });
   const raw = reader(path);
-  if (!raw) return null;
+  if (!raw) {
+    stderr?.(`[hook-config] file read failed: ${path}`);
+    return null;
+  }
 
   const parseResult = tryCatch(
     () => JSON.parse(raw) as SettingsWithHookConfig,
     (cause) => jsonParseFailed(raw.slice(0, 100), cause),
   );
-  if (!parseResult.ok) return null;
+  if (!parseResult.ok) {
+    stderr?.(`[hook-config] JSON parse failed: ${parseResult.error.message}`);
+    return null;
+  }
 
   const cfg = parseResult.value?.hookConfig?.[hookName];
-  if (!cfg || typeof cfg !== "object") return null;
+  if (!cfg || typeof cfg !== "object") {
+    // Not an error — hook simply has no config entry
+    return null;
+  }
   return cfg as Record<string, unknown>;
 }

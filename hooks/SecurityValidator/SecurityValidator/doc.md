@@ -28,6 +28,7 @@ It does **not** fire when:
 
 1. Loads security patterns from `hooks/SecurityValidator/patterns.json` (collocated with the hook)
 2. For Bash commands:
+   - **Clipboard exemption**: Commands piping to `pbcopy`/`pbpaste` are allowed regardless of content (prevents false positives when copying text containing SQL keywords)
    - Strips environment variable prefixes from the command
    - Checks against blocked patterns (hard block via exit code 2)
    - Checks against confirm patterns (block with manual-run guidance)
@@ -75,3 +76,7 @@ for (const target of writeTargets) {
 | `fs`               | adapter | Reads security patterns JSON and writes audit logs       |
 | `regex`            | adapter | Safe regex testing for pattern matching                  |
 | `patterns-schema`  | lib     | Effect Schema decoder for patterns.json validation       |
+
+## History
+
+> **2026-04-17 — Clipboard exemption (#240):** Added `pbcopy`/`pbpaste` exemption before pattern matching. Previously, piping markdown containing SQL keywords (e.g., "TRUNCATE") to `pbcopy` triggered false positive blocks. Fix: `SecurityValidator.contract.ts:288-291`.

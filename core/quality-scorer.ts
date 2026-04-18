@@ -312,7 +312,12 @@ const CHECKS: CheckSpec[] = [
     severity: "major",
     threshold: 1,
     direction: "above",
-    compute: (c) => countMixedIOPatterns(c),
+    compute: (c, _p, f) => {
+      // Contract files with defaultDeps legitimately wire multiple adapters (#239)
+      if (f?.endsWith(".contract.ts") && /\bdefaultDeps\b/.test(c)) return -1;
+      return countMixedIOPatterns(c);
+    },
+    skip: (_p, v) => v === -1,
   },
   {
     name: "section-headers",
@@ -523,43 +528,44 @@ export function scoreFile(
 }
 
 function formatViolation(check: CheckSpec, value: number): string {
+  // Each message includes an actionable directive (#235)
   switch (check.name) {
     case "function-count":
-      return `${value} functions in file (threshold: ${check.threshold})`;
+      return `${value} functions in file (threshold: ${check.threshold}) → Extract cohesive groups into separate modules`;
     case "naming-clusters":
-      return `${value} distinct naming prefixes suggest multiple responsibilities`;
+      return `${value} distinct naming prefixes suggest multiple responsibilities → Group by prefix into separate files`;
     case "mixed-io-patterns":
-      return `${value} I/O patterns mixed in one file (fs, http, db, process)`;
+      return `${value} I/O patterns mixed in one file (fs, http, db, process) → Move each I/O type to its own adapter`;
     case "section-headers":
-      return `${value} section headers suggest file should be split`;
+      return `${value} section headers suggest file should be split → Each section is a candidate for its own module`;
     case "import-depth":
-      return `Import depth ${value} levels (max recommended: ${check.threshold})`;
+      return `Import depth ${value} levels (max: ${check.threshold}) → Flatten via barrel exports or restructure`;
     case "infra-imports":
-      return `${value} direct infrastructure imports (should go through adapters)`;
+      return `${value} direct infra imports → Route through adapters/ layer`;
     case "type-import-ratio":
-      return `Type import ratio ${(value * 100).toFixed(0)}% (min recommended: ${check.threshold * 100}%)`;
+      return `Type ratio ${(value * 100).toFixed(0)}% (min: ${check.threshold * 100}%) → Use import type for non-runtime imports`;
     case "missing-deps-interface":
-      return "Hook/contract file missing Deps interface for dependency injection";
+      return "Missing Deps interface → Add interface for injectable dependencies";
     case "interface-members":
-      return `Interface has ${value} members (max recommended: ${check.threshold})`;
+      return `Interface has ${value} members (max: ${check.threshold}) → Split into focused sub-interfaces`;
     case "parameter-count":
-      return `Function has ${value} parameters (max recommended: ${check.threshold})`;
+      return `Function has ${value} parameters (max: ${check.threshold}) → Group into options object`;
     case "options-object-width":
-      return `Options object has ${value} keys (max recommended: ${check.threshold})`;
+      return `Options object has ${value} keys (max: ${check.threshold}) → Group related options into nested objects`;
     case "relative-import-depth":
-      return `Relative import depth ${value} levels (max recommended: ${check.threshold})`;
+      return `Relative import depth ${value} (max: ${check.threshold}) → Use @hooks/* path aliases`;
     case "try-catch-count":
-      return `${value} try-catch blocks (see CODINGSTANDARDS/general.md §Result)`;
+      return `${value} try-catch blocks → Replace with Result<T, E> pipeline`;
     case "contract-pattern":
-      return `Contract missing HookContract export (see CODINGSTANDARDS/hooks.md §Contract)`;
+      return `Missing HookContract export → Export contract matching SyncHookContract<I, D>`;
     case "adapter-bypass":
-      return `${value} raw I/O imports in contract (see CODINGSTANDARDS/hooks.md §Adapters)`;
+      return `${value} raw I/O imports → Move to deps interface, use adapters`;
     case "throw-count":
-      return `${value} throw statements (return Result instead of throwing)`;
+      return `${value} throw statements → Return err() instead of throwing`;
     case "null-return-count":
-      return `${value} null/undefined returns (use Result or Option type instead)`;
+      return `${value} null/undefined returns → Use Result or Option type`;
     case "mixed-error-strategy":
-      return "File mixes Result types with try-catch/throw (pick one error strategy)";
+      return "Mixes Result with try-catch/throw → Pick one error strategy";
     default:
       return `${check.name}: ${value} (threshold: ${check.threshold})`;
   }

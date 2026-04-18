@@ -21,6 +21,26 @@ describe("safeRegexTest", () => {
   it("supports flags parameter", () => {
     expect(safeRegexTest("Hello", "hello", "i")).toBe(true);
   });
+
+  it("calls onError with pattern and error when pattern is invalid", () => {
+    const spy: Array<{ pattern: string; err: Error }> = [];
+    const result = safeRegexTest("test", "[invalid((", "", (pattern, err) =>
+      spy.push({ pattern, err }),
+    );
+    expect(result).toBe(false);
+    expect(spy).toHaveLength(1);
+    expect(spy[0].pattern).toBe("[invalid((");
+    expect(spy[0].err).toBeInstanceOf(Error);
+  });
+
+  it("does not call onError when pattern is valid", () => {
+    const spy: Array<{ pattern: string; err: Error }> = [];
+    const result = safeRegexTest("hello", "hello", "", (pattern, err) =>
+      spy.push({ pattern, err }),
+    );
+    expect(result).toBe(true);
+    expect(spy).toHaveLength(0);
+  });
 });
 
 describe("createRegex", () => {
@@ -38,5 +58,21 @@ describe("createRegex", () => {
     const re = createRegex("hello", "gi");
     expect(re).not.toBeNull();
     expect(re!.flags).toContain("i");
+  });
+
+  it("calls onError with pattern and error when pattern is invalid", () => {
+    const spy: Array<{ pattern: string; err: Error }> = [];
+    const result = createRegex("[invalid((", "", (pattern, err) => spy.push({ pattern, err }));
+    expect(result).toBeNull();
+    expect(spy).toHaveLength(1);
+    expect(spy[0].pattern).toBe("[invalid((");
+    expect(spy[0].err).toBeInstanceOf(Error);
+  });
+
+  it("does not call onError when pattern is valid", () => {
+    const spy: Array<{ pattern: string; err: Error }> = [];
+    const result = createRegex("^hello$", "", (pattern, err) => spy.push({ pattern, err }));
+    expect(result).not.toBeNull();
+    expect(spy).toHaveLength(0);
   });
 });
