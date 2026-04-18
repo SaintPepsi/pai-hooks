@@ -52,7 +52,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: add thing'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -60,7 +60,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git commit --amend"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -70,7 +70,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "master" });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'fix: thing'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -80,7 +80,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -88,7 +88,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "master" });
     const result = ProtectedBranchGuard.execute(makeInput("git push"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -98,7 +98,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git merge feature/auth"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -108,7 +108,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "feature/my-feature" });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: thing'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -116,7 +116,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "feature/auth" });
     const result = ProtectedBranchGuard.execute(makeInput("git push origin feature/auth"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -126,7 +126,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("ls -la"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -134,7 +134,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git status"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -142,7 +142,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git log --oneline -10"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -150,7 +150,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git diff HEAD~1"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -158,7 +158,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git branch feature/new-thing"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -166,7 +166,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git checkout -b feature/new"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -174,7 +174,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git stash"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -187,7 +187,7 @@ describe("ProtectedBranchGuard", () => {
     });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'auto-sync'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -198,7 +198,7 @@ describe("ProtectedBranchGuard", () => {
     });
     const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -212,7 +212,7 @@ describe("ProtectedBranchGuard", () => {
     });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: thing'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -224,7 +224,7 @@ describe("ProtectedBranchGuard", () => {
     });
     const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -236,7 +236,7 @@ describe("ProtectedBranchGuard", () => {
     });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -248,7 +248,7 @@ describe("ProtectedBranchGuard", () => {
     });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -258,7 +258,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => null });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -269,7 +269,7 @@ describe("ProtectedBranchGuard", () => {
       deps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -277,7 +277,7 @@ describe("ProtectedBranchGuard", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("main");
   });

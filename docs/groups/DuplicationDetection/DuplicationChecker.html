@@ -1777,7 +1777,7 @@ section[id] {
   <div class="container">
     <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
     <h1>DuplicationChecker</h1>
-    <p>Tiered duplication guard: 1/4 ignore, 2-3/4 log, 4/4 block (configurable via hookConfig.duplicationChecker.blocking)</p>
+    <p>Tiered duplication guard: 1/4 ignore, 2-3/4 log, 4/4 block with optional inference triage to suppress false positives (configurable via hookConfig.duplicationChecker.blocking and inferenceEnabled)</p>
     <div class="hero-meta">
       <span>DuplicationDetection</span>
       <span>PreToolUse</span>
@@ -1819,7 +1819,10 @@ A pre-write hook that extracts functions from incoming code and compares them ag
 2. Extract all function declarations from the new content.
 3. For each function, compute four signals: exact body hash, function name, parameter signature hash, and normalized body hash (ignoring variable names).
 4. Query the duplication index for matches across all four signals.
-5. If 4/4 signals match or the exact body hash matches — block the write with "this function already exists at [location]."
+5. If 4/4 signals match or the exact body hash matches — optionally run inference triage before blocking:
+   - If inference classifies the match as a false positive, allow the write with an advisory explaining the override.
+   - If inference classifies it as a true positive, uncertain, or fails — block the write (fail-safe).
+   - If inference is disabled (default) — block immediately with "this function already exists at [location]."
 6. If 2-3 signals match — inject an advisory warning suggesting the author check the similar function.
 7. If 0-1 signals match — pass silently.
 
@@ -1955,11 +1958,19 @@ This is the checking half of a two-part system. A separate index builder maintai
 
         <div class="flow-step">
           <div class="step-dot">8</div>
-          <div class="step-content"><p>At 4/4 signals and blocking enabled: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise</p></div>
+          <div class="step-content"><p>At 4/4 signals and blocking enabled: optionally runs inference triage (<code>classifyMatches</code>) when <code>inferenceEnabled: true</code></p></div>
+        </div>
+</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>false_positive</code> verdict → returns continue with <code>additionalContext</code> explaining the override; optionally writes a report to <code>/tmp/pai/duplication/fp-reports/</code> when <code>issueReporting: true</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>true_positive</code>, <code>uncertain</code>, or inference failure → falls through to deny (fail-safe)</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>At 4/4 signals, blocking enabled, triage not triggered: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">9</div>
+          <div class="step-dot">2</div>
           <div class="step-content"><p>At 2-3/4 signals: logs finding, returns continue</p></div>
         </div>
 </div>
@@ -1971,10 +1982,14 @@ This is the checking half of a two-part system. A separate index builder maintai
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Tiered response logic
-const blockMatches = matches.filter((m) =&gt; m.signals.length &gt;= BLOCK_THRESHOLD);
-
+// Block path with optional inference triage
 if (blockMatches.length &gt; 0 &amp;&amp; deps.blocking) {
+  if (deps.inferenceEnabled) {
+    const verdict = await classifyMatches(blockMatches, content, filePath, deps);
+    if (verdict === "false_positive") {
+      return ok({ continue: true, hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: "..." } });
+    }
+  }
   return ok({
     continue: true,
     hookSpecificOutput: {
@@ -2104,7 +2119,7 @@ Pattern detected: "makeDeps" (65 files)
       <table class="tbl">
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
-          <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
+          <tr><td><code>result</code></td><td>core</td><td><code>ok()</code>, <code>tryCatchAsync()</code> for Result-based returns and safe async boundaries</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>readFile</code>, <code>fileExists</code>, <code>readJson</code>, <code>appendFile</code>, <code>ensureDir</code></td></tr>
           <tr><td><code>lib/paths</code></td><td>lib</td><td><code>getSettingsPath</code> for reading hookConfig</td></tr>
           <tr><td><code>lib/tool-input</code></td><td>lib</td><td><code>getFilePath</code>, <code>getWriteContent</code> for extracting tool input fields</td></tr>
@@ -2113,6 +2128,7 @@ Pattern detected: "makeDeps" (65 files)
           <tr><td><code>lib/narrative-reader</code></td><td>lib</td><td><code>pickNarrative</code> for severity-tiered block message openers</td></tr>
           <tr><td><code>DuplicationChecker.narrative.jsonl</code></td><td>data</td><td>9 agent narratives (3 per severity tier) with DRY/WET theming</td></tr>
           <tr><td><code>inspector.ts</code></td><td>cli</td><td>State inspector for <code>paih inspect DuplicationChecker</code> — reads index, returns summary/raw/JSON views</td></tr>
+          <tr><td><code>@pai/Tools/Inference</code> (injected)</td><td>stub</td><td>Inference function for false-positive triage — injected via <code>deps.inference</code>; disabled by default (<code>inferenceEnabled: false</code>)</td></tr>
         </tbody>
       </table>
     </div>

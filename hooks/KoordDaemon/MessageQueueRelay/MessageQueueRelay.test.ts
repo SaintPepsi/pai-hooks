@@ -9,7 +9,7 @@ const mockDeps: MessageQueueRelayDeps = {
 function makeInput(command: string, response?: string): ToolHookInput {
   return {
     session_id: "test",
-    hook_type: "PostToolUse",
+    hook_event_name: "PostToolUse",
     tool_name: "Bash",
     tool_input: { command },
     tool_response: response,
@@ -30,7 +30,7 @@ describe("MessageQueueRelay", () => {
     test("rejects non-Bash tool inputs", () => {
       const input: ToolHookInput = {
         session_id: "test",
-        hook_type: "PostToolUse",
+        hook_event_name: "PostToolUse",
         tool_name: "Read",
         tool_input: { file_path: "/tmp/test" },
       };

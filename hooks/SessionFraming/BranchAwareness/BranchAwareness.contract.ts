@@ -14,7 +14,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { isSubagentDefault } from "@hooks/lib/environment";
 import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ const defaultDeps: BranchAwarenessDeps = {
     if (!result.ok) return null;
     return result.value.trim() || null;
   },
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  isSubagent: isSubagentDefault,
   stderr: defaultStderr,
 };
 

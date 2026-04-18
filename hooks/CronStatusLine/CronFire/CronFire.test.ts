@@ -122,7 +122,7 @@ describe("CronFireContract.execute() — empty/undefined prompt", () => {
     const result = CronFireContract.execute(makeInput(undefined), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
     expect(deps._appendLog).toHaveLength(0);
   });
@@ -133,7 +133,7 @@ describe("CronFireContract.execute() — empty/undefined prompt", () => {
     const result = CronFireContract.execute(makeInput(""), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
     expect(deps._appendLog).toHaveLength(0);
   });
@@ -148,7 +148,7 @@ describe("CronFireContract.execute() — no cron file", () => {
     const result = CronFireContract.execute(makeInput("run the tests"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
     expect(deps._appendLog).toHaveLength(0);
   });
@@ -168,7 +168,7 @@ describe("CronFireContract.execute() — no matching cron", () => {
     const result = CronFireContract.execute(makeInput("something completely different"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
     // File content should be unchanged (no write happened)
     expect(deps._files["/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json"]).toBe(
@@ -195,7 +195,7 @@ describe("CronFireContract.execute() — matching cron", () => {
     const result = CronFireContract.execute(makeInput("run the tests"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value).toEqual({});
 
     const written = readWrittenFile(deps);

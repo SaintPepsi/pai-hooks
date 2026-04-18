@@ -216,6 +216,30 @@ function process(deps: MyDeps) {}
       const depsViolation = result.violations.find((v) => v.check === "missing-deps-interface");
       expect(depsViolation).toBeUndefined();
     });
+
+    test("exempts mixed-io-patterns in .contract.ts with defaultDeps (#239)", () => {
+      const contractWithAdapters = `
+import { readFile, writeFile } from "../adapters/fs";
+import { execSyncSafe, spawnBackground } from "../adapters/process";
+export const MyHook = {
+  defaultDeps: { fs: { readFile, writeFile }, process: { execSyncSafe, spawnBackground } },
+};
+`;
+      const result = scoreFile(contractWithAdapters, tsProfile, "hooks/MyHook/MyHook.contract.ts");
+      const ioViolation = result.violations.find((v) => v.check === "mixed-io-patterns");
+      expect(ioViolation).toBeUndefined();
+    });
+
+    test("flags mixed-io-patterns in .contract.ts without defaultDeps (#239)", () => {
+      const contractNoDefaultDeps = `
+import { readFile } from "fs";
+import { exec } from "child_process";
+export function doWork() { readFile("x"); exec("ls"); }
+`;
+      const result = scoreFile(contractNoDefaultDeps, tsProfile, "hooks/Bad/Bad.contract.ts");
+      const ioViolation = result.violations.find((v) => v.check === "mixed-io-patterns");
+      expect(ioViolation).toBeDefined();
+    });
   });
 
   describe("scoreFile — type import ratio", () => {
@@ -446,14 +470,16 @@ function checkPatterns(content: string): number {
       expect(infraViolation).toBeUndefined();
     });
 
-    test("violation messages cite CODINGSTANDARDS", () => {
+    test("violation messages include actionable directives (#235)", () => {
       const rawImports = `
 import { readFileSync } from "fs";
 export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUse", accepts: () => true, execute: () => ({} as any), defaultDeps: {} as any };
 `;
       const result = scoreFile(rawImports, tsProfile, "hooks/contracts/Bad.ts");
       const bypass = result.violations.find((v) => v.check === "adapter-bypass");
-      expect(bypass?.message).toContain("CODINGSTANDARDS");
+      // Messages now include actionable directives with → instead of CODINGSTANDARDS references
+      expect(bypass?.message).toContain("→");
+      expect(bypass?.message).toContain("adapters");
     });
   });
 
@@ -550,7 +576,7 @@ function unsafe() { try { doStuff(); } catch (e) { throw e; } }
       const violation = result.violations.find((v) => v.check === "mixed-error-strategy");
       expect(violation).toBeDefined();
       const advisory = formatAdvisory(result, "src/mixed.ts");
-      expect(advisory).toContain("mixes Result");
+      expect(advisory).toContain("Mixes Result");
     });
   });
 });
