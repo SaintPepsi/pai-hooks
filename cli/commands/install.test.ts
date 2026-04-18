@@ -94,7 +94,7 @@ describe("install command", () => {
     const result = install(makeArgs(["TypeStrictness"]), deps, "/source");
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = deps.getFiles();
 
@@ -141,7 +141,7 @@ describe("install command", () => {
     const result = install(makeArgs(["CodingStandards"]), deps, "/source");
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = deps.getFiles();
     expect(
@@ -165,7 +165,7 @@ describe("install command", () => {
     const result = install(makeArgs(["quality"]), deps, "/source");
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = deps.getFiles();
     expect(

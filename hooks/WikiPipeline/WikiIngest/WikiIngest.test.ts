@@ -153,6 +153,36 @@ describe("parseFilterOutput", () => {
   it("returns null for JSON without sessionId", () => {
     expect(parseFilterOutput('{"foo": "bar"}')).toBeNull();
   });
+
+  it("returns null for malformed JSON that starts with {", () => {
+    expect(parseFilterOutput("{bad json")).toBeNull();
+  });
+
+  it("returns null when required numeric fields are missing", () => {
+    const json = JSON.stringify({
+      sessionId: "abc",
+      classification: "standard",
+      digestPath: null,
+      // messageCount, keptMessageCount, decisionsFound missing
+      entitiesFound: [],
+      confidence: "medium",
+    });
+    expect(parseFilterOutput(json)).toBeNull();
+  });
+
+  it("returns null when entitiesFound is not an array", () => {
+    const json = JSON.stringify({
+      sessionId: "abc",
+      classification: "standard",
+      digestPath: null,
+      messageCount: 10,
+      keptMessageCount: 5,
+      decisionsFound: 0,
+      entitiesFound: "not-an-array",
+      confidence: "medium",
+    });
+    expect(parseFilterOutput(json)).toBeNull();
+  });
 });
 
 // ─── parseExtractionFile ────────────────────────────────────────────────────
@@ -175,6 +205,32 @@ describe("parseExtractionFile", () => {
 
   it("returns null for invalid JSON", () => {
     expect(parseExtractionFile("not json")).toBeNull();
+  });
+
+  it("returns null for malformed JSON that starts with {", () => {
+    expect(parseExtractionFile("{bad json")).toBeNull();
+  });
+
+  it("returns null when required array fields are missing", () => {
+    const json = JSON.stringify({
+      sessionId: "abc",
+      confidence: "high",
+      cost: { inputTokens: 0, outputTokens: 0, totalCost: 0 },
+      // entities, decisions, concepts missing
+    });
+    expect(parseExtractionFile(json)).toBeNull();
+  });
+
+  it("returns null when cost fields are missing", () => {
+    const json = JSON.stringify({
+      sessionId: "abc",
+      entities: [],
+      decisions: [],
+      concepts: [],
+      confidence: "high",
+      cost: { inputTokens: 0 }, // outputTokens and totalCost missing
+    });
+    expect(parseExtractionFile(json)).toBeNull();
   });
 });
 

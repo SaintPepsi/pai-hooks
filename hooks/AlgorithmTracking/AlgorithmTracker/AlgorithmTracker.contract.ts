@@ -29,6 +29,7 @@ import {
   readState,
   writeState,
 } from "@hooks/lib/algorithm-state";
+import { getEnvOrUndefined } from "@hooks/lib/environment";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -161,7 +162,7 @@ const defaultDeps: AlgorithmTrackerDeps = {
   readJson,
   fetch: globalThis.fetch,
   baseDir: getPaiDir(),
-  voiceId: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
+  voiceId: getEnvOrUndefined("PAI_VOICE_ID") || "pNInz6obpgDQGcFmaJgB",
   stderr: defaultStderr,
 };
 

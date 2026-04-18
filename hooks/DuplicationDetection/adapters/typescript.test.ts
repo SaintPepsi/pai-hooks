@@ -11,8 +11,8 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { defaultParserDeps, extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import { typescriptAdapter } from "@hooks/hooks/DuplicationDetection/adapters/typescript";
+import { defaultParserDeps, extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 
 // ─── Metadata ────────────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ describe("typescriptAdapter.extractFunctions", () => {
     let capturedSyntax = "";
     const mockDeps = {
       ...defaultParserDeps,
-      parseSync: (source: string, opts: { syntax: string; target: string }) => {
+      parseSync: (_source: string, opts: { syntax: string; target: string }) => {
         capturedSyntax = opts.syntax;
         // Return empty body — we only care about what opts were passed
         return { body: [] };

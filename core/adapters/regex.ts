@@ -9,12 +9,18 @@
 /**
  * Test an input string against a regex pattern.
  * Returns false (instead of throwing) when the pattern is invalid.
+ * Pass onError to log invalid patterns (#169).
  */
-export function safeRegexTest(input: string, pattern: string, flags = "", stderr?: (msg: string) => void): boolean {
+export function safeRegexTest(
+  input: string,
+  pattern: string,
+  flags = "",
+  onError?: (pattern: string, err: Error) => void,
+): boolean {
   try {
     return new RegExp(pattern, flags).test(input);
-  } catch {
-    stderr?.(`[regex] Invalid pattern: ${pattern}`);
+  } catch (e) {
+    if (onError && e instanceof Error) onError(pattern, e);
     return false;
   }
 }
@@ -22,12 +28,17 @@ export function safeRegexTest(input: string, pattern: string, flags = "", stderr
 /**
  * Create a RegExp from a string pattern.
  * Returns null (instead of throwing) when the pattern is invalid.
+ * Pass onError to log invalid patterns (#169).
  */
-export function createRegex(pattern: string, flags = "", stderr?: (msg: string) => void): RegExp | null {
+export function createRegex(
+  pattern: string,
+  flags = "",
+  onError?: (pattern: string, err: Error) => void,
+): RegExp | null {
   try {
     return new RegExp(pattern, flags);
-  } catch {
-    stderr?.(`[regex] Invalid pattern: ${pattern}`);
+  } catch (e) {
+    if (onError && e instanceof Error) onError(pattern, e);
     return null;
   }
 }

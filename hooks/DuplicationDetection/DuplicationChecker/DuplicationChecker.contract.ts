@@ -21,17 +21,17 @@ import {
 } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatchAsync, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatchAsync } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import {
   BLOCK_THRESHOLD,
   checkFunctions,
+  type DuplicationMatch,
   findIndexPath,
   getArtifactsDir,
   getCurrentBranch,
   loadIndex,
-  type DuplicationMatch,
   type PatternEntry,
   simulateEdit,
 } from "@hooks/hooks/DuplicationDetection/shared";
@@ -128,7 +128,7 @@ async function classifyMatches(
     () => null,
   );
 
-  if (!result.ok || !result.value || !result.value.success || !result.value.output) {
+  if (!result.ok || !result.value?.success || !result.value.output) {
     return "uncertain";
   }
 
@@ -171,7 +171,7 @@ function createFalsePositiveReport(
     if (content) {
       const ts = parseInt(content.trim(), 10);
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      if (!isNaN(ts) && deps.now() - ts < sevenDays) return;
+      if (!Number.isNaN(ts) && deps.now() - ts < sevenDays) return;
     }
   }
 
@@ -215,213 +215,214 @@ const defaultDeps: DuplicationCheckerDeps = {
   issueReporting: false,
 };
 
-export const DuplicationCheckerContract: AsyncHookContract<ToolHookInput, DuplicationCheckerDeps> = {
-  name: "DuplicationChecker",
-  event: "PreToolUse",
+export const DuplicationCheckerContract: AsyncHookContract<ToolHookInput, DuplicationCheckerDeps> =
+  {
+    name: "DuplicationChecker",
+    event: "PreToolUse",
 
-  accepts(input: ToolHookInput): boolean {
-    if (input.tool_name !== "Write" && input.tool_name !== "Edit") return false;
-    const filePath = getFilePath(input);
-    if (!filePath) return false;
-    return getAdapterFor(filePath) !== null;
-  },
+    accepts(input: ToolHookInput): boolean {
+      if (input.tool_name !== "Write" && input.tool_name !== "Edit") return false;
+      const filePath = getFilePath(input);
+      if (!filePath) return false;
+      return getAdapterFor(filePath) !== null;
+    },
 
-  async execute(
-    input: ToolHookInput,
-    deps: DuplicationCheckerDeps,
-  ): Promise<Result<SyncHookJSONOutput, ResultError>> {
-    const filePath = getFilePath(input)!;
+    async execute(
+      input: ToolHookInput,
+      deps: DuplicationCheckerDeps,
+    ): Promise<Result<SyncHookJSONOutput, ResultError>> {
+      const filePath = getFilePath(input)!;
 
-    const adapter = getAdapterFor(filePath);
-    if (!adapter) return ok({ continue: true });
+      const adapter = getAdapterFor(filePath);
+      if (!adapter) return ok({ continue: true });
 
-    const indexPath = findIndexPath(filePath, deps);
-    if (!indexPath) {
-      deps.stderr("[DuplicationChecker] No index found — skipping");
-      return ok({ continue: true });
-    }
-
-    const index = loadIndex(indexPath, deps);
-    if (!index) {
-      deps.stderr("[DuplicationChecker] Failed to load index — skipping");
-      return ok({ continue: true });
-    }
-
-    // Get content: Write has it directly, Edit needs simulation
-    let content: string | null = null;
-    let preEditHashes: Set<string> | null = null;
-    if (input.tool_name === "Write") {
-      content = getWriteContent(input);
-    } else {
-      const currentContent = deps.readFile(filePath);
-      if (currentContent) {
-        content = simulateEdit(currentContent, input);
-        // Build set of body hashes present before this edit so we only flag new/changed functions
-        const preFunctions = adapter.extractFunctions(currentContent, filePath);
-        preEditHashes = new Set(preFunctions.map((f) => f.bodyHash));
+      const indexPath = findIndexPath(filePath, deps);
+      if (!indexPath) {
+        deps.stderr("[DuplicationChecker] No index found — skipping");
+        return ok({ continue: true });
       }
-    }
 
-    if (!content) return ok({ continue: true });
-
-    const allFunctions = adapter.extractFunctions(content, filePath);
-    // For edits, exclude functions whose body was already present before the edit
-    const functions = preEditHashes
-      ? allFunctions.filter((f) => !preEditHashes!.has(f.bodyHash))
-      : allFunctions;
-    if (functions.length === 0) return ok({ continue: true });
-
-    // ─── Pattern advisory ───────────────────────────────────────────────
-    const patternAdvisories: string[] = [];
-    if (index.patterns && index.patterns.length > 0) {
-      const patternMap = new Map<string, PatternEntry>(index.patterns.map((p) => [p.name, p]));
-      for (const fn of functions) {
-        const pattern = patternMap.get(fn.name);
-        if (!pattern) continue;
-        const examples = pattern.files.slice(0, 3).join(", ");
-        patternAdvisories.push(
-          `Pattern detected: "${pattern.name}" (${pattern.fileCount} files)\n` +
-            `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
-            `  Examples: ${examples}`,
-        );
+      const index = loadIndex(indexPath, deps);
+      if (!index) {
+        deps.stderr("[DuplicationChecker] Failed to load index — skipping");
+        return ok({ continue: true });
       }
-    }
 
-    function continueWithPatterns(extra?: string): SyncHookJSONOutput {
-      const parts = [...patternAdvisories];
-      if (extra) parts.push(extra);
-      if (parts.length === 0) return { continue: true };
-      return {
-        continue: true,
-        hookSpecificOutput: {
-          hookEventName: "PreToolUse",
-          additionalContext: parts.join("\n\n"),
-        },
-      };
-    }
+      // Get content: Write has it directly, Edit needs simulation
+      let content: string | null = null;
+      let preEditHashes: Set<string> | null = null;
+      if (input.tool_name === "Write") {
+        content = getWriteContent(input);
+      } else {
+        const currentContent = deps.readFile(filePath);
+        if (currentContent) {
+          content = simulateEdit(currentContent, input);
+          // Build set of body hashes present before this edit so we only flag new/changed functions
+          const preFunctions = adapter.extractFunctions(currentContent, filePath);
+          preEditHashes = new Set(preFunctions.map((f) => f.bodyHash));
+        }
+      }
 
-    const relPath = filePath.startsWith(index.root)
-      ? filePath.slice(index.root.length + 1)
-      : filePath;
+      if (!content) return ok({ continue: true });
 
-    const matches = checkFunctions(functions, index, relPath);
+      const allFunctions = adapter.extractFunctions(content, filePath);
+      // For edits, exclude functions whose body was already present before the edit
+      const functions = preEditHashes
+        ? allFunctions.filter((f) => !preEditHashes!.has(f.bodyHash))
+        : allFunctions;
+      if (functions.length === 0) return ok({ continue: true });
 
-    // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/{branch}/checker.jsonl
-    const branch = getCurrentBranch(index.root) ?? "default";
-    const logDir = getArtifactsDir(index.root, branch);
-    deps.ensureDir(logDir);
-    const logPath = `${logDir}/checker.jsonl`;
-    const logEntry = {
-      ts: new Date(deps.now()).toISOString(),
-      branch,
-      file: relPath,
-      functions: functions.length,
-      matches: matches.map((m) => ({
-        fn: m.functionName,
-        target: `${m.targetFile}:${m.targetName}`,
-        signals: m.signals,
-        score: Math.round(m.topScore * 100),
-      })),
-      patterns:
-        patternAdvisories.length > 0
-          ? functions
-              .filter((fn) => index.patterns?.some((p) => p.name === fn.name))
-              .map((fn) => {
-                const p = index.patterns!.find((pat) => pat.name === fn.name)!;
-                return { fn: fn.name, patternId: p.id, instances: p.fileCount };
-              })
-          : undefined,
-    };
-    deps.appendFile(logPath, `${JSON.stringify(logEntry)}\n`);
-
-    if (matches.length === 0) {
-      deps.stderr(`[DuplicationChecker] ${filePath}: clean`);
-      return ok(continueWithPatterns());
-    }
-
-    // Separate derivation matches (advisory) from real duplicates (blockable)
-    const derivationMatches = matches.filter((m) => m.derivation);
-    const realMatches = matches.filter((m) => !m.derivation);
-
-    // Block on exact body hash match (identical code + same sig) OR all 4 signal dimensions
-    const blockMatches = realMatches.filter(
-      (m) => m.signals.includes("hash") || m.signals.length >= BLOCK_THRESHOLD,
-    );
-
-    if (blockMatches.length > 0) {
-      const opener = pickNarrative("DuplicationChecker", blockMatches.length, import.meta.dir);
-      const reason = [
-        opener,
-        "",
-        ...blockMatches.flatMap((m) => {
-          const guidance = m.targetIsSource
-            ? `  → Import it from ${m.targetFile}`
-            : `  → Reuse the existing function from ${m.targetFile} or extract both to a shared module`;
-          return [
-            `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
-            guidance,
-          ];
-        }),
-      ].join("\n");
-
-      if (deps.blocking) {
-        if (deps.inferenceEnabled) {
-          const verdict = await classifyMatches(blockMatches, content, filePath, deps);
-          if (verdict === "false_positive") {
-            createFalsePositiveReport(blockMatches, filePath, deps);
-            deps.stderr(
-              `[DuplicationChecker] ${filePath}: inference triage — false positive, allowing write`,
-            );
-            return ok({
-              continue: true,
-              hookSpecificOutput: {
-                hookEventName: "PreToolUse",
-                additionalContext:
-                  "Duplication triage: inference classified this as a false positive — write allowed. The flagged functions appear similar but serve distinct purposes.",
-              },
-            });
-          }
-          deps.stderr(
-            `[DuplicationChecker] ${filePath}: inference triage — ${verdict}, blocking`,
+      // ─── Pattern advisory ───────────────────────────────────────────────
+      const patternAdvisories: string[] = [];
+      if (index.patterns && index.patterns.length > 0) {
+        const patternMap = new Map<string, PatternEntry>(index.patterns.map((p) => [p.name, p]));
+        for (const fn of functions) {
+          const pattern = patternMap.get(fn.name);
+          if (!pattern) continue;
+          const examples = pattern.files.slice(0, 3).join(", ");
+          patternAdvisories.push(
+            `Pattern detected: "${pattern.name}" (${pattern.fileCount} files)\n` +
+              `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
+              `  Examples: ${examples}`,
           );
         }
-        deps.stderr(
-          `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
-        );
-        return ok({
-          hookSpecificOutput: {
-            hookEventName: "PreToolUse",
-            permissionDecision: "deny",
-            permissionDecisionReason: reason,
-          },
-        });
       }
 
-      deps.stderr(
-        `[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`,
+      function continueWithPatterns(extra?: string): SyncHookJSONOutput {
+        const parts = [...patternAdvisories];
+        if (extra) parts.push(extra);
+        if (parts.length === 0) return { continue: true };
+        return {
+          continue: true,
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            additionalContext: parts.join("\n\n"),
+          },
+        };
+      }
+
+      const relPath = filePath.startsWith(index.root)
+        ? filePath.slice(index.root.length + 1)
+        : filePath;
+
+      const matches = checkFunctions(functions, index, relPath);
+
+      // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/{branch}/checker.jsonl
+      const branch = getCurrentBranch(index.root) ?? "default";
+      const logDir = getArtifactsDir(index.root, branch);
+      deps.ensureDir(logDir);
+      const logPath = `${logDir}/checker.jsonl`;
+      const logEntry = {
+        ts: new Date(deps.now()).toISOString(),
+        branch,
+        file: relPath,
+        functions: functions.length,
+        matches: matches.map((m) => ({
+          fn: m.functionName,
+          target: `${m.targetFile}:${m.targetName}`,
+          signals: m.signals,
+          score: Math.round(m.topScore * 100),
+        })),
+        patterns:
+          patternAdvisories.length > 0
+            ? functions
+                .filter((fn) => index.patterns?.some((p) => p.name === fn.name))
+                .map((fn) => {
+                  const p = index.patterns!.find((pat) => pat.name === fn.name)!;
+                  return { fn: fn.name, patternId: p.id, instances: p.fileCount };
+                })
+            : undefined,
+      };
+      deps.appendFile(logPath, `${JSON.stringify(logEntry)}\n`);
+
+      if (matches.length === 0) {
+        deps.stderr(`[DuplicationChecker] ${filePath}: clean`);
+        return ok(continueWithPatterns());
+      }
+
+      // Separate derivation matches (advisory) from real duplicates (blockable)
+      const derivationMatches = matches.filter((m) => m.derivation);
+      const realMatches = matches.filter((m) => !m.derivation);
+
+      // Block on exact body hash match (identical code + same sig) OR all 4 signal dimensions
+      const blockMatches = realMatches.filter(
+        (m) => m.signals.includes("hash") || m.signals.length >= BLOCK_THRESHOLD,
       );
-    }
 
-    // Derivation matches: same body, different signature — advisory only, never block
-    if (derivationMatches.length > 0) {
-      const advisory = derivationMatches
-        .map(
-          (m) =>
-            `  ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`,
-        )
-        .join("\n");
+      if (blockMatches.length > 0) {
+        const opener = pickNarrative("DuplicationChecker", blockMatches.length, import.meta.dir);
+        const reason = [
+          opener,
+          "",
+          ...blockMatches.flatMap((m) => {
+            const guidance = m.targetIsSource
+              ? `  → Import it from ${m.targetFile}`
+              : `  → Reuse the existing function from ${m.targetFile} or extract both to a shared module`;
+            return [
+              `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
+              guidance,
+            ];
+          }),
+        ].join("\n");
+
+        if (deps.blocking) {
+          if (deps.inferenceEnabled) {
+            const verdict = await classifyMatches(blockMatches, content, filePath, deps);
+            if (verdict === "false_positive") {
+              createFalsePositiveReport(blockMatches, filePath, deps);
+              deps.stderr(
+                `[DuplicationChecker] ${filePath}: inference triage — false positive, allowing write`,
+              );
+              return ok({
+                continue: true,
+                hookSpecificOutput: {
+                  hookEventName: "PreToolUse",
+                  additionalContext:
+                    "Duplication triage: inference classified this as a false positive — write allowed. The flagged functions appear similar but serve distinct purposes.",
+                },
+              });
+            }
+            deps.stderr(
+              `[DuplicationChecker] ${filePath}: inference triage — ${verdict}, blocking`,
+            );
+          }
+          deps.stderr(
+            `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
+          );
+          return ok({
+            hookSpecificOutput: {
+              hookEventName: "PreToolUse",
+              permissionDecision: "deny",
+              permissionDecisionReason: reason,
+            },
+          });
+        }
+
+        deps.stderr(
+          `[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`,
+        );
+      }
+
+      // Derivation matches: same body, different signature — advisory only, never block
+      if (derivationMatches.length > 0) {
+        const advisory = derivationMatches
+          .map(
+            (m) =>
+              `  ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`,
+          )
+          .join("\n");
+        deps.stderr(
+          `[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`,
+        );
+        return ok(continueWithPatterns(advisory));
+      }
+
+      // 2-3 signals: log only, no additionalContext, no block
       deps.stderr(
-        `[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`,
+        `[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`,
       );
-      return ok(continueWithPatterns(advisory));
-    }
+      return ok(continueWithPatterns());
+    },
 
-    // 2-3 signals: log only, no additionalContext, no block
-    deps.stderr(
-      `[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`,
-    );
-    return ok(continueWithPatterns());
-  },
-
-  defaultDeps,
-};
+    defaultDeps,
+  };

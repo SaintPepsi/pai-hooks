@@ -23,6 +23,7 @@ import {
 } from "@hooks/core/quality-scorer";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { countCrossSessionViolations } from "@hooks/lib/jsonl-reader";
 import { defaultStderr } from "@hooks/lib/paths";
 import {
   defaultSignalLoggerDeps,
@@ -31,7 +32,6 @@ import {
 } from "@hooks/lib/signal-logger";
 import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { countCrossSessionViolations } from "@hooks/lib/jsonl-reader";
 
 // ─── Violation Dedup Cache ────────────────────────────────────────────────────
 
@@ -78,11 +78,7 @@ interface BaselineStore {
 export interface DedupConfig {
   halfLifeEdits: number;
   halfLifeMs: number;
-  countCrossSessionViolations: (
-    baseDir: string,
-    filePath: string,
-    sessionId: string,
-  ) => number;
+  countCrossSessionViolations: (baseDir: string, filePath: string, sessionId: string) => number;
 }
 
 export interface CodeQualityGuardDeps {
@@ -101,8 +97,15 @@ export interface CodeQualityGuardDeps {
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
-const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
-const TEST_SUPPRESSED_CHECKS = new Set(["type-import-ratio", "options-object-width"]);
+const TEST_FILE_PATTERN =
+  /(?:\.(test|spec)\.(ts|tsx|js|jsx|py|rb|php)$|_test\.(py|go)$|_spec\.rb$|Test\.php$)/;
+const TEST_SUPPRESSED_CHECKS = new Set([
+  "type-import-ratio",
+  "options-object-width",
+  "function-count",
+  "mixed-io-patterns",
+  "section-headers",
+]);
 
 function isTestFile(filePath: string): boolean {
   return TEST_FILE_PATTERN.test(filePath);
@@ -213,12 +216,15 @@ export const CodeQualityGuard: SyncHookContract<ToolHookInput, CodeQualityGuardD
       const elapsed = Date.now() - prevEntry.timestamp;
       const nextEditCount = prevEntry.editCount + 1;
       const halfLifeExpired =
-        nextEditCount >= deps.dedup.halfLifeEdits ||
-        elapsed >= deps.dedup.halfLifeMs;
+        nextEditCount >= deps.dedup.halfLifeEdits || elapsed >= deps.dedup.halfLifeMs;
 
       if (!halfLifeExpired) {
         // Same violations, no delta, within half-life — suppress and log
-        reportedViolations.set(filePath, { hash, timestamp: prevEntry.timestamp, editCount: nextEditCount });
+        reportedViolations.set(filePath, {
+          hash,
+          timestamp: prevEntry.timestamp,
+          editCount: nextEditCount,
+        });
         logSignal(deps.signal, "quality-violations.jsonl", {
           session_id: input.session_id,
           hook: "CodeQualityGuard",
@@ -273,18 +279,16 @@ export const CodeQualityGuard: SyncHookContract<ToolHookInput, CodeQualityGuardD
     }
 
     // Cross-session escalation: prepend REPEAT OFFENDER if 3+ prior sessions flagged this file
-    const crossSessionCount =
-      hasViolations
-        ? deps.dedup.countCrossSessionViolations(
-            deps.signal.baseDir,
-            filePath,
-            input.session_id,
-          )
-        : 0;
+    const crossSessionCount = hasViolations
+      ? deps.dedup.countCrossSessionViolations(deps.signal.baseDir, filePath, input.session_id)
+      : 0;
     const repeatOffender = crossSessionCount >= 3;
 
     const parts: string[] = [];
-    if (repeatOffender) parts.push(`⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`);
+    if (repeatOffender)
+      parts.push(
+        `⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`,
+      );
     if (deltaMessage) parts.push(deltaMessage);
     if (advisory) parts.push(advisory);
 
