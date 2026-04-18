@@ -504,32 +504,32 @@ describe("LearningActioner defaultDeps", () => {
     expect(typeof LearningActioner.defaultDeps.fileExists("/tmp")).toBe("boolean");
   });
 
-  it("defaultDeps.readDir returns a Result", () => {
+  it("defaultDeps.readDir succeeds for existing directory", () => {
     const result = LearningActioner.defaultDeps.readDir("/tmp", {
       withFileTypes: true,
     });
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.writeFile returns a Result", () => {
+  it("defaultDeps.writeFile succeeds for valid path", () => {
     const tmpPath = `/tmp/pai-test-la-${Date.now()}.txt`;
     const result = LearningActioner.defaultDeps.writeFile(tmpPath, "test");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.removeFile returns a Result", () => {
+  it("defaultDeps.removeFile returns err for nonexistent file", () => {
     const result = LearningActioner.defaultDeps.removeFile("/tmp/nonexistent-pai-la-12345.txt");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(false);
   });
 
-  it("defaultDeps.ensureDir returns a Result", () => {
+  it("defaultDeps.ensureDir succeeds for existing directory", () => {
     const result = LearningActioner.defaultDeps.ensureDir("/tmp");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.stat returns a Result", () => {
+  it("defaultDeps.stat succeeds for existing path", () => {
     const result = LearningActioner.defaultDeps.stat("/tmp");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
   it("defaultDeps.runLearningAgent is a function", () => {

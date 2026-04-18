@@ -11,11 +11,11 @@ import {
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import {
   DuplicationIndexBuilderContract,
   type DuplicationIndexBuilderDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract";
-import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 import {

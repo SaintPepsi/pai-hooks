@@ -60,13 +60,22 @@ export function safeParseTranscriptLine(line: string): TranscriptEntry | null {
   // Quick structural check before attempting parse
   if (!trimmed.includes('"type"')) return null;
   const parseResult = tryCatch(
-    () => JSON.parse(trimmed) as Record<string, unknown>,
+    () => JSON.parse(trimmed) as unknown,
     (e) => jsonParseFailed(trimmed, e),
   );
   if (!parseResult.ok) return null;
   const parsed = parseResult.value;
-  if (parsed.type !== "user" && parsed.type !== "assistant") return null;
-  return parsed as unknown as TranscriptEntry;
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const obj = parsed as Record<string, unknown>;
+  if (obj.type !== "user" && obj.type !== "assistant") return null;
+  // Validate message shape if present
+  if (obj.message !== undefined) {
+    if (typeof obj.message !== "object" || obj.message === null) return null;
+    const msg = obj.message as Record<string, unknown>;
+    if (msg.content !== undefined && typeof msg.content !== "string" && !Array.isArray(msg.content))
+      return null;
+  }
+  return { type: obj.type, message: obj.message as TranscriptEntry["message"] };
 }
 
 function defaultReadTranscript(path: string): TranscriptEntry[] {

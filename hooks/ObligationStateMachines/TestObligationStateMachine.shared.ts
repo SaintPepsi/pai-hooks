@@ -170,10 +170,7 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
  * For `.contract.ts` sources the `.contract` suffix is stripped when deriving
  * the basename to match, mirroring the convention in `deriveTestPaths`.
  */
-export function findImportingTestFile(
-  sourcePath: string,
-  deps: ImportScanDeps,
-): string | null {
+export function findImportingTestFile(sourcePath: string, deps: ImportScanDeps): string | null {
   // Derive the import name the test file would use. Strip extension, then strip
   // `.contract` suffix when present (matches the co-located test convention).
   const dotIndex = sourcePath.lastIndexOf(".");

@@ -7,8 +7,8 @@ import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/Citati
 import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
 import {
-  buildToolInput as makeToolInput,
   getPostToolUseAdvisory as getInjectedContext,
+  buildToolInput as makeToolInput,
 } from "@hooks/lib/test-helpers";
 
 const TEST_STATE_DIR = "/tmp/pai-citation-test";
@@ -118,7 +118,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -133,7 +133,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeDefined();
     expect(getInjectedContext(result.value) ?? "").toContain("citation");
   });
@@ -149,7 +149,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -177,7 +177,7 @@ describe("CitationEnforcement", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -196,7 +196,7 @@ describe("CitationEnforcement", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -211,7 +211,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeDefined();
   });
 });

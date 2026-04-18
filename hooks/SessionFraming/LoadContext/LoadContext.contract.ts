@@ -15,7 +15,7 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
+import { isSubagentDefault } from "@hooks/lib/environment";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -66,6 +66,12 @@ export interface LoadContextDeps {
   baseDir: string;
   stderr: (msg: string) => void;
 }
+
+/** Narrowed deps for loadPendingProposals — only what that function actually uses. */
+export type LoadContextProposalDeps = Pick<
+  LoadContextDeps,
+  "fileExists" | "readFile" | "readDir" | "stat"
+>;
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
@@ -190,7 +196,7 @@ function loadRelationshipContext(baseDir: string, deps: LoadContextDeps): string
         const notes = result.value
           .split("\n")
           .filter((line: string) => line.trim().startsWith("- "))
-          .slice(0, 5);
+          .slice(0, 3); // Cap at 3 per day (#242)
         if (notes.length > 0) {
           recentNotes.push(`*${formatDate(date)}:*`);
           recentNotes.push(...notes);
@@ -323,7 +329,10 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   return summary;
 }
 
-export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): string | null {
+export function loadPendingProposals(
+  baseDir: string,
+  deps: LoadContextProposalDeps,
+): string | null {
   const proposalsDir = join(baseDir, "MEMORY/LEARNING/PROPOSALS/pending");
   const lockPath = join(baseDir, "MEMORY/LEARNING/PROPOSALS/.analyzing");
 
@@ -345,39 +354,35 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   );
   if (proposals.length === 0) return null;
 
-  // Read title and category from each proposal (max 5 in summary)
-  const summaries: string[] = [];
-  for (const f of proposals.slice(0, 5)) {
-    const content = deps.readFile(join(proposalsDir, f.name));
-    if (!content.ok) continue;
-    const titleMatch = content.value.match(/^# Proposal: (.+)$/m);
-    // Only match category in YAML frontmatter (between --- delimiters)
-    const frontmatter = content.value.match(/^---\n([\s\S]*?)\n---/);
-    const categoryMatch = frontmatter?.[1]?.match(/^category:\s*(.+)$/m);
-    const confidenceMatch = frontmatter?.[1]?.match(/^\s*agent_score:\s*(\d+)/m);
-    const confidence = confidenceMatch ? ` | confidence: ${confidenceMatch[1]}` : "";
-    if (titleMatch) {
-      summaries.push(
-        `  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`,
-      );
+  // Only show summaries when <= 3 proposals; otherwise just show count (#242)
+  let summarySection = "";
+  if (proposals.length <= 3) {
+    const summaries: string[] = [];
+    for (const f of proposals) {
+      const content = deps.readFile(join(proposalsDir, f.name));
+      if (!content.ok) continue;
+      const titleMatch = content.value.match(/^# Proposal: (.+)$/m);
+      const frontmatter = content.value.match(/^---\n([\s\S]*?)\n---/);
+      const categoryMatch = frontmatter?.[1]?.match(/^category:\s*(.+)$/m);
+      const confidenceMatch = frontmatter?.[1]?.match(/^\s*agent_score:\s*(\d+)/m);
+      const confidence = confidenceMatch ? ` | confidence: ${confidenceMatch[1]}` : "";
+      if (titleMatch) {
+        summaries.push(
+          `  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`,
+        );
+      }
+    }
+    if (summaries.length > 0) {
+      summarySection = `${summaries.join("\n")}\n\n`;
     }
   }
 
-  if (summaries.length === 0) return null;
-
-  const more = proposals.length > 5 ? `\n  ...and ${proposals.length - 5} more` : "";
-
   return (
     `\n## Pending Improvement Proposals\n\n` +
-    `You have **${proposals.length}** pending improvement proposal${proposals.length === 1 ? "" : "s"} from recent learnings:\n` +
-    summaries.join("\n") +
-    more +
-    "\n\n" +
+    `You have **${proposals.length}** pending improvement proposal${proposals.length === 1 ? "" : "s"} from recent learnings.\n` +
+    summarySection +
     `Present these to Ian for review using /review-proposals for structured batch review.\n` +
-    `Path: MEMORY/LEARNING/PROPOSALS/pending/\n` +
-    `To approve: apply the change, annotate with rationale, move to PROPOSALS/applied/\n` +
-    `To reject: annotate with rationale, move to PROPOSALS/rejected/\n` +
-    `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`
+    `Path: MEMORY/LEARNING/PROPOSALS/pending/\n`
   );
 }
 
@@ -423,7 +428,7 @@ const defaultDeps: LoadContextDeps = {
     });
     return r.ok ? r.value.stdout.trim() : new Date().toISOString();
   },
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  isSubagent: isSubagentDefault,
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };

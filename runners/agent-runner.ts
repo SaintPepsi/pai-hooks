@@ -9,6 +9,7 @@
  */
 
 import { appendFile, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
+import { safeJsonParse } from "@hooks/core/adapters/json";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
@@ -130,8 +131,13 @@ export function runAgent(
 
   let sessionId = "";
   if (result.ok && result.value.stdout) {
-    const output: ClaudeJsonOutput = JSON.parse(result.value.stdout);
-    sessionId = output.session_id ?? "";
+    const parsed = safeJsonParse(result.value.stdout);
+    if (!parsed.ok) {
+      deps.stderr(`[agent-runner] Failed to parse claude output: ${parsed.error.message}`);
+    } else if (typeof parsed.value === "object" && parsed.value !== null) {
+      const output = parsed.value as ClaudeJsonOutput;
+      sessionId = output.session_id ?? "";
+    }
   }
 
   if (result.ok && result.value.stderr) {
@@ -179,6 +185,15 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  const config = JSON.parse(configArg) as RunnerConfig;
+  const parsed = safeJsonParse(configArg);
+  if (!parsed.ok) {
+    process.stderr.write(`[agent-runner] Invalid JSON config: ${parsed.error.message}\n`);
+    process.exit(1);
+  }
+  if (typeof parsed.value !== "object" || parsed.value === null) {
+    process.stderr.write("[agent-runner] JSON config is not an object\n");
+    process.exit(1);
+  }
+  const config = parsed.value as RunnerConfig;
   runAgent(config, dryRun);
 }

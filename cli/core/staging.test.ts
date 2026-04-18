@@ -57,7 +57,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     const result = stageHook(ctxResult.value, hookDef, [], deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const { commandString } = result.value;
     expect(commandString).toBe(
@@ -94,7 +94,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
 
     const result = stageHook(ctx2Result.value, hookDef, [], deps2);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value.commandString).toBe(
       'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
@@ -123,7 +123,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     const hookDef = makeHookDef("GitSafety", "MergeGate", "/source/hooks/GitSafety/MergeGate");
     const result = stageHook(ctxResult.value, hookDef, [], deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     // The command uses $CLAUDE_PROJECT_DIR — not hardcoded claudeDir, not cwd
     expect(result.value.commandString).toBe(

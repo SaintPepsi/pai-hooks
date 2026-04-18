@@ -24,7 +24,7 @@ import {
   logSettingsAudit,
   snapshotPath,
 } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getHomeDir, getPaiDir } from "@hooks/lib/paths";
 import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ function compareAndRevert(sessionId: string, home: string, deps: SettingsRevertD
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 
 const defaultDeps: SettingsRevertDeps = {
-  homedir: () => process.env.HOME || "/",
+  homedir: getHomeDir,
   stderr: defaultStderr,
   readFile,
   writeFile,

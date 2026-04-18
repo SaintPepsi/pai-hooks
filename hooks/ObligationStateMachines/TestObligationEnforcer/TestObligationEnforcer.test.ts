@@ -5,7 +5,7 @@ import { getReasonFromBlock, isBareNoOp } from "@hooks/lib/test-helpers";
 import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
 
 const mockInput: StopInput = {
-  hook_type: "Stop",
+  hook_event_name: "Stop",
   session_id: "test-session-123",
 };
 
