@@ -67,7 +67,7 @@ describe("render.ts integration", () => {
       join(OUT, "groups", "TestGroup", "TestHook.html"),
     );
     expect(htmlResult.ok).toBe(true);
-    if (!htmlResult.ok) return;
+    if (!htmlResult.ok) throw new Error(htmlResult.error.message);
 
     expect(htmlResult.value).toContain('onclick="copyIdea()"');
     expect(htmlResult.value).toContain('id="ideaContent"');
@@ -91,7 +91,7 @@ describe("render.ts integration", () => {
       join(OUT, "groups", "TestGroup", "TestHook.html"),
     );
     expect(htmlResult.ok).toBe(true);
-    if (!htmlResult.ok) return;
+    if (!htmlResult.ok) throw new Error(htmlResult.error.message);
 
     expect(htmlResult.value).not.toContain('onclick="copyIdea()"');
     expect(htmlResult.value).not.toContain('id="ideaContent"');

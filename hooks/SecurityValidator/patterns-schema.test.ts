@@ -86,7 +86,7 @@ describe("decodePatternsConfig", () => {
     const path = join(import.meta.dir, "patterns.json");
     const fileResult = readFile(path);
     expect(fileResult.ok).toBe(true);
-    if (!fileResult.ok) return;
+    if (!fileResult.ok) throw new Error(fileResult.error.message);
 
     const config = decodePatternsConfig(fileResult.value);
     expect(config).not.toBeNull();

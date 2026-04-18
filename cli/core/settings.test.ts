@@ -113,7 +113,7 @@ describe("mergeHookEntry", () => {
     const settings: SettingsJson = {};
     const r1 = mergeHookEntry(settings, "PreToolUse", "Bash", "./hooks/A/A.hook.ts");
     expect(r1.ok).toBe(true);
-    if (!r1.ok) return;
+    if (!r1.ok) throw new Error(r1.error.message);
 
     const r2 = mergeHookEntry(r1.value, "PreToolUse", "Edit", "./hooks/B/B.hook.ts");
     expect(r2.ok).toBe(true);
