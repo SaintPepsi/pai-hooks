@@ -70,3 +70,4 @@ background process spawned by the `UpdateCounts` contract at session end.
 - All filesystem I/O through `@hooks/core/adapters/fs`.
 - Config injected via `UpdateCountsConfig` parameter, env access in `@hooks/lib/paths`.
 - Usage cache refresh removed. Statusline handles its own OAuth usage fetching.
+- Uses `safeJsonParse` from `core/adapters/json.ts` for settings.json parsing instead of bare `JSON.parse`.
