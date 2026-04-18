@@ -1,5 +1,0 @@
-{
-  "name": "DefaultEffort",
-  "event": "SessionStart",
-  "script": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/DefaultEffort/DefaultEffort.hook.ts"
-}
