@@ -245,6 +245,7 @@ const SKIP_PATH_PATTERNS: readonly RegExp[] = [
   /(^|\/)\.vscode\//, // VS Code config
   /(^|\/)\.github\//, // GitHub Actions/workflows
   /(^|\/)\.husky\//, // Husky git hooks
+  /\.stories\.(svelte|ts|tsx|js|jsx)$/, // Storybook story files — visual tests, not unit-testable
 ];
 
 /**

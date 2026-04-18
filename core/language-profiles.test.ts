@@ -139,6 +139,15 @@ describe("language-profiles", () => {
     test("returns null for .husky hook files", () => {
       expect(getLanguageProfile("/project/.husky/pre-commit")).toBeNull();
     });
+
+    test("returns null for Storybook story files", () => {
+      expect(getLanguageProfile("src/components/Button.stories.ts")).toBeNull();
+      expect(getLanguageProfile("src/components/Button.stories.tsx")).toBeNull();
+      expect(getLanguageProfile("src/components/Button.stories.js")).toBeNull();
+      expect(getLanguageProfile("src/components/Button.stories.jsx")).toBeNull();
+      expect(getLanguageProfile("src/components/LoginModal.stories.svelte")).toBeNull();
+      expect(getLanguageProfile("/Users/hogers/project/CardCarousel.stories.svelte")).toBeNull();
+    });
   });
 
   describe("isScorableFile", () => {
