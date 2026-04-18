@@ -1,431 +1,13 @@
 {
   "envVar": "SAINTPEPSI_PAI_HOOKS_DIR",
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/CheckVersion/CheckVersion.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/CheckAlgorithmVersion/CheckAlgorithmVersion.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/BranchAwareness/BranchAwareness.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/GitignoreRecommender/GitignoreRecommender.hook.ts",
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/VoiceGate/VoiceGate/VoiceGate.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/MapleBranding/MapleBranding.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/DocCommitGuard/DocCommitGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/RebaseGuard/RebaseGuard.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiContextInjector/WikiContextInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SecurityValidator/SecurityValidator.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SkillGuard/SkillGuard/SkillGuard.hook.ts"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "AskUserQuestion",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsRevert/SettingsRevert.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "TaskCreate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "TaskUpdate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArchitectureEscalation/ArchitectureEscalation/ArchitectureEscalation.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WikiPipeline/WikiReadTracker/WikiReadTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "EnterWorktree",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/WorktreeSafetyVerification/WorktreeSafetyVerification.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PRDSync/PRDSync.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PRDSync/PRDSync.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/HookExecutePermission/HookExecutePermission.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "WebSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArchitectureEscalation/SonnetDelegation/SonnetDelegation.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
-          }
-        ]
-      },
       {
         "matcher": "CronDelete",
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
           }
         ]
       },
@@ -434,81 +16,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronCreate/CronCreate.hook.ts"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronCreate/CronCreate.hook.ts"
           }
         ]
       },
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycle/AgentLifecycleStop/AgentLifecycleStop.hook.ts"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/WorkCompletionLearning/WorkCompletionLearning.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/SessionSummary/SessionSummary.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LearningFeedback/RelationshipMemory/RelationshipMemory.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/UpdateCounts/UpdateCounts.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/GitAutoSync/GitAutoSync.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/SessionQualityReport/SessionQualityReport.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronSessionEnd/CronSessionEnd.hook.ts",
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/IdentityBranding/ModeAnalytics/ModeAnalytics.hook.ts",
-            "async": true
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       }
@@ -518,61 +35,45 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/AutoWorkCreation/AutoWorkCreation.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronFire/CronFire.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronFire/CronFire.hook.ts"
           }
         ]
       }
     ],
-    "PreCompact": [
+    "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PreCompactStatePersist/PreCompactStatePersist.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       }
     ],
-    "Stop": [
+    "PreToolUse": [
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/StopOrchestrator/StopOrchestrator/StopOrchestrator.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/LastResponseCache/LastResponseCache/LastResponseCache.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleValidator/SteeringRuleValidator.hook.ts"
           }
         ]
-      }
-    ],
-    "PermissionRequest": [
+      },
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/PermissionPromptLogger/PermissionPromptLogger.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
           }
         ]
       }
