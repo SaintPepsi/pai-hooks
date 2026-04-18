@@ -1032,9 +1032,7 @@ describe("resolveEvent — fallback warning on parseHookInput failure", () => {
     expect(
       io.stderrLines.some(
         (l) =>
-          l.includes("[TestResolveWarn]") &&
-          l.includes("resolveEvent: parseHookInput failed") &&
-          l.includes("SessionStart"),
+          l.includes("[runner]") && l.includes("event type fallback") && l.includes("SessionStart"),
       ),
     ).toBe(true);
   });
@@ -1062,12 +1060,10 @@ describe("resolveEvent — fallback warning on parseHookInput failure", () => {
       defaultDeps: {},
     };
     // Valid SessionStart input — parseHookInput returns Right
-    const validInput = JSON.stringify({ session_id: "s-ok", hook_type: "SessionStart" });
+    const validInput = JSON.stringify({ session_id: "s-ok", hook_event_name: "SessionStart" });
     const io = createMockIO();
     await runHook(contract, { ...io, stdinOverride: validInput });
-    expect(io.stderrLines.some((l) => l.includes("resolveEvent: parseHookInput failed"))).toBe(
-      false,
-    );
+    expect(io.stderrLines.some((l) => l.includes("event type fallback"))).toBe(false);
   });
 
   it("does not emit resolveEvent warning for single-event string contract", async () => {
@@ -1081,8 +1077,6 @@ describe("resolveEvent — fallback warning on parseHookInput failure", () => {
     // ambiguousInput fails parseHookInput, but single-event returns early before warn
     const io = createMockIO();
     await runHook(contract, { ...io, stdinOverride: ambiguousInput });
-    expect(io.stderrLines.some((l) => l.includes("resolveEvent: parseHookInput failed"))).toBe(
-      false,
-    );
+    expect(io.stderrLines.some((l) => l.includes("event type fallback"))).toBe(false);
   });
 });
