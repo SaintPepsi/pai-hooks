@@ -17,13 +17,13 @@ import {
   validateDocSections,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
 import { HookDocTracker } from "@hooks/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 import {
   getReasonFromBlock,
   isSilentNoOp,
   buildStopInput as makeStopInput,
   buildToolInput as makeToolInput,
 } from "@hooks/lib/test-helpers";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -575,7 +575,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -589,7 +589,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -603,7 +603,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -617,7 +617,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("/hooks/G/H/H.contract.ts");
@@ -633,7 +633,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("doc.md");
@@ -649,7 +649,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("## Overview");
@@ -666,7 +666,7 @@ describe("HookDocEnforcer", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 

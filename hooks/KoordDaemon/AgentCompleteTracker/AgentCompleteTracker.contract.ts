@@ -24,6 +24,7 @@
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -50,7 +51,10 @@ export interface AgentCompleteTrackerDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: AgentCompleteTrackerDeps = {
-  getEnv: (name) => process.env[name],
+  getEnv: (name) => {
+    const result = getEnvAdapter(name);
+    return result.ok ? result.value : undefined;
+  },
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   stderr: defaultStderr,
@@ -76,14 +80,15 @@ export const AgentCompleteTracker: AsyncHookContract<ToolHookInput, AgentComplet
     }
 
     // Extract thread_id from output and top-level only (NOT tool_input).
-    // Build a record that maps both tool_response (typed ToolHookInput field)
-    // and tool_output (raw Claude Code JSON field) so extraction works in
-    // both production (raw JSON has tool_output) and tests (typed fixture has tool_response).
-    const raw = input as unknown as Record<string, unknown>;
-    const record: Record<string, unknown> = { ...raw };
-    if (!("tool_output" in record) && typeof input.tool_response === "string") {
-      record.tool_output = input.tool_response;
-    }
+    // ToolHookInput now includes both tool_response and tool_output (#161),
+    // so extraction works in both production and tests without unsafe casts.
+    const record: Record<string, unknown> = {
+      session_id: input.session_id,
+      tool_name: input.tool_name,
+      tool_input: input.tool_input,
+      tool_response: input.tool_response,
+      tool_output: input.tool_output ?? input.tool_response,
+    };
     const threadId = extractThreadIdFromOutput(record);
     if (!threadId) {
       return ok({ continue: true });
