@@ -13,7 +13,7 @@
  * - max-turns caps agent cost
  */
 
-import { join } from "node:path";
+import { join } from "node:path"; // Used by buildArticlePrompt
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   ensureDir,
@@ -28,7 +28,7 @@ import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { runArticleWriter } from "@hooks/hooks/WorkLifecycle/ArticleWriter/run-article-writer";
-import { readHookConfig } from "@hooks/lib/hook-config";
+import { loadHookConfig } from "@hooks/lib/hook-config";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
@@ -59,30 +59,8 @@ const DEFAULT_CONFIG: ArticleWriterConfig = {
   repo: "",
 };
 
-/** Load config: defaults from config.json, overrides from hookConfig.articleWriter */
-function loadConfig(): ArticleWriterConfig {
-  const config = { ...DEFAULT_CONFIG };
-
-  // Load defaults from config.json next to this file
-  const configPath = join(__dirname, "config.json");
-  const localConfig = readFile(configPath);
-  if (localConfig.ok) {
-    try {
-      const parsed = JSON.parse(localConfig.value) as Partial<ArticleWriterConfig>;
-      if (parsed.repo !== undefined) config.repo = parsed.repo;
-    } catch {
-      // Ignore parse errors, use defaults
-    }
-  }
-
-  // Override with hookConfig.articleWriter from settings.json
-  const hookConfig = readHookConfig<Partial<ArticleWriterConfig>>("articleWriter");
-  if (hookConfig) {
-    if (hookConfig.repo !== undefined) config.repo = hookConfig.repo;
-  }
-
-  return config;
-}
+const getConfig = (): ArticleWriterConfig =>
+  loadHookConfig("articleWriter", DEFAULT_CONFIG, __dirname);
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -326,7 +304,7 @@ const defaultDeps: ArticleWriterDeps = {
   stat,
   runArticleWriter: (sessionId) => runArticleWriter(sessionId),
   baseDir: getPaiDir(),
-  websiteRepo: loadConfig().repo,
+  websiteRepo: getConfig().repo,
   principalName: getPrincipalName(),
   daName: getDAName(),
   stderr: defaultStderr,

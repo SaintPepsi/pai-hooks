@@ -38,6 +38,13 @@ export interface SharedDeps {
   stderr: (msg: string) => void;
 }
 
+// ─── Command Pattern Matching ────────────────────────────────────────────────
+
+/** Check if a command matches a pattern. */
+export function matchesCommand(command: string, pattern: RegExp): boolean {
+  return pattern.test(command);
+}
+
 // ─── PR Number Extraction ────────────────────────────────────────────────────
 
 /** Regex to find a PR number in a gh pr merge/review command. */

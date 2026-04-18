@@ -64,6 +64,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleValidator/SteeringRuleValidator.hook.ts"
           }
         ]

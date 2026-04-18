@@ -9,6 +9,7 @@
  *   - With schema: returns Result<T, ResultError> (validated, fail-explicit)
  */
 
+import { join } from "node:path";
 import { readFile } from "@hooks/core/adapters/fs";
 import {
   configValidationFailed,
@@ -118,6 +119,54 @@ export function readHookConfig<T>(
  *
  * If `logStderr` is provided it is called with the error message before returning.
  */
+/**
+ * Shallow merge that only copies defined values from partial into target.
+ */
+function mergeConfig<T extends object>(target: T, partial: Partial<T>): T {
+  const result = { ...target };
+  for (const key of Object.keys(partial) as (keyof T)[]) {
+    if (partial[key] !== undefined) {
+      result[key] = partial[key] as T[keyof T];
+    }
+  }
+  return result;
+}
+
+/**
+ * Load hook config with 3-layer merge: defaults → config.json → hookConfig.
+ *
+ * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
+ * @param defaults - Default config values
+ * @param configDir - Directory containing config.json (typically __dirname)
+ * @returns Merged config
+ */
+export function loadHookConfig<T extends object>(
+  hookName: string,
+  defaults: T,
+  configDir: string,
+): T {
+  let config = { ...defaults };
+
+  const configPath = join(configDir, "config.json");
+  const localConfig = readFile(configPath);
+  if (localConfig.ok) {
+    const parseResult = tryCatch(
+      () => JSON.parse(localConfig.value) as Partial<T>,
+      () => null,
+    );
+    if (parseResult.ok && parseResult.value) {
+      config = mergeConfig(config, parseResult.value);
+    }
+  }
+
+  const hookCfg = readHookConfig<Partial<T>>(hookName);
+  if (hookCfg) {
+    config = mergeConfig(config, hookCfg);
+  }
+
+  return config;
+}
+
 function readRaw(
   hookName: string,
   readFileFn?: (path: string) => string | null,

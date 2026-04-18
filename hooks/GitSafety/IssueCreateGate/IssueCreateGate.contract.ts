@@ -14,6 +14,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { matchesCommand } from "@hooks/hooks/GitSafety/shared";
 import { defaultStderr } from "@hooks/lib/paths";
 import { getCommand } from "@hooks/lib/tool-input";
 
@@ -44,12 +45,6 @@ const BLOCK_MESSAGE = [
   "no milestone, no board placement, and no relationships.",
 ].join("\n");
 
-// ─── Pure Functions ─────────────────────────────────────────────────────────
-
-function isIssueCreate(command: string): boolean {
-  return ISSUE_CREATE_PATTERN.test(command);
-}
-
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: IssueCreateGateDeps = {
@@ -72,7 +67,7 @@ export const IssueCreateGate: SyncHookContract<ToolHookInput, IssueCreateGateDep
   ): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
 
-    if (!isIssueCreate(command)) {
+    if (!matchesCommand(command, ISSUE_CREATE_PATTERN)) {
       return ok({ continue: true });
     }
 

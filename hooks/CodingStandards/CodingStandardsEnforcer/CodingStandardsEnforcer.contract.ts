@@ -18,7 +18,6 @@
  * for pattern analysis.
  */
 
-import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
@@ -34,7 +33,7 @@ import {
   type Violation,
   type ViolationCheckOptions,
 } from "@hooks/lib/coding-standards-checks";
-import { readHookConfig } from "@hooks/lib/hook-config";
+import { loadHookConfig } from "@hooks/lib/hook-config";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import {
@@ -59,39 +58,8 @@ const DEFAULT_CONFIG: CodingStandardsEnforcerConfig = {
   skipFiles: [],
 };
 
-/** Load config: defaults from config.json, overrides from hookConfig.codingStandards */
-function loadConfig(): CodingStandardsEnforcerConfig {
-  const config: CodingStandardsEnforcerConfig = {
-    exportDefault: { allowPatterns: [...(DEFAULT_CONFIG.exportDefault?.allowPatterns ?? [])] },
-    skipFiles: [...(DEFAULT_CONFIG.skipFiles ?? [])],
-  };
-
-  // Load defaults from config.json next to this file
-  const configPath = join(__dirname, "config.json");
-  const localConfig = adapterReadFile(configPath);
-  if (localConfig.ok) {
-    try {
-      const parsed = JSON.parse(localConfig.value) as Partial<CodingStandardsEnforcerConfig>;
-      if (parsed.exportDefault?.allowPatterns) {
-        config.exportDefault = { allowPatterns: parsed.exportDefault.allowPatterns };
-      }
-      if (parsed.skipFiles) config.skipFiles = parsed.skipFiles;
-    } catch {
-      // Ignore parse errors, use defaults
-    }
-  }
-
-  // Override with hookConfig.codingStandards from settings.json
-  const hookConfig = readHookConfig<Partial<CodingStandardsEnforcerConfig>>("codingStandards");
-  if (hookConfig) {
-    if (hookConfig.exportDefault?.allowPatterns) {
-      config.exportDefault = { allowPatterns: hookConfig.exportDefault.allowPatterns };
-    }
-    if (hookConfig.skipFiles) config.skipFiles = hookConfig.skipFiles;
-  }
-
-  return config;
-}
+const getConfig = (): CodingStandardsEnforcerConfig =>
+  loadHookConfig("codingStandards", DEFAULT_CONFIG, __dirname);
 
 export interface CodingStandardsEnforcerDeps {
   readFile: (path: string) => string | null;
@@ -192,7 +160,7 @@ function getExportDefaultExclusions(
 
 /** Check if file matches any skipFiles patterns from config. */
 function isSkippedByConfig(filePath: string): boolean {
-  const config = loadConfig();
+  const config = getConfig();
   const patterns = config.skipFiles;
   if (!patterns?.length) return false;
   const basename = filePath.split("/").pop() ?? "";
@@ -208,7 +176,7 @@ const defaultDeps: CodingStandardsEnforcerDeps = {
     const result = adapterReadFile(path);
     return result.ok ? result.value : null;
   },
-  readConfig: () => loadConfig(),
+  readConfig: getConfig,
   signal: defaultSignalLoggerDeps,
   stderr: defaultStderr,
   baseDir,

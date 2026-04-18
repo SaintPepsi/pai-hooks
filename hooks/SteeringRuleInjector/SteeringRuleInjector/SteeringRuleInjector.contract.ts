@@ -25,7 +25,7 @@ import type {
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
 import { getEnvOrUndefined, isSubagentDefault } from "@hooks/lib/environment";
-import { readHookConfig } from "@hooks/lib/hook-config";
+import { loadHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -81,34 +81,8 @@ const DEFAULT_CONFIG: SteeringRuleConfig = {
   trackerDir: "MEMORY/STATE/.injections",
 };
 
-/** Load config: defaults from config.json, overrides from hookConfig.steeringRuleInjector */
-function loadConfig(): SteeringRuleConfig {
-  const config = { ...DEFAULT_CONFIG };
-
-  // Load defaults from config.json next to this file
-  const configPath = join(__dirname, "config.json");
-  const localConfig = readFile(configPath);
-  if (localConfig.ok) {
-    try {
-      const parsed = JSON.parse(localConfig.value) as Partial<SteeringRuleConfig>;
-      if (parsed.enabled !== undefined) config.enabled = parsed.enabled;
-      if (Array.isArray(parsed.includes)) config.includes = parsed.includes;
-      if (parsed.trackerDir !== undefined) config.trackerDir = parsed.trackerDir;
-    } catch {
-      // Ignore parse errors, use defaults
-    }
-  }
-
-  // Override with hookConfig.steeringRuleInjector from settings.json
-  const hookConfig = readHookConfig<Partial<SteeringRuleConfig>>("steeringRuleInjector");
-  if (hookConfig) {
-    if (hookConfig.enabled !== undefined) config.enabled = hookConfig.enabled;
-    if (Array.isArray(hookConfig.includes)) config.includes = hookConfig.includes;
-    if (hookConfig.trackerDir !== undefined) config.trackerDir = hookConfig.trackerDir;
-  }
-
-  return config;
-}
+const getConfig = (): SteeringRuleConfig =>
+  loadHookConfig("steeringRuleInjector", DEFAULT_CONFIG, __dirname);
 
 // ─── Frontmatter Parser ─────────────────────────────────────────────────────
 
@@ -230,7 +204,7 @@ const defaultDeps: SteeringRuleInjectorDeps = {
     writeJson(trackerPath, tracker);
   },
 
-  getConfig: (): SteeringRuleConfig => loadConfig(),
+  getConfig,
 
   isSubagent: isSubagentDefault,
 

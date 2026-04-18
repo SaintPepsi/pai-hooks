@@ -14,15 +14,13 @@
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
-import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
-import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { readHookConfig } from "@hooks/lib/hook-config";
+import { loadHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr } from "@hooks/lib/paths";
 import { getCommand } from "@hooks/lib/tool-input";
 
@@ -38,33 +36,7 @@ const DEFAULT_CONFIG: RebaseGuardConfig = {
   allowOntoRebase: true,
 };
 
-/** Load config: defaults from config.json, overrides from hookConfig.rebaseGuard */
-function loadConfig(stderr: (msg: string) => void): RebaseGuardConfig {
-  const config = { ...DEFAULT_CONFIG };
-
-  // Load defaults from config.json next to this file
-  const configPath = join(__dirname, "config.json");
-  const localConfig = readFile(configPath);
-  if (localConfig.ok) {
-    try {
-      const parsed = JSON.parse(localConfig.value) as Partial<RebaseGuardConfig>;
-      if (parsed.protectedBranches) config.protectedBranches = parsed.protectedBranches;
-      if (parsed.allowOntoRebase !== undefined) config.allowOntoRebase = parsed.allowOntoRebase;
-    } catch {
-      stderr(`[RebaseGuard] Failed to parse config.json`);
-    }
-  }
-
-  // Override with hookConfig.rebaseGuard from settings.json (untyped overload)
-  const hookConfig = readHookConfig<Partial<RebaseGuardConfig>>("rebaseGuard");
-  if (hookConfig) {
-    if (hookConfig.protectedBranches) config.protectedBranches = hookConfig.protectedBranches;
-    if (hookConfig.allowOntoRebase !== undefined)
-      config.allowOntoRebase = hookConfig.allowOntoRebase;
-  }
-
-  return config;
-}
+const getConfig = (): RebaseGuardConfig => loadHookConfig("rebaseGuard", DEFAULT_CONFIG, __dirname);
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -213,7 +185,7 @@ const defaultDeps: RebaseGuardDeps = {
     const result = execSyncSafe("git rev-parse --abbrev-ref HEAD");
     return result.ok ? result.value.trim() : null;
   },
-  getConfig: () => loadConfig(defaultStderr),
+  getConfig,
   stderr: defaultStderr,
 };
 

@@ -12,15 +12,14 @@
  * Pattern: pai-hooks/contracts/BashWriteGuard.ts
  */
 
-import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
-import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { readHookConfig } from "@hooks/lib/hook-config";
+import { matchesCommand } from "@hooks/hooks/GitSafety/shared";
+import { loadHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr } from "@hooks/lib/paths";
 import { getCommand } from "@hooks/lib/tool-input";
 
@@ -45,30 +44,8 @@ const DEFAULT_CONFIG: ProtectedBranchGuardConfig = {
   exemptDirs: [],
 };
 
-/** Load config: defaults from config.json, overrides from hookConfig.protectedBranchGuard */
-function loadConfig(): ProtectedBranchGuardConfig {
-  const config = { ...DEFAULT_CONFIG };
-
-  // Load defaults from config.json next to this file
-  const configPath = join(__dirname, "config.json");
-  const localConfig = readFile(configPath);
-  if (localConfig.ok) {
-    try {
-      const parsed = JSON.parse(localConfig.value) as Partial<ProtectedBranchGuardConfig>;
-      if (Array.isArray(parsed.exemptDirs)) config.exemptDirs = parsed.exemptDirs;
-    } catch {
-      // Ignore parse errors, use defaults
-    }
-  }
-
-  // Override with hookConfig.protectedBranchGuard from settings.json
-  const hookConfig = readHookConfig<Partial<ProtectedBranchGuardConfig>>("protectedBranchGuard");
-  if (hookConfig) {
-    if (Array.isArray(hookConfig.exemptDirs)) config.exemptDirs = hookConfig.exemptDirs;
-  }
-
-  return config;
-}
+const getConfig = (): ProtectedBranchGuardConfig =>
+  loadHookConfig("protectedBranchGuard", DEFAULT_CONFIG, __dirname);
 
 /**
  * Built-in exempt directories. These are always exempt regardless of settings.
@@ -81,11 +58,6 @@ const BUILTIN_EXEMPT_PATTERNS: RegExp[] = [/\/\.claude(?:\/|$)/];
 const GIT_MUTATION_PATTERN = /\bgit\s+(commit|push|merge)\b/;
 
 // ─── Pure Functions ─────────────────────────────────────────────────────────
-
-/** Check if command contains a git mutation (commit/push/merge). */
-function isGitMutation(command: string): boolean {
-  return GIT_MUTATION_PATTERN.test(command);
-}
 
 /** Build regex patterns from user-configured directory names. */
 function buildExemptPatterns(dirs: string[]): RegExp[] {
@@ -112,7 +84,7 @@ const defaultDeps: ProtectedBranchGuardDeps = {
   },
   getCwd: () => process.cwd(),
   getExemptDirs: () => {
-    const cfg = loadConfig();
+    const cfg = getConfig();
     const dirs = cfg.exemptDirs;
     if (!dirs.every((d): d is string => typeof d === "string")) return [];
     return dirs;
@@ -137,7 +109,7 @@ export const ProtectedBranchGuard: SyncHookContract<ToolHookInput, ProtectedBran
     const command = getCommand(input);
 
     // Only check git mutation commands (commit, push, merge)
-    if (!isGitMutation(command)) {
+    if (!matchesCommand(command, GIT_MUTATION_PATTERN)) {
       return ok({ continue: true });
     }
 
