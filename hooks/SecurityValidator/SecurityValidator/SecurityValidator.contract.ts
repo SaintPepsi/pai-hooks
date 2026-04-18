@@ -17,7 +17,7 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getHomeDir, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -285,6 +285,11 @@ function validateBashCommand(
   patterns: PatternsConfig,
   deps: SecurityValidatorDeps,
 ): ValidationResult {
+  // Clipboard-only commands: safe regardless of piped content (fixes #240)
+  // Match: "... | pbcopy", "... | pbpaste", or commands starting with "pbpaste ..."
+  if (/\|\s*pb(?:copy|paste)\s*$|^pb(?:copy|paste)(?:\s|$)/.test(command))
+    return { action: "allow" };
+
   for (const p of patterns.bash.blocked) {
     if (matchesPattern(command, p.pattern, deps)) return { action: "block", reason: p.reason };
   }
@@ -388,7 +393,7 @@ const defaultDeps: SecurityValidatorDeps = {
   ensureDir,
   safeRegexTest,
   createRegex,
-  homedir: () => process.env.HOME || "/",
+  homedir: getHomeDir,
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };

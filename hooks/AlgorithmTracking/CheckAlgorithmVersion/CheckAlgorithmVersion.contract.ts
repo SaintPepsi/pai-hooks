@@ -12,8 +12,8 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { isSubagent } from "@hooks/lib/environment";
-import { defaultStderr } from "@hooks/lib/paths";
+import { isSubagentDefault } from "@hooks/lib/environment";
+import { defaultStderr, getHomeDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -84,12 +84,12 @@ function defaultWriteStateFile(homeDir: string, data: Record<string, unknown>): 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: CheckAlgorithmVersionDeps = {
-  getLocalVersion: () => defaultGetLocalVersion(process.env.HOME!),
+  getLocalVersion: () => defaultGetLocalVersion(getHomeDir()),
   getUpstreamVersion: defaultGetUpstreamVersion,
-  writeStateFile: (data) => defaultWriteStateFile(process.env.HOME!, data),
-  isSubagent: () => isSubagent((k) => process.env[k]),
+  writeStateFile: (data) => defaultWriteStateFile(getHomeDir(), data),
+  isSubagent: isSubagentDefault,
   stderr: defaultStderr,
-  homeDir: process.env.HOME!,
+  homeDir: getHomeDir(),
 };
 
 export const CheckAlgorithmVersion: AsyncHookContract<

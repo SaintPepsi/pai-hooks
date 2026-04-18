@@ -1,0 +1,9 @@
+{
+  "name": "CodingStandardsInjector",
+  "group": "CodingStandards",
+  "event": "PreToolUse",
+  "description": "Injects coding standards files as context on first Write/Edit",
+  "schemaVersion": 1,
+  "tags": ["context", "standards"],
+  "presets": []
+}

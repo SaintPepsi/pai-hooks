@@ -19,6 +19,7 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -48,7 +49,10 @@ const defaultDeps: CronDeleteDeps = {
   removeFile,
   appendFile,
   stderr: defaultStderr,
-  getEnv: (key) => process.env[key],
+  getEnv: (key) => {
+    const result = getEnvAdapter(key);
+    return result.ok ? result.value : undefined;
+  },
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────

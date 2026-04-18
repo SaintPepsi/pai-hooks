@@ -127,7 +127,7 @@ describe("uninstall command", () => {
     const result = uninstall(uninstallArgs(["TypeStrictness"]), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = deps.getFiles();
 
@@ -161,7 +161,7 @@ describe("uninstall command", () => {
     const result = uninstall(uninstallArgs(["CodingStandards"]), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const files = deps.getFiles();
 

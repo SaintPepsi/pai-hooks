@@ -53,7 +53,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -63,7 +63,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -73,7 +73,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -85,7 +85,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -95,7 +95,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -104,7 +104,7 @@ describe("IssueCreateGate", () => {
   it("passes through git status", () => {
     const result = IssueCreateGate.execute(makeBashInput("git status"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -114,28 +114,28 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh issue list", () => {
     const result = IssueCreateGate.execute(makeBashInput("gh issue list --state open"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh issue view", () => {
     const result = IssueCreateGate.execute(makeBashInput("gh issue view 42"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("passes through gh issue close", () => {
     const result = IssueCreateGate.execute(makeBashInput("gh issue close 42"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -145,7 +145,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -157,7 +157,7 @@ describe("IssueCreateGate", () => {
       makeDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("submit_issue");
   });
