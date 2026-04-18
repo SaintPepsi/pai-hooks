@@ -73,6 +73,14 @@ function detectsDestructiveDelete(command: string): boolean {
   // git rm --cached only untracks files, doesn't delete from disk — always safe
   if (/\bgit\s+rm\b/.test(command) && /--cached\b/.test(command)) return false;
 
+  // Clipboard copy operations — just copying text, not executing.
+  // Only exempt if the clipboard tool is the FINAL operation (no &, &&, ;, || chaining after).
+  // Pattern: command ends with `| pbcopy` (or xclip/xsel/clip) with only optional whitespace after.
+  // Also handles heredocs: `cat << 'EOF' | pbcopy\ncontent\nEOF` — first line ends with clipboard.
+  const clipboardPattern = /\|\s*(?:pbcopy|xclip|xsel|clip(?:\.exe)?)\s*$/;
+  const firstLine = command.split("\n")[0];
+  if (clipboardPattern.test(command) || clipboardPattern.test(firstLine)) return false;
+
   // rm with recursive flag (segmented to avoid matching grep -rf etc.)
   const rmSegments = command.match(/\brm\b[^|&;]*/g);
   if (rmSegments) {

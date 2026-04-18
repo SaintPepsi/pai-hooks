@@ -650,6 +650,90 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
   });
 });
 
+// ─── Bash: Clipboard Copy Exclusion ──────────────────────────────────────────
+
+describe("DestructiveDeleteGuard clipboard copy exclusion", () => {
+  test("allows echo with rm -rf piped to pbcopy", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('echo "rm -rf /tmp/foo" | pbcopy'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(result.value.continue).toBe(true);
+  });
+
+  test("allows cat heredoc with rm -rf piped to pbcopy", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("cat << 'EOF' | pbcopy\nrm -rf ~/Library/Caches\nEOF"),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(result.value.continue).toBe(true);
+  });
+
+  test("allows printf with rm -rf piped to xclip", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('printf "rm -rf /var/log/*" | xclip'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(result.value.continue).toBe(true);
+  });
+
+  test("allows rm -rf content piped to xsel", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('echo "rm -rf ~/temp" | xsel'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(result.value.continue).toBe(true);
+  });
+
+  test("allows rm -rf content piped to clip.exe (WSL)", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('echo "rm -rf /mnt/c/temp" | clip.exe'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(result.value.continue).toBe(true);
+  });
+
+  test("blocks rm -rf after clipboard with & chain", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('echo "safe" | pbcopy & rm -rf ~'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+  });
+
+  test("blocks rm -rf after clipboard with && chain", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('echo "safe" | pbcopy && rm -rf /home/user'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+  });
+
+  test("blocks rm -rf after clipboard with ; chain", () => {
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('echo "safe" | pbcopy; rm -rf /var'),
+      mockDeps,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+  });
+});
+
 // ─── Bash: Non-rm Allowed Commands ───────────────────────────────────────────
 
 describe("DestructiveDeleteGuard Bash non-rm allowed", () => {
