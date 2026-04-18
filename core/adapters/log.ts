@@ -11,7 +11,6 @@ import { join } from "node:path";
 import { appendFile, ensureDir, readDir, removeFile } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import { getHomeDir } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,7 +84,9 @@ export function appendHookLog(
   forceCleanup?: boolean,
   stderr?: (msg: string) => void,
 ): Result<void, ResultError> {
-  const dir = logDir ?? join(getHomeDir(), ".claude", "MEMORY", "STATE", "logs");
+  const home = process.env.HOME;
+  const dir = logDir ?? (home ? join(home, ".claude", "MEMORY", "STATE", "logs") : null);
+  if (!dir) return ok(undefined);
 
   if (!dirEnsured || logDir !== undefined) {
     const mkResult = ensureDir(dir);
