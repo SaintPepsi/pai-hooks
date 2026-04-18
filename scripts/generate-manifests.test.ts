@@ -214,7 +214,7 @@ describe("generate", () => {
 
     const result = generate(baseOptions("/hooks", "/repo"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value.hookCount).toBe(1);
     expect(result.value.groupCount).toBe(1);
@@ -321,7 +321,7 @@ describe("generate", () => {
 
     const result = generate(baseOptions("/hooks", "/repo"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const hookFile = result.value.files.find(
       (f) => f.path.endsWith("hook.json") && f.path.includes("TestHook"),
@@ -351,7 +351,7 @@ describe("generate", () => {
 
     const result = generate(baseOptions("/hooks", "/repo"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const groupFile = result.value.files.find((f) => f.path.endsWith("group.json"));
     expect(groupFile).toBeDefined();
@@ -374,7 +374,7 @@ describe("generate", () => {
 
     const result = generate(baseOptions("/hooks", "/repo"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const presetsFile = result.value.files.find((f) => f.path.endsWith("presets.json"));
     expect(presetsFile).toBeUndefined();
@@ -391,7 +391,7 @@ describe("generate", () => {
 
     const result = generate(baseOptions("/hooks", "/repo"), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const presetsFile = result.value.files.find((f) => f.path.endsWith("presets.json"));
     expect(presetsFile).toBeDefined();

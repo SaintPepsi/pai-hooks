@@ -8,7 +8,6 @@ import {
   DuplicationCheckerContract,
   type DuplicationCheckerDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract";
-import type { InferenceResult } from "@pai/Tools/Inference";
 import { DuplicationIndexBuilderContract } from "@hooks/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import {
@@ -19,6 +18,7 @@ import {
   getCurrentBranch,
 } from "@hooks/hooks/DuplicationDetection/shared";
 import { makeEditInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-helpers";
+import type { InferenceResult } from "@pai/Tools/Inference";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -492,7 +492,7 @@ function superUniqueSpecialFunction123(): string {
         exists: (path) => {
           // Pretend lock file does not exist so reporting runs
           if (path.endsWith(".lock")) return false;
-          return (require("node:fs").existsSync(path) as boolean);
+          return require("node:fs").existsSync(path) as boolean;
         },
         appendFile: (path, content) => {
           written.push({ path, content });
@@ -539,11 +539,11 @@ function superUniqueSpecialFunction123(): string {
         issueReporting: true,
         exists: (path) => {
           if (path.endsWith(".lock")) return true;
-          return (require("node:fs").existsSync(path) as boolean);
+          return require("node:fs").existsSync(path) as boolean;
         },
         readFile: (path) => {
           if (path.endsWith(".lock")) return freshTs;
-          return (require("node:fs").readFileSync(path, "utf-8") as string);
+          return require("node:fs").readFileSync(path, "utf-8") as string;
         },
         appendFile: (path) => {
           written.push({ path });

@@ -87,7 +87,7 @@ describe("list command", () => {
 
     const result = list(makeArgs(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("TestHook");
     expect(result.value).toContain("TestGroup");
@@ -110,7 +110,7 @@ describe("list command", () => {
 
     const result = list(makeArgs(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("OrphanHook");
     expect(result.value).toContain("MISSING");
@@ -142,7 +142,7 @@ describe("list command", () => {
 
     const result = list(makeArgs(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toBe("No hooks installed. Run paih install to get started.");
   });
@@ -157,7 +157,7 @@ describe("list command", () => {
 
     const result = list(makeArgs(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toBe("No hooks installed. Run paih install to get started.");
   });
@@ -174,7 +174,7 @@ describe("list command", () => {
 
     const result = list(makeArgs({ json: true }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const parsed = JSON.parse(result.value) as ListEntry[];
     expect(parsed).toHaveLength(2);
@@ -195,7 +195,7 @@ describe("list command", () => {
 
     const result = list(makeArgs({ json: true }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toBe("[]");
   });
@@ -213,7 +213,7 @@ describe("list command", () => {
 
     const result = list(makeArgs({ in: "/other/project" }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value).toContain("TestHook");
     expect(result.value).toContain("ok");
@@ -244,7 +244,7 @@ describe("list command", () => {
 
     const result = list(makeArgs({ json: true }), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     const parsed = JSON.parse(result.value) as ListEntry[];
     expect(parsed[0].status).toBe("MISSING");

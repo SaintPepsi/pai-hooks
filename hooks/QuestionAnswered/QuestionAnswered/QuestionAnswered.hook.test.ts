@@ -9,7 +9,7 @@ describe("QuestionAnswered hook shell", () => {
     const { stdout, exitCode } = await runHookScript(HOOK_PATH, {
       tool_name: "AskUserQuestion",
       tool_input: { question: "What do you think?" },
-      tool_result: "User answered: yes",
+      tool_response: "User answered: yes",
       session_id: uniqueSessionId("test-qa"),
     });
     expect(exitCode).toBe(0);
@@ -23,7 +23,7 @@ describe("QuestionAnswered hook shell", () => {
     const { stdout, exitCode } = await runHookScript(HOOK_PATH, {
       tool_name: "AskUserQuestion",
       tool_input: { question: "Another question" },
-      tool_result: "User answered: no",
+      tool_response: "User answered: no",
       session_id: uniqueSessionId("test-qa"),
     });
     expect(exitCode).toBe(0);

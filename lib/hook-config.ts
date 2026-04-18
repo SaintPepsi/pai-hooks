@@ -25,15 +25,20 @@ interface SettingsWithHookConfig {
 }
 
 /**
- * Read a hook's config section from settings.json.
+ * Read a hook's config section from settings.json (untyped, fail-open).
+ *
+ * **ESCAPE HATCH**: This overload returns unvalidated data. Prefer the
+ * schema-validated overload for type safety at the config boundary.
  *
  * Navigates to `hookConfig.{hookName}` and returns the value,
  * or null if not configured / on any read or parse error.
+ * Callers must validate the returned shape before use.
  *
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
  * @param logStderr - Optional stderr logger called with a message on each failure
+ * @returns T | null — caller is responsible for validating shape
  */
 export function readHookConfig<T = Record<string, unknown>>(
   hookName: string,
@@ -43,20 +48,23 @@ export function readHookConfig<T = Record<string, unknown>>(
 ): T | null;
 
 /**
- * Read and validate a hook's config section from settings.json.
+ * Read and validate a hook's config section from settings.json (PREFERRED).
  *
- * Like the untyped overload but validates against `schema` using Effect Schema.
- * Returns `Result<T, ResultError>` — ok on success, err with a distinct error
- * code per failure mode:
+ * Validates against `schema` using Effect Schema. Returns `Result<T, ResultError>`
+ * with distinct error codes per failure mode:
  *   - `FileReadFailed` — settings.json could not be read
  *   - `JsonParseFailed` — settings.json contains invalid JSON
  *   - `ConfigValidationFailed` — key missing, not an object, or schema invalid
+ *
+ * This is the recommended API: validation happens at the config boundary,
+ * ensuring type safety without caller-side casts.
  *
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param schema - Effect Schema to validate against
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
  * @param logStderr - Optional stderr logger called with a message on each failure
+ * @returns Result<T, ResultError> — validated config or typed error
  */
 export function readHookConfig<T>(
   hookName: string,
@@ -76,8 +84,7 @@ export function readHookConfig<T>(
   // Detect which overload was called by checking if second arg is an Effect Schema.
   // Schemas are functions (not plain functions) — Schema.isSchema correctly distinguishes
   // them from the readFileFn option in the untyped overload.
-  const isSchemaOverload =
-    schemaOrReadFileFn !== undefined && Schema.isSchema(schemaOrReadFileFn);
+  const isSchemaOverload = schemaOrReadFileFn !== undefined && Schema.isSchema(schemaOrReadFileFn);
 
   if (isSchemaOverload) {
     const schema = schemaOrReadFileFn as Schema.Schema<T>;

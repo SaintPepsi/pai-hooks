@@ -9,6 +9,7 @@ import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SessionIdRegisterDeps } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
 import { SessionIdRegister } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
+import type { ThreadIdOutputInput } from "@hooks/hooks/KoordDaemon/shared";
 import {
   defaultReadFileOrNull,
   extractAgentName,
@@ -91,11 +92,10 @@ describe("KoordDaemon shared", () => {
     });
 
     test("does NOT extract from tool_input", () => {
-      expect(
-        extractThreadIdFromOutput({
-          tool_input: { thread_id: "12345678901234567" },
-        }),
-      ).toBeNull();
+      // Cast needed: tool_input is intentionally absent from ThreadIdOutputInput.
+      // This verifies the function ignores fields it doesn't read.
+      const input = { tool_input: { thread_id: "12345678901234567" } } as ThreadIdOutputInput;
+      expect(extractThreadIdFromOutput(input)).toBeNull();
     });
 
     test("returns null when no thread_id found", () => {

@@ -14,6 +14,7 @@
 
 import { join } from "node:path";
 import { ensureDir, fileExists, readDir, readFile, stat, writeFile } from "@hooks/core/adapters/fs";
+import { safeJsonParse } from "@hooks/core/adapters/json";
 import { getPaiDir, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -82,7 +83,10 @@ function countHooksFromSettings(settingsPath: string): number {
   const content = readFile(settingsPath);
   if (!content.ok) return 0;
 
-  const settings = JSON.parse(content.value) as Record<string, unknown>;
+  const parsed = safeJsonParse(content.value);
+  if (!parsed.ok) return 0;
+  if (typeof parsed.value !== "object" || parsed.value === null) return 0;
+  const settings = parsed.value as Record<string, unknown>;
   const hooks = settings.hooks;
   if (!hooks || typeof hooks !== "object") return 0;
 

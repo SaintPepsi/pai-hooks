@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { ok } from "@hooks/core/result";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { CanaryHook, type CanaryHookDeps } from "./CanaryHook.contract";
 
 const mockInput: SessionStartInput = {
-  hook_type: "SessionStart",
+  hook_event_name: "SessionStart",
   session_id: "test-session",
 };
 
@@ -60,5 +61,27 @@ describe("CanaryHook", () => {
     CanaryHook.execute(mockInput, deps);
     expect(appendedPath).toContain("canary-hook.log");
     expect(appendedContent).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  test("propagates ensureDir errors", () => {
+    const deps = makeDeps({
+      ensureDir: () => err(new ResultError(ErrorCode.FileWriteFailed, "permission denied")),
+    });
+    const result = CanaryHook.execute(mockInput, deps);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe(ErrorCode.FileWriteFailed);
+    }
+  });
+
+  test("propagates appendFile errors", () => {
+    const deps = makeDeps({
+      appendFile: () => err(new ResultError(ErrorCode.FileWriteFailed, "disk full")),
+    });
+    const result = CanaryHook.execute(mockInput, deps);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe(ErrorCode.FileWriteFailed);
+    }
   });
 });

@@ -18,6 +18,7 @@
  */
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import { getEnv as getEnvAdapter } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
@@ -43,7 +44,10 @@ export interface MessageQueueServerDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: MessageQueueServerDeps = {
-  getEnv: (name) => process.env[name],
+  getEnv: (name) => {
+    const result = getEnvAdapter(name);
+    return result.ok ? result.value : undefined;
+  },
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   spawnDetached: (cmd, args) => {
     const result = tryCatch(

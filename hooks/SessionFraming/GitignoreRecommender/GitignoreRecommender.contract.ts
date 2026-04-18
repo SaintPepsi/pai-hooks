@@ -15,7 +15,7 @@ import type { ResultError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr } from "@hooks/lib/paths";
+import { defaultStderr, getHomeDir } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ const defaultDeps: GitignoreRecommenderDeps = {
   fileExists,
   readFile,
   cwd: () => process.cwd(),
-  paiRoot: join(process.env.HOME ?? "/", ".claude"),
+  paiRoot: join(getHomeDir(), ".claude"),
   stderr: defaultStderr,
 };
 

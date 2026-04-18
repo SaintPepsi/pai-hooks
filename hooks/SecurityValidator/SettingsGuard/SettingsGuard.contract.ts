@@ -23,7 +23,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { defaultStderr, getHomeDir, getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -123,7 +123,7 @@ function snapshotSettings(sessionId: string, home: string, deps: SettingsGuardDe
 // ─── Contract ───────────────────────────────────────────────────────────────
 
 const defaultDeps: SettingsGuardDeps = {
-  homedir: () => process.env.HOME || "/",
+  homedir: getHomeDir,
   stderr: defaultStderr,
   readFile,
   writeFile,

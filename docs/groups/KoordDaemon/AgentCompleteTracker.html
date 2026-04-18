@@ -1968,7 +1968,7 @@ const body = JSON.stringify({ thread_id: threadId });</div>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result wrapping</td></tr>
           <tr><td><code>fetch</code></td><td>adapter</td><td><code>safeFetch</code> for HTTP POST with timeout</td></tr>
-          <tr><td><code>KoordDaemon/shared</code></td><td>shared</td><td><code>extractThreadIdFromOutput</code>, <code>readKoordConfig</code>, <code>defaultReadFileOrNull</code></td></tr>
+          <tr><td><code>KoordDaemon/shared</code></td><td>shared</td><td><code>extractThreadIdFromOutput(input: ThreadIdOutputInput)</code>, <code>readKoordConfig</code>, <code>defaultReadFileOrNull</code>. <code>ThreadIdOutputInput</code> interface supports both <code>tool_output</code> (Claude Code runtime) and <code>tool_response</code> (hook contracts/tests) fields</td></tr>
           <tr><td><code>paths</code></td><td>lib</td><td>Path resolution utilities</td></tr>
         </tbody>
       </table>
