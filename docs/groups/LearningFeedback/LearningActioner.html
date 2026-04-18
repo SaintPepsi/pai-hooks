@@ -1756,6 +1756,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#error-logging"><span class="nav-num">07</span> Error Logging</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1986,6 +1987,17 @@ deps.runLearningAgent();</div>
           <tr><td><code>core/result</code></td><td>core</td><td>Result type for error handling</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="error-logging">
+    <div class="section-label accent">Error Logging</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Error Logging</h3>
+      </div>
+      <p><code>evaluateCredit</code> logs cache read failures to stderr via <code>deps.stderr</code>. When reading <code>usage-cache.json</code> or <code>learning-agent-credit.json</code> fails, the function calls <code>deps.stderr</code> with the error context before defaulting to 0. This surfaces silent failures for debugging while preserving fail-open behavior.</p>
     </div>
   </section>
 

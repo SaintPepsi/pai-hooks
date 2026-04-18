@@ -495,7 +495,11 @@ describe("CodeQualityGuard", () => {
       const deps = makeDeps({
         readFile: () => ok(BLOATED_TS),
         readJson: <T>(_path: string) => ok(baseline as T),
-        dedup: { halfLifeEdits: 100, halfLifeMs: 999_999_999, countCrossSessionViolations: () => 0 },
+        dedup: {
+          halfLifeEdits: 100,
+          halfLifeMs: 999_999_999,
+          countCrossSessionViolations: () => 0,
+        },
       });
       const input = makeInput({ tool_input: { file_path: filePath } });
 

@@ -93,3 +93,13 @@ Rule content injected as context...
 - `core/adapters/fs` — `readFile`, `readJson`, `writeJson`, `fileExists` for rule and tracker I/O
 - `core/types/hook-input-schema` — Effect Schema for discriminated input parsing (replaces field-sniffing)
 - `Bun.Glob` — resolves include patterns to file paths
+
+## Error Logging
+
+The contract logs fallback events to stderr via `deps.stderr`:
+
+- `resolveEvent` logs when Effect Schema parsing fails and falls back to `"SessionStart"`
+- `getMatchText` logs when input parsing fails and falls back to empty string
+- `readTracker` logs when tracker JSON parsing fails and falls back to empty tracker
+
+This surfaces silent failures for debugging while preserving fail-open behavior.

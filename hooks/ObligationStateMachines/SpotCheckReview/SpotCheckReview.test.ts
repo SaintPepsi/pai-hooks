@@ -62,7 +62,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareNoOp(result.value)).toBe(true);
   });
 
@@ -79,7 +79,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -94,7 +94,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value) ?? "";
     expect(reason).toContain("src/daemon/router.ts");
     expect(reason).toContain("src/shared/types.ts");
@@ -111,7 +111,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect((getReasonFromBlock(result.value) ?? "").toLowerCase()).toContain("sonnet");
   });
 
@@ -126,7 +126,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect((getReasonFromBlock(result.value) ?? "").toLowerCase()).toContain("review");
   });
 
@@ -139,7 +139,7 @@ describe("SpotCheckReview", () => {
       ResultError
     >;
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value) ?? "").toContain("CLAUDE.md");
   });
 
@@ -174,7 +174,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareNoOp(result.value)).toBe(true);
   });
 
@@ -228,7 +228,7 @@ describe("SpotCheckReview", () => {
     const result = SpotCheckReview.execute(makeStopInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareNoOp(result.value)).toBe(true);
   });
 
@@ -253,7 +253,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("src/new.ts");
@@ -274,7 +274,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("src/index.ts");
@@ -293,7 +293,7 @@ describe("SpotCheckReview", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 

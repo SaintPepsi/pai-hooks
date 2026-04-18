@@ -86,21 +86,21 @@ describe("DestructiveDeleteGuard Bash detection", () => {
   test("detects rm -rf (basic form)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /tmp/sessions"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("detects rm -r -f (split flags)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -r -f /tmp/sessions"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("detects rm -fr (reversed combined flags)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -fr /tmp/sessions"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -110,7 +110,7 @@ describe("DestructiveDeleteGuard Bash detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -120,7 +120,7 @@ describe("DestructiveDeleteGuard Bash detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -130,7 +130,7 @@ describe("DestructiveDeleteGuard Bash detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -140,7 +140,7 @@ describe("DestructiveDeleteGuard Bash detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -150,7 +150,7 @@ describe("DestructiveDeleteGuard Bash detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("Destructive");
   });
@@ -162,7 +162,7 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
   test("returns ask for rm -rf on node_modules", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf node_modules"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
@@ -172,35 +172,35 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
   test("returns ask for rm -rf on dist", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf ./dist"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
   test("returns ask for rm -rf on .next", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /project/.next"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
   test("returns ask for rm -rf on .svelte-kit", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf .svelte-kit"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
   test("returns ask for rm -rf on coverage", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf coverage"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
@@ -210,14 +210,14 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
   });
 
   test("returns ask with reason containing the command", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf node_modules"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseAsk(result.value)).toBe(true);
     expect(getPreToolUseAskReason(result.value)).toContain("node_modules");
   });
@@ -228,14 +228,14 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("still blocks rm -rf on root paths", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 });
@@ -246,28 +246,28 @@ describe("DestructiveDeleteGuard Bash allowed", () => {
   test("allows single file rm (no recursive flag)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm /tmp/file.txt"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows rm -f single file (force but not recursive)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rm -f /tmp/file.txt"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows non-rm commands", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("ls -la /tmp"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows grep with -r flag (not rm)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("grep -rf pattern /tmp"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -277,7 +277,7 @@ describe("DestructiveDeleteGuard Bash allowed", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -287,7 +287,7 @@ describe("DestructiveDeleteGuard Bash allowed", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -297,7 +297,7 @@ describe("DestructiveDeleteGuard Bash allowed", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 });
@@ -309,7 +309,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = 'execSync("rm -rf /tmp/sessions");';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -317,7 +317,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = 'Bun.spawnSync(["rm", "-rf", join(TEST_DIR, "sessions")]);';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -325,7 +325,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = "child_process.execSync('rm -rf ' + dir);";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -333,7 +333,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = 'Bun.spawnSync(["rm", "-r", "-f", path]);';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -341,7 +341,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = "exec(`rm -rf ${dir}`);";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -349,7 +349,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = '#!/bin/bash\nrm -rf /tmp/build\necho "done"';
     const result = DestructiveDeleteGuard.execute(writeInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -357,7 +357,7 @@ describe("DestructiveDeleteGuard Edit/Write detection", () => {
     const code = 'Bun.spawnSync(["rm", "-rf", path]);';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
     expect(getPreToolUseDenyReason(result.value)).toContain("destructive");
   });
@@ -370,7 +370,7 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     const code = "if (fileExists(path)) unlinkFile(path);";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -378,7 +378,7 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     const code = "// removed the old config\nconst removed = items.filter(x => !x);";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -386,7 +386,7 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     const code = 'removeDir(join(TEST_DIR, "sessions"));';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -394,7 +394,7 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     const code = "export function greet(name: string): string {\n  return `Hello, ${name}`;\n}";
     const result = DestructiveDeleteGuard.execute(writeInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -406,7 +406,7 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -418,7 +418,7 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 });
@@ -430,7 +430,7 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
     const content = "Use recursive force-delete to clean the build directory.";
     const result = DestructiveDeleteGuard.execute(writeInput(content, "/docs/README.md"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -438,7 +438,7 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
     const content = "Confirming before destructive recursive-delete operations";
     const result = DestructiveDeleteGuard.execute(editInput(content, "/docs/hooks.md"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -446,7 +446,7 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
     const content = "```bash\nrecursive force-delete node_modules\n```";
     const result = DestructiveDeleteGuard.execute(writeInput(content, "/blog/post.mdx"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -454,7 +454,7 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
     const code = ["Bun.spawnSync([", '"rm"', ",", '"-r' + 'f"', ", path]);"].join("");
     const result = DestructiveDeleteGuard.execute(writeInput(code, "/src/guard.test.ts"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -462,7 +462,7 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
     const code = ["Bun.spawnSync([", '"rm"', ",", '"-r' + 'f"', ", dir]);"].join("");
     const result = DestructiveDeleteGuard.execute(writeInput(code, "/src/guard.spec.ts"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 });
@@ -480,7 +480,7 @@ describe("DestructiveDeleteGuard Dockerfile exclusion", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -491,7 +491,7 @@ describe("DestructiveDeleteGuard Dockerfile exclusion", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -502,7 +502,7 @@ describe("DestructiveDeleteGuard Dockerfile exclusion", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -513,7 +513,7 @@ describe("DestructiveDeleteGuard Dockerfile exclusion", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 });
@@ -524,7 +524,7 @@ describe("DestructiveDeleteGuard Bash edge cases", () => {
   test("returns continue for empty bash command", () => {
     const result = DestructiveDeleteGuard.execute(bashInput(""), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -536,7 +536,7 @@ describe("DestructiveDeleteGuard Bash edge cases", () => {
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 });
@@ -547,14 +547,14 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
   test("detects find -delete", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("find /tmp -type f -delete"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("detects find -exec rm", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("find /tmp -exec rm {} \\;"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -564,7 +564,7 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -574,7 +574,7 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -584,7 +584,7 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -594,7 +594,7 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -604,7 +604,7 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -614,7 +614,7 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -624,28 +624,28 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("detects git clean -fd", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("git clean -fd"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("detects git clean -fdx", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("git clean -fdx"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   test("detects git clean -d", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("git clean -d"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 });
@@ -659,42 +659,42 @@ describe("DestructiveDeleteGuard Bash non-rm allowed", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows python without rmtree", () => {
     const result = DestructiveDeleteGuard.execute(bashInput('python3 -c "print(42)"'), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows rsync without --delete", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("rsync -av /src/ /dst/"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows git clean without -d", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("git clean -f"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows bun without rmSync", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("bun test"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   test("allows git status (no clean)", () => {
     const result = DestructiveDeleteGuard.execute(bashInput("git status"), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 });
@@ -706,7 +706,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = 'import shutil\nshutil.rmtree("/tmp/build")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -714,7 +714,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = 'rmtree("/path/to/dir")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -722,7 +722,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = 'FileUtils.rm_rf("/tmp/build")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -730,7 +730,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = "fs.rmSync(dir, { recursive: true, force: true });";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -738,7 +738,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = '#!/bin/bash\nfind /tmp -name "*.log" -delete';
     const result = DestructiveDeleteGuard.execute(writeInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -746,7 +746,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = 'execSync("rsync -a --delete /empty/ /target/")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -754,7 +754,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
     const code = 'execSync("git clean -fd")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 });
@@ -766,7 +766,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
     const code = "fs.rmSync(filePath);";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -774,7 +774,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
     const code = 'const files = execSync("find /src -name *.ts").toString();';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -782,7 +782,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
     const code = 'execSync("rsync -av /src/ /backup/")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -790,7 +790,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
     const code = 'execSync("git status")';
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -798,7 +798,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
     const code = "import shutil\nshutil.copy2(src, dst)";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -809,7 +809,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
       mockDeps,
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -824,7 +824,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
     };
     const result = DestructiveDeleteGuard.execute(input, mockDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 });

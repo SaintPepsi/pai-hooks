@@ -206,15 +206,16 @@ describe("CLI: 6-tuple obligation state machine functions appear", () => {
     expect(stdout).toContain("buildBlockLimitReview");
   });
 
-  test("blockCountPath tuple appears with at least 4 files", async () => {
+  test("blockCountPath tuple appears with at least 4 files in some tuple", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR]);
-    const idx = stdout.indexOf("blockCountPath");
-    expect(idx).toBeGreaterThan(-1);
-    const after = stdout.slice(idx, idx + 300);
-    const match = after.match(/(\d+) files/);
-    expect(match).not.toBeNull();
-    const count = parseInt(match![1], 10);
-    expect(count).toBeGreaterThanOrEqual(4);
+    // Find all lines containing blockCountPath and check if any has 4+ files
+    const lines = stdout.split("\n").filter((l) => l.includes("blockCountPath"));
+    expect(lines.length).toBeGreaterThan(0);
+    const hasEnoughFiles = lines.some((line) => {
+      const match = line.match(/(\d+) files/);
+      return match && parseInt(match[1], 10) >= 4;
+    });
+    expect(hasEnoughFiles).toBe(true);
   });
 });
 

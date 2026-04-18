@@ -51,18 +51,6 @@ function extractText(entry: TranscriptEntry): string {
   return "";
 }
 
-function isValidMessageShape(
-  msg: unknown,
-): msg is { content: string | Array<{ type: string; text?: string }> } {
-  if (typeof msg !== "object" || msg === null) return false;
-  const m = msg as Record<string, unknown>;
-  if (!("content" in m)) return false;
-  const content = m.content;
-  if (typeof content === "string") return true;
-  if (Array.isArray(content)) return true;
-  return false;
-}
-
 export function safeParseTranscriptLine(line: string): TranscriptEntry | null {
   if (!line.trim()) return null;
   const firstBrace = line.indexOf("{");
@@ -72,15 +60,23 @@ export function safeParseTranscriptLine(line: string): TranscriptEntry | null {
   // Quick structural check before attempting parse
   if (!trimmed.includes('"type"')) return null;
   const parseResult = tryCatch(
-    () => JSON.parse(trimmed) as Record<string, unknown>,
+    () => JSON.parse(trimmed) as unknown,
     (e) => jsonParseFailed(trimmed, e),
   );
   if (!parseResult.ok) return null;
   const parsed = parseResult.value;
-  if (parsed.type !== "user" && parsed.type !== "assistant") return null;
-  // Validate message shape when present — absent is fine (optional field)
-  if (parsed.message !== undefined && !isValidMessageShape(parsed.message)) return null;
-  return parsed as unknown as TranscriptEntry;
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const obj = parsed as Record<string, unknown>;
+  if (obj.type !== "user" && obj.type !== "assistant") return null;
+  // Validate message shape if present
+  if (obj.message !== undefined) {
+    if (typeof obj.message !== "object" || obj.message === null) return null;
+    const msg = obj.message as Record<string, unknown>;
+    // content is required and must be string or array
+    if (!("content" in msg)) return null;
+    if (typeof msg.content !== "string" && !Array.isArray(msg.content)) return null;
+  }
+  return { type: obj.type, message: obj.message as TranscriptEntry["message"] };
 }
 
 function defaultReadTranscript(path: string): TranscriptEntry[] {

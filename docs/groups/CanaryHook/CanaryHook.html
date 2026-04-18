@@ -1881,7 +1881,7 @@ Place a minimal hook at the start of the pipeline that writes a timestamp to a k
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Opens the log file in VS Code via <code>code</code> command</p></div>
+          <div class="step-content"><p>Returns error if either step fails (fail-fast error propagation)</p></div>
         </div>
 </div>
       
@@ -1892,9 +1892,13 @@ Place a minimal hook at the start of the pipeline that writes a timestamp to a k
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-deps.ensureDir(logDir);
-deps.appendFile(logFile, `${new Date().toISOString()}\n`);
-deps.execSyncSafe(`code "${logFile}"`);</div>
+const ensureResult = deps.ensureDir(logDir);
+if (!ensureResult.ok) return ensureResult;
+
+const appendResult = deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+if (!appendResult.ok) return appendResult;
+
+return ok({ continue: true });</div>
         </div>
       </div>
     </div>
@@ -1936,8 +1940,7 @@ deps.execSyncSafe(`code "${logFile}"`);</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td><code>appendFile</code>, <code>ensureDir</code> for log file operations</td></tr>
-          <tr><td><code>core/adapters/process</code></td><td>adapter</td><td><code>execSyncSafe</code> to open the log in VS Code</td></tr>
-          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type (post-SDK-refactor)</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type</td></tr>
         </tbody>
       </table>
     </div>

@@ -76,3 +76,7 @@ deps.runLearningAgent();
 | `lib/spawn-agent`         | lib     | Shared agent spawning with lock/log/traceability                  |
 | `runners/agent-runner.ts` | runner  | Generic background runner for all hook agents                     |
 | `core/result`             | core    | Result type for error handling                                    |
+
+## Error Logging
+
+`evaluateCredit` logs cache read failures to stderr via `deps.stderr`. When reading `usage-cache.json` or `learning-agent-credit.json` fails, the function calls `deps.stderr` with the error context before defaulting to 0. This surfaces silent failures for debugging while preserving fail-open behavior.
