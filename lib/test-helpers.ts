@@ -9,7 +9,34 @@ import { join } from "node:path";
 import type { HookEvent, SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { removeDir } from "@hooks/core/adapters/fs";
 import { buildChildEnv } from "@hooks/core/adapters/process";
-import type { HookInput, SessionStartInput, StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type {
+  HookInput,
+  SessionStartInput,
+  StopInput,
+  ToolHookInput,
+} from "@hooks/core/types/hook-inputs";
+
+/**
+ * Assert that a Result is ok, throwing if it's an error.
+ * Use this instead of `if (!result.ok) return;` to ensure test failures are explicit.
+ *
+ * @example
+ * const result = SomeHook.execute(input, deps);
+ * assertOk(result);
+ * // TypeScript now knows result.value exists
+ * expect(result.value.continue).toBe(true);
+ */
+export function assertOk<T>(
+  result: Result<T, ResultError>,
+): asserts result is { ok: true; value: T } {
+  if (!result.ok) {
+    throw new Error(
+      `Expected ok result but got error: ${result.error.code} - ${result.error.message}`,
+    );
+  }
+}
 
 /**
  * Narrow SyncHookJSONOutput to additionalContext for a specific hookEventName.
@@ -50,7 +77,7 @@ export function makeEditInput(filePath: string, oldString = "a", newString = "b"
 /** Create a PreToolUse input for testing. */
 export function makePreToolUseInput(toolName: string, filePath: string): ToolHookInput {
   return {
-    hook_type: "PreToolUse",
+    hook_event_name: "PreToolUse",
     session_id: "test-sess",
     tool_name: toolName,
     tool_input: { file_path: filePath },
@@ -61,10 +88,10 @@ export function makePreToolUseInput(toolName: string, filePath: string): ToolHoo
 export function makePostToolUseInput(
   toolName: string,
   filePath: string,
-  toolResponse?: unknown,
+  toolResponse?: string | object,
 ): ToolHookInput {
   return {
-    hook_type: "PostToolUse",
+    hook_event_name: "PostToolUse",
     session_id: "test-sess",
     tool_name: toolName,
     tool_input: { file_path: filePath },
@@ -74,7 +101,7 @@ export function makePostToolUseInput(
 
 /**
  * @deprecated Use makePreToolUseInput or makePostToolUseInput instead.
- * This function doesn't include hook_type which causes event detection failures.
+ * This function doesn't include hook_event_name which causes event detection failures.
  */
 export function makeToolInput(toolName: string, filePath: string): ToolHookInput {
   return {
@@ -86,7 +113,7 @@ export function makeToolInput(toolName: string, filePath: string): ToolHookInput
 
 /** Create a SessionStart input for testing. */
 export function makeSessionStartInput(sessionId = "test-sess"): SessionStartInput {
-  return { hook_type: "SessionStart", session_id: sessionId };
+  return { hook_event_name: "SessionStart", session_id: sessionId };
 }
 
 // ─── Hook Shell Runner ───────────────────────────────────────────────────────

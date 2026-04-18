@@ -61,5 +61,5 @@ const body = JSON.stringify({ thread_id: threadId });
 | --- | --- | --- |
 | `result` | core | `ok()` for Result wrapping |
 | `fetch` | adapter | `safeFetch` for HTTP POST with timeout |
-| `KoordDaemon/shared` | shared | `extractThreadIdFromOutput`, `readKoordConfig`, `defaultReadFileOrNull` |
+| `KoordDaemon/shared` | shared | `extractThreadIdFromOutput(input: ThreadIdOutputInput)`, `readKoordConfig`, `defaultReadFileOrNull`. `ThreadIdOutputInput` interface supports both `tool_output` (Claude Code runtime) and `tool_response` (hook contracts/tests) fields |
 | `paths` | lib | Path resolution utilities |

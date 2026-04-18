@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
+  getPreToolUseDenyReason as getDenyReason,
   isContinue,
   isPreToolUseDeny as isDeny,
-  getPreToolUseDenyReason as getDenyReason,
 } from "@hooks/lib/test-helpers";
 import { MapleBranding, type MapleBrandingDeps } from "./MapleBranding.contract";
 

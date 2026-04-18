@@ -7,8 +7,8 @@ import type {
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
 import {
-  getAdditionalContext as getInjectedContext,
   getReasonFromBlock as getBlockReason,
+  getAdditionalContext as getInjectedContext,
   isBareContinue,
   isSilent,
 } from "@hooks/lib/test-helpers";
@@ -196,17 +196,17 @@ function makeDeps(overrides: Partial<SteeringRuleInjectorDeps> = {}): SteeringRu
 }
 
 function makeSessionStartInput(): SessionStartInput {
-  return { session_id: "test-session-123", hook_type: "SessionStart" };
+  return { session_id: "test-session-123", hook_event_name: "SessionStart" };
 }
 
 function makePromptInput(prompt: string): UserPromptSubmitInput {
-  return { session_id: "test-session-123", hook_type: "UserPromptSubmit", prompt };
+  return { session_id: "test-session-123", hook_event_name: "UserPromptSubmit", prompt };
 }
 
 function makeToolInput(toolName: string, filePath: string): ToolHookInput {
   return {
     session_id: "test-session-123",
-    hook_type: "PreToolUse",
+    hook_event_name: "PreToolUse",
     tool_name: toolName,
     tool_input: { file_path: filePath },
   };
@@ -215,7 +215,7 @@ function makeToolInput(toolName: string, filePath: string): ToolHookInput {
 function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
   return {
     session_id: "test-session-123",
-    hook_type: "PostToolUse",
+    hook_event_name: "PostToolUse",
     tool_name: toolName,
     tool_input: { file_path: filePath },
     tool_response: {},
@@ -225,7 +225,7 @@ function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
 function makeSubagentInput(): SubagentStartInput {
   return {
     session_id: "test-session-123",
-    hook_type: "SubagentStart",
+    hook_event_name: "SubagentStart",
     transcript_path: "/tmp/transcript.jsonl",
   };
 }
@@ -233,7 +233,7 @@ function makeSubagentInput(): SubagentStartInput {
 function makeStopInput(lastMessage?: string): StopInput {
   return {
     session_id: "test-session-123",
-    hook_type: "Stop",
+    hook_event_name: "Stop",
     last_assistant_message: lastMessage,
     stop_hook_active: true,
   };
@@ -266,7 +266,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -275,7 +275,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -287,7 +287,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
@@ -299,7 +299,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -311,7 +311,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("let's deploy this"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Deploy safety guidelines.");
   });
 
@@ -323,7 +323,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("refactor the parser"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -335,7 +335,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("anything here"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -353,7 +353,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -380,7 +380,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -392,7 +392,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("deploy now"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -403,7 +403,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareContinue(result.value)).toBe(true);
   });
 
@@ -419,7 +419,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
     expect(getInjectedContext(result.value)).toContain("Git workflow rules.");
     expect(getInjectedContext(result.value)).toContain("\n\n---\n\n");
@@ -437,7 +437,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
@@ -453,7 +453,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
@@ -465,7 +465,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/main.css"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Browser-mandatory for CSS changes.");
   });
 
@@ -477,7 +477,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/middleware.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareContinue(result.value)).toBe(true);
   });
 
@@ -489,7 +489,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePostToolInput("Edit", "src/foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Verify after editing.");
   });
 
@@ -501,7 +501,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePostToolInput("Read", "src/foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareContinue(result.value)).toBe(true);
   });
 
@@ -513,7 +513,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSubagentInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Least privilege for sub-agents.");
   });
 
@@ -528,7 +528,7 @@ describe("SteeringRuleInjector contract", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getBlockReason(result.value)).toContain("Always go with the proper fix.");
   });
 
@@ -543,7 +543,7 @@ describe("SteeringRuleInjector contract", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -555,7 +555,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeStopInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -574,7 +574,7 @@ Matched on tool or path.`;
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Matched on tool or path.");
   });
 
@@ -592,14 +592,14 @@ Dogfood every task.`;
     });
     const input: ToolHookInput = {
       session_id: "test-session-123",
-      hook_type: "PreToolUse",
+      hook_event_name: "PreToolUse",
       tool_name: "Skill",
       tool_input: { skill: "superpowers:brainstorming", args: "some topic" },
     };
     const result = SteeringRuleInjector.execute(input, deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toContain("Dogfood every task.");
   });
 
@@ -617,14 +617,14 @@ Dogfood every task.`;
     });
     const input: ToolHookInput = {
       session_id: "test-session-123",
-      hook_type: "PreToolUse",
+      hook_event_name: "PreToolUse",
       tool_name: "Skill",
       tool_input: { skill: "commit" },
     };
     const result = SteeringRuleInjector.execute(input, deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareContinue(result.value)).toBe(true);
   });
 });
@@ -644,5 +644,27 @@ describe("SteeringRuleInjector defaultDeps", () => {
 
   it("defaultDeps.stderr writes without throwing", () => {
     expect(() => SteeringRuleInjector.defaultDeps.stderr("test message")).not.toThrow();
+  });
+});
+
+describe("SteeringRuleInjector fallback stderr logging", () => {
+  it("calls deps.stderr when parseHookInput fails in resolveEvent and getMatchText", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      resolveGlobs: () => [],
+      stderr: (msg: string) => {
+        stderrMessages.push(msg);
+      },
+    });
+    // SessionStartInput.hook_type is optional in the TS interface — omitting it
+    // satisfies the TypeScript type but fails the Effect schema (which requires
+    // hook_type to be present and equal to a known literal).
+    const inputMissingHookType: SessionStartInput = { session_id: "test-session-123" };
+    SteeringRuleInjector.execute(inputMissingHookType, deps);
+
+    expect(stderrMessages.some((m) => m.includes("event parse failed"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("input parse failed for keyword matching"))).toBe(
+      true,
+    );
   });
 });

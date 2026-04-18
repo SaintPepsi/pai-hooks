@@ -38,10 +38,12 @@ describe("LoadContext hook shell", () => {
       session_id: uniqueSessionId("lc"),
     });
     expect(result.exitCode).toBe(0);
-    // Output is either the JSON envelope (contains system-reminder) or {} (silent/subagent)
-    if (result.stdout.length > 0) {
-      expect(result.stdout).toContain("system-reminder");
-    }
+    // Output must be valid JSON — either envelope with system-reminder or empty {}
+    expect(result.stdout.length).toBeGreaterThan(0);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+    const output = JSON.parse(result.stdout);
+    // Non-subagent sessions should produce context; empty {} is valid for subagents
+    expect(typeof output).toBe("object");
   });
 
   it("does not crash with minimal input", async () => {

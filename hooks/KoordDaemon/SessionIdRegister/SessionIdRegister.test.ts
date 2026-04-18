@@ -5,7 +5,7 @@ import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { SessionIdRegister, type SessionIdRegisterDeps } from "./SessionIdRegister.contract";
 
 const mockInput: SessionStartInput = {
-  hook_type: "SessionStart",
+  hook_event_name: "SessionStart",
   session_id: "abc123-def456-ghi789",
 };
 
@@ -34,7 +34,7 @@ describe("SessionIdRegister", () => {
   });
 
   test("returns silent when no session_id", async () => {
-    const input: SessionStartInput = { session_id: "", hook_type: "SessionStart" };
+    const input: SessionStartInput = { session_id: "", hook_event_name: "SessionStart" };
     const result = await SessionIdRegister.execute(input, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value).toEqual({});
