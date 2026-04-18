@@ -8,7 +8,7 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `coding-standards-checks.ts`  | Violation detection for coding standards (raw imports, try-catch, process.env, inline import types, as-any, relative imports, export default)                           |
 | `svelte-utils.ts`             | Svelte file classification (`isSvelteFile`) and `<script lang="ts">` block extraction (`extractSvelteScript`) with line-number-preserving padding                       |
-| `narrative-reader.ts`         | Reads narrative templates for hook messages                                                                                                                             |
+| `narrative-reader.ts`         | Reads narrative templates for hook messages. Includes type guard after JSON.parse to validate object shape before processing.                                          |
 | `signal-logger.ts`            | Appends structured signals to JSONL files                                                                                                                               |
 | `execution-classification.ts` | Command classification for execution evidence verification (state-changing vs read-only, output substantiveness, evidence reminders)                                    |
 | `time.ts`                     | Timestamp formatting (timezone via `TZ` env var, defaults to UTC)                                                                                                       |
