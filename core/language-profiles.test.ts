@@ -148,6 +148,14 @@ describe("language-profiles", () => {
       expect(getLanguageProfile("src/components/LoginModal.stories.svelte")).toBeNull();
       expect(getLanguageProfile("/Users/hogers/project/CardCarousel.stories.svelte")).toBeNull();
     });
+
+    test("returns null for ESLint config files", () => {
+      expect(getLanguageProfile("eslint.config.ts")).toBeNull();
+      expect(getLanguageProfile("eslint.config.js")).toBeNull();
+      expect(getLanguageProfile("eslint.config.mjs")).toBeNull();
+      expect(getLanguageProfile("eslint.config.cjs")).toBeNull();
+      expect(getLanguageProfile("/project/eslint.config.ts")).toBeNull();
+    });
   });
 
   describe("isScorableFile", () => {

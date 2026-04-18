@@ -246,6 +246,7 @@ const SKIP_PATH_PATTERNS: readonly RegExp[] = [
   /(^|\/)\.github\//, // GitHub Actions/workflows
   /(^|\/)\.husky\//, // Husky git hooks
   /\.stories\.(svelte|ts|tsx|js|jsx)$/, // Storybook story files — visual tests, not unit-testable
+  /eslint\.config\.(ts|js|mjs|cjs)$/, // ESLint flat config — verified by linting, not unit tests
 ];
 
 /**
