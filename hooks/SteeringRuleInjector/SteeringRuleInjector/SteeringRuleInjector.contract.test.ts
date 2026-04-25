@@ -255,6 +255,7 @@ function makeDeps(overrides: Partial<SteeringRuleInjectorDeps> = {}): SteeringRu
     getConfig: () => makeConfig(),
     isSubagent: () => false,
     stderr: () => {},
+    transcriptHasToolCall: () => false,
     ...overrides,
   };
 }
@@ -690,6 +691,65 @@ Dogfood every task.`;
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isBareContinue(result.value)).toBe(true);
+  });
+});
+
+describe("dependsOn gate", () => {
+  const baseDeps = (overrides: Partial<SteeringRuleInjectorDeps>): SteeringRuleInjectorDeps => ({
+    resolveGlobs: () => ["/fake/rule.md"],
+    readFile: () => `---
+name: gated-rule
+events: [Stop]
+keywords: [trigger]
+depends-on: [Tool(Edit)]
+---
+
+Gated body.`,
+    readTracker: (sessionId: string) => ({ sessionId, injected: {} }),
+    writeTracker: () => {},
+    getConfig: () => ({ enabled: true, includes: ["**/*.md"], trackerDir: ".test" }),
+    isSubagent: () => false,
+    stderr: () => {},
+    transcriptHasToolCall: () => false,
+    ...overrides,
+  });
+
+  const stopInput: StopInput = {
+    hook_event_name: "Stop",
+    session_id: "test-session",
+    transcript_path: "/fake/transcript.jsonl",
+    last_assistant_message: "trigger this",
+    stop_hook_active: false,
+  };
+
+  it("skips a rule whose dependsOn helper returns false", () => {
+    const deps = baseDeps({ transcriptHasToolCall: () => false });
+    const result = SteeringRuleInjector.execute(stopInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toBeUndefined();
+  });
+
+  it("includes a rule whose dependsOn helper returns true", () => {
+    const deps = baseDeps({ transcriptHasToolCall: () => true });
+    const result = SteeringRuleInjector.execute(stopInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toContain("Gated body");
+  });
+
+  it("ignores dependsOn when not present in frontmatter", () => {
+    const deps = baseDeps({
+      readFile: () => `---
+name: ungated-rule
+events: [Stop]
+keywords: [trigger]
+---
+
+Ungated body.`,
+      transcriptHasToolCall: () => false,
+    });
+    const result = SteeringRuleInjector.execute(stopInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toContain("Ungated body");
   });
 });
 

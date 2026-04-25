@@ -24,6 +24,7 @@ import type {
   ToolHookInput,
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
+import { transcriptHasToolCall } from "@hooks/hooks/SteeringRuleInjector/SteeringRuleInjector/transcript-tool-scan";
 import { getEnvOrUndefined, isSubagentDefault } from "@hooks/lib/environment";
 import { loadHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -72,6 +73,7 @@ export interface SteeringRuleInjectorDeps {
   getConfig: () => SteeringRuleConfig;
   isSubagent: () => boolean;
   stderr: (msg: string) => void;
+  transcriptHasToolCall: (transcriptPath: string | undefined, toolNames: string[]) => boolean;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -220,6 +222,8 @@ const defaultDeps: SteeringRuleInjectorDeps = {
   isSubagent: isSubagentDefault,
 
   stderr: defaultStderr,
+
+  transcriptHasToolCall,
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -284,6 +288,15 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
       if (eventType === "UserPromptSubmit" || eventType === "Stop" || isToolEventType) {
         if (!matchesKeywords(matchText, rule.keywords)) continue;
       }
+
+      if (
+        rule.dependsOn &&
+        !deps.transcriptHasToolCall(
+          (input as { transcript_path?: string }).transcript_path,
+          rule.dependsOn,
+        )
+      )
+        continue;
 
       bodiesToInject.push(rule.body);
       tracker.injected[rule.name] = {
