@@ -116,7 +116,7 @@ export function parseFrontmatter(content: string): RuleFrontmatter | null {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean)
-        .map((item) => item.match(/^Tool\(([A-Za-z]+)\)$/)?.[1])
+        .map((item) => item.match(/^Tool\((\w+)\)$/)?.[1])
         .filter((name): name is string => Boolean(name))
     : undefined;
 

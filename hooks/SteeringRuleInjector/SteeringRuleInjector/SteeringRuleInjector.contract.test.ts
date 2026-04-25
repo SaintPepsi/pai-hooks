@@ -134,6 +134,19 @@ Body.`;
     const result = parseFrontmatter(content);
     expect(result!.dependsOn).toEqual(["Write", "Bash"]);
   });
+
+  it("extracts dependsOn for MCP tool names with underscores", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(mcp__voice__speak), Tool(Edit)]
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual(["mcp__voice__speak", "Edit"]);
+  });
 });
 
 describe("matchesKeywords", () => {
