@@ -57,8 +57,14 @@ Empirical from a live transcript: 26 of 35 user lines were synthetic `tool_resul
 In `SteeringRuleInjector.contract.ts execute()`, after the existing event/keyword filters and before pushing to `bodiesToInject`:
 
 ```typescript
-if (rule.dependsOn && !deps.transcriptHasToolCall(input.transcript_path, rule.dependsOn)) continue;
+if (
+  eventType === "Stop" &&
+  rule.dependsOn &&
+  !deps.transcriptHasToolCall(getTranscriptPath(input, deps.stderr), rule.dependsOn)
+) continue;
 ```
+
+The `eventType === "Stop"` check is semantic, not defensive: tool-usage ("did the agent use tool X this turn") is only defined for Stop events. On `PreToolUse` a tool is about to happen; on `PostToolUse` one just happened; on `SessionStart`/`SubagentStart` there is no turn yet. For non-Stop events `depends-on` is silently ignored — a rule like `always-proper-fix` that fires on both `Stop` and `PreToolUse` keeps its `PreToolUse` arm regardless of `depends-on`.
 
 `rule.dependsOn` is `string[]` — tool names extracted from `Tool(X)` items by the parser. The parser ignores `depends-on` items that don't match the `Tool(X)` shape.
 
