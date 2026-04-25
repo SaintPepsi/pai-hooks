@@ -19,6 +19,7 @@ SteeringRuleValidator is a PreToolUse hook that blocks Write/Edit operations to 
    - `name: rule-name` (required)
    - `events: [Event1, Event2]` (bracket array, not YAML list)
    - `keywords: [word1, word2]` (bracket array, not YAML list)
+   - `depends-on: [Tool(Write), Tool(Edit)]` (optional; if present, must be bracket array — item shape is NOT enforced; the parser handles that)
 4. **Block or allow** — returns block decision with detailed error if invalid
 
 ## Examples
@@ -40,6 +41,7 @@ keywords:
 name: my-rule
 events: [SessionStart]
 keywords: [example]
+depends-on: [Tool(Write), Tool(Edit)]
 ---
 ```
 

@@ -35,12 +35,13 @@ It does **not** fire when:
 
 1. Reads config from `hookConfig.steeringRuleInjector` (with defaults)
 2. Resolves rule files from `includes` glob patterns (supports `${ENV_VAR}` expansion)
-3. Parses YAML frontmatter from each file to extract `name`, `events`, and `keywords`
+3. Parses YAML frontmatter from each file to extract `name`, `events`, `keywords`, and optional `depends-on`
 4. Filters rules by current event type
 5. Filters by keyword match — prompt text for `UserPromptSubmit`; `tool_name` + `file_path` + `skill` for `PreToolUse`/`PostToolUse`; `last_assistant_message` for `Stop`; empty keywords pass through for `SessionStart` and `SubagentStart`
-6. Checks per-session injection tracker — skips already-injected rules
-7. Concatenates matched rule bodies into output — `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` for context-injecting events; `{ decision: "block", reason }` for `Stop` events (Stop hooks cannot inject context)
-8. Records injected rules to tracker file at `{trackerDir}/injections-{sessionId}.json`
+6. **Gates Stop-event rules by `depends-on`** — if a rule has `depends-on: [Tool(X), ...]` and the current event is `Stop`, calls `transcriptHasToolCall` to check whether any listed tool was used in the current turn (since the most recent real user message). If not, the rule is skipped. Non-Stop events ignore `depends-on`.
+7. Checks per-session injection tracker — skips already-injected rules
+8. Concatenates matched rule bodies into output — `SyncHookJSONOutput` with `hookSpecificOutput.additionalContext` for context-injecting events; `{ decision: "block", reason }` for `Stop` events (Stop hooks cannot inject context)
+9. Records injected rules to tracker file at `{trackerDir}/injections-{sessionId}.json`
 
 ## Examples
 
@@ -56,6 +57,8 @@ It does **not** fire when:
 
 > Claude finishes a response containing "here's a quick fix". The `Stop` event fires with `last_assistant_message` containing that text. The `always-proper-fix` rule declares keywords `[quick fix, workaround]`. "quick fix" matches, so the hook blocks with the rule as the reason, forcing Claude to retry without presenting shortcuts.
 
+> Claude finishes a brainstorming turn that mentions "optional" without writing or editing any files. The `Stop` event fires. The `fix-all-discovered-bugs-not-just-some` rule declares `keywords: [optional, ...]` and `depends-on: [Tool(Write), Tool(Edit), Tool(NotebookEdit), Tool(Bash)]`. The keyword matches, but `transcriptHasToolCall` returns `false` because no Write/Edit/NotebookEdit/Bash tool was used since the last user message. The rule is skipped — no false-positive injection.
+
 ### Rule File Format
 
 ```markdown
@@ -67,6 +70,21 @@ keywords: [tokens, output, cost, verbose, concise, brief]
 
 Rule content injected as context...
 ```
+
+#### Optional `depends-on` (Stop events only)
+
+```markdown
+---
+name: fix-all-discovered-bugs-not-just-some
+events: [Stop]
+keywords: [defer, optional, want me to]
+depends-on: [Tool(Write), Tool(Edit), Tool(NotebookEdit), Tool(Bash)]
+---
+
+Body...
+```
+
+`depends-on` is a bracket array of `Tool(<exact-name>)` items where `<exact-name>` is a Claude Code tool name (`Write`, `Edit`, `NotebookEdit`, `Bash`, MCP tools like `mcp__voice__speak`, etc.). OR semantics: the rule fires if ANY listed tool was used in the current turn. Items not matching `Tool(X)` syntax are silently ignored (forward-compat for future dependency types). The gate only applies to Stop events; on other events `depends-on` is ignored.
 
 ### Configuration
 
@@ -92,6 +110,7 @@ Rule content injected as context...
 - `lib/paths` — `getPaiDir()` for tracker file location
 - `core/adapters/fs` — `readFile`, `readJson`, `writeJson`, `fileExists` for rule and tracker I/O
 - `core/types/hook-input-schema` — Effect Schema for discriminated input parsing (replaces field-sniffing)
+- `transcript-tool-scan` — `transcriptHasToolCall` for `depends-on` gate (sibling helper that walks the JSONL transcript backwards to detect tool usage in the current turn)
 - `Bun.Glob` — resolves include patterns to file paths
 
 ## Error Logging

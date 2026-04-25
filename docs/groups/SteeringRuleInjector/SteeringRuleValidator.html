@@ -1893,6 +1893,7 @@ A PreToolUse hook that validates steering rule files before Write/Edit completes
       <div class="reason"><span class="ri">&#x2022;</span> <code>name: rule-name</code> (required)</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>events: [Event1, Event2]</code> (bracket array, not YAML list)</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>keywords: [word1, word2]</code> (bracket array, not YAML list)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>depends-on: [Tool(Write), Tool(Edit)]</code> (optional; if present, must be bracket array — item shape is NOT enforced; the parser handles that)</div>
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
@@ -1935,6 +1936,7 @@ keywords:
 name: my-rule
 events: [SessionStart]
 keywords: [example]
+depends-on: [Tool(Write), Tool(Edit)]
 ---</div>
         </div>
       </div>

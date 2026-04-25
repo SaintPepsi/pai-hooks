@@ -1906,9 +1906,9 @@ At session end, check whether any automation source files were modified without 
         </div>
 </div>
       <div class="reason"><span class="ri">&#x2022;</span> A narrative opener (escalating tone based on violation count)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The list of modified source files lacking documentation</div>
+<div class="reason"><span class="ri">&#x2022;</span> A compact tree view of modified source files (grouped by directory, showing <code>file → doc.md</code>)</div>
 <div class="reason"><span class="ri">&#x2022;</span> Specific suggestions for which <code>doc.md</code> files to create</div>
-<div class="reason"><span class="ri">&#x2022;</span> The required sections that each doc must contain</div>
+<div class="reason"><span class="ri">&#x2022;</span> The required sections (only on first block to minimize context usage)</div>
       
       <div class="code-window">
         <div class="code-window-header">
@@ -1946,15 +1946,17 @@ return ok({ decision: "block", reason });</div>
       <div class="uc-example">
         <div>You edit <code>FooBar/FooBar.contract.ts</code> during a session. When you try to end the session, HookDocEnforcer blocks with:</div>
         <div>"Hook source files modified without documentation:</div>
-        <div>- /hooks/MyGroup/FooBar/FooBar.contract.ts</div>
-        <div>Create or update <code>/hooks/MyGroup/FooBar/doc.md</code></div>
+        <div>  hooks/MyGroup/FooBar/</div>
+        <div>    FooBar.contract.ts → doc.md</div>
+        <div>Update <code>/hooks/MyGroup/FooBar/doc.md</code></div>
         <div>Required sections in <code>doc.md</code>:</div>
-        <div>- ## Overview</div>
-        <div>- ## Event</div>
-        <div>- ## When It Fires</div>
-        <div>- ## What It Does</div>
-        <div>- ## Examples</div>
-        <div>- ## Dependencies"</div>
+        <div>  - ## Overview</div>
+        <div>  - ## Event</div>
+        <div>  - ## When It Fires</div>
+        <div>  - ## What It Does</div>
+        <div>  - ## Examples</div>
+        <div>  - ## Dependencies"</div>
+        <div>On subsequent blocks, the required sections are omitted to reduce context usage.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">

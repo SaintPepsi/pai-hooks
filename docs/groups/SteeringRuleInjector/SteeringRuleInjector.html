@@ -1906,7 +1906,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Parses YAML frontmatter from each file to extract <code>name</code>, <code>events</code>, and <code>keywords</code></p></div>
+          <div class="step-content"><p>Parses YAML frontmatter from each file to extract <code>name</code>, <code>events</code>, <code>keywords</code>, and optional <code>depends-on</code></p></div>
         </div>
 
         <div class="flow-step">
@@ -1921,16 +1921,21 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>Checks per-session injection tracker — skips already-injected rules</p></div>
+          <div class="step-content"><p><strong>Gates Stop-event rules by <code>depends-on</code></strong> — if a rule has <code>depends-on: [Tool(X), ...]</code> and the current event is <code>Stop</code>, calls <code>transcriptHasToolCall</code> to check whether any listed tool was used in the current turn (since the most recent real user message). If not, the rule is skipped. Non-Stop events ignore <code>depends-on</code>.</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Concatenates matched rule bodies into output — <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> for context-injecting events; <code>{ decision: "block", reason }</code> for <code>Stop</code> events (Stop hooks cannot inject context)</p></div>
+          <div class="step-content"><p>Checks per-session injection tracker — skips already-injected rules</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">8</div>
+          <div class="step-content"><p>Concatenates matched rule bodies into output — <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.additionalContext</code> for context-injecting events; <code>{ decision: "block", reason }</code> for <code>Stop</code> events (Stop hooks cannot inject context)</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">9</div>
           <div class="step-content"><p>Records injected rules to tracker file at <code>{trackerDir}/injections-{sessionId}.json</code></p></div>
         </div>
 </div>
@@ -1968,6 +1973,10 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
       <div class="uc-example">
         <div>Claude finishes a response containing "here's a quick fix". The <code>Stop</code> event fires with <code>last_assistant_message</code> containing that text. The <code>always-proper-fix</code> rule declares keywords <code>[quick fix, workaround]</code>. "quick fix" matches, so the hook blocks with the rule as the reason, forcing Claude to retry without presenting shortcuts.</div>
       </div>
+      
+      <div class="uc-example">
+        <div>Claude finishes a brainstorming turn that mentions "optional" without writing or editing any files. The <code>Stop</code> event fires. The <code>fix-all-discovered-bugs-not-just-some</code> rule declares <code>keywords: [optional, ...]</code> and <code>depends-on: [Tool(Write), Tool(Edit), Tool(NotebookEdit), Tool(Bash)]</code>. The keyword matches, but <code>transcriptHasToolCall</code> returns <code>false</code> because no Write/Edit/NotebookEdit/Bash tool was used since the last user message. The rule is skipped — no false-positive injection.</div>
+      </div>
       <div style="margin-top: 20px;">
       <h3 style="color: var(--green); margin-bottom: 12px;">Rule File Format</h3>
       
@@ -1987,6 +1996,26 @@ keywords: [tokens, output, cost, verbose, concise, brief]
 Rule content injected as context...</div>
         </div>
       </div>
+      <p>#### Optional <code>depends-on</code> (Stop events only)</p>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">markdown</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">markdown</span>
+---
+name: fix-all-discovered-bugs-not-just-some
+events: [Stop]
+keywords: [defer, optional, want me to]
+depends-on: [Tool(Write), Tool(Edit), Tool(NotebookEdit), Tool(Bash)]
+---
+
+Body...</div>
+        </div>
+      </div>
+      <p><code>depends-on</code> is a bracket array of <code>Tool(<exact-name>)</code> items where <code><exact-name></code> is a Claude Code tool name (<code>Write</code>, <code>Edit</code>, <code>NotebookEdit</code>, <code>Bash</code>, MCP tools like <code>mcp__voice__speak</code>, etc.). OR semantics: the rule fires if ANY listed tool was used in the current turn. Items not matching <code>Tool(X)</code> syntax are silently ignored (forward-compat for future dependency types). The gate only applies to Stop events; on other events <code>depends-on</code> is ignored.</p>
       </div>
       <div style="margin-top: 20px;">
       <h3 style="color: var(--green); margin-bottom: 12px;">Configuration</h3>
@@ -2028,6 +2057,7 @@ Rule content injected as context...</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>getPaiDir()</code> for tracker file location</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>readJson</code>, <code>writeJson</code>, <code>fileExists</code> for rule and tracker I/O</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>core/types/hook-input-schema</code> — Effect Schema for discriminated input parsing (replaces field-sniffing)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>transcript-tool-scan</code> — <code>transcriptHasToolCall</code> for <code>depends-on</code> gate (sibling helper that walks the JSONL transcript backwards to detect tool usage in the current turn)</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>Bun.Glob</code> — resolves include patterns to file paths</div>
     </div>
   </section>
